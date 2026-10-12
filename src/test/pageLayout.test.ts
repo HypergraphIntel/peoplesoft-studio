@@ -129,11 +129,12 @@ test('page properties come from PSPNLDEFN', () => {
 test('the editable page has the Insert menu (App Designer\'s groups) and selection tools; read-only does not', () => {
   const layout = buildPageLayout('P', view([field({ FIELDNUM: 1 })]));
   const edit = renderPageHtml(layout, '', 'N', { editable: true, status: 'Saved (v9)' });
-  for (const kind of ['frame', 'groupBox', 'horizontalRule', 'staticText', 'checkBox', 'dropDown', 'editBox', 'pushButton']) {
+  // Every entry of App Designer's Insert menu, each captured (0.8.3 added the last eight); the groups follow its menu.
+  for (const kind of ['frame', 'groupBox', 'horizontalRule', 'staticText', 'staticImage', 'tabSeparator', 'checkBox', 'dropDown', 'editBox', 'htmlArea', 'image',
+    'longEdit', 'pushButton', 'radioButton', 'tree', 'grid', 'scrollArea', 'scrollBar', 'secondaryPage', 'subpage', 'chart', 'analyticGrid']) {
     assert.match(edit, new RegExp(`class="menu-item tool" role="menuitem" data-kind="${kind}"`));
   }
-  // Uncaptured types are listed, disabled; the groups follow App Designer's menu.
-  assert.match(edit, /<button class="menu-item" role="menuitem" disabled[^>]*>Grid<\/button>/);
+  assert.doesNotMatch(edit, /class="menu-item" role="menuitem" disabled/);
   assert.ok(edit.indexOf('Containers and text') < edit.indexOf('>Controls<') && edit.indexOf('>Controls<') < edit.indexOf('Grids and scrolls'));
   for (const id of ['sel-field', 'sel-group', 'sel-all', 'ord-up', 'ord-down']) assert.match(edit, new RegExp(`id="${id}"`));
   assert.match(edit, /<tr data-id="1" tabindex="0" draggable="true">/);
@@ -141,7 +142,7 @@ test('the editable page has the Insert menu (App Designer\'s groups) and selecti
   assert.match(edit, /"editBox":\{"shape":"field","typeName":"Edit Box","bound":true/);
   // 0.8.2: Static Image, Radio Button, Long Edit Box and HTML Area insert too; an HTML Area's field is optional.
   for (const kind of ['staticImage', 'radioButton', 'longEdit', 'htmlArea']) assert.match(edit, new RegExp(`data-kind="${kind}"`));
-  assert.match(edit, /"htmlArea":\{[^}]*"fieldOptional":true\}/);
+  assert.match(edit, /"htmlArea":\{[^}]*"fieldOptional":true[,}]/);
   assert.match(edit, /"groupBox":\{"shape":"container","typeName":"Group Box","bound":false,"w":300,"h":156/);
   assert.match(edit, /id="status">Saved \(v9\)</);
   const ro = renderPageHtml(layout, '', 'N', { editable: false });
@@ -181,4 +182,22 @@ test('the page window\'s script is valid JavaScript (an escape slip in the templ
     assert.ok(scripts.length > 0);
     for (const code of scripts) assert.doesNotThrow(() => new Function(code), SyntaxError);
   }
+});
+
+test('a grid\'s columns -- the (0, 0) controls after it -- are drawn inside it, left to right; their stored place stays (0, 0) (gd-column, ts-fresh)', () => {
+  const layout = buildPageLayout('P', view([
+    field({ FIELDNUM: 1, FIELDTYPE: 19, OCCURSLEVEL: 1, FIELDLEFT: 100, FIELDTOP: 204, FIELDRIGHT: 480, FIELDBOTTOM: 312, GRDSHOWROWHDG: 1, LBLTYPE: 0, LBLTEXT: 'Grid' }),
+    field({ FIELDNUM: 2, FIELDTYPE: 4, OCCURSLEVEL: 1, FIELDRIGHT: 120, FIELDBOTTOM: 15, LBLTEXT: 'ZZ Lab C08' }),
+    field({ FIELDNUM: 3, FIELDTYPE: 24, OCCURSLEVEL: 1, FIELDRIGHT: 28, FIELDBOTTOM: 15, LBLTYPE: 0, LBLTEXT: 'Tab Separator' }),
+    field({ FIELDNUM: 4, FIELDTYPE: 12, OCCURSLEVEL: 1, FIELDLEFT: 500, FIELDTOP: 210, FIELDRIGHT: 560, FIELDBOTTOM: 230 })
+  ]));
+  const [grid, col, tab, button] = layout.controls;
+  assert.equal(col.gridColumnOf, grid.pnlFldId);
+  assert.deepEqual(col.rect, { left: 122, top: 224, width: 120, height: 18 });
+  assert.deepEqual(tab.rect, { left: 243, top: 224, width: 28, height: 18 });
+  assert.equal(col.label?.text, 'ZZ Lab C08');
+  assert.deepEqual([col.columns.fieldLeft, col.columns.fieldTop], [0, 0]);
+  // A control after the grid but placed elsewhere is in its scroll, not a column.
+  assert.equal(button.gridColumnOf, undefined);
+  assert.equal(button.rect.left, 500);
 });

@@ -31,7 +31,10 @@ import { decodeProgram, DecodeOptions } from '../peoplecode/decoder.js';
 import { FieldLabelRow, FieldRow, renderField } from './oracleRender.js';
 import { renderComponent, renderMenu, renderPage, type PageView, type Row as UiRow } from '../model/uiDefinitions.js';
 import { buildPageLayout, type PageLayout } from '../model/pageLayout.js';
-import { buildComponentStructure, referencedPages, type StructureField } from '../model/componentStructure.js';
+import { buildComponentStructure, referencedPages, type ComponentStructure, type StructureField } from '../model/componentStructure.js';
+import { ciBuffer, ciFromBuffer, markKeys, type CiBuffer, type CiDocument, type CiRecordField, type CiSource } from '../model/ciDocument.js';
+import { ciDocumentOf, ciToken, deleteCi, readStoredCi, renameCi, saveCi, verifyCiSave, type CiSaveRequest, type CiSaveResult } from './ciWriter.js';
+import { ciSourceFromData, type CiSourceData } from '../model/ciSource.js';
 import { componentBuffer, pageStructure, type RecordInfo } from '../model/bufferStructure.js';
 import { PAGE_FIELD_TYPES as PAGE_CONTROL_TYPES } from '../model/uiDefinitions.js';
 import { buildComponentDefinition, type ComponentDefinition } from '../model/componentDefinition.js';
@@ -43,6 +46,11 @@ import {
   appEngineToken, deleteAppEngine, documentOf, readStoredAppEngine, renameAppEngine, saveAppEngine, verifyAppEngineSave,
   type AeSaveRequest, type AeSaveResult
 } from './appEngineWriter.js';
+import {
+  deleteMenu, menuDocumentOf, menuToken, readStoredMenu, renameMenu, saveMenu, verifyMenuSave, type MenuSaveRequest, type MenuSaveResult
+} from './menuWriter.js';
+import { TRANSFER_ACTIONS, type MenuDocument } from '../model/menuDocument.js';
+import type { MenuReferenceLookup } from '../model/menuSession.js';
 import type { AeDocument } from '../model/aeDocument.js';
 import type { AeReferenceLookup } from '../model/aeValidation.js';
 import { renderComponentInterface, renderFileLayout } from '../model/integrationDefinitions.js';
@@ -971,7 +979,8 @@ export class DatabaseProvider implements DefinitionProvider {
     const info = await this.recordInfo(rows.map((r) => String(r.RECNAME ?? '')));
     const controls = rows.map((r) => ({ id: Number(r.PNLFLDID), fieldType: Number(r.FIELDTYPE), typeName: PAGE_CONTROL_TYPES[Number(r.FIELDTYPE)] ?? `Type ${r.FIELDTYPE}`,
       occursLevel: Number(r.OCCURSLEVEL), fieldUse: Number(r.FIELDUSE), recName: String(r.RECNAME ?? ''), fieldName: String(r.FIELDNAME ?? ''),
-      label: String(r.LBLTEXT ?? ''), assocFieldNum: Number(r.ASSOCFIELDNUM ?? 0), recType: info.get(String(r.RECNAME ?? '').trim())?.type ?? -1 }));
+      label: String(r.LBLTEXT ?? ''), assocFieldNum: Number(r.ASSOCFIELDNUM ?? 0), recType: info.get(String(r.RECNAME ?? '').trim())?.type ?? -1,
+      fieldLeft: Number(r.FIELDLEFT ?? -1), fieldTop: Number(r.FIELDTOP ?? -1) }));
     return { page: name, ...pageStructure(name, controls, info) };
   }
 
@@ -1603,35 +1612,104 @@ export class DatabaseProvider implements DefinitionProvider {
           WHERE OBJECTID1 = 10 AND OBJECTVALUE1 = :n AND OBJECTVALUE2 = :m
           ORDER BY OBJECTID3 DESC, OBJECTVALUE3, OBJECTVALUE4, OBJECTVALUE5`, b);
 
-      // Every page the walk reaches: the items' pages, then their subpages and secondary pages, a batch at a time.
-      const fields = new Map<string, StructureField[]>();
-      let pending = [...new Set(items.map((i) => String(i.PNLNAME ?? '').trim()).filter(Boolean))];
-      while (pending.length) {
-        const batch = pending.splice(0, 500);
-        const binds = Object.fromEntries(batch.map((p, i) => [`p${i}`, p]));
-        const rows = await this.uiRows(c,
-          `SELECT PNLNAME, FIELDNUM, FIELDTYPE, OCCURSLEVEL, RECNAME, FIELDNAME, SUBPNLNAME, FIELDUSE FROM PSPNLFIELD
-            WHERE PNLNAME IN (${batch.map((_, i) => `:p${i}`).join(', ')})`, binds);
-        for (const p of batch) fields.set(p, []);
-        for (const r of rows) fields.get(String(r.PNLNAME).trim())?.push(r as unknown as StructureField);
-        for (const p of referencedPages(rows)) if (!fields.has(p) && !pending.includes(p)) pending.push(p);
+      const { structure } = await this.loadComponentStructure(c, items.map((i) => String(i.PNLNAME ?? '').trim()), String(defn.SEARCHRECNAME ?? ''));
+      const scripts = await this.uiRows(c,
+        `SELECT PTSCRIPTTYPE, PTSCRIPTNAME, PTSCRIPTCATG, SEQNO FROM PSPNLGRPSCRIPTS WHERE PNLGRPNAME = :n AND MARKET = :m`, b);
+      return buildComponentDefinition(name, market, { defn, ...(ext ? { ext } : {}), items, menus, programs, scripts }, structure);
+    });
+  }
+
+  /**
+   * A component's Structure tab (componentStructure.ts) from its pages: every
+   * page the walk reaches -- the pages, then their subpages and secondary
+   * pages, a batch at a time -- and the records' types.
+   */
+  private async loadComponentStructure(c: Connection, pages: readonly string[], searchRecord: string, systemPages: ReadonlySet<string> = new Set()):
+    Promise<{ structure: ComponentStructure; types: Map<string, number>; fields: Map<string, StructureField[]> }> {
+    // Every page the walk reaches: the items' pages, then their subpages and secondary pages, a batch at a time.
+    const fields = new Map<string, StructureField[]>();
+    let pending = [...new Set(pages.filter(Boolean))];
+    while (pending.length) {
+      const batch = pending.splice(0, 500);
+      const binds = Object.fromEntries(batch.map((p, i) => [`p${i}`, p]));
+      const rows = await this.uiRows(c,
+        `SELECT PNLNAME, FIELDNUM, FIELDTYPE, OCCURSLEVEL, RECNAME, FIELDNAME, SUBPNLNAME, FIELDUSE FROM PSPNLFIELD
+          WHERE PNLNAME IN (${batch.map((_, i) => `:p${i}`).join(', ')})`, binds);
+      for (const p of batch) fields.set(p, []);
+      for (const r of rows) fields.get(String(r.PNLNAME).trim())?.push(r as unknown as StructureField);
+      for (const p of referencedPages(rows)) if (!fields.has(p) && !pending.includes(p)) pending.push(p);
+    }
+    const records = new Set<string>([searchRecord.trim()]);
+    for (const list of fields.values()) for (const f of list) if (String(f.RECNAME ?? '').trim()) records.add(String(f.RECNAME).trim());
+    const types = new Map<string, number>();
+    const recs = [...records].filter(Boolean);
+    for (let i = 0; i < recs.length; i += 500) {
+      const batch = recs.slice(i, i + 500);
+      const binds = Object.fromEntries(batch.map((r, j) => [`r${j}`, r]));
+      for (const r of await this.uiRows(c, `SELECT RECNAME, RECTYPE FROM PSRECDEFN WHERE RECNAME IN (${batch.map((_, j) => `:r${j}`).join(', ')})`, binds)) {
+        types.set(String(r.RECNAME).trim(), Number(r.RECTYPE));
       }
-      const records = new Set<string>([String(defn.SEARCHRECNAME ?? '').trim()]);
-      for (const list of fields.values()) for (const f of list) if (String(f.RECNAME ?? '').trim()) records.add(String(f.RECNAME).trim());
-      const types = new Map<string, number>();
-      const recs = [...records].filter(Boolean);
+    }
+    const structure = buildComponentStructure(pages, searchRecord, (p) => fields.get(p), (r) => types.get(r) ?? -1, systemPages);
+    return { structure, types, fields };
+  }
+
+  /** What App Designer reads from a component to default a Component Interface on it (ciDocument.ts). */
+  async readCiSource(component: string, market: string): Promise<CiSource> {
+    return ciSourceFromData(await this.readCiSourceData(component, market));
+  }
+
+  /** The rows readCiSource reads, as data (tests keep them as fixtures: ci-source.json). */
+  async readCiSourceData(component: string, market: string): Promise<CiSourceData> {
+    return this.withConnection(async (c) => {
+      const b = { n: component, m: market };
+      const [defn] = await this.uiRows(c,
+        `SELECT SEARCHRECNAME, ADDSRCHRECNAME, ACTIONS, FLUIDMODE, INCHEADER, INCSIDE FROM PSPNLGRPDEFN WHERE PNLGRPNAME = :n AND MARKET = :m`, b);
+      if (!defn) throw new ProviderError(`No component named ${component}.${market}.`);
+      const pages = (await this.uiRows(c, `SELECT PNLNAME FROM PSPNLGROUP WHERE PNLGRPNAME = :n AND MARKET = :m ORDER BY SUBITEMNUM`, b))
+        .map((r) => String(r.PNLNAME).trim());
+      const searchRecord = String(defn.SEARCHRECNAME ?? '').trim();
+      const addSearchRecord = String(defn.ADDSRCHRECNAME ?? '').trim();
+      // A Fluid component's buffer has the system side page, then header page, after its own (ci04), unless No System Side / Header Page.
+      const system = Number(defn.FLUIDMODE) === 1
+        ? [...(Number(defn.INCSIDE) ? [] : ['PT_SIDE2PAGE']), ...(Number(defn.INCHEADER) ? [] : ['PT_HEADERPAGE'])] : [];
+      const { types, fields: pageFields } = await this.loadComponentStructure(c, [...pages, ...system], searchRecord, new Set(system));
+      const recs = [...new Set([...types.keys(), addSearchRecord].filter(Boolean))];
+      const fields = new Map<string, CiRecordField[]>();
       for (let i = 0; i < recs.length; i += 500) {
         const batch = recs.slice(i, i + 500);
         const binds = Object.fromEntries(batch.map((r, j) => [`r${j}`, r]));
-        for (const r of await this.uiRows(c, `SELECT RECNAME, RECTYPE FROM PSRECDEFN WHERE RECNAME IN (${batch.map((_, j) => `:r${j}`).join(', ')})`, binds)) {
-          types.set(String(r.RECNAME).trim(), Number(r.RECTYPE));
+        const rows = await this.uiRows(c,
+          `SELECT R.RECNAME, R.FIELDNAME, R.USEEDIT, D.FIELDTYPE FROM PSRECFIELDDB R JOIN PSDBFIELD D ON D.FIELDNAME = R.FIELDNAME
+            WHERE R.RECNAME IN (${batch.map((_, j) => `:r${j}`).join(', ')}) ORDER BY R.RECNAME, R.FIELDNUM`, binds);
+        for (const r of rows) {
+          const rec = String(r.RECNAME).trim();
+          if (!fields.has(rec)) fields.set(rec, []);
+          fields.get(rec)!.push({ name: String(r.FIELDNAME).trim(), useEdit: Number(r.USEEDIT), fieldType: Number(r.FIELDTYPE) });
         }
       }
-      const scripts = await this.uiRows(c,
-        `SELECT PTSCRIPTTYPE, PTSCRIPTNAME, PTSCRIPTCATG, SEQNO FROM PSPNLGRPSCRIPTS WHERE PNLGRPNAME = :n AND MARKET = :m`, b);
-      const structure = buildComponentStructure(items.map((i) => String(i.PNLNAME ?? '').trim()), String(defn.SEARCHRECNAME ?? ''),
-        (p) => fields.get(p), (r) => types.get(r) ?? -1);
-      return buildComponentDefinition(name, market, { defn, ...(ext ? { ext } : {}), items, menus, programs, scripts }, structure);
+      if (addSearchRecord && !types.has(addSearchRecord)) {
+        const [t] = await this.uiRows(c, `SELECT RECTYPE FROM PSRECDEFN WHERE RECNAME = :r`, { r: addSearchRecord });
+        if (t) types.set(addSearchRecord, Number(t.RECTYPE));
+      }
+      const recordSyncFields: Record<string, [string, string]> = {};
+      const all = [...types.keys()];
+      for (let i = 0; i < all.length; i += 500) {
+        const batch = all.slice(i, i + 500);
+        const binds = Object.fromEntries(batch.map((r, j) => [`r${j}`, r]));
+        for (const r of await this.uiRows(c, `SELECT RECNAME, SYSTEMIDFIELDNAME, TIMESTAMPFIELDNAME FROM PSRECDEFN WHERE RECNAME IN (${batch.map((_, j) => `:r${j}`).join(', ')})`, binds)) {
+          recordSyncFields[String(r.RECNAME).trim()] = [String(r.SYSTEMIDFIELDNAME ?? ' '), String(r.TIMESTAMPFIELDNAME ?? ' ')];
+        }
+      }
+      const clean = (f: StructureField): StructureField => ({
+        FIELDNUM: Number(f.FIELDNUM), FIELDTYPE: Number(f.FIELDTYPE), OCCURSLEVEL: Number(f.OCCURSLEVEL), RECNAME: String(f.RECNAME ?? '').trim(),
+        FIELDNAME: String(f.FIELDNAME ?? '').trim(), SUBPNLNAME: String(f.SUBPNLNAME ?? '').trim(), FIELDUSE: Number(f.FIELDUSE)
+      });
+      return {
+        component, market, searchRecord, addSearchRecord, actions: Number(defn.ACTIONS), pages, systemPages: system,
+        pageFields: Object.fromEntries([...pageFields].map(([p, list]) => [p, list.map(clean)])),
+        recordTypes: Object.fromEntries(types), recordFields: Object.fromEntries(fields), recordSyncFields
+      };
     });
   }
 
@@ -1789,6 +1867,153 @@ export class DatabaseProvider implements DefinitionProvider {
     const result = await this.withConnection((c) => renameAppEngine(c, types, from, to, token, operatorId));
     await this.withConnection((c) => verifyAppEngineSave(c, types, result));
     return result;
+  }
+
+  /** A menu as an editable document (model/menuDocument.ts) with its concurrency token; undefined when there is none. */
+  async readMenuDocument(name: string): Promise<{ doc: MenuDocument; token: string } | undefined> {
+    return this.withConnection(async (c) => {
+      const stored = await readStoredMenu(c, this.types, name, false);
+      if (!stored.exists) return undefined;
+      return { doc: menuDocumentOf(stored), token: menuToken(stored) };
+    });
+  }
+
+  /** Saves a menu document as App Designer does (menuWriter.ts, docs/MENUS.md), then proves it after COMMIT. */
+  async saveMenuDocument(request: MenuSaveRequest): Promise<MenuSaveResult> {
+    const types = this.types;
+    const result = await this.withConnection((c) => saveMenu(c, types, request));
+    await this.withConnection((c) => verifyMenuSave(c, types, result));
+    return result;
+  }
+
+  async deleteMenuDefinition(name: string, token: string, operatorId: string): Promise<void> {
+    const types = this.types;
+    await this.withConnection((c) => deleteMenu(c, types, name, token, operatorId));
+    const after = await this.withConnection((c) => readStoredMenu(c, types, name, false));
+    if (after.exists) throw new ProviderError(`After COMMIT ${name} still exists.`);
+  }
+
+  async renameMenuDefinition(from: string, to: string, token: string, operatorId: string): Promise<MenuSaveResult> {
+    const types = this.types;
+    const result = await this.withConnection((c) => renameMenu(c, types, from, to, token, operatorId));
+    await this.withConnection((c) => verifyMenuSave(c, types, result));
+    return result;
+  }
+
+  /**
+   * A Component Interface as its window holds it (ciWriter.ts,
+   * docs/COMPONENT_INTERFACES.md), with its component's buffer -- the
+   * window's left tree, numbered -- and the items' key flags; the buffer is
+   * missing when the component is.
+   */
+  async readCiDocument(name: string): Promise<{ doc: CiDocument; token: string; buffer?: CiBuffer } | undefined> {
+    const stored = await this.withConnection((c) => readStoredCi(c, this.types, name, false));
+    if (!stored.exists) return undefined;
+    const doc = ciDocumentOf(stored);
+    let buffer: CiBuffer | undefined;
+    try {
+      const src = await this.readCiSource(doc.component, doc.market);
+      buffer = ciBuffer(src);
+      markKeys(doc, (r, f) => !!(((src.recordFields(r) ?? []).find((x) => x.name === f)?.useEdit ?? 0) & 1));
+    } catch (error) {
+      if (!(error instanceof ProviderError)) throw error;
+    }
+    return { doc, token: ciToken(stored), ...(buffer ? { buffer } : {}) };
+  }
+
+  /** File > New > Component Interface on a component: (123,12) Yes defaults its properties, No makes its keys only (ci01-ci04, ci28). */
+  async newCiDocument(name: string, component: string, market: string, defaults: boolean): Promise<{ doc: CiDocument; buffer: CiBuffer }> {
+    const src = await this.readCiSource(component, market);
+    const buffer = ciBuffer(src);
+    const doc = ciFromBuffer(name, buffer, defaults);
+    markKeys(doc, (r, f) => !!(((src.recordFields(r) ?? []).find((x) => x.name === f)?.useEdit ?? 0) & 1));
+    return { doc, buffer };
+  }
+
+  /** Saves a Component Interface as App Designer does, then proves it after COMMIT. */
+  async saveCiDocument(request: CiSaveRequest): Promise<CiSaveResult> {
+    const types = this.types;
+    const result = await this.withConnection((c) => saveCi(c, types, request));
+    await this.withConnection((c) => verifyCiSave(c, types, result));
+    return result;
+  }
+
+  async deleteCiDefinition(name: string, token: string, operatorId: string): Promise<void> {
+    const types = this.types;
+    await this.withConnection((c) => deleteCi(c, types, name, token, operatorId));
+    const after = await this.withConnection((c) => readStoredCi(c, types, name, false));
+    if (after.exists) throw new ProviderError(`After COMMIT ${name} still exists.`);
+  }
+
+  async renameCiDefinition(from: string, to: string, token: string, operatorId: string): Promise<CiSaveResult> {
+    const types = this.types;
+    const result = await this.withConnection((c) => renameCi(c, types, from, to, token, operatorId));
+    await this.withConnection((c) => verifyCiSave(c, types, result));
+    return result;
+  }
+
+  /** The lists the CI window's dialogs offer: owners, components (Select source Component), the menus with an item for the component (Menu Name: ci05), projects. */
+  async ciChoices(what: 'owners' | 'components' | 'menus' | 'projects', arg = '', limit = 300): Promise<{ value: string; label?: string }[]> {
+    const like = `${arg.toUpperCase()}%`;
+    const q = (sql: string, binds: Record<string, unknown>) => this.withConnection(async (c) => (await c.execute<Record<string, unknown>>(sql, binds)).rows ?? []);
+    const out = (rows: Record<string, unknown>[]) => rows.map((r) => ({ value: String(r.V).trim(), ...(r.L !== undefined && r.L !== null ? { label: String(r.L).trim() } : {}) }));
+    switch (what) {
+      case 'owners': return out(await q(`SELECT FIELDVALUE AS V, XLATLONGNAME AS L FROM PSXLATITEM WHERE FIELDNAME = 'OBJECTOWNERID' AND EFF_STATUS = 'A' ORDER BY XLATLONGNAME`, {}));
+      case 'components': return out(await q(`SELECT PNLGRPNAME AS V, MARKET AS L FROM PSPNLGRPDEFN WHERE PNLGRPNAME LIKE :p ORDER BY PNLGRPNAME, MARKET FETCH FIRST :n ROWS ONLY`, { p: like, n: limit }));
+      case 'menus': {
+        const [component, market] = arg.split('.');
+        return out(await q(`SELECT DISTINCT MENUNAME AS V FROM PSMENUITEM WHERE PNLGRPNAME = :c AND MARKET = :m ORDER BY MENUNAME`, { c: component, m: market || 'GBL' }));
+      }
+      case 'projects': return out(await q(`SELECT PROJECTNAME AS V, PROJECTDESCR AS L FROM PSPROJECTDEFN WHERE PROJECTNAME LIKE :p ORDER BY PROJECTNAME FETCH FIRST :n ROWS ONLY`, { p: like, n: limit }));
+    }
+  }
+
+  /** What menu reference validation asks the database (model/menuSession.ts). */
+  menuReferenceLookup(): MenuReferenceLookup {
+    const count = (sql: string, binds: Record<string, unknown>) =>
+      this.withConnection(async (c) => Number(((await c.execute<{ N: number }>(sql, binds)).rows ?? [])[0]?.N ?? 0));
+    return {
+      componentExists: async (component, market) => (await count(`SELECT COUNT(*) AS N FROM PSPNLGRPDEFN WHERE PNLGRPNAME = :c AND MARKET = :m`, { c: component, m: market })) > 0,
+      recordExists: async (record) => (await count(`SELECT COUNT(*) AS N FROM PSRECDEFN WHERE RECNAME = :r`, { r: record })) > 0,
+      menuExists: async (menu) => (await count(`SELECT COUNT(*) AS N FROM PSMENUDEFN WHERE MENUNAME = :m`, { m: menu })) > 0
+    };
+  }
+
+  /**
+   * The lists the Menu Designer's dialogs offer: owners, menu groups (with
+   * their order and separator), components and markets (Select...), search
+   * records, and Transfer Properties' portals, nodes, menus, a menu's
+   * components, a component's pages and allowed actions.
+   */
+  async menuChoices(what: 'owners' | 'groups' | 'components' | 'records' | 'portals' | 'nodes' | 'menus' | 'menuComponents' | 'pages' | 'actions',
+    arg = '', limit = 300): Promise<{ value: string; label?: string; order?: number; separator?: boolean }[]> {
+    const like = `${arg.toUpperCase()}%`;
+    const q = (sql: string, binds: Record<string, unknown>) => this.withConnection(async (c) => (await c.execute<Record<string, unknown>>(sql, binds)).rows ?? []);
+    const out = (rows: Record<string, unknown>[]) => rows.map((r) => ({ value: String(r.V).trim(), ...(r.L !== undefined && r.L !== null ? { label: String(r.L).trim() } : {}) }));
+    switch (what) {
+      case 'owners': return out(await q(`SELECT FIELDVALUE AS V, XLATLONGNAME AS L FROM PSXLATITEM WHERE FIELDNAME = 'OBJECTOWNERID' AND EFF_STATUS = 'A' ORDER BY XLATLONGNAME`, {}));
+      case 'groups': {
+        const rows = await q(`SELECT MENUGROUP AS V, MAX(GROUPORDER) AS O, MAX(GROUPSEP) AS S FROM PSMENUDEFN WHERE MENUTYPE = 0 AND MENUGROUP <> ' ' GROUP BY MENUGROUP ORDER BY MAX(GROUPORDER), MENUGROUP`, {});
+        return rows.map((r) => ({ value: String(r.V).trim(), order: Number(r.O), separator: Number(r.S) === 1 }));
+      }
+      case 'components': return out(await q(`SELECT PNLGRPNAME AS V, MARKET AS L FROM PSPNLGRPDEFN WHERE PNLGRPNAME LIKE :p ORDER BY PNLGRPNAME, MARKET FETCH FIRST :n ROWS ONLY`, { p: like, n: limit }));
+      case 'records': return out(await q(`SELECT RECNAME AS V, RECDESCR AS L FROM PSRECDEFN WHERE RECNAME LIKE :p AND RECTYPE IN (0, 1, 6) ORDER BY RECNAME FETCH FIRST :n ROWS ONLY`, { p: like, n: limit }));
+      case 'portals': return out(await q(`SELECT PORTAL_NAME AS V FROM PSPRDMDEFN ORDER BY PORTAL_NAME`, {}));
+      case 'nodes': return out(await q(`SELECT MSGNODENAME AS V, DESCR AS L FROM PSMSGNODEDEFN ORDER BY MSGNODENAME`, {}));
+      case 'menus': return out(await q(`SELECT MENUNAME AS V, DESCR AS L FROM PSMENUDEFN WHERE MENUNAME LIKE :p AND MENUTYPE = 0 ORDER BY MENUNAME FETCH FIRST :n ROWS ONLY`, { p: like, n: limit }));
+      case 'menuComponents': return out(await q(`SELECT DISTINCT PNLGRPNAME AS V, MARKET AS L FROM PSMENUITEM WHERE MENUNAME = :m AND ITEMTYPE = 5 ORDER BY PNLGRPNAME`, { m: arg }));
+      case 'pages': {
+        const [component, market] = arg.split('.');
+        return out(await q(`SELECT ITEMNAME AS V, ITEMLABEL AS L FROM PSPNLGROUP WHERE PNLGRPNAME = :c AND MARKET = :m AND HIDDEN = 0 ORDER BY SUBITEMNUM`, { c: component, m: market || 'GBL' }));
+      }
+      case 'actions': {
+        const [component, market] = arg.split('.');
+        const [r] = await q(`SELECT ACTIONS AS A FROM PSPNLGRPDEFN WHERE PNLGRPNAME = :c AND MARKET = :m`, { c: component, m: market || 'GBL' });
+        const bits = Number(r?.A ?? 0);
+        // XFERACTION is the bit's position in PSPNLGRPDEFN.ACTIONS [mp02-mp04].
+        return Object.entries(TRANSFER_ACTIONS).filter(([code]) => bits & (1 << Number(code))).map(([code, label]) => ({ value: code, label }));
+      }
+    }
   }
 
   /** What App Engine reference validation asks the database (model/aeValidation.ts). */

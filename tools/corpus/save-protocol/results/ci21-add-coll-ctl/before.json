@@ -1,0 +1,3732 @@
+{
+ "format": "def-capture/1",
+ "kind": "ci",
+ "phase": "before",
+ "case": "ci21-add-coll-ctl",
+ "name": "ZZ_PCODE_LAB_CI4",
+ "watch": {
+  "PSBCDEFN": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCDISPLAYNAME"
+    },
+    {
+     "name": "BCPGNAME"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "MENUNAME"
+    },
+    {
+     "name": "SEARCHRECNAME"
+    },
+    {
+     "name": "ADDSRCHRECNAME"
+    },
+    {
+     "name": "ITEMCOUNT"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "BCSTDMETHODS"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "key": [
+    "BCNAME"
+   ],
+   "rows": [
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "ZZ_PCODE_LAB_CI4",
+     "HCSC_ADH_NOTIFY_FL",
+     "GBL",
+     " ",
+     "HCSC_NTF_SRH_FL",
+     "HCSC_NOTF_ASRCH",
+     "123",
+     " ",
+     "6",
+     "31",
+     "2026-10-11T21:16:15",
+     "JARED",
+     " ",
+     null
+    ]
+   ]
+  },
+  "PSBCITEM": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCTYPE"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "SEQUENCE_NBR_6"
+    },
+    {
+     "name": "BCACCESS"
+    },
+    {
+     "name": "BCSCROLL"
+    },
+    {
+     "name": "BCSCROLLNUM"
+    },
+    {
+     "name": "BCSCROLLNAME"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "FIELDNAME"
+    },
+    {
+     "name": "SUBRECNAME"
+    },
+    {
+     "name": "COMMENTSHORT"
+    },
+    {
+     "name": "SYNCID"
+    },
+    {
+     "name": "MPDEVICEPERSISTINT"
+    }
+   ],
+   "key": [
+    "BCNAME",
+    "BCTYPE",
+    "BCITEMPARENT",
+    "BCITEMNAME"
+   ],
+   "rows": [
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "1",
+     "PS_ROOT",
+     "HCSC_NOTIF_TRNS_ID",
+     "1",
+     "1",
+     "0",
+     "0",
+     "AA-AA-00-00",
+     "HCSC_NTF_SRH_FL",
+     "HCSC_NOTIF_TRNS_ID",
+     " ",
+     " ",
+     "37607",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "2",
+     "PS_ROOT",
+     "HCSC_NOTIF_TRNS_ID",
+     "7",
+     "1",
+     "0",
+     "0",
+     "AA-AA-00-01",
+     "HCSC_NOTF_ASRCH",
+     "HCSC_NOTIF_TRNS_ID",
+     " ",
+     " ",
+     "37613",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "3",
+     "PS_ROOT",
+     "EONC_EMAIL_BIND",
+     "345",
+     "1",
+     "1",
+     "12",
+     "00-00-01-12",
+     "EONC_EMAIL_BIND",
+     " ",
+     " ",
+     " ",
+     "37720",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "3",
+     "PS_ROOT",
+     "EONC_EMSBJ_BIND",
+     "338",
+     "1",
+     "1",
+     "11",
+     "00-00-01-11",
+     "EONC_EMSBJ_BIND",
+     " ",
+     " ",
+     " ",
+     "37717",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "3",
+     "PS_ROOT",
+     "EONC_PUSH_BIND",
+     "324",
+     "1",
+     "1",
+     "9",
+     "00-00-01-09",
+     "EONC_PUSH_BIND",
+     " ",
+     " ",
+     " ",
+     "37711",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "3",
+     "PS_ROOT",
+     "EONC_TEXT_BIND",
+     "331",
+     "1",
+     "1",
+     "10",
+     "00-00-01-10",
+     "EONC_TEXT_BIND",
+     " ",
+     " ",
+     " ",
+     "37714",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "3",
+     "PS_ROOT",
+     "HCSC_DYNAMIC_VW",
+     "291",
+     "1",
+     "1",
+     "5",
+     "00-00-01-05",
+     "HCSC_DYNAMIC_VW",
+     " ",
+     " ",
+     " ",
+     "37690",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "3",
+     "PS_ROOT",
+     "HCSC_NOTIF_DVW",
+     "263",
+     "1",
+     "1",
+     "1",
+     "00-00-01-01",
+     "HCSC_NOTIF_DVW",
+     " ",
+     " ",
+     " ",
+     "37680",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "3",
+     "PS_ROOT",
+     "HCSC_NOTIF_LINK",
+     "352",
+     "1",
+     "1",
+     "13",
+     "00-00-01-13",
+     "HCSC_NOTIF_LINK",
+     " ",
+     " ",
+     " ",
+     "37723",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "3",
+     "PS_ROOT",
+     "HCSC_NOTIF_RCPT",
+     "367",
+     "1",
+     "1",
+     "16",
+     "00-00-01-16",
+     "HCSC_NOTIF_RCPT",
+     " ",
+     " ",
+     " ",
+     "37725",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "3",
+     "PS_ROOT",
+     "HCSC_NXTCNF_DVW",
+     "373",
+     "1",
+     "1",
+     "17",
+     "00-00-01-17",
+     "HCSC_NXTCNF_DVW",
+     " ",
+     " ",
+     " ",
+     "37728",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "3",
+     "PS_ROOT",
+     "HCSC_PTPNCAT_DW",
+     "259",
+     "1",
+     "1",
+     "0",
+     "00-00-01-00",
+     "HCSC_PTPNCAT_DW",
+     " ",
+     " ",
+     " ",
+     "37677",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "3",
+     "PS_ROOT",
+     "HCSC_RCPLST_DVW",
+     "302",
+     "1",
+     "1",
+     "6",
+     "00-00-01-06",
+     "HCSC_RCPLST_DVW",
+     " ",
+     " ",
+     " ",
+     "37701",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "3",
+     "PS_ROOT",
+     "HCSC_RCPNT_LIST",
+     "307",
+     "1",
+     "1",
+     "7",
+     "00-00-01-07",
+     "HCSC_RCPNT_LIST",
+     " ",
+     " ",
+     " ",
+     "37703",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "3",
+     "PS_ROOT",
+     "PT_BRWIMAGE_DVW",
+     "268",
+     "1",
+     "1",
+     "2",
+     "00-00-01-02",
+     "PT_BRWIMAGE_DVW",
+     " ",
+     " ",
+     " ",
+     "37685",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "3",
+     "PS_ROOT",
+     "WL_TEMPL_GEN_TK",
+     "315",
+     "1",
+     "1",
+     "8",
+     "00-00-01-08",
+     "WL_TEMPL_GEN_TK",
+     " ",
+     " ",
+     " ",
+     "37708",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "EONC_EMAIL_BIND",
+     "DESCR100_4",
+     "348",
+     "2",
+     "1",
+     "12",
+     "00-00-01-12",
+     "EONC_EMAIL_BIND",
+     "DESCR100",
+     " ",
+     " ",
+     "37721",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "EONC_EMAIL_BIND",
+     "EONC_TOKENID_5",
+     "347",
+     "2",
+     "1",
+     "12",
+     "00-00-01-12",
+     "EONC_EMAIL_BIND",
+     "EONC_TOKENID",
+     " ",
+     " ",
+     "37722",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "EONC_EMSBJ_BIND",
+     "DESCR100_3",
+     "341",
+     "2",
+     "1",
+     "11",
+     "00-00-01-11",
+     "EONC_EMSBJ_BIND",
+     "DESCR100",
+     " ",
+     " ",
+     "37718",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "EONC_EMSBJ_BIND",
+     "EONC_TOKENID_3",
+     "340",
+     "2",
+     "1",
+     "11",
+     "00-00-01-11",
+     "EONC_EMSBJ_BIND",
+     "EONC_TOKENID",
+     " ",
+     " ",
+     "37719",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "EONC_PUSH_BIND",
+     "DESCR100_1",
+     "327",
+     "2",
+     "1",
+     "9",
+     "00-00-01-09",
+     "EONC_PUSH_BIND",
+     "DESCR100",
+     " ",
+     " ",
+     "37712",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "EONC_PUSH_BIND",
+     "EONC_TOKENID",
+     "326",
+     "2",
+     "1",
+     "9",
+     "00-00-01-09",
+     "EONC_PUSH_BIND",
+     "EONC_TOKENID",
+     " ",
+     " ",
+     "37713",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "EONC_TEXT_BIND",
+     "DESCR100_2",
+     "334",
+     "2",
+     "1",
+     "10",
+     "00-00-01-10",
+     "EONC_TEXT_BIND",
+     "DESCR100",
+     " ",
+     " ",
+     "37715",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "EONC_TEXT_BIND",
+     "EONC_TOKENID_1",
+     "333",
+     "2",
+     "1",
+     "10",
+     "00-00-01-10",
+     "EONC_TEXT_BIND",
+     "EONC_TOKENID",
+     " ",
+     " ",
+     "37716",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_DESCR100",
+     "301",
+     "2",
+     "1",
+     "5",
+     "00-00-01-05",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_DESCR100",
+     " ",
+     " ",
+     "37691",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_DESCR100_1_0",
+     "293",
+     "2",
+     "1",
+     "5",
+     "00-00-01-05",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_DESCR100_1",
+     " ",
+     " ",
+     "37692",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_DESCR100_2_0",
+     "295",
+     "2",
+     "1",
+     "5",
+     "00-00-01-05",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_DESCR100_2",
+     " ",
+     " ",
+     "37693",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_DESCR100_3_0",
+     "297",
+     "2",
+     "1",
+     "5",
+     "00-00-01-05",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_DESCR100_3",
+     " ",
+     " ",
+     "37694",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_DESCR100_4_0",
+     "299",
+     "2",
+     "1",
+     "5",
+     "00-00-01-05",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_DESCR100_4",
+     " ",
+     " ",
+     "37695",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_DUMMY_FIELD_0",
+     "300",
+     "2",
+     "1",
+     "5",
+     "00-00-01-05",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_DUMMY_FIELD",
+     " ",
+     " ",
+     "37696",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_KEY1_NOPROMPT_0",
+     "292",
+     "2",
+     "1",
+     "5",
+     "00-00-01-05",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_KEY1_NOPROMPT",
+     " ",
+     " ",
+     "37697",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_KEY2_NOPROMPT_0",
+     "294",
+     "2",
+     "1",
+     "5",
+     "00-00-01-05",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_KEY2_NOPROMPT",
+     " ",
+     " ",
+     "37698",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_KEY3_NOPROMPT_0",
+     "296",
+     "2",
+     "1",
+     "5",
+     "00-00-01-05",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_KEY3_NOPROMPT",
+     " ",
+     " ",
+     "37699",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_KEY4_NOPROMPT_0",
+     "298",
+     "2",
+     "1",
+     "5",
+     "00-00-01-05",
+     "HCSC_DYNAMIC_VW",
+     "HCSC_KEY4_NOPROMPT",
+     " ",
+     " ",
+     "37700",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_NOTIF_DVW",
+     "HCSC_GLOBAL_SET",
+     "265",
+     "2",
+     "1",
+     "1",
+     "00-00-01-01",
+     "HCSC_NOTIF_DVW",
+     "HCSC_GLOBAL_SET",
+     " ",
+     " ",
+     "37681",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_NOTIF_DVW",
+     "HCSC_NOTF_AVAIL",
+     "266",
+     "2",
+     "1",
+     "1",
+     "00-00-01-01",
+     "HCSC_NOTIF_DVW",
+     "HCSC_NOTF_AVAIL",
+     " ",
+     " ",
+     "37682",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_NOTIF_DVW",
+     "HCSC_NOTF_DFLT",
+     "267",
+     "2",
+     "1",
+     "1",
+     "00-00-01-01",
+     "HCSC_NOTIF_DVW",
+     "HCSC_NOTF_DFLT",
+     " ",
+     " ",
+     "37683",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_NOTIF_DVW",
+     "HCSC_PTPN_NOTF_OPT",
+     "264",
+     "2",
+     "1",
+     "1",
+     "00-00-01-01",
+     "HCSC_NOTIF_DVW",
+     "HCSC_PTPN_NOTF_OPT",
+     " ",
+     " ",
+     "37684",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_NOTIF_LINK",
+     "MSGNODENAME",
+     "356",
+     "2",
+     "1",
+     "13",
+     "00-00-01-13",
+     "DERIVED_EO",
+     "MSGNODENAME",
+     " ",
+     " ",
+     "37724",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_NOTIF_RCPT",
+     "SEQ_NBR",
+     "369",
+     "1",
+     "1",
+     "16",
+     "00-00-01-16",
+     "HCSC_NOTIF_RCPT",
+     "SEQ_NBR",
+     " ",
+     " ",
+     "37726",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_NOTIF_RCPT",
+     "SET_NOTIFY_FLAG",
+     "370",
+     "1",
+     "1",
+     "16",
+     "00-00-01-16",
+     "HCSC_NOTIF_RCPT",
+     "SET_NOTIFY_FLAG",
+     " ",
+     " ",
+     "37727",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_NXTCNF_DVW",
+     "DESCR100_5",
+     "375",
+     "2",
+     "1",
+     "17",
+     "00-00-01-17",
+     "HCSC_NXTCNF_DVW",
+     "DESCR100",
+     " ",
+     " ",
+     "37729",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_PTPNCAT_DW",
+     "HCSC_PTPN_PLRLNAME",
+     "262",
+     "2",
+     "1",
+     "0",
+     "00-00-01-00",
+     "HCSC_PTPNCAT_DW",
+     "HCSC_PTPN_PLRLNAME",
+     " ",
+     " ",
+     "37678",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_PTPNCAT_DW",
+     "HCSC_PTPN_TYP_PERM",
+     "261",
+     "2",
+     "1",
+     "0",
+     "00-00-01-00",
+     "HCSC_PTPNCAT_DW",
+     "HCSC_PTPN_TYP_PERM",
+     " ",
+     " ",
+     "37679",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_RCPLST_DVW",
+     "DESCR100_0",
+     "304",
+     "2",
+     "1",
+     "6",
+     "00-00-01-06",
+     "HCSC_RCPLST_DVW",
+     "DESCR100",
+     " ",
+     " ",
+     "37702",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_RCPNT_LIST",
+     "EMAILID",
+     "314",
+     "1",
+     "1",
+     "7",
+     "00-00-01-07",
+     "HCSC_RCPNT_LIST",
+     "EMAILID",
+     " ",
+     " ",
+     "37704",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_RCPNT_LIST",
+     "HCSC_DISTRIB_TYPE",
+     "311",
+     "1",
+     "1",
+     "7",
+     "00-00-01-07",
+     "HCSC_RCPNT_LIST",
+     "HCSC_DISTRIB_TYPE",
+     " ",
+     " ",
+     "37705",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_RCPNT_LIST",
+     "HCSC_RCPNT_GROUP",
+     "310",
+     "1",
+     "1",
+     "7",
+     "00-00-01-07",
+     "HCSC_RCPNT_LIST",
+     "HCSC_RCPNT_GROUP",
+     " ",
+     " ",
+     "37706",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "HCSC_RCPNT_LIST",
+     "USERID",
+     "312",
+     "1",
+     "1",
+     "7",
+     "00-00-01-07",
+     "HCSC_RCPNT_LIST",
+     "USERID",
+     " ",
+     " ",
+     "37707",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "DESCR100",
+     "127",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NC_DRVD_WK",
+     "DESCR100",
+     " ",
+     " ",
+     "37614",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_CATEGORY_NAME",
+     "92",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_CATEGORY_NAME",
+     " ",
+     " ",
+     "37620",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_CATEGORY_NAME_0",
+     "68",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF_WRK",
+     "HCSC_CATEGORY_NAME",
+     " ",
+     " ",
+     "37645",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_CUSTDAYS",
+     "108",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_CUSTDAYS",
+     " ",
+     " ",
+     "37621",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_CUSTDAYS_DIS",
+     "111",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_CUSTDAYS_DIS",
+     " ",
+     " ",
+     "37622",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_DATE_POSTED",
+     "89",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_DATE_POSTED",
+     " ",
+     " ",
+     "37623",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_DELIVERY_METH",
+     "91",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_DELIVERY_METH",
+     " ",
+     " ",
+     "37624",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_DESCR100_1",
+     "29",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF_WRK",
+     "HCSC_DESCR100_1",
+     " ",
+     " ",
+     "37646",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_DESCR100_2",
+     "32",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF_WRK",
+     "HCSC_DESCR100_2",
+     " ",
+     " ",
+     "37647",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_DESCR100_3",
+     "35",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF_WRK",
+     "HCSC_DESCR100_3",
+     " ",
+     " ",
+     "37648",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_DESCR100_4",
+     "38",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF_WRK",
+     "HCSC_DESCR100_4",
+     " ",
+     " ",
+     "37649",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_DUMMY_FIELD",
+     "39",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF_WRK",
+     "HCSC_DUMMY_FIELD",
+     " ",
+     " ",
+     "37650",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_EMAIL_TMPL_ID",
+     "95",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_EMAIL_TMPL_ID",
+     " ",
+     " ",
+     "37625",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_EONC_NOTIF_ID",
+     "69",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF_WRK",
+     "HCSC_EONC_NOTIF_ID",
+     " ",
+     " ",
+     "37651",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_EONC_OVR_TEXT",
+     "141",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_PUSH_HMPG",
+     "HCSC_EONC_OVR_TEXT",
+     " ",
+     " ",
+     "37663",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_EXPIRE_DATE",
+     "102",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_EXPIRE_DATE",
+     " ",
+     " ",
+     "37626",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_FREQUENCY_OPT",
+     "105",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_FREQUENCY_OPT",
+     " ",
+     " ",
+     "37627",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_HMPG_DFLT_LBL",
+     "135",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_PUSH_HMPG",
+     "HCSC_HMPG_DFLT_LBL",
+     " ",
+     " ",
+     "37664",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_HMPG_SECTION",
+     "129",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NC_DRVD_WK",
+     "HCSC_HMPG_SECTION",
+     " ",
+     " ",
+     "37615",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_HMPG_SECTION_0",
+     "134",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_PUSH_HMPG",
+     "HCSC_HMPG_SECTION",
+     " ",
+     " ",
+     "37665",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_KEY1_NOPROMPT",
+     "28",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF_WRK",
+     "HCSC_KEY1_NOPROMPT",
+     " ",
+     " ",
+     "37652",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_KEY1_PROMPT",
+     "27",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF_WRK",
+     "HCSC_KEY1_PROMPT",
+     " ",
+     " ",
+     "37653",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_KEY2_NOPROMPT",
+     "31",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF_WRK",
+     "HCSC_KEY2_NOPROMPT",
+     " ",
+     " ",
+     "37654",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_KEY2_PROMPT",
+     "30",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF_WRK",
+     "HCSC_KEY2_PROMPT",
+     " ",
+     " ",
+     "37655",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_KEY3_NOPROMPT",
+     "34",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF_WRK",
+     "HCSC_KEY3_NOPROMPT",
+     " ",
+     " ",
+     "37656",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_KEY3_PROMPT",
+     "33",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF_WRK",
+     "HCSC_KEY3_PROMPT",
+     " ",
+     " ",
+     "37657",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_KEY4_NOPROMPT",
+     "37",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF_WRK",
+     "HCSC_KEY4_NOPROMPT",
+     " ",
+     " ",
+     "37658",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_KEY4_PROMPT",
+     "36",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF_WRK",
+     "HCSC_KEY4_PROMPT",
+     " ",
+     " ",
+     "37659",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_LAST_RUN_DATE",
+     "117",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_LAST_RUN_DATE",
+     " ",
+     " ",
+     "37628",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_LOG_EXCP_FLG",
+     "114",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_LOG_EXCP_FLG",
+     " ",
+     " ",
+     "37629",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_LOG_FLG",
+     "113",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_LOG_FLG",
+     " ",
+     " ",
+     "37630",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_MONTHDAY",
+     "107",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_MONTHDAY",
+     " ",
+     " ",
+     "37631",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_MONTHDAY_DIS",
+     "110",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_MONTHDAY_DIS",
+     " ",
+     " ",
+     "37632",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_MSG_STATUS",
+     "116",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_MSG_STATUS",
+     " ",
+     " ",
+     "37633",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_NOTIF_DESCR",
+     "90",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_NOTIF_DESCR",
+     " ",
+     " ",
+     "37634",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_NOTIF_EMAILID",
+     "99",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_NOTIF_EMAILID",
+     " ",
+     " ",
+     "37635",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_NOTIF_EMAILID_0",
+     "64",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF_WRK",
+     "HCSC_NOTIF_EMAILID",
+     " ",
+     " ",
+     "37660",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_NOTIF_HIDE",
+     "103",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_NOTIF_HIDE",
+     " ",
+     " ",
+     "37636",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_NOTIF_SENDER",
+     "98",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_NOTIF_SENDER",
+     " ",
+     " ",
+     "37637",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_NOTIF_SUBJECT",
+     "100",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_NOTIF_SUBJECT",
+     " ",
+     " ",
+     "37638",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_NOTIF_TRNS_ID",
+     "87",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_NOTIF_TRNS_ID",
+     " ",
+     " ",
+     "37639",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_NOTTYPE",
+     "128",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NC_DRVD_WK",
+     "HCSC_NOTTYPE",
+     " ",
+     " ",
+     "37616",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_NTF_PRIORITY",
+     "97",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_NTF_PRIORITY",
+     " ",
+     " ",
+     "37640",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_PTPN_MAN_NOTF",
+     "125",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NC_DRVD_WK",
+     "HCSC_PTPN_MAN_NOTF",
+     " ",
+     " ",
+     "37617",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_PTPN_NOTIF_NM",
+     "124",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NC_DRVD_WK",
+     "HCSC_PTPN_NOTIF_NM",
+     " ",
+     " ",
+     "37618",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_PTPN_OVERRIDE",
+     "126",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NC_DRVD_WK",
+     "HCSC_PTPN_OVERRIDE",
+     " ",
+     " ",
+     "37619",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_RECIPIENT_ID",
+     "26",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF_WRK",
+     "HCSC_RECIPIENT_ID",
+     " ",
+     " ",
+     "37661",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_RECURR",
+     "104",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_RECURR",
+     " ",
+     " ",
+     "37641",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_RECURR_END_DT",
+     "112",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_RECURR_END_DT",
+     " ",
+     " ",
+     "37642",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_WEEKDAY",
+     "106",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_WEEKDAY",
+     " ",
+     " ",
+     "37643",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "HCSC_WEEKDAY_DIS",
+     "109",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF",
+     "HCSC_WEEKDAY_DIS",
+     " ",
+     " ",
+     "37644",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "IMAGE_NAME",
+     "136",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_PUSH_HMPG",
+     "IMAGE_NAME",
+     " ",
+     " ",
+     "37666",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "NAVIGATION",
+     "82",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "HCSC_NOTIF_WRK",
+     "NAVIGATION",
+     " ",
+     " ",
+     "37662",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "PTPORTAL_OBJNAME_S",
+     "168",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "PTS_INTSRCH_WK",
+     "PTPORTAL_OBJNAME_S",
+     " ",
+     " ",
+     "37667",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "PTS_KEYWORDS_SS",
+     "164",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "PTS_INTSRCH_WK",
+     "PTS_KEYWORDS_SS",
+     " ",
+     " ",
+     "37668",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "PTS_PAGECAT",
+     "159",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "PTS_INTSRCH_WK",
+     "PTS_PAGECAT",
+     " ",
+     " ",
+     "37669",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "PTS_PAGEEDITENT",
+     "161",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "PTS_INTSRCH_WK",
+     "PTS_PAGEEDITENT",
+     " ",
+     " ",
+     "37670",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "PT_IMG_TYPE",
+     "146",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "PT_BRWIMAGE_WRK",
+     "PT_IMG_TYPE",
+     " ",
+     " ",
+     "37671",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "PT_MIRROR_IMG",
+     "147",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "PT_BRWIMAGE_WRK",
+     "PT_MIRROR_IMG",
+     " ",
+     " ",
+     "37672",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "PT_MSGTEXT1",
+     "149",
+     "2",
+     "0",
+     "0",
+     "00-00",
+     "PT_BRWIMAGE_WRK",
+     "PT_MSGTEXT1",
+     " ",
+     " ",
+     "37673",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "PT_SEARCH_FILTER",
+     "143",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "PT_BRWIMAGE_WRK",
+     "PT_SEARCH_FILTER",
+     " ",
+     " ",
+     "37674",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "PT_SEARCH_OPERATOR",
+     "144",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "PT_BRWIMAGE_WRK",
+     "PT_SEARCH_OPERATOR",
+     " ",
+     " ",
+     "37675",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PS_ROOT",
+     "PT_SEARCH_TEXT",
+     "145",
+     "1",
+     "0",
+     "0",
+     "00-00",
+     "PT_BRWIMAGE_WRK",
+     "PT_SEARCH_TEXT",
+     " ",
+     " ",
+     "37676",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PT_BRWIMAGE_DVW",
+     "DESCR",
+     "270",
+     "2",
+     "1",
+     "2",
+     "00-00-01-02",
+     "PT_BRWIMAGE_DVW",
+     "DESCR",
+     " ",
+     " ",
+     "37686",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PT_BRWIMAGE_DVW",
+     "PT_IMG_NAME",
+     "269",
+     "2",
+     "1",
+     "2",
+     "00-00-01-02",
+     "PT_BRWIMAGE_DVW",
+     "PT_IMG_NAME",
+     " ",
+     " ",
+     "37687",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PT_BRWIMAGE_DVW",
+     "PT_MIRROR_IMG_0",
+     "274",
+     "2",
+     "1",
+     "2",
+     "00-00-01-02",
+     "PT_BRWIMAGE_DVW",
+     "PT_MIRROR_IMG",
+     " ",
+     " ",
+     "37688",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "PT_BRWIMAGE_DVW",
+     "PT_WIDTH_HEIGHT",
+     "273",
+     "2",
+     "1",
+     "2",
+     "00-00-01-02",
+     "PT_BRWIMAGE_DVW",
+     "PT_WIDTH_HEIGHT",
+     " ",
+     " ",
+     "37689",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "WL_TEMPL_GEN_TK",
+     "DESCR_0",
+     "319",
+     "1",
+     "1",
+     "8",
+     "00-00-01-08",
+     "WL_TEMPL_GEN_TK",
+     "DESCR",
+     " ",
+     " ",
+     "37709",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "4",
+     "WL_TEMPL_GEN_TK",
+     "WL_TOKENID",
+     "318",
+     "1",
+     "1",
+     "8",
+     "00-00-01-08",
+     "WL_TEMPL_GEN_TK",
+     "WL_TOKENID",
+     " ",
+     " ",
+     "37710",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "5",
+     "PS_ROOT",
+     "HCSC_CATEGORY_NAME",
+     "6",
+     "1",
+     "0",
+     "0",
+     "AA-AA-00-02",
+     "HCSC_NTF_SRH_FL",
+     "HCSC_CATEGORY_NAME",
+     " ",
+     " ",
+     "37608",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "5",
+     "PS_ROOT",
+     "HCSC_DATE_POSTED",
+     "4",
+     "1",
+     "0",
+     "0",
+     "AA-AA-00-02",
+     "HCSC_NTF_SRH_FL",
+     "HCSC_DATE_POSTED",
+     " ",
+     " ",
+     "37609",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "5",
+     "PS_ROOT",
+     "HCSC_NOTIF_DESCR",
+     "3",
+     "1",
+     "0",
+     "0",
+     "AA-AA-00-02",
+     "HCSC_NTF_SRH_FL",
+     "HCSC_NOTIF_DESCR",
+     " ",
+     " ",
+     "37610",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "5",
+     "PS_ROOT",
+     "HCSC_NOTIF_SUBJECT",
+     "5",
+     "1",
+     "0",
+     "0",
+     "AA-AA-00-02",
+     "HCSC_NTF_SRH_FL",
+     "HCSC_NOTIF_SUBJECT",
+     " ",
+     " ",
+     "37611",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_CI4",
+     "5",
+     "PS_ROOT",
+     "HCSC_NOTIF_TRNS_ID",
+     "2",
+     "1",
+     "0",
+     "0",
+     "AA-AA-00-02",
+     "HCSC_NTF_SRH_FL",
+     "HCSC_NOTIF_TRNS_ID",
+     " ",
+     " ",
+     "37612",
+     "0"
+    ]
+   ]
+  },
+  "PSBCDEFNLANG": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "key": [
+    "BCNAME",
+    "LANGUAGE_CD"
+   ],
+   "rows": []
+  },
+  "PSBCITEMLANG": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCTYPE"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "COMMENTSHORT"
+    }
+   ],
+   "key": [
+    "BCNAME",
+    "BCTYPE",
+    "BCITEMPARENT",
+    "BCITEMNAME",
+    "LANGUAGE_CD"
+   ],
+   "rows": []
+  },
+  "PSBCDEL": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "key": [
+    "BCNAME",
+    "VERSION"
+   ],
+   "rows": []
+  },
+  "PSSYSTEMID": {
+   "columns": [
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "PTNEXTSYSTEMID"
+    },
+    {
+     "name": "PTUPDSYSTEMID"
+    }
+   ],
+   "key": [
+    "RECNAME"
+   ],
+   "rows": [
+    [
+     "PSBCITEM",
+     "37748",
+     "0"
+    ],
+    [
+     "PSCISYNCDEFN",
+     "9",
+     "0"
+    ]
+   ]
+  },
+  "PSCISYNCDEFN": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "SYNCID"
+    },
+    {
+     "name": "CONFLICTRESOLUTION"
+    },
+    {
+     "name": "MSGSET"
+    },
+    {
+     "name": "RELCONTENTPROJ"
+    },
+    {
+     "name": "MPDEVICEPERSIST"
+    }
+   ],
+   "key": [
+    "BCNAME"
+   ],
+   "rows": []
+  },
+  "PSCIREF": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "REF_CINAME"
+    },
+    {
+     "name": "CI_OWNS_DATA"
+    },
+    {
+     "name": "REF_BACKPOINTER"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "key": [
+    "BCNAME",
+    "BCITEMPARENT",
+    "BCITEMNAME"
+   ],
+   "rows": []
+  },
+  "PSCIREFPROPERTY": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "REF_CINAME"
+    },
+    {
+     "name": "SRC_CIPROPERTYNAME"
+    },
+    {
+     "name": "REF_CIPROPERTYNAME"
+    }
+   ],
+   "key": [
+    "BCNAME",
+    "BCITEMPARENT",
+    "BCITEMNAME",
+    "REF_CINAME",
+    "SRC_CIPROPERTYNAME"
+   ],
+   "rows": []
+  },
+  "PSCIREFENUM": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "REF_CINAME"
+    },
+    {
+     "name": "SEQUENCE_NBR_6"
+    },
+    {
+     "name": "FROM_CI"
+    },
+    {
+     "name": "USE_REF"
+    }
+   ],
+   "key": [
+    "BCNAME",
+    "BCITEMPARENT",
+    "BCITEMNAME",
+    "REF_CINAME",
+    "SEQUENCE_NBR_6"
+   ],
+   "rows": []
+  },
+  "PSAUTHBUSCOMP": {
+   "columns": [
+    {
+     "name": "CLASSID"
+    },
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCMETHOD"
+    },
+    {
+     "name": "AUTHORIZEDACTIONS"
+    }
+   ],
+   "key": [
+    "CLASSID",
+    "BCNAME",
+    "BCMETHOD"
+   ],
+   "rows": []
+  },
+  "PSPCMPROG": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "PROGSEQ"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "NAMECOUNT"
+    },
+    {
+     "name": "PROGLEN"
+    },
+    {
+     "name": "PROGRUNLOC"
+    },
+    {
+     "name": "PROGFLAGS"
+    },
+    {
+     "name": "LICENSE_CODE"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "PROGEXTENDS"
+    },
+    {
+     "name": "PTTOOLSREL"
+    },
+    {
+     "name": "PROGTXT"
+    }
+   ],
+   "key": [
+    "OBJECTVALUE2",
+    "OBJECTVALUE3",
+    "OBJECTVALUE4",
+    "OBJECTVALUE5",
+    "OBJECTVALUE6",
+    "OBJECTVALUE7",
+    "PROGSEQ"
+   ],
+   "rows": []
+  },
+  "PSPCMTXT": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "PROGSEQ"
+    },
+    {
+     "name": "HASH_SIGNATURE"
+    },
+    {
+     "name": "PCTEXT"
+    }
+   ],
+   "key": [
+    "OBJECTVALUE2",
+    "OBJECTVALUE3",
+    "OBJECTVALUE4",
+    "OBJECTVALUE5",
+    "OBJECTVALUE6",
+    "OBJECTVALUE7",
+    "PROGSEQ"
+   ],
+   "rows": []
+  },
+  "PSPCMNAME": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "NAMENUM"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "REFNAME"
+    },
+    {
+     "name": "PACKAGEROOT"
+    },
+    {
+     "name": "QUALIFYPATH"
+    },
+    {
+     "name": "APPCLASSMETHOD"
+    }
+   ],
+   "key": [
+    "OBJECTVALUE2",
+    "OBJECTVALUE3",
+    "OBJECTVALUE4",
+    "OBJECTVALUE5",
+    "OBJECTVALUE6",
+    "OBJECTVALUE7",
+    "NAMENUM"
+   ],
+   "rows": []
+  },
+  "PSPCMPROGDEL": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "key": [
+    "OBJECTVALUE2",
+    "OBJECTVALUE3",
+    "OBJECTVALUE4",
+    "OBJECTVALUE5",
+    "OBJECTVALUE6",
+    "OBJECTVALUE7",
+    "VERSION"
+   ],
+   "rows": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "key": [
+    "OBJECTTYPENAME"
+   ],
+   "rows": [
+    [
+     "ACM",
+     "9"
+    ],
+    [
+     "ADSM",
+     "2"
+    ],
+    [
+     "AEM",
+     "312"
+    ],
+    [
+     "AES",
+     "294"
+    ],
+    [
+     "APM",
+     "23"
+    ],
+    [
+     "ARCOM",
+     "1"
+    ],
+    [
+     "ARCTM",
+     "1"
+    ],
+    [
+     "ATM",
+     "1"
+    ],
+    [
+     "BCM",
+     "21"
+    ],
+    [
+     "BMM",
+     "2"
+    ],
+    [
+     "BPM",
+     "1"
+    ],
+    [
+     "CBCNM",
+     "1"
+    ],
+    [
+     "CBDIM",
+     "1"
+    ],
+    [
+     "CBOTM",
+     "1"
+    ],
+    [
+     "CBTPM",
+     "1"
+    ],
+    [
+     "CDM",
+     "1"
+    ],
+    [
+     "CERTM",
+     "18"
+    ],
+    [
+     "CHDM",
+     "1"
+    ],
+    [
+     "CLM",
+     "48"
+    ],
+    [
+     "CPQDM",
+     "1"
+    ],
+    [
+     "CQDM",
+     "1"
+    ],
+    [
+     "CRM",
+     "18"
+    ],
+    [
+     "DBSEQ",
+     "1"
+    ],
+    [
+     "DIAGM",
+     "1"
+    ],
+    [
+     "DLOM",
+     "1"
+    ],
+    [
+     "DOCPC",
+     "1"
+    ],
+    [
+     "DSCMA",
+     "1"
+    ],
+    [
+     "DTPLM",
+     "1"
+    ],
+    [
+     "EEM",
+     "1"
+    ],
+    [
+     "FCATM",
+     "1"
+    ],
+    [
+     "FDFM",
+     "1"
+    ],
+    [
+     "FDM",
+     "1"
+    ],
+    [
+     "FDTM",
+     "1"
+    ],
+    [
+     "FILEM",
+     "1"
+    ],
+    [
+     "FLDM",
+     "1"
+    ],
+    [
+     "FLM",
+     "1"
+    ],
+    [
+     "FRM",
+     "1"
+    ],
+    [
+     "GTM",
+     "43"
+    ],
+    [
+     "HPM",
+     "1"
+    ],
+    [
+     "IBSA",
+     "1"
+    ],
+    [
+     "IDM",
+     "1"
+    ],
+    [
+     "INTGM",
+     "1"
+    ],
+    [
+     "IOM",
+     "1"
+    ],
+    [
+     "JPUP",
+     "1"
+    ],
+    [
+     "KEYM",
+     "3"
+    ],
+    [
+     "LSDDM",
+     "1"
+    ],
+    [
+     "LSDM",
+     "1"
+    ],
+    [
+     "MAPM",
+     "1"
+    ],
+    [
+     "MAPS",
+     "1"
+    ],
+    [
+     "MCRM",
+     "1"
+    ],
+    [
+     "MDM",
+     "273"
+    ],
+    [
+     "MNDM",
+     "187"
+    ],
+    [
+     "MPM",
+     "1"
+    ],
+    [
+     "MSDM",
+     "168"
+    ],
+    [
+     "NTM",
+     "1"
+    ],
+    [
+     "OPRHM",
+     "1"
+    ],
+    [
+     "OPRM",
+     "1"
+    ],
+    [
+     "OPRVM",
+     "1"
+    ],
+    [
+     "PBM",
+     "2"
+    ],
+    [
+     "PCM",
+     "244"
+    ],
+    [
+     "PDM",
+     "530"
+    ],
+    [
+     "PGM",
+     "410"
+    ],
+    [
+     "PJM",
+     "73"
+    ],
+    [
+     "PPC",
+     "24"
+    ],
+    [
+     "PRDM",
+     "12"
+    ],
+    [
+     "PRSM",
+     "150"
+    ],
+    [
+     "PRUF",
+     "1"
+    ],
+    [
+     "PRUH",
+     "5"
+    ],
+    [
+     "PSC",
+     "1"
+    ],
+    [
+     "PSCHM",
+     "1"
+    ],
+    [
+     "PSH",
+     "1"
+    ],
+    [
+     "PSR",
+     "1"
+    ],
+    [
+     "QAL",
+     "3"
+    ],
+    [
+     "QDM",
+     "2"
+    ],
+    [
+     "QUEM",
+     "1"
+    ],
+    [
+     "RCMTM",
+     "1"
+    ],
+    [
+     "RCSCM",
+     "1"
+    ],
+    [
+     "RCSDM",
+     "1"
+    ],
+    [
+     "RCUPM",
+     "1"
+    ],
+    [
+     "RDM",
+     "175"
+    ],
+    [
+     "REST",
+     "1"
+    ],
+    [
+     "RLM",
+     "1"
+    ],
+    [
+     "ROLM",
+     "3"
+    ],
+    [
+     "ROM",
+     "1"
+    ],
+    [
+     "RSM",
+     "1"
+    ],
+    [
+     "RSTM",
+     "1"
+    ],
+    [
+     "RTDM",
+     "121"
+    ],
+    [
+     "SATRM",
+     "1"
+    ],
+    [
+     "SCATM",
+     "13"
+    ],
+    [
+     "SCMA",
+     "1"
+    ],
+    [
+     "SCNFM",
+     "1"
+    ],
+    [
+     "SCTXM",
+     "2"
+    ],
+    [
+     "SDEFM",
+     "220"
+    ],
+    [
+     "SDM",
+     "1"
+    ],
+    [
+     "SPTM",
+     "1"
+    ],
+    [
+     "SRM",
+     "141"
+    ],
+    [
+     "SRVM",
+     "1"
+    ],
+    [
+     "SSM",
+     "65"
+    ],
+    [
+     "STM",
+     "1"
+    ],
+    [
+     "SUDM",
+     "1"
+    ],
+    [
+     "SYS",
+     "2713"
+    ],
+    [
+     "TAM",
+     "1"
+    ],
+    [
+     "TBM",
+     "1"
+    ],
+    [
+     "TDM",
+     "2"
+    ],
+    [
+     "THM",
+     "5"
+    ],
+    [
+     "TSM",
+     "9"
+    ],
+    [
+     "TSTCM",
+     "1"
+    ],
+    [
+     "TSTM",
+     "9"
+    ],
+    [
+     "TYC",
+     "1"
+    ],
+    [
+     "UPM",
+     "159"
+    ],
+    [
+     "VAM",
+     "1"
+    ],
+    [
+     "WSCPH",
+     "1"
+    ],
+    [
+     "WSDL",
+     "1"
+    ],
+    [
+     "WSPLT",
+     "1"
+    ],
+    [
+     "WSPRD",
+     "1"
+    ],
+    [
+     "XPDSM",
+     "1"
+    ],
+    [
+     "XRRDM",
+     "1"
+    ],
+    [
+     "XTM",
+     "32"
+    ],
+    [
+     "XTRDM",
+     "1"
+    ]
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "key": [
+    "OBJECTTYPENAME"
+   ],
+   "rows": [
+    [
+     "ACM",
+     "9"
+    ],
+    [
+     "ADSM",
+     "2"
+    ],
+    [
+     "AEM",
+     "312"
+    ],
+    [
+     "AES",
+     "294"
+    ],
+    [
+     "APM",
+     "23"
+    ],
+    [
+     "ARCOM",
+     "1"
+    ],
+    [
+     "ARCTM",
+     "1"
+    ],
+    [
+     "ATM",
+     "1"
+    ],
+    [
+     "BCM",
+     "21"
+    ],
+    [
+     "BMM",
+     "2"
+    ],
+    [
+     "BPM",
+     "1"
+    ],
+    [
+     "CBCNM",
+     "1"
+    ],
+    [
+     "CBDIM",
+     "1"
+    ],
+    [
+     "CBOTM",
+     "1"
+    ],
+    [
+     "CBTPM",
+     "1"
+    ],
+    [
+     "CDM",
+     "1"
+    ],
+    [
+     "CERTM",
+     "18"
+    ],
+    [
+     "CHDM",
+     "1"
+    ],
+    [
+     "CLM",
+     "48"
+    ],
+    [
+     "CPQDM",
+     "1"
+    ],
+    [
+     "CQDM",
+     "1"
+    ],
+    [
+     "CRM",
+     "18"
+    ],
+    [
+     "DBSEQ",
+     "1"
+    ],
+    [
+     "DIAGM",
+     "1"
+    ],
+    [
+     "DLOM",
+     "1"
+    ],
+    [
+     "DOCPC",
+     "1"
+    ],
+    [
+     "DSCMA",
+     "1"
+    ],
+    [
+     "DTPLM",
+     "1"
+    ],
+    [
+     "EEM",
+     "1"
+    ],
+    [
+     "FCATM",
+     "1"
+    ],
+    [
+     "FDFM",
+     "1"
+    ],
+    [
+     "FDM",
+     "1"
+    ],
+    [
+     "FDTM",
+     "1"
+    ],
+    [
+     "FILEM",
+     "1"
+    ],
+    [
+     "FLDM",
+     "1"
+    ],
+    [
+     "FLM",
+     "1"
+    ],
+    [
+     "FRM",
+     "1"
+    ],
+    [
+     "GTM",
+     "44"
+    ],
+    [
+     "HPM",
+     "1"
+    ],
+    [
+     "IBSA",
+     "1"
+    ],
+    [
+     "IDM",
+     "1"
+    ],
+    [
+     "INTGM",
+     "1"
+    ],
+    [
+     "IOM",
+     "1"
+    ],
+    [
+     "JPUP",
+     "1"
+    ],
+    [
+     "KEYM",
+     "3"
+    ],
+    [
+     "LSDDM",
+     "1"
+    ],
+    [
+     "LSDM",
+     "1"
+    ],
+    [
+     "MAPM",
+     "1"
+    ],
+    [
+     "MAPS",
+     "1"
+    ],
+    [
+     "MCRM",
+     "1"
+    ],
+    [
+     "MDM",
+     "273"
+    ],
+    [
+     "MNDM",
+     "187"
+    ],
+    [
+     "MPM",
+     "1"
+    ],
+    [
+     "MSDM",
+     "168"
+    ],
+    [
+     "NTM",
+     "1"
+    ],
+    [
+     "OPRHM",
+     "1"
+    ],
+    [
+     "OPRM",
+     "1"
+    ],
+    [
+     "OPRVM",
+     "1"
+    ],
+    [
+     "PBM",
+     "2"
+    ],
+    [
+     "PCM",
+     "244"
+    ],
+    [
+     "PDM",
+     "530"
+    ],
+    [
+     "PGM",
+     "410"
+    ],
+    [
+     "PJM",
+     "73"
+    ],
+    [
+     "PPC",
+     "24"
+    ],
+    [
+     "PRDM",
+     "12"
+    ],
+    [
+     "PRSM",
+     "150"
+    ],
+    [
+     "PRUF",
+     "1"
+    ],
+    [
+     "PRUH",
+     "5"
+    ],
+    [
+     "PSC",
+     "1"
+    ],
+    [
+     "PSCHM",
+     "1"
+    ],
+    [
+     "PSH",
+     "1"
+    ],
+    [
+     "PSR",
+     "1"
+    ],
+    [
+     "QDM",
+     "2"
+    ],
+    [
+     "QUEM",
+     "1"
+    ],
+    [
+     "RCMTM",
+     "1"
+    ],
+    [
+     "RCSCM",
+     "1"
+    ],
+    [
+     "RCSDM",
+     "1"
+    ],
+    [
+     "RCUPM",
+     "1"
+    ],
+    [
+     "RDM",
+     "175"
+    ],
+    [
+     "REST",
+     "1"
+    ],
+    [
+     "RLM",
+     "1"
+    ],
+    [
+     "ROLM",
+     "3"
+    ],
+    [
+     "ROM",
+     "1"
+    ],
+    [
+     "RSM",
+     "1"
+    ],
+    [
+     "RSTM",
+     "1"
+    ],
+    [
+     "RTDM",
+     "121"
+    ],
+    [
+     "SATRM",
+     "1"
+    ],
+    [
+     "SCATM",
+     "13"
+    ],
+    [
+     "SCMA",
+     "1"
+    ],
+    [
+     "SCNFM",
+     "1"
+    ],
+    [
+     "SCTXM",
+     "2"
+    ],
+    [
+     "SDEFM",
+     "220"
+    ],
+    [
+     "SDM",
+     "1"
+    ],
+    [
+     "SPTM",
+     "1"
+    ],
+    [
+     "SRM",
+     "141"
+    ],
+    [
+     "SRVM",
+     "1"
+    ],
+    [
+     "SSM",
+     "65"
+    ],
+    [
+     "STM",
+     "1"
+    ],
+    [
+     "SUDM",
+     "1"
+    ],
+    [
+     "SYS",
+     "1"
+    ],
+    [
+     "TAM",
+     "1"
+    ],
+    [
+     "TBM",
+     "1"
+    ],
+    [
+     "TDM",
+     "2"
+    ],
+    [
+     "THM",
+     "5"
+    ],
+    [
+     "TSM",
+     "9"
+    ],
+    [
+     "TSTCM",
+     "1"
+    ],
+    [
+     "TSTM",
+     "9"
+    ],
+    [
+     "TYC",
+     "1"
+    ],
+    [
+     "UPM",
+     "158"
+    ],
+    [
+     "VAM",
+     "1"
+    ],
+    [
+     "WSCPH",
+     "1"
+    ],
+    [
+     "WSDL",
+     "1"
+    ],
+    [
+     "WSPLT",
+     "1"
+    ],
+    [
+     "WSPRD",
+     "1"
+    ],
+    [
+     "XPDSM",
+     "1"
+    ],
+    [
+     "XRRDM",
+     "1"
+    ],
+    [
+     "XTM",
+     "32"
+    ],
+    [
+     "XTRDM",
+     "1"
+    ]
+   ]
+  }
+ }
+}

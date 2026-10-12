@@ -3,8 +3,11 @@ import { writeScopeRefusal } from './writeScope.js';
 import { PAGE_SIZE_BITS, PAGE_SIZE_CUSTOM, PAGE_SIZE_PRESETS, pageSizeChoice } from '../model/pageLayout.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
-import { FIELD_OPTIONAL, NEW_CONTROL_FIELDTYPE, newControlDataRows, newControlFieldRefusal, newControlRows, isRecordBound, type ColumnValues, type FieldInfo, type NewControl } from './pageControlTemplates.js';
-import { checkPageScrolls, occursLevels, type CheckedControl, type PageProblem } from '../model/pageLevels.js';
+import {
+  FIELD_OPTIONAL, GRID_FIELD_TYPES, GRID_ONLY, NEW_CONTROL_FIELDTYPE, RECORD_ONLY, RECORD_OPTIONAL, newControlDataRows, newControlFieldRefusal,
+  newControlRows, isRecordBound, type ColumnValues, type FieldInfo, type NewControl, type NewControlDataRows
+} from './pageControlTemplates.js';
+import { checkPageScrolls, occursLevels, SCROLL_FIELD_TYPES, type CheckedControl, type PageProblem } from '../model/pageLevels.js';
 
 /*
  * Saving a page's layout, as App Designer does (docs/PAGE_SAVE.md, cases
@@ -58,6 +61,8 @@ export interface EditedControl {
   add?: NewControl;
   /** Present on a pasted control: the stored control it is a copy of (this page's or another's; c01, c02). */
   copy?: { pnlName: string; pnlFldId: number };
+  /** An added or pasted grid's column count, as the save derives it (planPageSave). */
+  grdColumnCount?: number;
   fieldLeft: number;
   fieldTop: number;
   fieldRight: number;
@@ -433,6 +438,9 @@ export interface StoredControl extends EditedControl {
   /** PSPNLFIELDEXT.FFSTYLELONG (a frame's dialog rewrites a blank one, fr01) and FIELDUSETEMP2. */
   ffStyleLong?: string | null;
   fieldUseTemp2?: number;
+  /** A Tree's TREECTRLID (its FIELDNUM when App Designer last saved it; 0 with no levels) and a grid's GRDCOLUMNCOUNT. */
+  treeCtrlId?: number;
+  grdColumnCount?: number;
 }
 
 /** The columns of PSPNLFIELD this step may change, and how a control's value is read for each. */
@@ -544,6 +552,7 @@ const HORIZONTAL_RULE = 23;
 const EDIT_BOX = 4;
 const SCROLL_BAR = 10;
 const HTML_AREA = 25;
+const TREE = 20;
 export const FFSTYLELONG_EMPTY = ' | | | | ';
 
 export interface PagePlan {
@@ -565,6 +574,10 @@ export interface PagePlan {
   maxPnlFldId: number;
   /** The page as App Designer's checks see it, in the final tab order (each record's type is looked up by savePage). */
   checked: Array<Omit<CheckedControl, 'recType'>>;
+  /** Trees whose FIELDNUM moved: their TREECTRLID and PSPNLTREECTRL rows follow it (sp-fresh, sbp-fresh, sb-delete). */
+  treeRekeys: Array<{ from: number; to: number }>;
+  /** Deleted trees' TREECTRLIDs: their PSPNLTREECTRL rows go with them. */
+  treeDeletes: number[];
 }
 
 /**
@@ -609,6 +622,19 @@ export function newControlTabIndex(order: ReadonlyArray<{ fieldLeft: number; fie
   return best + 1;
 }
 
+/**
+ * Where App Designer puts a new scroll -- Scroll Area, Scroll Bar, Grid, Analytic Grid -- in the tab order: after the last
+ * control (in tab order) whose top is at or above the scroll's bottom edge, so the controls drawn above or beside it stay
+ * before it (gd-fresh: a grid drawn over a chart at its bottom right goes after it; ag-fresh: an analytic grid at the page's
+ * top goes after the grid columns stored at (0, 0); lv02, lv03, sa-fresh, sb-fresh, gr-fresh).
+ */
+export function newScrollTabIndex(order: ReadonlyArray<{ fieldTop: number }>, added: { fieldTop: number; fieldBottom: number }): number {
+  const bottom = Math.max(added.fieldBottom, added.fieldTop);
+  let last = -1;
+  order.forEach((c, i) => { if (c.fieldTop <= bottom) last = i; });
+  return last + 1;
+}
+
 export function planPageSave(stored: readonly StoredControl[], all: readonly EditedControl[], maxPnlFldId = 0, order?: readonly number[],
   pnlName = '', fluidPage = false): PagePlan {
   const added = all.filter((c) => !!c.add || !!c.copy);
@@ -635,10 +661,27 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
   // the control before it in reading order (newControlTabIndex). A copy of a control on this page goes
   // right after its source (and its earlier copies) in tab order (c02: group box 9 at 13, its copy at
   // 14); copies from elsewhere go last.
-  const fresh = added.map((control, i) => ({ pnlFldId: base + i + 1, control }));
+  const fresh: Array<{ pnlFldId: number; control: EditedControl }> = added.map((control, i) => ({ pnlFldId: base + i + 1, control }));
   const final: Array<{ survivor: StoredControl } | { fresh: (typeof fresh)[number] }> = survivors.map((s) => ({ survivor: s }));
   const placedAt = (e: (typeof final)[number]): EditedControl => ('survivor' in e ? edited.get(e.survivor.pnlFldId)! : e.fresh.control);
+  const typeOf = (e: (typeof final)[number]): number => ('survivor' in e ? Number(e.survivor.fieldType ?? -1)
+    : e.fresh.control.add ? NEW_CONTROL_FIELDTYPE[e.fresh.control.add.kind] : Number(e.fresh.control.fieldType ?? -1));
+  const atOrigin = (e: (typeof final)[number]) => { const c = placedAt(e); return c.fieldLeft === 0 && c.fieldTop === 0 && !SCROLL_FIELD_TYPES.has(typeOf(e)); };
   for (const f of fresh) {
+    const into = f.control.add?.intoGrid;
+    if (into !== undefined) {
+      // A column of a grid (gd-column, ts-fresh, ag-fresh): stored at (0, 0) with its size, right after the grid's last
+      // column in tab order -- its columns are the (0, 0) controls that follow it (9,602 of HRDMO's 9,661 grids).
+      let at = final.findIndex((e) => ('survivor' in e ? e.survivor.pnlFldId : e.fresh.control.pnlFldId) === into);
+      if (at < 0 || !GRID_FIELD_TYPES.has(typeOf(final[at]))) throw new PageSaveRefusedError(`Control ${into} is not a grid on the page to add a column to.`);
+      while (at + 1 < final.length && atOrigin(final[at + 1])) at++;
+      const c = f.control;
+      f.control = { ...c, fieldLeft: 0, fieldTop: 0, fieldRight: c.fieldRight ? Math.max(0, c.fieldRight - c.fieldLeft) : 0, fieldBottom: c.fieldBottom ? Math.max(0, c.fieldBottom - c.fieldTop) : 0 };
+      final.splice(at + 1, 0, { fresh: f });
+      continue;
+    }
+    if (f.control.add && GRID_ONLY.has(f.control.add.kind)) throw new PageSaveRefusedError(`A ${f.control.add.kind} goes only inside a grid, as one of its columns.`);
+    if (f.control.add && SCROLL_FIELD_TYPES.has(NEW_CONTROL_FIELDTYPE[f.control.add.kind])) { final.splice(newScrollTabIndex(final.map(placedAt), f.control), 0, { fresh: f }); continue; }
     if (f.control.add) { final.splice(newControlTabIndex(final.map(placedAt), f.control), 0, { fresh: f }); continue; }
     const src = f.control.copy && f.control.copy.pnlName === pnlName ? f.control.copy.pnlFldId : undefined;
     let at = src === undefined ? -1 : final.findIndex((e) => 'survivor' in e && e.survivor.pnlFldId === src);
@@ -655,11 +698,30 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
     const fieldType = s ? Number(s.fieldType ?? -1) : c.add ? NEW_CONTROL_FIELDTYPE[c.add.kind] : Number(c.fieldType ?? -1);
     const occursLevel = c.occursLevel ?? s?.occursLevel ?? (c.add ? 1 : 0);
     const recName = c.add ? c.add.recName : c.recName ?? s?.recName ?? '', fieldName = c.add ? c.add.fieldName : c.fieldName ?? s?.fieldName ?? '';
+    const a = c.add?.analytic;
     return { fieldType, occursLevel: Number(occursLevel), fieldUse: Number(c.fieldUse ?? s?.fieldUse ?? 0), recName, fieldName, label: c.lblText ?? '',
-      assocFieldNum: Number(c.assocFieldNum ?? s?.assocFieldNum ?? 0) };
+      assocFieldNum: Number(c.assocFieldNum ?? s?.assocFieldNum ?? 0), pnlFldId: 'survivor' in e ? e.survivor.pnlFldId : e.fresh.pnlFldId,
+      ...(a ? { analytic: { model: a.model, collection: a.collection } } : {}) };
   });
   const levels = occursLevels(levelInput);
   const levelOf = new Map(final.map((e, i) => ['survivor' in e ? e.survivor.pnlFldId : e.fresh.pnlFldId, levels[i]]));
+
+  // A grid's GRDCOLUMNCOUNT: the (0, 0) controls right after it. A stored grid whose count follows that rule takes the new
+  // count (gd-column, ts-fresh); one that does not (Fluid grids nesting group boxes) is left as stored.
+  const columnsAfter = <T,>(list: readonly T[], i: number, origin: (x: T) => boolean) => { let k = 0; while (i + 1 + k < list.length && origin(list[i + 1 + k])) k++; return k; };
+  const storedOrder = [...stored].sort((a, b) => a.fieldNum - b.fieldNum);
+  const storedAtOrigin = (c: StoredControl) => c.fieldLeft === 0 && c.fieldTop === 0 && !SCROLL_FIELD_TYPES.has(Number(c.fieldType ?? -1));
+  const gridCount = new Map<number, number>();
+  final.forEach((e, i) => {
+    if (!GRID_FIELD_TYPES.has(typeOf(e))) return;
+    const count = columnsAfter(final, i, atOrigin);
+    if ('fresh' in e) { gridCount.set(e.fresh.pnlFldId, count); return; }
+    const s = e.survivor;
+    if (Number(s.grdColumnCount ?? 0) === columnsAfter(storedOrder, storedOrder.indexOf(s), storedAtOrigin) && count !== Number(s.grdColumnCount ?? 0)) gridCount.set(s.pnlFldId, count);
+  });
+  // A Tree's TREECTRLID is its FIELDNUM, re-derived at every save with its PSPNLTREECTRL rows (tr-nodes, sp-fresh, sbp-fresh).
+  const treeRekeys: Array<{ from: number; to: number }> = [];
+  const treeDeletes = stored.filter((c) => !edited.has(c.pnlFldId) && Number(c.fieldType) === TREE && Number(c.treeCtrlId ?? 0) > 0).map((c) => Number(c.treeCtrlId));
 
   const updates: PagePlan['updates'] = [];
   const extUpdates: PagePlan['extUpdates'] = [];
@@ -724,12 +786,18 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
     }
     const num = newFieldNum.get(s.pnlFldId)!;
     if (num !== s.fieldNum) columns.FIELDNUM = num;
+    if (gridCount.has(s.pnlFldId)) columns.GRDCOLUMNCOUNT = gridCount.get(s.pnlFldId)!;
+    if (Number(s.fieldType) === TREE && Number(s.treeCtrlId ?? 0) > 0 && Number(s.treeCtrlId) !== num) {
+      columns.TREECTRLID = num;
+      treeRekeys.push({ from: Number(s.treeCtrlId), to: num });
+    }
     if (Object.keys(columns).length > 0) updates.push({ pnlFldId: s.pnlFldId, columns });
   }
 
-  const inserts = fresh.map((f) => ({ pnlFldId: f.pnlFldId, fieldNum: newFieldNum.get(f.pnlFldId)!, control: { ...f.control, occursLevel: levelOf.get(f.pnlFldId)! } }));
+  const inserts = fresh.map((f) => ({ pnlFldId: f.pnlFldId, fieldNum: newFieldNum.get(f.pnlFldId)!,
+    control: { ...f.control, occursLevel: levelOf.get(f.pnlFldId)!, ...(gridCount.has(f.pnlFldId) ? { grdColumnCount: gridCount.get(f.pnlFldId)! } : {}) } }));
   return { deletes, updates, extUpdates, inserts, htmlWrites, richTextWrites, fieldCount: controls.length + added.length, maxPnlFldId: base + added.length,
-    checked: levelInput };
+    checked: levelInput, treeRekeys, treeDeletes };
 }
 
 /**
@@ -775,7 +843,36 @@ async function refuseInvalidPage(c: Connection, pnlName: string, checked: Readon
     for (const r of rows) recType.set(String(r.R).trim(), Number(r.T));
   }
   const problems = checkPageScrolls(pnlName, checked.map((x) => ({ ...x, recType: recType.get(x.recName.trim()) ?? -1 })));
+  problems.push(...await analyticGridProblems(c, pnlName, checked));
   if (problems.length) throw new PageInvalidError(problems);
+}
+
+/**
+ * 15,89: an Analytic Grid holds every field of its cube collection (PSACECUBECOLMAP) among the fields after it in its scroll
+ * (ag-fresh: "Field .PTACEGRIDFLD02 is a required field for the analytic grid PTACEVWRGRDREC"). A stored grid's model is read
+ * from PSPNLACEGRDDATA; an added one's is the one it is added with.
+ */
+async function analyticGridProblems(c: Connection, pnlName: string, checked: ReadonlyArray<Omit<CheckedControl, 'recType'>>): Promise<PageProblem[]> {
+  const out: PageProblem[] = [];
+  const levels = occursLevels(checked);
+  for (const [i, g] of checked.entries()) {
+    if (g.fieldType !== 32) continue;
+    let model = g.analytic?.model ?? '', collection = g.analytic?.collection ?? '';
+    if (!model && g.pnlFldId !== undefined && g.pnlFldId > 0) {
+      const [d] = await select<{ M: string; C: string }>(c, `SELECT ACEMODELID AS M, ACECOLLNAME AS C FROM PSPNLACEGRDDATA WHERE PNLNAME = :n AND PNLFLDID = :id`, { n: pnlName, id: g.pnlFldId });
+      model = String(d?.M ?? '').trim(); collection = String(d?.C ?? '').trim();
+    }
+    if (!model) continue;
+    if (!collection) collection = String((await select<{ C: string }>(c, `SELECT MIN(ACECOLLNAME) AS C FROM PSACECUBECOLL WHERE ACEMODELID = :m`, { m: model }))[0]?.C ?? '').trim();
+    const present = new Set<string>();
+    for (let j = i + 1; j < checked.length && !SCROLL_FIELD_TYPES.has(checked[j].fieldType) && levels[j] >= levels[i]; j++) {
+      if (levels[j] === levels[i] && checked[j].fieldName.trim()) present.add(checked[j].fieldName.trim());
+    }
+    for (const f of await analyticRequiredFields(c, model, collection)) {
+      if (!present.has(f)) out.push({ set: 15, num: 89, text: `Field .${f} is a required field for the analytic grid ${g.recName.trim()}`, at: i });
+    }
+  }
+  return out;
 }
 
 /** PSVERSION / PSLOCK 'PDM' and PSVERSION 'SYS', locked for the save. */
@@ -827,7 +924,7 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
               F.LABELSIZETYPE, F.PTLEBEXPANDFIELD, E.PLHTYPE, E.PLACEHOLDER, E.PLH_MSG_SET_NBR, E.PLH_MSG_NBR,
               E.MESSAGE_SET_NBR, E.MESSAGE_NBR, E.GRPBOXTYPE, E.GRPBOXHTMLTYPE, E.SCROLLBARS, E.PTGBRELTXTINFO, E.PTGBRELACTINFO, E.PTGBRELACTFLD,
               F.DSPLFILL, F.FORMATFAMILY, F.DISPFMTNAME, E.PTPOPUPPNL, E.HTML_INPUT_TYPE, E.MINNUMBER, E.MAXNUMBER, E.STEPNUMBER, E.PTDISABLESMARTPROM, E.PT_NUMFLD1,
-              DBMS_LOB.SUBSTR(E.FFSTYLELONG, 4000, 1) AS FFSTYLELONG, E.FIELDUSETEMP2
+              DBMS_LOB.SUBSTR(E.FFSTYLELONG, 4000, 1) AS FFSTYLELONG, E.FIELDUSETEMP2, F.TREECTRLID, F.GRDCOLUMNCOUNT
          FROM PSPNLFIELD F LEFT JOIN PSPNLFIELDEXT E ON E.PNLNAME = F.PNLNAME AND E.PNLFLDID = F.PNLFLDID WHERE F.PNLNAME = :n`, { n: pnlName });
     // HTML Areas' Constant values (PSPNLHTMLAREA, a CLOB read as text).
     const htmlRows = await select<{ PNLFLDID: number; HTMLAREA: string | null }>(c, `SELECT PNLFLDID, HTMLAREA FROM PSPNLHTMLAREA WHERE PNLNAME = :n`, { n: pnlName });
@@ -862,8 +959,12 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
       dsplFill: String(r.DSPLFILL ?? ''), formatFamily: String(r.FORMATFAMILY ?? ''), displayFormatName: String(r.DISPFMTNAME ?? ''),
       popupPage: String(r.PTPOPUPPNL ?? ''), inputType: Number(r.HTML_INPUT_TYPE ?? 0), minNumber: String(r.MINNUMBER ?? ''),
       maxNumber: String(r.MAXNUMBER ?? ''), stepNumber: String(r.STEPNUMBER ?? ''), disableSmartPrompt: Number(r.PTDISABLESMARTPROM ?? 0), setLevel: Number(r.PT_NUMFLD1 ?? 0),
-      ffStyleLong: r.FFSTYLELONG === null || r.FFSTYLELONG === undefined ? null : String(r.FFSTYLELONG)
+      ffStyleLong: r.FFSTYLELONG === null || r.FFSTYLELONG === undefined ? null : String(r.FFSTYLELONG),
+      treeCtrlId: Number(r.TREECTRLID ?? 0), grdColumnCount: Number(r.GRDCOLUMNCOUNT ?? 0)
     }));
+
+    // An added Subpage takes its subpage's rectangle wherever it was dropped (sbp-fresh, sb-subst), before its tab place is found.
+    request = { ...request, controls: await Promise.all(request.controls.map((ctl) => placeSubpage(c, ctl))) };
 
     const fluidPage = request.properties?.fluidPage ?? (Number(defn.PNLUSE) & PAGE_USE_FLUID) !== 0;
     const plan = planPageSave(stored, request.controls, Number(defn.MAXPNLFLDID), request.order, pnlName, fluidPage);
@@ -944,7 +1045,14 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
       // A grid's or scroll area's settings and buttons.
       await c.execute(`DELETE FROM PSPNLCNTRLDATA WHERE PNLNAME = :n AND PNLFLDID = :id`, { n: pnlName, id });
       await c.execute(`DELETE FROM PSPNLBTNDATA WHERE PNLNAME = :n AND PNLFLDID = :id`, { n: pnlName, id });
+      // An Analytic Grid's model and axes.
+      await c.execute(`DELETE FROM PSPNLACEGRDDATA WHERE PNLNAME = :n AND PNLFLDID = :id`, { n: pnlName, id });
+      await c.execute(`DELETE FROM PSPNLACEGRDAXIS WHERE PNLNAME = :n AND PNLFLDID = :id`, { n: pnlName, id });
     }
+    // A deleted Tree's levels; a Tree whose FIELDNUM moved takes its levels with it (two steps, as ids may swap).
+    for (const t of plan.treeDeletes) await c.execute(`DELETE FROM PSPNLTREECTRL WHERE PNLNAME = :n AND TREECTRLID = :t`, { n: pnlName, t });
+    for (const r of plan.treeRekeys) await c.execute(`UPDATE PSPNLTREECTRL SET TREECTRLID = :nt WHERE PNLNAME = :n AND TREECTRLID = :t`, { n: pnlName, t: r.from, nt: -r.to });
+    for (const r of plan.treeRekeys) await c.execute(`UPDATE PSPNLTREECTRL SET TREECTRLID = :nt WHERE PNLNAME = :n AND TREECTRLID = :t`, { n: pnlName, t: -r.to, nt: r.to });
 
     for (const u of plan.updates) {
       const binds: Record<string, unknown> = { n: pnlName, id: u.pnlFldId };
@@ -1005,7 +1113,7 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
  * (PSPNLHTMLAREA), a Rich Text long edit's options (PSPTPNLRTEDITOR), a grid's or scroll area's settings and buttons
  * (PSPNLCNTRLDATA, PSPNLBTNDATA).
  */
-interface ControlRows { field: ColumnValues; ext: ColumnValues; html?: string; richText?: RichTextOptions; controlData?: ColumnValues; buttons?: ColumnValues[] }
+interface ControlRows extends Partial<NewControlDataRows> { field: ColumnValues; ext: ColumnValues; html?: string; richText?: RichTextOptions }
 
 async function insertControl(c: Connection, pnlName: string, rows: ControlRows): Promise<void> {
   const id = Number(rows.field.PNLFLDID);
@@ -1017,6 +1125,46 @@ async function insertControl(c: Connection, pnlName: string, rows: ControlRows):
     { n: pnlName, id, h: rows.html }, 1, `Inserting PSPNLHTMLAREA ${id}`);
   if (rows.controlData) await insertRow(c, 'PSPNLCNTRLDATA', rows.controlData);
   for (const b of rows.buttons ?? []) await insertRow(c, 'PSPNLBTNDATA', b);
+  if (rows.aceData) await insertRow(c, 'PSPNLACEGRDDATA', rows.aceData);
+  for (const a of rows.aceAxes ?? []) await insertRow(c, 'PSPNLACEGRDAXIS', a);
+  for (const t of rows.treeNodes ?? []) await insertRow(c, 'PSPNLTREECTRL', t);
+}
+
+/** An added Subpage at its subpage's own rectangle (PSPNLDEFN PANELLEFT..BOTTOM): App Designer places it there (sbp-fresh, sb-subst). */
+async function placeSubpage(c: Connection, ctl: EditedControl): Promise<EditedControl> {
+  if (ctl.add?.kind !== 'subpage') return ctl;
+  const target = (ctl.add.subPage ?? '').trim().toUpperCase();
+  const [d] = await select<Record<string, number>>(c, `SELECT PNLTYPE, PANELLEFT, PANELTOP, PANELRIGHT, PANELBOTTOM FROM PSPNLDEFN WHERE PNLNAME = :p`, { p: target });
+  if (!target || !d) throw new PageSaveRefusedError(target ? `${target} is not a page in this database.` : 'A new Subpage needs its subpage.');
+  if (Number(d.PNLTYPE) !== 1) throw new PageSaveRefusedError(`${target} is not a subpage (its page type is ${d.PNLTYPE}).`);
+  return { ...ctl, add: { ...ctl.add, subPage: target }, fieldLeft: Number(d.PANELLEFT), fieldTop: Number(d.PANELTOP), fieldRight: Number(d.PANELRIGHT), fieldBottom: Number(d.PANELBOTTOM) };
+}
+
+/**
+ * An Analytic Grid's model as App Designer's dialog fills it (ag-fresh): its cube collection (the model's first when not
+ * named), the collection's record, and every dimension of the collection (PSACECUBECOLMAP ACEISCUBE N) on the Row Axis.
+ */
+async function resolveAnalytic(c: Connection, add: NewControl): Promise<NewControl> {
+  const a = add.analytic;
+  const model = (a?.model ?? '').trim().toUpperCase();
+  if (!model) throw new PageSaveRefusedError('A new Analytic Grid needs its analytic model.');
+  const colls = await select<{ C: string; R: string }>(c, `SELECT ACECOLLNAME AS C, RECORDNAME AS R FROM PSACECUBECOLL WHERE ACEMODELID = :m ORDER BY ACECOLLNAME`, { m: model });
+  if (!colls.length) throw new PageSaveRefusedError(`${model} is not an analytic model with a cube collection in this database.`);
+  const wanted = (a?.collection ?? '').trim().toUpperCase();
+  const coll = wanted ? colls.find((x) => String(x.C).trim() === wanted) : colls[0];
+  if (!coll) throw new PageSaveRefusedError(`${model} has no cube collection ${wanted} (${colls.map((x) => String(x.C).trim()).join(', ')}).`);
+  const record = String(coll.R).trim();
+  if (add.recName.trim() && add.recName.trim().toUpperCase() !== record) throw new PageSaveRefusedError(`Cube collection ${String(coll.C).trim()}'s record is ${record}, not ${add.recName.trim()}.`);
+  const dims = await select<{ F: string }>(c, `SELECT FIELDNAME AS F FROM PSACECUBECOLMAP WHERE ACEMODELID = :m AND ACECOLLNAME = :c AND ACEISCUBE = 'N' ORDER BY FIELDNAME`,
+    { m: model, c: coll.C });
+  const axes = a?.axes ?? dims.map((d) => ({ fieldName: String(d.F).trim(), axis: 2 }));
+  return { ...add, recName: record, analytic: { ...a, model, collection: String(coll.C).trim(), axes } };
+}
+
+/** The fields an Analytic Grid must hold, App Designer's 15,89 check ("Field X is a required field for the analytic grid"). */
+export async function analyticRequiredFields(c: Connection, model: string, collection: string): Promise<string[]> {
+  return (await select<{ F: string }>(c, `SELECT DISTINCT FIELDNAME AS F FROM PSACECUBECOLMAP WHERE ACEMODELID = :m AND ACECOLLNAME = :c ORDER BY FIELDNAME`,
+    { m: model, c: collection })).map((r) => String(r.F).trim());
 }
 
 /** A stored grid's or scroll area's PSPNLCNTRLDATA and PSPNLBTNDATA rows, moved to another page / id. */
@@ -1039,22 +1187,54 @@ async function insertedControlRows(c: Connection, pnlName: string, ins: { pnlFld
     const [rte] = await select<Record<string, string>>(c,
       `SELECT PTRTECFGSETTINGSID, PTRTEIMGLOCURLID, PTRTEPLUGIN, PTRTETEMPLATE, PTRTESTYLE FROM PSPTPNLRTEDITOR WHERE PNLNAME = :p AND PNLFLDID = :id`,
       { p: copy.pnlName, id: copy.pnlFldId });
-    return { ...copyControlRows(source, pnlName, ins.pnlFldId, ins.fieldNum, ins.control), ...(html ? { html: String(html.HTMLAREA ?? '') } : {}),
+    const copied = copyControlRows(source, pnlName, ins.pnlFldId, ins.fieldNum, ins.control);
+    if (GRID_FIELD_TYPES.has(Number(copied.field.FIELDTYPE))) copied.field.GRDCOLUMNCOUNT = ins.control.grdColumnCount ?? 0;
+    // A Tree's levels come with it under its new FIELDNUM; an Analytic Grid's model and axes under its new id.
+    let treeNodes: ColumnValues[] = [];
+    if (Number(source.field.FIELDTYPE) === TREE && Number(source.field.TREECTRLID ?? 0) > 0) {
+      treeNodes = (await select<ColumnValues>(c, `SELECT * FROM PSPNLTREECTRL WHERE PNLNAME = :p AND TREECTRLID = :t`, { p: copy.pnlName, t: source.field.TREECTRLID }))
+        .map((r) => ({ ...r, PNLNAME: pnlName, TREECTRLID: ins.fieldNum }));
+      copied.field.TREECTRLID = ins.fieldNum;
+    }
+    const aceRows = async (table: string) => (await select<ColumnValues>(c, `SELECT * FROM ${table} WHERE PNLNAME = :p AND PNLFLDID = :id`, { p: copy.pnlName, id: copy.pnlFldId }))
+      .map((r) => ({ ...r, PNLNAME: pnlName, PNLFLDID: ins.pnlFldId }));
+    const [aceData] = await aceRows('PSPNLACEGRDDATA');
+    const aceAxes = await aceRows('PSPNLACEGRDAXIS');
+    return { ...copied, ...(html ? { html: String(html.HTMLAREA ?? '') } : {}),
+      ...(treeNodes.length ? { treeNodes } : {}), ...(aceData ? { aceData, aceAxes } : {}),
       ...(await controlDataRows(c, copy, { pnlName, pnlFldId: ins.pnlFldId })),
       ...(rte ? { richText: { configSettingsId: rte.PTRTECFGSETTINGSID, imageLocationUrlId: rte.PTRTEIMGLOCURLID, pluginFileId: rte.PTRTEPLUGIN,
         templateFileId: rte.PTRTETEMPLATE, styleFileId: rte.PTRTESTYLE } } : {}) };
   }
   if (!add) throw new PageSaveRefusedError(`Control ${ins.pnlFldId} is neither added nor pasted.`);
-  const field = isRecordBound(add.kind) ? await readFieldInfo(c, add.recName.trim(), add.fieldName.trim()) : undefined;
-  // A control on a record alone (an HTML Area without a field): the record must exist.
-  if (FIELD_OPTIONAL.has(add.kind) && add.recName.trim() && !add.fieldName.trim()) {
-    const [{ N: n }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSRECDEFN WHERE RECNAME = :r`, { r: add.recName.trim().toUpperCase() });
-    if (!Number(n)) throw new PageSaveRefusedError(`${add.recName.trim()} is not a record in this database.`);
+  let full: NewControl = { ...add, recName: add.recName.trim().toUpperCase(), fieldName: add.fieldName.trim().toUpperCase() };
+  if (add.kind === 'analyticGrid') full = await resolveAnalytic(c, full);
+  const field = isRecordBound(add.kind) ? await readFieldInfo(c, full.recName, full.fieldName) : undefined;
+  // A control on a record alone (an HTML Area or Tree without a field, a Grid's main record, a Subpage's substitution, an
+  // unbound Image or Chart that names one): the record must exist.
+  const recordAlone = (FIELD_OPTIONAL.has(add.kind) || RECORD_OPTIONAL.has(add.kind) || RECORD_ONLY.has(add.kind) || add.kind === 'subpage') && full.recName && !full.fieldName;
+  if (recordAlone && !(await recordExists(c, full.recName))) throw new PageSaveRefusedError(`${full.recName} is not a record in this database.`);
+  if (add.kind === 'secondaryPage') {
+    const target = (add.subPage ?? '').trim().toUpperCase();
+    const [d] = await select<{ T: number }>(c, `SELECT PNLTYPE AS T FROM PSPNLDEFN WHERE PNLNAME = :p`, { p: target });
+    if (!target || !d) throw new PageSaveRefusedError(target ? `${target} is not a page in this database.` : 'A new Secondary Page needs its page.');
+    if (Number(d.T) !== 2) throw new PageSaveRefusedError(`${target} is not a secondary page (its page type is ${d.T}).`);
+    full = { ...full, subPage: target };
   }
-  const refusal = newControlFieldRefusal(add.kind, add.recName, add.fieldName, field);
+  for (const l of full.treeLevels ?? []) {
+    if (!(await readFieldInfo(c, l.recName.trim().toUpperCase(), l.fieldName.trim().toUpperCase()))) throw new PageSaveRefusedError(`${l.recName}.${l.fieldName} is not a record field (a tree level).`);
+  }
+  if (full.treeLevels) full = { ...full, treeLevels: full.treeLevels.map((l) => ({ recName: l.recName.trim().toUpperCase(), fieldName: l.fieldName.trim().toUpperCase() })) };
+  const refusal = newControlFieldRefusal(add.kind, full.recName, full.fieldName, field);
   if (refusal) throw new PageSaveRefusedError(refusal);
-  return { ...newControlRows(pnlName, ins.pnlFldId, ins.fieldNum,
-    { kind: add.kind, recName: add.recName.trim(), fieldName: add.fieldName.trim() }, ins.control, field), ...newControlDataRows(pnlName, ins.pnlFldId, add.kind) };
+  const rows = { ...newControlRows(pnlName, ins.pnlFldId, ins.fieldNum, full, ins.control, field), ...newControlDataRows(pnlName, ins.pnlFldId, add.kind, full, ins.fieldNum) };
+  if (GRID_FIELD_TYPES.has(Number(rows.field.FIELDTYPE))) rows.field.GRDCOLUMNCOUNT = ins.control.grdColumnCount ?? 0;
+  return rows;
+}
+
+async function recordExists(c: Connection, recName: string): Promise<boolean> {
+  const [{ N: n }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSRECDEFN WHERE RECNAME = :r`, { r: recName });
+  return Number(n) > 0;
 }
 
 /** A Long Edit Box's PSPTPNLRTEDITOR row (le01: PNLNAME, PNLFLDID and the five ids, ' ' for none). */

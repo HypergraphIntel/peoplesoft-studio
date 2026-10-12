@@ -1,0 +1,18 @@
+Image (im-fresh): IDENTICAL
+Image on an image field (im-field): IDENTICAL
+Tree (tr-fresh): IDENTICAL
+Tree with a level (tr-nodes): IDENTICAL
+Chart (ch-fresh): IDENTICAL
+Chart on a field (ch-field): IDENTICAL
+Secondary Page (sp-fresh): IDENTICAL
+Subpage (sbp-fresh): IDENTICAL
+Grid (gd-fresh): IDENTICAL
+Grid column (gd-column): DIFFERENT
+    PSPNLFIELDEXT FFSTYLELONG: App Designer null, writer " | | | | "
+Tab Separator (ts-fresh): IDENTICAL
+  Grid GRDCOLUMNCOUNT 2 (columns 2)
+Analytic Grid (ag-fresh): IDENTICAL
+Analytic Grid column (ag-fresh): IDENTICAL
+  Analytic Grid GRDCOLUMNCOUNT 1 (columns 1)
+
+12 of 13 identical

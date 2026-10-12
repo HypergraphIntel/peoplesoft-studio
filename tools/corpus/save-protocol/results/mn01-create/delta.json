@@ -1,0 +1,562 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "mn01-create",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362782643985",
+   "timestamp": "2026-10-11T16:22:24.622849000-05:00"
+  },
+  "after": {
+   "scn": "39362782644139",
+   "timestamp": "2026-10-11T16:25:21.899718000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-11T16:22:24.622849000-05:00",
+    "to": "2026-10-11T16:25:21.899718000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "MDM": {
+    "before": 85,
+    "after": 86,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 2450,
+    "after": 2451,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "MDM": {
+    "before": 85,
+    "after": 86,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSMENUDEFN": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSMENUITEM": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "otherTablesChanged": {
+   "PSMENUDEFN": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSMENUITEM": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSMENUDEFN": {
+   "columns": [
+    {
+     "name": "MENUNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MENUGROUP",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "INSTALLED",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GROUPORDER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MENUORDER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GROUPSEP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MENUSEP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MENULABEL",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "MENUTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "MENUNAME": "ZZ_PCODE_LAB_MENU",
+     "VERSION": "86",
+     "MENUGROUP": "Zz Pcode Lab Menu",
+     "INSTALLED": "1",
+     "GROUPORDER": "9999",
+     "MENUORDER": "9999",
+     "GROUPSEP": "0",
+     "MENUSEP": "0",
+     "MENULABEL": "Zz Pcode Lab Menu",
+     "MENUTYPE": "0",
+     "DESCR": " ",
+     "OBJECTOWNERID": " ",
+     "LASTUPDDTTM": "2026-10-11T16:25:17.868246000",
+     "LASTUPDOPRID": "JARED",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSMENUITEM": {
+   "columns": [
+    {
+     "name": "MENUNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "BARNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "ITEMNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "ITEMNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "ITEMTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLGRPNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "MARKET",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "BARLABEL",
+     "type": "VARCHAR2",
+     "length": 40,
+     "nullable": false
+    },
+    {
+     "name": "ITEMLABEL",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "XFERCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SEARCHRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "MENUNAME": "ZZ_PCODE_LAB_MENU",
+     "BARNAME": "USE",
+     "ITEMNAME": "ZZ_LAB_ITEM",
+     "ITEMNUM": "1",
+     "ITEMTYPE": "5",
+     "PNLGRPNAME": "ZZ_PCODE_LAB_CMP",
+     "MARKET": "GBL",
+     "BARLABEL": "&Use",
+     "ITEMLABEL": "Lab Item",
+     "XFERCOUNT": "0",
+     "SEARCHRECNAME": " "
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "MDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "85",
+       "after": "86"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2450",
+       "after": "2451"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "MDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "85",
+       "after": "86"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSMENUDEFN": {
+   "columns": [
+    {
+     "name": "MENUNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MENUGROUP",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "INSTALLED",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GROUPORDER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MENUORDER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GROUPSEP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MENUSEP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MENULABEL",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "MENUTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "MENUNAME": "ZZ_PCODE_LAB_MENU",
+     "VERSION": "86",
+     "MENUGROUP": "Zz Pcode Lab Menu",
+     "INSTALLED": "1",
+     "GROUPORDER": "9999",
+     "MENUORDER": "9999",
+     "GROUPSEP": "0",
+     "MENUSEP": "0",
+     "MENULABEL": "Zz Pcode Lab Menu",
+     "MENUTYPE": "0",
+     "DESCR": " ",
+     "OBJECTOWNERID": " ",
+     "LASTUPDDTTM": "2026-10-11T16:25:17.868246000",
+     "LASTUPDOPRID": "JARED",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSMENUITEM": {
+   "columns": [
+    {
+     "name": "MENUNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "BARNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "ITEMNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "ITEMNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "ITEMTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLGRPNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "MARKET",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "BARLABEL",
+     "type": "VARCHAR2",
+     "length": 40,
+     "nullable": false
+    },
+    {
+     "name": "ITEMLABEL",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "XFERCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SEARCHRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "MENUNAME": "ZZ_PCODE_LAB_MENU",
+     "BARNAME": "USE",
+     "ITEMNAME": "ZZ_LAB_ITEM",
+     "ITEMNUM": "1",
+     "ITEMTYPE": "5",
+     "PNLGRPNAME": "ZZ_PCODE_LAB_CMP",
+     "MARKET": "GBL",
+     "BARLABEL": "&Use",
+     "ITEMLABEL": "Lab Item",
+     "XFERCOUNT": "0",
+     "SEARCHRECNAME": " "
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  }
+ }
+}

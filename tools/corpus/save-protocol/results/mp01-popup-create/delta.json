@@ -1,0 +1,746 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "mp01-popup-create",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362782653006",
+   "timestamp": "2026-10-11T17:04:34.573888000-05:00"
+  },
+  "after": {
+   "scn": "39362782653049",
+   "timestamp": "2026-10-11T17:05:12.399216000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-11T17:04:34.573888000-05:00",
+    "to": "2026-10-11T17:05:12.399216000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "MDM": {
+    "before": 126,
+    "after": 127,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 2488,
+    "after": 2489,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "MDM": {
+    "before": 126,
+    "after": 127,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSMENUDEFN": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSMENUITEM": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSXFERITEM": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "otherTablesChanged": {
+   "PSMENUDEFN": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSMENUITEM": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSXFERITEM": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSMENUDEFN": {
+   "columns": [
+    {
+     "name": "MENUNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MENUGROUP",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "INSTALLED",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GROUPORDER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MENUORDER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GROUPSEP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MENUSEP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MENULABEL",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "MENUTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "MENUNAME": "ZZ_PCODE_LAB_POP",
+     "VERSION": "127",
+     "MENUGROUP": " ",
+     "INSTALLED": "1",
+     "GROUPORDER": "0",
+     "MENUORDER": "0",
+     "GROUPSEP": "0",
+     "MENUSEP": "0",
+     "MENULABEL": " ",
+     "MENUTYPE": "1",
+     "DESCR": " ",
+     "OBJECTOWNERID": " ",
+     "LASTUPDDTTM": "2026-10-11T17:05:07.511026000",
+     "LASTUPDOPRID": "JARED",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSMENUITEM": {
+   "columns": [
+    {
+     "name": "MENUNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "BARNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "ITEMNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "ITEMNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "ITEMTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLGRPNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "MARKET",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "BARLABEL",
+     "type": "VARCHAR2",
+     "length": 40,
+     "nullable": false
+    },
+    {
+     "name": "ITEMLABEL",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "XFERCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SEARCHRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "MENUNAME": "ZZ_PCODE_LAB_POP",
+     "BARNAME": "MENUITEM1",
+     "ITEMNAME": "ZZ_LAB_XFER",
+     "ITEMNUM": "1",
+     "ITEMTYPE": "12",
+     "PNLGRPNAME": " ",
+     "MARKET": " ",
+     "BARLABEL": " ",
+     "ITEMLABEL": "Go &Lab",
+     "XFERCOUNT": "1",
+     "SEARCHRECNAME": " "
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSXFERITEM": {
+   "columns": [
+    {
+     "name": "MENUNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "ITEMNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "XFERTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "KEYSEARCH",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "XFERPORTALNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "XFERNODENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "XFERMENUNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "XFERPNLGRPNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "XFERMKTNAME",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "XFERPNLITEMNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "XFERACTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "MENUNAME": "ZZ_PCODE_LAB_POP",
+     "ITEMNAME": "ZZ_LAB_XFER",
+     "XFERTYPE": "0",
+     "KEYSEARCH": "1",
+     "XFERPORTALNAME": " ",
+     "XFERNODENAME": " ",
+     "XFERMENUNAME": "ZZ_PCODE_LAB_MENU",
+     "XFERPNLGRPNAME": "ZZ_PCODE_LAB_CMP",
+     "XFERMKTNAME": "GBL",
+     "XFERPNLITEMNAME": "ZZ_PCODE_LAB_PG",
+     "XFERACTION": "1"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "MDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "126",
+       "after": "127"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2488",
+       "after": "2489"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "MDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "126",
+       "after": "127"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSMENUDEFN": {
+   "columns": [
+    {
+     "name": "MENUNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MENUGROUP",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "INSTALLED",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GROUPORDER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MENUORDER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GROUPSEP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MENUSEP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MENULABEL",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "MENUTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "MENUNAME": "ZZ_PCODE_LAB_POP",
+     "VERSION": "127",
+     "MENUGROUP": " ",
+     "INSTALLED": "1",
+     "GROUPORDER": "0",
+     "MENUORDER": "0",
+     "GROUPSEP": "0",
+     "MENUSEP": "0",
+     "MENULABEL": " ",
+     "MENUTYPE": "1",
+     "DESCR": " ",
+     "OBJECTOWNERID": " ",
+     "LASTUPDDTTM": "2026-10-11T17:05:07.511026000",
+     "LASTUPDOPRID": "JARED",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSMENUITEM": {
+   "columns": [
+    {
+     "name": "MENUNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "BARNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "ITEMNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "ITEMNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "ITEMTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLGRPNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "MARKET",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "BARLABEL",
+     "type": "VARCHAR2",
+     "length": 40,
+     "nullable": false
+    },
+    {
+     "name": "ITEMLABEL",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "XFERCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SEARCHRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "MENUNAME": "ZZ_PCODE_LAB_POP",
+     "BARNAME": "MENUITEM1",
+     "ITEMNAME": "ZZ_LAB_XFER",
+     "ITEMNUM": "1",
+     "ITEMTYPE": "12",
+     "PNLGRPNAME": " ",
+     "MARKET": " ",
+     "BARLABEL": " ",
+     "ITEMLABEL": "Go &Lab",
+     "XFERCOUNT": "1",
+     "SEARCHRECNAME": " "
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSXFERITEM": {
+   "columns": [
+    {
+     "name": "MENUNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "ITEMNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "XFERTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "KEYSEARCH",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "XFERPORTALNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "XFERNODENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "XFERMENUNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "XFERPNLGRPNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "XFERMKTNAME",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "XFERPNLITEMNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "XFERACTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "MENUNAME": "ZZ_PCODE_LAB_POP",
+     "ITEMNAME": "ZZ_LAB_XFER",
+     "XFERTYPE": "0",
+     "KEYSEARCH": "1",
+     "XFERPORTALNAME": " ",
+     "XFERNODENAME": " ",
+     "XFERMENUNAME": "ZZ_PCODE_LAB_MENU",
+     "XFERPNLGRPNAME": "ZZ_PCODE_LAB_CMP",
+     "XFERMKTNAME": "GBL",
+     "XFERPNLITEMNAME": "ZZ_PCODE_LAB_PG",
+     "XFERACTION": "1"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  }
+ }
+}

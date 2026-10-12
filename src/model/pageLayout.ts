@@ -138,6 +138,8 @@ export interface PageControl {
   /** FIELDUSE 0x02: the control is invisible. */
   invisible: boolean;
   pageFieldName: string;
+  /** A grid column's grid (PNLFLDID): stored at (0, 0), drawn inside its grid as App Designer draws it. */
+  gridColumnOf?: number;
 }
 
 /** FIELDUSE bits, proven against App Designer saves (docs/PAGE_SAVE.md 09-property). */
@@ -392,6 +394,8 @@ export function buildPageLayout(name: string, view: PageView): PageLayout {
       };
     });
 
+  placeGridColumns(controls);
+
   // The surface is the controls' extent (labels included) plus a margin, with a sensible minimum.
   let maxRight = 200;
   let maxBottom = 120;
@@ -440,4 +444,27 @@ export function buildPageLayout(name: string, view: PageView): PageLayout {
       version: num(p.VERSION)
     }
   };
+}
+
+/**
+ * A Grid's or Analytic Grid's columns are the (0, 0) controls right after it in tab order (their width in FIELDRIGHT,
+ * GRDCOLUMNCOUNT counting them -- 9,602 of HRDMO's 9,661 grids). App Designer draws them side by side inside the grid,
+ * after its row-number column, each under its heading; so does the Layout view (their stored (0, 0) is kept).
+ */
+export function placeGridColumns(controls: PageControl[]): void {
+  const scrolls = new Set([10, 19, 27, 32]);
+  for (const [i, g] of controls.entries()) {
+    if (g.type !== 19 && g.type !== 32) continue;
+    let x = g.rect.left + (g.columns.gridShowRowHdg ? 22 : 2);
+    const top = g.rect.top + 20, height = Math.max(14, Math.min(18, g.rect.height - 22));
+    for (const c of controls.slice(i + 1)) {
+      if (c.columns.fieldLeft !== 0 || c.columns.fieldTop !== 0 || scrolls.has(c.type)) break;
+      const width = c.columns.fieldRight > 0 ? c.columns.fieldRight : c.type === 24 ? 28 : 80;
+      c.rect = { left: x, top, width, height };
+      c.gridColumnOf = g.pnlFldId;
+      const text = c.label?.text ?? (c.columns.lblType ? c.columns.lblText.trim() : '');
+      if (text) c.label = { text, rect: { left: x, top: g.rect.top + 2, width, height: 16 } };
+      x += width + 1;
+    }
+  }
 }

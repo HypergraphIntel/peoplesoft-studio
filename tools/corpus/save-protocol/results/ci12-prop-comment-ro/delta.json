@@ -1,0 +1,668 @@
+{
+ "format": "def-capture/1",
+ "kind": "ci",
+ "case": "ci12-prop-comment-ro",
+ "name": "ZZ_PCODE_LAB_CI2",
+ "watch": {
+  "PSBCDEFN": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCDISPLAYNAME"
+    },
+    {
+     "name": "BCPGNAME"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "MENUNAME"
+    },
+    {
+     "name": "SEARCHRECNAME"
+    },
+    {
+     "name": "ADDSRCHRECNAME"
+    },
+    {
+     "name": "ITEMCOUNT"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "BCSTDMETHODS"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "BCNAME": "ZZ_PCODE_LAB_CI2"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "13",
+       "after": "14"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-11T21:37:30",
+       "after": "2026-10-11T21:38:07"
+      }
+     }
+    }
+   ]
+  },
+  "PSBCITEM": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCTYPE"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "SEQUENCE_NBR_6"
+    },
+    {
+     "name": "BCACCESS"
+    },
+    {
+     "name": "BCSCROLL"
+    },
+    {
+     "name": "BCSCROLLNUM"
+    },
+    {
+     "name": "BCSCROLLNAME"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "FIELDNAME"
+    },
+    {
+     "name": "SUBRECNAME"
+    },
+    {
+     "name": "COMMENTSHORT"
+    },
+    {
+     "name": "SYNCID"
+    },
+    {
+     "name": "MPDEVICEPERSISTINT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "BCNAME": "ZZ_PCODE_LAB_CI2",
+      "BCTYPE": "4",
+      "BCITEMPARENT": "DRIVERS_LIC",
+      "BCITEMNAME": "COUNTRY"
+     },
+     "changes": {
+      "BCACCESS": {
+       "before": "1",
+       "after": "2"
+      },
+      "COMMENTSHORT": {
+       "before": " ",
+       "after": "Lab comment"
+      }
+     }
+    }
+   ]
+  },
+  "PSBCDEFNLANG": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSBCITEMLANG": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCTYPE"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "COMMENTSHORT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSBCDEL": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSSYSTEMID": {
+   "columns": [
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "PTNEXTSYSTEMID"
+    },
+    {
+     "name": "PTUPDSYSTEMID"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSCISYNCDEFN": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "SYNCID"
+    },
+    {
+     "name": "CONFLICTRESOLUTION"
+    },
+    {
+     "name": "MSGSET"
+    },
+    {
+     "name": "RELCONTENTPROJ"
+    },
+    {
+     "name": "MPDEVICEPERSIST"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSCIREF": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "REF_CINAME"
+    },
+    {
+     "name": "CI_OWNS_DATA"
+    },
+    {
+     "name": "REF_BACKPOINTER"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSCIREFPROPERTY": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "REF_CINAME"
+    },
+    {
+     "name": "SRC_CIPROPERTYNAME"
+    },
+    {
+     "name": "REF_CIPROPERTYNAME"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSCIREFENUM": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "REF_CINAME"
+    },
+    {
+     "name": "SEQUENCE_NBR_6"
+    },
+    {
+     "name": "FROM_CI"
+    },
+    {
+     "name": "USE_REF"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSAUTHBUSCOMP": {
+   "columns": [
+    {
+     "name": "CLASSID"
+    },
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCMETHOD"
+    },
+    {
+     "name": "AUTHORIZEDACTIONS"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMPROG": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "PROGSEQ"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "NAMECOUNT"
+    },
+    {
+     "name": "PROGLEN"
+    },
+    {
+     "name": "PROGRUNLOC"
+    },
+    {
+     "name": "PROGFLAGS"
+    },
+    {
+     "name": "LICENSE_CODE"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "PROGEXTENDS"
+    },
+    {
+     "name": "PTTOOLSREL"
+    },
+    {
+     "name": "PROGTXT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMTXT": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "PROGSEQ"
+    },
+    {
+     "name": "HASH_SIGNATURE"
+    },
+    {
+     "name": "PCTEXT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMNAME": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "NAMENUM"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "REFNAME"
+    },
+    {
+     "name": "PACKAGEROOT"
+    },
+    {
+     "name": "QUALIFYPATH"
+    },
+    {
+     "name": "APPCLASSMETHOD"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMPROGDEL": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "BCM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "13",
+       "after": "14"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2705",
+       "after": "2706"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "BCM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "13",
+       "after": "14"
+      }
+     }
+    }
+   ]
+  }
+ }
+}

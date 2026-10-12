@@ -132,6 +132,16 @@ export function targetForKey(key: PcmKey): CompileTarget {
   if (ids.join(',') === '66,77,39,20,21,78,12' && values[6] === 'OnExecute') {
     return { applicationClass: false, recordName: '', fieldName: '' };
   }
+  // Menu PeopleCode (3 / 4 / 5 / 12: menu, bar, item, ItemSelected) compiles with no record or field: 3 of 3
+  // HCDEV programs encode exactly so, and App Designer's own saves match byte for byte [mi06, mb04, mp10].
+  if (ids.join(',') === '3,4,5,12,0,0,0' && values[3] === 'ItemSelected') {
+    return { applicationClass: false, recordName: '', fieldName: '' };
+  }
+  // Component Interface PeopleCode (74 / 12: interface, Methods) compiles with no record or field; App Designer's
+  // save matches byte for byte [ci24].
+  if (ids.join(',') === '74,12,0,0,0,0,0' && values[1] === 'Methods') {
+    return { applicationClass: false, recordName: '', fieldName: '' };
+  }
   if (ids[0] === APPLICATION_PACKAGE_ID) {
     const last = ids.findIndex((id) => id === EVENT_ID);
     if (last > 1 && ids.slice(1, last).every((id) => APPLICATION_CLASS_IDS.has(id)) && values[last] === 'OnExecute') {
@@ -140,7 +150,7 @@ export function targetForKey(key: PcmKey): CompileTarget {
   }
   throw new SaveRefusedError(
     `Saving this kind of PeopleCode (OBJECTIDs ${ids.join(', ')}) is not supported yet; ` +
-    'only Record Field, Component, Page, App Engine and Application Class programs are.');
+    'only Record Field, Component, Page, Menu, App Engine and Application Class programs are.');
 }
 
 // ---------------------------------------------------------------------------

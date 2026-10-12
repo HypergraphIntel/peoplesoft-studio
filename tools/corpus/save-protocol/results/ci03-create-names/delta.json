@@ -1,0 +1,777 @@
+{
+ "format": "def-capture/1",
+ "kind": "ci",
+ "case": "ci03-create-names",
+ "name": "ZZ_PCODE_LAB_CI3",
+ "watch": {
+  "PSBCDEFN": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCDISPLAYNAME"
+    },
+    {
+     "name": "BCPGNAME"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "MENUNAME"
+    },
+    {
+     "name": "SEARCHRECNAME"
+    },
+    {
+     "name": "ADDSRCHRECNAME"
+    },
+    {
+     "name": "ITEMCOUNT"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "BCSTDMETHODS"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI3",
+     "BCDISPLAYNAME": "ZZ_PCODE_LAB_CI3",
+     "BCPGNAME": "GPFR_DA_DATTYP",
+     "MARKET": "GBL",
+     "MENUNAME": " ",
+     "SEARCHRECNAME": "GPFR_DA_DATTYP",
+     "ADDSRCHRECNAME": "GPFR_DA_DATTYP",
+     "ITEMCOUNT": "14",
+     "DESCR": " ",
+     "VERSION": "5",
+     "BCSTDMETHODS": "31",
+     "LASTUPDDTTM": "2026-10-11T21:05:18",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSBCITEM": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCTYPE"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "SEQUENCE_NBR_6"
+    },
+    {
+     "name": "BCACCESS"
+    },
+    {
+     "name": "BCSCROLL"
+    },
+    {
+     "name": "BCSCROLLNUM"
+    },
+    {
+     "name": "BCSCROLLNAME"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "FIELDNAME"
+    },
+    {
+     "name": "SUBRECNAME"
+    },
+    {
+     "name": "COMMENTSHORT"
+    },
+    {
+     "name": "SYNCID"
+    },
+    {
+     "name": "MPDEVICEPERSISTINT"
+    }
+   ],
+   "inserted": [
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI3",
+     "BCTYPE": "1",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "GPFR_DA_DATTYP",
+     "SEQUENCE_NBR_6": "1",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "AA-AA-00-00",
+     "RECNAME": "GPFR_DA_DATTYP",
+     "FIELDNAME": "GPFR_DA_DATTYP",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37593",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI3",
+     "BCTYPE": "2",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "GPFR_DA_DATTYP",
+     "SEQUENCE_NBR_6": "2",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "AA-AA-00-01",
+     "RECNAME": "GPFR_DA_DATTYP",
+     "FIELDNAME": "GPFR_DA_DATTYP",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37596",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI3",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "GPFR_DA_CODE",
+     "SEQUENCE_NBR_6": "9",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "GPFR_DA_CODE",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37600",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI3",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "GPFR_DA_XCODE",
+     "SEQUENCE_NBR_6": "14",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "1",
+     "BCSCROLLNAME": "00-00-01-01",
+     "RECNAME": "GPFR_DA_XCODE",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37604",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI3",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "GPFR_DA_CODE",
+     "BCITEMNAME": "GPFR_DA_CODE_1",
+     "SEQUENCE_NBR_6": "11",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "GPFR_DA_CODE",
+     "FIELDNAME": "GPFR_DA_CODE",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37601",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI3",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "GPFR_DA_CODE",
+     "BCITEMNAME": "GPFR_DA_DESCR",
+     "SEQUENCE_NBR_6": "13",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "GPFR_DA_CODE",
+     "FIELDNAME": "GPFR_DA_DESCR",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37602",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI3",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "GPFR_DA_CODE",
+     "BCITEMNAME": "GPFR_DA_STATUS",
+     "SEQUENCE_NBR_6": "12",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "GPFR_DA_CODE",
+     "FIELDNAME": "GPFR_DA_STATUS",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37603",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI3",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "GPFR_DA_XCODE",
+     "BCITEMNAME": "GPFR_DA_CODE_3",
+     "SEQUENCE_NBR_6": "17",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "1",
+     "BCSCROLLNAME": "00-00-01-01",
+     "RECNAME": "GPFR_DA_XCODE",
+     "FIELDNAME": "GPFR_DA_CODE",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37605",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI3",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "GPFR_DA_XCODE",
+     "BCITEMNAME": "GPFR_DA_XCODE_1",
+     "SEQUENCE_NBR_6": "16",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "1",
+     "BCSCROLLNAME": "00-00-01-01",
+     "RECNAME": "GPFR_DA_XCODE",
+     "FIELDNAME": "GPFR_DA_XCODE",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37606",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI3",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "DESCR",
+     "SEQUENCE_NBR_6": "8",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "GPFR_DA_DATTYP",
+     "FIELDNAME": "DESCR",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37598",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI3",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "GPFR_DA_DATTYP",
+     "SEQUENCE_NBR_6": "7",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "GPFR_DA_DATTYP",
+     "FIELDNAME": "GPFR_DA_DATTYP",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37599",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI3",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "PAGE_TITLE",
+     "SEQUENCE_NBR_6": "6",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "DERIVED_PGTITLE",
+     "FIELDNAME": "PAGE_TITLE",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37597",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI3",
+     "BCTYPE": "5",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "DESCR",
+     "SEQUENCE_NBR_6": "4",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "AA-AA-00-02",
+     "RECNAME": "GPFR_DA_DATTYP",
+     "FIELDNAME": "DESCR",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37594",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI3",
+     "BCTYPE": "5",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "GPFR_DA_DATTYP",
+     "SEQUENCE_NBR_6": "3",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "AA-AA-00-02",
+     "RECNAME": "GPFR_DA_DATTYP",
+     "FIELDNAME": "GPFR_DA_DATTYP",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37595",
+     "MPDEVICEPERSISTINT": "0"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSBCDEFNLANG": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSBCITEMLANG": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCTYPE"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "COMMENTSHORT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSBCDEL": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSSYSTEMID": {
+   "columns": [
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "PTNEXTSYSTEMID"
+    },
+    {
+     "name": "PTUPDSYSTEMID"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "RECNAME": "PSBCITEM"
+     },
+     "changes": {
+      "PTNEXTSYSTEMID": {
+       "before": "37592",
+       "after": "37606"
+      }
+     }
+    }
+   ]
+  },
+  "PSPCMPROG": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "PROGSEQ"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "NAMECOUNT"
+    },
+    {
+     "name": "PROGLEN"
+    },
+    {
+     "name": "PROGRUNLOC"
+    },
+    {
+     "name": "PROGFLAGS"
+    },
+    {
+     "name": "LICENSE_CODE"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "PROGEXTENDS"
+    },
+    {
+     "name": "PTTOOLSREL"
+    },
+    {
+     "name": "PROGTXT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMTXT": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "PROGSEQ"
+    },
+    {
+     "name": "HASH_SIGNATURE"
+    },
+    {
+     "name": "PCTEXT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMNAME": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "NAMENUM"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "REFNAME"
+    },
+    {
+     "name": "PACKAGEROOT"
+    },
+    {
+     "name": "QUALIFYPATH"
+    },
+    {
+     "name": "APPCLASSMETHOD"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMPROGDEL": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "BCM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "4",
+       "after": "5"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2696",
+       "after": "2697"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "BCM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "4",
+       "after": "5"
+      }
+     }
+    }
+   ]
+  }
+ }
+}

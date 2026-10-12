@@ -1,6 +1,6 @@
 import type { PageLayout } from './pageLayout.js';
 import { FIELD_USE_DISPLAY_ONLY, FIELD_USE_INVISIBLE } from './pageLayout.js';
-import { NEW_CONTROL_SIZE, type NewControlKind } from '../providers/pageControlTemplates.js';
+import { NEW_CONTROL_FIELDUSE, NEW_CONTROL_SIZE, type NewControlKind } from '../providers/pageControlTemplates.js';
 import type { EditedControl, EditedPageProperties } from '../providers/pageWriter.js';
 
 /*
@@ -13,7 +13,8 @@ import type { EditedControl, EditedPageProperties } from '../providers/pageWrite
  */
 
 export type PageOperation =
-  | { op: 'add'; kind: NewControlKind; left: number; top: number; width?: number; height?: number; record?: string; field?: string; label?: string }
+  | { op: 'add'; kind: NewControlKind; left: number; top: number; width?: number; height?: number; record?: string; field?: string; label?: string;
+      page?: string; intoGrid?: number; treeLevels?: Array<{ record: string; field: string }>; model?: string; collection?: string; axes?: Array<{ field: string; axis: number }> }
   | { op: 'move'; id: number; left: number; top: number }
   | { op: 'resize'; id: number; width: number; height: number }
   | { op: 'set_label'; id: number; text?: string; labelType?: number }
@@ -70,9 +71,18 @@ export function applyPageOperations(layout: PageLayout, operations: readonly Pag
           fieldRight: width ? left + width : 0, fieldBottom: height ? top + height : 0,
           editLblLeft: 0, editLblTop: 0, editLblRight: 0, editLblBottom: 0,
           // An explicit size on an auto-sized kind is a custom size, as a resize makes it.
-          fieldSizeType: sized && !z.width ? 2 : z.fieldSizeType, lblType: z.lblType, lblText: o.label ?? '',
-          fieldUse: 0, secureInvisible: 0,
-          add: { kind: o.kind, recName: (o.record ?? '').trim().toUpperCase(), fieldName: (o.field ?? '').trim().toUpperCase() }
+          // A grid column keeps App Designer's size type with its width (gd-column, ag-fresh: 0).
+          fieldSizeType: sized && !z.width && o.intoGrid === undefined ? 2 : z.fieldSizeType, lblType: z.lblType, lblText: o.label ?? '',
+          // The kind's own use bits, as App Designer drops it: a Static Image display only (in01), a Scroll Bar or Secondary Page
+          // invisible (lv03, sp-fresh), a Grid 0x1000 (gd-fresh), an Analytic Grid display only (ag-fresh).
+          fieldUse: NEW_CONTROL_FIELDUSE[o.kind] ?? 0, secureInvisible: (NEW_CONTROL_FIELDUSE[o.kind] ?? 0) & 0x2 ? 1 : 0,
+          add: { kind: o.kind, recName: (o.record ?? '').trim().toUpperCase(), fieldName: (o.field ?? '').trim().toUpperCase(),
+            ...(o.page ? { subPage: o.page.trim().toUpperCase() } : {}),
+            // A grid added earlier in these operations is named by its negative position (-1 the first added control).
+            ...(o.intoGrid !== undefined ? { intoGrid: whole(o.intoGrid, 'intoGrid') } : {}),
+            ...(o.treeLevels ? { treeLevels: o.treeLevels.map((l) => ({ recName: l.record.trim().toUpperCase(), fieldName: l.field.trim().toUpperCase() })) } : {}),
+            ...(o.kind === 'analyticGrid' ? { analytic: { model: (o.model ?? '').trim().toUpperCase(), collection: (o.collection ?? '').trim().toUpperCase(),
+              ...(o.axes ? { axes: o.axes.map((x) => ({ fieldName: x.field.trim().toUpperCase(), axis: x.axis })) } : {}) } } : {}) }
         });
         break;
       }

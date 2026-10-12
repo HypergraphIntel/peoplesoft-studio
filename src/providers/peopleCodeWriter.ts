@@ -210,6 +210,10 @@ export async function savePeopleCode(
         await checkPageProgram(c, parts);
       } else if (request.objectIds?.[0] === 66) {
         await checkAppEngineProgram(c, parts);
+      } else if (request.objectIds?.[0] === 3) {
+        await checkMenuProgram(c, parts);
+      } else if (request.objectIds?.[0] === 74) {
+        await checkCiProgram(c, parts);
       } else {
         if (parts.length !== 3 || !RECORD_FIELD_EVENTS.includes(parts[2])) {
           throw new SaveRefusedError('There is no stored program here; only Record Field PeopleCode and new Application Classes can be created yet.');
@@ -223,7 +227,7 @@ export async function savePeopleCode(
       ? {
         key: classPlan
           ? { objectIds: classPlan.objectIds, objectValues: [...parts, ...Array(7 - parts.length).fill(' ')] }
-          : request.objectIds?.[0] === 10 || request.objectIds?.[0] === 9 || request.objectIds?.[0] === 66
+          : request.objectIds?.[0] === 10 || request.objectIds?.[0] === 9 || request.objectIds?.[0] === 66 || request.objectIds?.[0] === 3 || request.objectIds?.[0] === 74
             // Component (p01-p03) and page PeopleCode: the type's OBJECTIDs, the other slots 0 / ' '.
             ? { objectIds: [...request.objectIds, ...Array(7 - request.objectIds.length).fill(0)], objectValues: [...parts, ...Array(7 - parts.length).fill(' ')] }
             : { objectIds: [1, 2, 12, 0, 0, 0, 0], objectValues: [parts[0], parts[1], parts[2], ' ', ' ', ' ', ' '] },
@@ -518,6 +522,24 @@ async function checkAppEngineProgram(c: Connection, parts: readonly string[]): P
         AND EFFDT = TO_DATE(:e, 'YYYY-MM-DD') AND AE_STEP = :t AND AE_STMT_TYPE = 'P'`,
     { p: parts[0], s: parts[1], m: parts[2], d: dbType, e: parts[4], t: parts[5] });
   if (Number(N) === 0) throw new SaveRefusedError(`${parts.slice(0, 6).join('.')} has no PeopleCode action; add one in the App Engine Designer first.`);
+}
+
+/** Component Interface PeopleCode can be created here for an interface that exists, its one program Methods [ci24]. */
+async function checkCiProgram(c: Connection, parts: readonly string[]): Promise<void> {
+  if (parts.length !== 2 || parts[1] !== 'Methods') throw new SaveRefusedError('Component Interface PeopleCode is keyed interface, Methods.');
+  const [{ N }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSBCDEFN WHERE BCNAME = :n`, { n: parts[0] });
+  if (Number(N) === 0) throw new SaveRefusedError(`There is no Component Interface ${parts[0]}.`);
+}
+
+/**
+ * Menu PeopleCode can be created here for an item that is a PeopleCode item (ITEMTYPE 9), its one event ItemSelected --
+ * App Designer's View PeopleCode is only on those (docs/MENUS.md).
+ */
+async function checkMenuProgram(c: Connection, parts: readonly string[]): Promise<void> {
+  if (parts.length !== 4 || parts[3] !== 'ItemSelected') throw new SaveRefusedError('Menu PeopleCode is keyed menu, bar, item, ItemSelected.');
+  const [{ N }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSMENUITEM WHERE MENUNAME = :m AND BARNAME = :b AND ITEMNAME = :i AND ITEMTYPE = 9`,
+    { m: parts[0], b: parts[1], i: parts[2] });
+  if (Number(N) === 0) throw new SaveRefusedError(`${parts.slice(0, 3).join('.')} is not a PeopleCode item; make it one in the Menu Designer first.`);
 }
 
 /** Page PeopleCode can be created here: a page that exists, its one event Activate (App Designer's View Page PeopleCode). */

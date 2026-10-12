@@ -95,7 +95,46 @@ designer's (tested in `src/test/aeModel.test.ts`); `tools/lab/ae-mcp-e2e.mts`
 runs an agent's session against the real server and a live database.
 Nothing runs a program.
 
+## Menus
+
+`src/mcp/menuTools.ts`: the Menu Designer's model and writer (docs/MENUS.md),
+behind the same gates.
+
+| Tool | Writes | What it does |
+|---|---|---|
+| `psft_menu_reference` | no | Menus in brief: bars, item types, App Designer's checks, groups, renames |
+| `psft_menu_get` | no | The menu as a spec (bars, items with their components, PeopleCode, transfers), its token and validation |
+| `psft_menu_validate` | no | App Designer's save checks, names, components / search records / transfer menus named, PeopleCode compiled -- of a menu, a spec, or proposed operations |
+| `psft_menu_create` | yes | A standard or popup menu from a spec, with App Designer's defaults; `dryRun` previews |
+| `psft_menu_edit` | yes | Operations (Menu Properties; add / rename / relabel / move / delete bars and items; item type, component, search record override, ItemSelected PeopleCode, transfer); `expectedToken`, `dryRun` |
+| `psft_menu_copy`, `psft_menu_rename`, `psft_menu_delete` | yes | Save As (PeopleCode optional), Rename, Delete as App Designer does them |
+
+After a save the menu is read back and compared with what was written.
+`src/model/menuOperations.ts` maps the operations onto the designer's
+(`src/test/menuModel.test.ts`); `tools/lab/menu-e2e.mts` runs the same path on
+a live database.
+
+## Component Interfaces
+
+`src/mcp/ciTools.ts`: the CI Designer's model and writer
+(docs/COMPONENT_INTERFACES.md), behind the same gates.
+
+| Tool | Writes | What it does |
+|---|---|---|
+| `psft_ci_reference` | no | Component Interfaces in brief: keys, properties, collections, defaulting, edits, names, security |
+| `psft_ci_get` | no | The interface as a spec (properties, methods, synchronization, keys, the properties tree), its token and validation |
+| `psft_ci_buffer` | no | The component's buffer as the window's left tree: offered keys, each scroll and its fields (present, defaulted, the parent's keys) |
+| `psft_ci_validate` | no | Validation of an interface, or of proposed operations, with the resulting spec |
+| `psft_ci_create` | yes | An interface on a component as File > New makes it (`defaultProperties` App Designer's (123,12) question), then operations; `dryRun` previews |
+| `psft_ci_edit` | yes | Operations: `set_interface`, `set_methods`, `set_sync`, `set_item` (rename, comment, Read Only), `delete_item`, `add_key`, `add_field`, `add_scroll`; `expectedToken`, `dryRun` |
+| `psft_ci_copy`, `psft_ci_rename`, `psft_ci_delete` | yes | Save As (Methods PeopleCode optional), Rename, Delete as App Designer does them |
+
+Its Methods PeopleCode (the user methods) saves through `psft_save_peoplecode`
+(type 42, parts `[CI, "Methods"]`). `src/model/ciOperations.ts` maps the
+operations onto the designer's edits; `tools/lab/ci-e2e.mts` runs the same
+path on a live database.
+
 ## Not written
 
-Menus and the other read-only types. Creating pages and records through the
+The read-only types. Creating pages and records through the
 MCP is also not offered yet.

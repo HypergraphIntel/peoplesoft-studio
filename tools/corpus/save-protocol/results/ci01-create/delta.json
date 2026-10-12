@@ -1,0 +1,556 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "ci01-create",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362782727748",
+   "timestamp": "2026-10-11T20:49:17.853496000-05:00"
+  },
+  "after": {
+   "scn": "39362782729306",
+   "timestamp": "2026-10-11T20:51:24.977205000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-11T20:49:17.853496000-05:00",
+    "to": "2026-10-11T20:51:24.977205000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "BCM": {
+    "before": 2,
+    "after": 3,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 2694,
+    "after": 2695,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "BCM": {
+    "before": 2,
+    "after": 3,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "otherTablesChanged": {
+   "PSBCDEFN": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSBCITEM": {
+    "inserted": 9,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSSYSTEMID": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "BCM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2",
+       "after": "3"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2694",
+       "after": "2695"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "BCM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2",
+       "after": "3"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSBCDEFN": {
+   "columns": [
+    {
+     "name": "BCNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "BCDISPLAYNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "BCPGNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "MARKET",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "MENUNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "SEARCHRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "ADDSRCHRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "ITEMCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "BCSTDMETHODS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI",
+     "BCDISPLAYNAME": "ZZ_PCODE_LAB_CI",
+     "BCPGNAME": "ZZ_PCODE_LAB_LVC",
+     "MARKET": "GBL",
+     "MENUNAME": " ",
+     "SEARCHRECNAME": "ZZ_R_L0_A",
+     "ADDSRCHRECNAME": "ZZ_R_L0_A",
+     "ITEMCOUNT": "9",
+     "DESCR": " ",
+     "VERSION": "3",
+     "BCSTDMETHODS": "31",
+     "LASTUPDDTTM": "2026-10-11T20:51:14.652367000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSBCITEM": {
+   "columns": [
+    {
+     "name": "BCNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "BCTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "BCITEMPARENT",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "BCITEMNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "SEQUENCE_NBR_6",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "BCACCESS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "BCSCROLL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "BCSCROLLNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "BCSCROLLNAME",
+     "type": "VARCHAR2",
+     "length": 240,
+     "nullable": false
+    },
+    {
+     "name": "RECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "SUBRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "COMMENTSHORT",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "SYNCID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MPDEVICEPERSISTINT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "ZZ_KEY0",
+     "SEQUENCE_NBR_6": "2",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "ZZ_R_L0_A",
+     "FIELDNAME": "ZZ_KEY0",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37563",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "ZZ_KEY0_0",
+     "SEQUENCE_NBR_6": "3",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "ZZ_R_L0_B",
+     "FIELDNAME": "ZZ_KEY0",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37564",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "ZZ_R_L1_A",
+     "SEQUENCE_NBR_6": "4",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "ZZ_R_L1_A",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37565",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "ZZ_R_L1_A",
+     "BCITEMNAME": "ZZ_KEY1",
+     "SEQUENCE_NBR_6": "6",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "ZZ_R_L1_A",
+     "FIELDNAME": "ZZ_KEY1",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37566",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "ZZ_R_L1_A",
+     "BCITEMNAME": "ZZ_R_L2_A",
+     "SEQUENCE_NBR_6": "7",
+     "BCACCESS": "1",
+     "BCSCROLL": "2",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00-02-00",
+     "RECNAME": "ZZ_R_L2_A",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37567",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "ZZ_R_L2_A",
+     "BCITEMNAME": "POSTAL",
+     "SEQUENCE_NBR_6": "11",
+     "BCACCESS": "1",
+     "BCSCROLL": "2",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00-02-00",
+     "RECNAME": "DERIVED_ADDRESS",
+     "FIELDNAME": "POSTAL",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37568",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "ZZ_R_L2_A",
+     "BCITEMNAME": "ZZ_KEY2",
+     "SEQUENCE_NBR_6": "10",
+     "BCACCESS": "1",
+     "BCSCROLL": "2",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00-02-00",
+     "RECNAME": "ZZ_R_L2_A",
+     "FIELDNAME": "ZZ_KEY2",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37569",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "ZZ_R_L2_A2",
+     "SEQUENCE_NBR_6": "12",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "1",
+     "BCSCROLLNAME": "00-00-01-01",
+     "RECNAME": "ZZ_R_L2_A",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37570",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "ZZ_R_L2_A2",
+     "BCITEMNAME": "ZZ_KEY2_1",
+     "SEQUENCE_NBR_6": "15",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "1",
+     "BCSCROLLNAME": "00-00-01-01",
+     "RECNAME": "ZZ_R_L2_A",
+     "FIELDNAME": "ZZ_KEY2",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37571",
+     "MPDEVICEPERSISTINT": "0"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSSYSTEMID": {
+   "columns": [
+    {
+     "name": "RECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "PTNEXTSYSTEMID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTUPDSYSTEMID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAPN0AHgAAAACXAAB"
+     },
+     "changes": {
+      "PTNEXTSYSTEMID": {
+       "before": "37562",
+       "after": "37571"
+      }
+     }
+    }
+   ]
+  }
+ }
+}

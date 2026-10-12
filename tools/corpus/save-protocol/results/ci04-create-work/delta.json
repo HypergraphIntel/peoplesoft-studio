@@ -1,0 +1,2630 @@
+{
+ "format": "def-capture/1",
+ "kind": "ci",
+ "case": "ci04-create-work",
+ "name": "ZZ_PCODE_LAB_CI4",
+ "watch": {
+  "PSBCDEFN": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCDISPLAYNAME"
+    },
+    {
+     "name": "BCPGNAME"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "MENUNAME"
+    },
+    {
+     "name": "SEARCHRECNAME"
+    },
+    {
+     "name": "ADDSRCHRECNAME"
+    },
+    {
+     "name": "ITEMCOUNT"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "BCSTDMETHODS"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCDISPLAYNAME": "ZZ_PCODE_LAB_CI4",
+     "BCPGNAME": "HCSC_ADH_NOTIFY_FL",
+     "MARKET": "GBL",
+     "MENUNAME": " ",
+     "SEARCHRECNAME": "HCSC_NTF_SRH_FL",
+     "ADDSRCHRECNAME": "HCSC_NOTF_ASRCH",
+     "ITEMCOUNT": "123",
+     "DESCR": " ",
+     "VERSION": "6",
+     "BCSTDMETHODS": "31",
+     "LASTUPDDTTM": "2026-10-11T21:16:15",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSBCITEM": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCTYPE"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "SEQUENCE_NBR_6"
+    },
+    {
+     "name": "BCACCESS"
+    },
+    {
+     "name": "BCSCROLL"
+    },
+    {
+     "name": "BCSCROLLNUM"
+    },
+    {
+     "name": "BCSCROLLNAME"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "FIELDNAME"
+    },
+    {
+     "name": "SUBRECNAME"
+    },
+    {
+     "name": "COMMENTSHORT"
+    },
+    {
+     "name": "SYNCID"
+    },
+    {
+     "name": "MPDEVICEPERSISTINT"
+    }
+   ],
+   "inserted": [
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "1",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_NOTIF_TRNS_ID",
+     "SEQUENCE_NBR_6": "1",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "AA-AA-00-00",
+     "RECNAME": "HCSC_NTF_SRH_FL",
+     "FIELDNAME": "HCSC_NOTIF_TRNS_ID",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37607",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "2",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_NOTIF_TRNS_ID",
+     "SEQUENCE_NBR_6": "7",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "AA-AA-00-01",
+     "RECNAME": "HCSC_NOTF_ASRCH",
+     "FIELDNAME": "HCSC_NOTIF_TRNS_ID",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37613",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "EONC_EMAIL_BIND",
+     "SEQUENCE_NBR_6": "345",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "12",
+     "BCSCROLLNAME": "00-00-01-12",
+     "RECNAME": "EONC_EMAIL_BIND",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37720",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "EONC_EMSBJ_BIND",
+     "SEQUENCE_NBR_6": "338",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "11",
+     "BCSCROLLNAME": "00-00-01-11",
+     "RECNAME": "EONC_EMSBJ_BIND",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37717",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "EONC_PUSH_BIND",
+     "SEQUENCE_NBR_6": "324",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "9",
+     "BCSCROLLNAME": "00-00-01-09",
+     "RECNAME": "EONC_PUSH_BIND",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37711",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "EONC_TEXT_BIND",
+     "SEQUENCE_NBR_6": "331",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "10",
+     "BCSCROLLNAME": "00-00-01-10",
+     "RECNAME": "EONC_TEXT_BIND",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37714",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_DYNAMIC_VW",
+     "SEQUENCE_NBR_6": "291",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "5",
+     "BCSCROLLNAME": "00-00-01-05",
+     "RECNAME": "HCSC_DYNAMIC_VW",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37690",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_NOTIF_DVW",
+     "SEQUENCE_NBR_6": "263",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "1",
+     "BCSCROLLNAME": "00-00-01-01",
+     "RECNAME": "HCSC_NOTIF_DVW",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37680",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_NOTIF_LINK",
+     "SEQUENCE_NBR_6": "352",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "13",
+     "BCSCROLLNAME": "00-00-01-13",
+     "RECNAME": "HCSC_NOTIF_LINK",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37723",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_NOTIF_RCPT",
+     "SEQUENCE_NBR_6": "367",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "16",
+     "BCSCROLLNAME": "00-00-01-16",
+     "RECNAME": "HCSC_NOTIF_RCPT",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37725",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_NXTCNF_DVW",
+     "SEQUENCE_NBR_6": "373",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "17",
+     "BCSCROLLNAME": "00-00-01-17",
+     "RECNAME": "HCSC_NXTCNF_DVW",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37728",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_PTPNCAT_DW",
+     "SEQUENCE_NBR_6": "259",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "HCSC_PTPNCAT_DW",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37677",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_RCPLST_DVW",
+     "SEQUENCE_NBR_6": "302",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "6",
+     "BCSCROLLNAME": "00-00-01-06",
+     "RECNAME": "HCSC_RCPLST_DVW",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37701",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_RCPNT_LIST",
+     "SEQUENCE_NBR_6": "307",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "7",
+     "BCSCROLLNAME": "00-00-01-07",
+     "RECNAME": "HCSC_RCPNT_LIST",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37703",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "PT_BRWIMAGE_DVW",
+     "SEQUENCE_NBR_6": "268",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "2",
+     "BCSCROLLNAME": "00-00-01-02",
+     "RECNAME": "PT_BRWIMAGE_DVW",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37685",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "WL_TEMPL_GEN_TK",
+     "SEQUENCE_NBR_6": "315",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "8",
+     "BCSCROLLNAME": "00-00-01-08",
+     "RECNAME": "WL_TEMPL_GEN_TK",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37708",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "EONC_EMAIL_BIND",
+     "BCITEMNAME": "DESCR100_4",
+     "SEQUENCE_NBR_6": "348",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "12",
+     "BCSCROLLNAME": "00-00-01-12",
+     "RECNAME": "EONC_EMAIL_BIND",
+     "FIELDNAME": "DESCR100",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37721",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "EONC_EMAIL_BIND",
+     "BCITEMNAME": "EONC_TOKENID_5",
+     "SEQUENCE_NBR_6": "347",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "12",
+     "BCSCROLLNAME": "00-00-01-12",
+     "RECNAME": "EONC_EMAIL_BIND",
+     "FIELDNAME": "EONC_TOKENID",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37722",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "EONC_EMSBJ_BIND",
+     "BCITEMNAME": "DESCR100_3",
+     "SEQUENCE_NBR_6": "341",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "11",
+     "BCSCROLLNAME": "00-00-01-11",
+     "RECNAME": "EONC_EMSBJ_BIND",
+     "FIELDNAME": "DESCR100",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37718",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "EONC_EMSBJ_BIND",
+     "BCITEMNAME": "EONC_TOKENID_3",
+     "SEQUENCE_NBR_6": "340",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "11",
+     "BCSCROLLNAME": "00-00-01-11",
+     "RECNAME": "EONC_EMSBJ_BIND",
+     "FIELDNAME": "EONC_TOKENID",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37719",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "EONC_PUSH_BIND",
+     "BCITEMNAME": "DESCR100_1",
+     "SEQUENCE_NBR_6": "327",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "9",
+     "BCSCROLLNAME": "00-00-01-09",
+     "RECNAME": "EONC_PUSH_BIND",
+     "FIELDNAME": "DESCR100",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37712",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "EONC_PUSH_BIND",
+     "BCITEMNAME": "EONC_TOKENID",
+     "SEQUENCE_NBR_6": "326",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "9",
+     "BCSCROLLNAME": "00-00-01-09",
+     "RECNAME": "EONC_PUSH_BIND",
+     "FIELDNAME": "EONC_TOKENID",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37713",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "EONC_TEXT_BIND",
+     "BCITEMNAME": "DESCR100_2",
+     "SEQUENCE_NBR_6": "334",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "10",
+     "BCSCROLLNAME": "00-00-01-10",
+     "RECNAME": "EONC_TEXT_BIND",
+     "FIELDNAME": "DESCR100",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37715",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "EONC_TEXT_BIND",
+     "BCITEMNAME": "EONC_TOKENID_1",
+     "SEQUENCE_NBR_6": "333",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "10",
+     "BCSCROLLNAME": "00-00-01-10",
+     "RECNAME": "EONC_TEXT_BIND",
+     "FIELDNAME": "EONC_TOKENID",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37716",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_DYNAMIC_VW",
+     "BCITEMNAME": "HCSC_DESCR100",
+     "SEQUENCE_NBR_6": "301",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "5",
+     "BCSCROLLNAME": "00-00-01-05",
+     "RECNAME": "HCSC_DYNAMIC_VW",
+     "FIELDNAME": "HCSC_DESCR100",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37691",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_DYNAMIC_VW",
+     "BCITEMNAME": "HCSC_DESCR100_1_0",
+     "SEQUENCE_NBR_6": "293",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "5",
+     "BCSCROLLNAME": "00-00-01-05",
+     "RECNAME": "HCSC_DYNAMIC_VW",
+     "FIELDNAME": "HCSC_DESCR100_1",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37692",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_DYNAMIC_VW",
+     "BCITEMNAME": "HCSC_DESCR100_2_0",
+     "SEQUENCE_NBR_6": "295",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "5",
+     "BCSCROLLNAME": "00-00-01-05",
+     "RECNAME": "HCSC_DYNAMIC_VW",
+     "FIELDNAME": "HCSC_DESCR100_2",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37693",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_DYNAMIC_VW",
+     "BCITEMNAME": "HCSC_DESCR100_3_0",
+     "SEQUENCE_NBR_6": "297",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "5",
+     "BCSCROLLNAME": "00-00-01-05",
+     "RECNAME": "HCSC_DYNAMIC_VW",
+     "FIELDNAME": "HCSC_DESCR100_3",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37694",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_DYNAMIC_VW",
+     "BCITEMNAME": "HCSC_DESCR100_4_0",
+     "SEQUENCE_NBR_6": "299",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "5",
+     "BCSCROLLNAME": "00-00-01-05",
+     "RECNAME": "HCSC_DYNAMIC_VW",
+     "FIELDNAME": "HCSC_DESCR100_4",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37695",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_DYNAMIC_VW",
+     "BCITEMNAME": "HCSC_DUMMY_FIELD_0",
+     "SEQUENCE_NBR_6": "300",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "5",
+     "BCSCROLLNAME": "00-00-01-05",
+     "RECNAME": "HCSC_DYNAMIC_VW",
+     "FIELDNAME": "HCSC_DUMMY_FIELD",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37696",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_DYNAMIC_VW",
+     "BCITEMNAME": "HCSC_KEY1_NOPROMPT_0",
+     "SEQUENCE_NBR_6": "292",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "5",
+     "BCSCROLLNAME": "00-00-01-05",
+     "RECNAME": "HCSC_DYNAMIC_VW",
+     "FIELDNAME": "HCSC_KEY1_NOPROMPT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37697",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_DYNAMIC_VW",
+     "BCITEMNAME": "HCSC_KEY2_NOPROMPT_0",
+     "SEQUENCE_NBR_6": "294",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "5",
+     "BCSCROLLNAME": "00-00-01-05",
+     "RECNAME": "HCSC_DYNAMIC_VW",
+     "FIELDNAME": "HCSC_KEY2_NOPROMPT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37698",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_DYNAMIC_VW",
+     "BCITEMNAME": "HCSC_KEY3_NOPROMPT_0",
+     "SEQUENCE_NBR_6": "296",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "5",
+     "BCSCROLLNAME": "00-00-01-05",
+     "RECNAME": "HCSC_DYNAMIC_VW",
+     "FIELDNAME": "HCSC_KEY3_NOPROMPT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37699",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_DYNAMIC_VW",
+     "BCITEMNAME": "HCSC_KEY4_NOPROMPT_0",
+     "SEQUENCE_NBR_6": "298",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "5",
+     "BCSCROLLNAME": "00-00-01-05",
+     "RECNAME": "HCSC_DYNAMIC_VW",
+     "FIELDNAME": "HCSC_KEY4_NOPROMPT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37700",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_NOTIF_DVW",
+     "BCITEMNAME": "HCSC_GLOBAL_SET",
+     "SEQUENCE_NBR_6": "265",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "1",
+     "BCSCROLLNAME": "00-00-01-01",
+     "RECNAME": "HCSC_NOTIF_DVW",
+     "FIELDNAME": "HCSC_GLOBAL_SET",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37681",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_NOTIF_DVW",
+     "BCITEMNAME": "HCSC_NOTF_AVAIL",
+     "SEQUENCE_NBR_6": "266",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "1",
+     "BCSCROLLNAME": "00-00-01-01",
+     "RECNAME": "HCSC_NOTIF_DVW",
+     "FIELDNAME": "HCSC_NOTF_AVAIL",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37682",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_NOTIF_DVW",
+     "BCITEMNAME": "HCSC_NOTF_DFLT",
+     "SEQUENCE_NBR_6": "267",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "1",
+     "BCSCROLLNAME": "00-00-01-01",
+     "RECNAME": "HCSC_NOTIF_DVW",
+     "FIELDNAME": "HCSC_NOTF_DFLT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37683",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_NOTIF_DVW",
+     "BCITEMNAME": "HCSC_PTPN_NOTF_OPT",
+     "SEQUENCE_NBR_6": "264",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "1",
+     "BCSCROLLNAME": "00-00-01-01",
+     "RECNAME": "HCSC_NOTIF_DVW",
+     "FIELDNAME": "HCSC_PTPN_NOTF_OPT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37684",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_NOTIF_LINK",
+     "BCITEMNAME": "MSGNODENAME",
+     "SEQUENCE_NBR_6": "356",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "13",
+     "BCSCROLLNAME": "00-00-01-13",
+     "RECNAME": "DERIVED_EO",
+     "FIELDNAME": "MSGNODENAME",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37724",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_NOTIF_RCPT",
+     "BCITEMNAME": "SEQ_NBR",
+     "SEQUENCE_NBR_6": "369",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "16",
+     "BCSCROLLNAME": "00-00-01-16",
+     "RECNAME": "HCSC_NOTIF_RCPT",
+     "FIELDNAME": "SEQ_NBR",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37726",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_NOTIF_RCPT",
+     "BCITEMNAME": "SET_NOTIFY_FLAG",
+     "SEQUENCE_NBR_6": "370",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "16",
+     "BCSCROLLNAME": "00-00-01-16",
+     "RECNAME": "HCSC_NOTIF_RCPT",
+     "FIELDNAME": "SET_NOTIFY_FLAG",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37727",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_NXTCNF_DVW",
+     "BCITEMNAME": "DESCR100_5",
+     "SEQUENCE_NBR_6": "375",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "17",
+     "BCSCROLLNAME": "00-00-01-17",
+     "RECNAME": "HCSC_NXTCNF_DVW",
+     "FIELDNAME": "DESCR100",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37729",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_PTPNCAT_DW",
+     "BCITEMNAME": "HCSC_PTPN_PLRLNAME",
+     "SEQUENCE_NBR_6": "262",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "HCSC_PTPNCAT_DW",
+     "FIELDNAME": "HCSC_PTPN_PLRLNAME",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37678",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_PTPNCAT_DW",
+     "BCITEMNAME": "HCSC_PTPN_TYP_PERM",
+     "SEQUENCE_NBR_6": "261",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "HCSC_PTPNCAT_DW",
+     "FIELDNAME": "HCSC_PTPN_TYP_PERM",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37679",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_RCPLST_DVW",
+     "BCITEMNAME": "DESCR100_0",
+     "SEQUENCE_NBR_6": "304",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "6",
+     "BCSCROLLNAME": "00-00-01-06",
+     "RECNAME": "HCSC_RCPLST_DVW",
+     "FIELDNAME": "DESCR100",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37702",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_RCPNT_LIST",
+     "BCITEMNAME": "EMAILID",
+     "SEQUENCE_NBR_6": "314",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "7",
+     "BCSCROLLNAME": "00-00-01-07",
+     "RECNAME": "HCSC_RCPNT_LIST",
+     "FIELDNAME": "EMAILID",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37704",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_RCPNT_LIST",
+     "BCITEMNAME": "HCSC_DISTRIB_TYPE",
+     "SEQUENCE_NBR_6": "311",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "7",
+     "BCSCROLLNAME": "00-00-01-07",
+     "RECNAME": "HCSC_RCPNT_LIST",
+     "FIELDNAME": "HCSC_DISTRIB_TYPE",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37705",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_RCPNT_LIST",
+     "BCITEMNAME": "HCSC_RCPNT_GROUP",
+     "SEQUENCE_NBR_6": "310",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "7",
+     "BCSCROLLNAME": "00-00-01-07",
+     "RECNAME": "HCSC_RCPNT_LIST",
+     "FIELDNAME": "HCSC_RCPNT_GROUP",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37706",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "HCSC_RCPNT_LIST",
+     "BCITEMNAME": "USERID",
+     "SEQUENCE_NBR_6": "312",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "7",
+     "BCSCROLLNAME": "00-00-01-07",
+     "RECNAME": "HCSC_RCPNT_LIST",
+     "FIELDNAME": "USERID",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37707",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "DESCR100",
+     "SEQUENCE_NBR_6": "127",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NC_DRVD_WK",
+     "FIELDNAME": "DESCR100",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37614",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_CATEGORY_NAME",
+     "SEQUENCE_NBR_6": "92",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_CATEGORY_NAME",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37620",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_CATEGORY_NAME_0",
+     "SEQUENCE_NBR_6": "68",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF_WRK",
+     "FIELDNAME": "HCSC_CATEGORY_NAME",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37645",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_CUSTDAYS",
+     "SEQUENCE_NBR_6": "108",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_CUSTDAYS",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37621",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_CUSTDAYS_DIS",
+     "SEQUENCE_NBR_6": "111",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_CUSTDAYS_DIS",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37622",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_DATE_POSTED",
+     "SEQUENCE_NBR_6": "89",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_DATE_POSTED",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37623",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_DELIVERY_METH",
+     "SEQUENCE_NBR_6": "91",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_DELIVERY_METH",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37624",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_DESCR100_1",
+     "SEQUENCE_NBR_6": "29",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF_WRK",
+     "FIELDNAME": "HCSC_DESCR100_1",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37646",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_DESCR100_2",
+     "SEQUENCE_NBR_6": "32",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF_WRK",
+     "FIELDNAME": "HCSC_DESCR100_2",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37647",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_DESCR100_3",
+     "SEQUENCE_NBR_6": "35",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF_WRK",
+     "FIELDNAME": "HCSC_DESCR100_3",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37648",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_DESCR100_4",
+     "SEQUENCE_NBR_6": "38",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF_WRK",
+     "FIELDNAME": "HCSC_DESCR100_4",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37649",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_DUMMY_FIELD",
+     "SEQUENCE_NBR_6": "39",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF_WRK",
+     "FIELDNAME": "HCSC_DUMMY_FIELD",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37650",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_EMAIL_TMPL_ID",
+     "SEQUENCE_NBR_6": "95",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_EMAIL_TMPL_ID",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37625",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_EONC_NOTIF_ID",
+     "SEQUENCE_NBR_6": "69",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF_WRK",
+     "FIELDNAME": "HCSC_EONC_NOTIF_ID",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37651",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_EONC_OVR_TEXT",
+     "SEQUENCE_NBR_6": "141",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_PUSH_HMPG",
+     "FIELDNAME": "HCSC_EONC_OVR_TEXT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37663",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_EXPIRE_DATE",
+     "SEQUENCE_NBR_6": "102",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_EXPIRE_DATE",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37626",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_FREQUENCY_OPT",
+     "SEQUENCE_NBR_6": "105",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_FREQUENCY_OPT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37627",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_HMPG_DFLT_LBL",
+     "SEQUENCE_NBR_6": "135",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_PUSH_HMPG",
+     "FIELDNAME": "HCSC_HMPG_DFLT_LBL",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37664",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_HMPG_SECTION",
+     "SEQUENCE_NBR_6": "129",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NC_DRVD_WK",
+     "FIELDNAME": "HCSC_HMPG_SECTION",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37615",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_HMPG_SECTION_0",
+     "SEQUENCE_NBR_6": "134",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_PUSH_HMPG",
+     "FIELDNAME": "HCSC_HMPG_SECTION",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37665",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_KEY1_NOPROMPT",
+     "SEQUENCE_NBR_6": "28",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF_WRK",
+     "FIELDNAME": "HCSC_KEY1_NOPROMPT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37652",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_KEY1_PROMPT",
+     "SEQUENCE_NBR_6": "27",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF_WRK",
+     "FIELDNAME": "HCSC_KEY1_PROMPT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37653",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_KEY2_NOPROMPT",
+     "SEQUENCE_NBR_6": "31",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF_WRK",
+     "FIELDNAME": "HCSC_KEY2_NOPROMPT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37654",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_KEY2_PROMPT",
+     "SEQUENCE_NBR_6": "30",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF_WRK",
+     "FIELDNAME": "HCSC_KEY2_PROMPT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37655",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_KEY3_NOPROMPT",
+     "SEQUENCE_NBR_6": "34",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF_WRK",
+     "FIELDNAME": "HCSC_KEY3_NOPROMPT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37656",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_KEY3_PROMPT",
+     "SEQUENCE_NBR_6": "33",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF_WRK",
+     "FIELDNAME": "HCSC_KEY3_PROMPT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37657",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_KEY4_NOPROMPT",
+     "SEQUENCE_NBR_6": "37",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF_WRK",
+     "FIELDNAME": "HCSC_KEY4_NOPROMPT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37658",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_KEY4_PROMPT",
+     "SEQUENCE_NBR_6": "36",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF_WRK",
+     "FIELDNAME": "HCSC_KEY4_PROMPT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37659",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_LAST_RUN_DATE",
+     "SEQUENCE_NBR_6": "117",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_LAST_RUN_DATE",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37628",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_LOG_EXCP_FLG",
+     "SEQUENCE_NBR_6": "114",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_LOG_EXCP_FLG",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37629",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_LOG_FLG",
+     "SEQUENCE_NBR_6": "113",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_LOG_FLG",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37630",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_MONTHDAY",
+     "SEQUENCE_NBR_6": "107",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_MONTHDAY",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37631",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_MONTHDAY_DIS",
+     "SEQUENCE_NBR_6": "110",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_MONTHDAY_DIS",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37632",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_MSG_STATUS",
+     "SEQUENCE_NBR_6": "116",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_MSG_STATUS",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37633",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_NOTIF_DESCR",
+     "SEQUENCE_NBR_6": "90",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_NOTIF_DESCR",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37634",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_NOTIF_EMAILID",
+     "SEQUENCE_NBR_6": "99",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_NOTIF_EMAILID",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37635",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_NOTIF_EMAILID_0",
+     "SEQUENCE_NBR_6": "64",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF_WRK",
+     "FIELDNAME": "HCSC_NOTIF_EMAILID",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37660",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_NOTIF_HIDE",
+     "SEQUENCE_NBR_6": "103",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_NOTIF_HIDE",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37636",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_NOTIF_SENDER",
+     "SEQUENCE_NBR_6": "98",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_NOTIF_SENDER",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37637",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_NOTIF_SUBJECT",
+     "SEQUENCE_NBR_6": "100",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_NOTIF_SUBJECT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37638",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_NOTIF_TRNS_ID",
+     "SEQUENCE_NBR_6": "87",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_NOTIF_TRNS_ID",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37639",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_NOTTYPE",
+     "SEQUENCE_NBR_6": "128",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NC_DRVD_WK",
+     "FIELDNAME": "HCSC_NOTTYPE",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37616",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_NTF_PRIORITY",
+     "SEQUENCE_NBR_6": "97",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_NTF_PRIORITY",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37640",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_PTPN_MAN_NOTF",
+     "SEQUENCE_NBR_6": "125",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NC_DRVD_WK",
+     "FIELDNAME": "HCSC_PTPN_MAN_NOTF",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37617",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_PTPN_NOTIF_NM",
+     "SEQUENCE_NBR_6": "124",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NC_DRVD_WK",
+     "FIELDNAME": "HCSC_PTPN_NOTIF_NM",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37618",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_PTPN_OVERRIDE",
+     "SEQUENCE_NBR_6": "126",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NC_DRVD_WK",
+     "FIELDNAME": "HCSC_PTPN_OVERRIDE",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37619",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_RECIPIENT_ID",
+     "SEQUENCE_NBR_6": "26",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF_WRK",
+     "FIELDNAME": "HCSC_RECIPIENT_ID",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37661",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_RECURR",
+     "SEQUENCE_NBR_6": "104",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_RECURR",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37641",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_RECURR_END_DT",
+     "SEQUENCE_NBR_6": "112",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_RECURR_END_DT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37642",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_WEEKDAY",
+     "SEQUENCE_NBR_6": "106",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_WEEKDAY",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37643",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_WEEKDAY_DIS",
+     "SEQUENCE_NBR_6": "109",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF",
+     "FIELDNAME": "HCSC_WEEKDAY_DIS",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37644",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "IMAGE_NAME",
+     "SEQUENCE_NBR_6": "136",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_PUSH_HMPG",
+     "FIELDNAME": "IMAGE_NAME",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37666",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "NAVIGATION",
+     "SEQUENCE_NBR_6": "82",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "HCSC_NOTIF_WRK",
+     "FIELDNAME": "NAVIGATION",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37662",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "PTPORTAL_OBJNAME_S",
+     "SEQUENCE_NBR_6": "168",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "PTS_INTSRCH_WK",
+     "FIELDNAME": "PTPORTAL_OBJNAME_S",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37667",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "PTS_KEYWORDS_SS",
+     "SEQUENCE_NBR_6": "164",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "PTS_INTSRCH_WK",
+     "FIELDNAME": "PTS_KEYWORDS_SS",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37668",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "PTS_PAGECAT",
+     "SEQUENCE_NBR_6": "159",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "PTS_INTSRCH_WK",
+     "FIELDNAME": "PTS_PAGECAT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37669",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "PTS_PAGEEDITENT",
+     "SEQUENCE_NBR_6": "161",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "PTS_INTSRCH_WK",
+     "FIELDNAME": "PTS_PAGEEDITENT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37670",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "PT_IMG_TYPE",
+     "SEQUENCE_NBR_6": "146",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "PT_BRWIMAGE_WRK",
+     "FIELDNAME": "PT_IMG_TYPE",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37671",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "PT_MIRROR_IMG",
+     "SEQUENCE_NBR_6": "147",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "PT_BRWIMAGE_WRK",
+     "FIELDNAME": "PT_MIRROR_IMG",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37672",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "PT_MSGTEXT1",
+     "SEQUENCE_NBR_6": "149",
+     "BCACCESS": "2",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "PT_BRWIMAGE_WRK",
+     "FIELDNAME": "PT_MSGTEXT1",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37673",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "PT_SEARCH_FILTER",
+     "SEQUENCE_NBR_6": "143",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "PT_BRWIMAGE_WRK",
+     "FIELDNAME": "PT_SEARCH_FILTER",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37674",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "PT_SEARCH_OPERATOR",
+     "SEQUENCE_NBR_6": "144",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "PT_BRWIMAGE_WRK",
+     "FIELDNAME": "PT_SEARCH_OPERATOR",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37675",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "PT_SEARCH_TEXT",
+     "SEQUENCE_NBR_6": "145",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00",
+     "RECNAME": "PT_BRWIMAGE_WRK",
+     "FIELDNAME": "PT_SEARCH_TEXT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37676",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PT_BRWIMAGE_DVW",
+     "BCITEMNAME": "DESCR",
+     "SEQUENCE_NBR_6": "270",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "2",
+     "BCSCROLLNAME": "00-00-01-02",
+     "RECNAME": "PT_BRWIMAGE_DVW",
+     "FIELDNAME": "DESCR",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37686",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PT_BRWIMAGE_DVW",
+     "BCITEMNAME": "PT_IMG_NAME",
+     "SEQUENCE_NBR_6": "269",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "2",
+     "BCSCROLLNAME": "00-00-01-02",
+     "RECNAME": "PT_BRWIMAGE_DVW",
+     "FIELDNAME": "PT_IMG_NAME",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37687",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PT_BRWIMAGE_DVW",
+     "BCITEMNAME": "PT_MIRROR_IMG_0",
+     "SEQUENCE_NBR_6": "274",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "2",
+     "BCSCROLLNAME": "00-00-01-02",
+     "RECNAME": "PT_BRWIMAGE_DVW",
+     "FIELDNAME": "PT_MIRROR_IMG",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37688",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "PT_BRWIMAGE_DVW",
+     "BCITEMNAME": "PT_WIDTH_HEIGHT",
+     "SEQUENCE_NBR_6": "273",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "2",
+     "BCSCROLLNAME": "00-00-01-02",
+     "RECNAME": "PT_BRWIMAGE_DVW",
+     "FIELDNAME": "PT_WIDTH_HEIGHT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37689",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "WL_TEMPL_GEN_TK",
+     "BCITEMNAME": "DESCR_0",
+     "SEQUENCE_NBR_6": "319",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "8",
+     "BCSCROLLNAME": "00-00-01-08",
+     "RECNAME": "WL_TEMPL_GEN_TK",
+     "FIELDNAME": "DESCR",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37709",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "WL_TEMPL_GEN_TK",
+     "BCITEMNAME": "WL_TOKENID",
+     "SEQUENCE_NBR_6": "318",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "8",
+     "BCSCROLLNAME": "00-00-01-08",
+     "RECNAME": "WL_TEMPL_GEN_TK",
+     "FIELDNAME": "WL_TOKENID",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37710",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "5",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_CATEGORY_NAME",
+     "SEQUENCE_NBR_6": "6",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "AA-AA-00-02",
+     "RECNAME": "HCSC_NTF_SRH_FL",
+     "FIELDNAME": "HCSC_CATEGORY_NAME",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37608",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "5",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_DATE_POSTED",
+     "SEQUENCE_NBR_6": "4",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "AA-AA-00-02",
+     "RECNAME": "HCSC_NTF_SRH_FL",
+     "FIELDNAME": "HCSC_DATE_POSTED",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37609",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "5",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_NOTIF_DESCR",
+     "SEQUENCE_NBR_6": "3",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "AA-AA-00-02",
+     "RECNAME": "HCSC_NTF_SRH_FL",
+     "FIELDNAME": "HCSC_NOTIF_DESCR",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37610",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "5",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_NOTIF_SUBJECT",
+     "SEQUENCE_NBR_6": "5",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "AA-AA-00-02",
+     "RECNAME": "HCSC_NTF_SRH_FL",
+     "FIELDNAME": "HCSC_NOTIF_SUBJECT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37611",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI4",
+     "BCTYPE": "5",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "HCSC_NOTIF_TRNS_ID",
+     "SEQUENCE_NBR_6": "2",
+     "BCACCESS": "1",
+     "BCSCROLL": "0",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "AA-AA-00-02",
+     "RECNAME": "HCSC_NTF_SRH_FL",
+     "FIELDNAME": "HCSC_NOTIF_TRNS_ID",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37612",
+     "MPDEVICEPERSISTINT": "0"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSBCDEFNLANG": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSBCITEMLANG": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCTYPE"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "COMMENTSHORT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSBCDEL": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSSYSTEMID": {
+   "columns": [
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "PTNEXTSYSTEMID"
+    },
+    {
+     "name": "PTUPDSYSTEMID"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "RECNAME": "PSBCITEM"
+     },
+     "changes": {
+      "PTNEXTSYSTEMID": {
+       "before": "37606",
+       "after": "37729"
+      }
+     }
+    }
+   ]
+  },
+  "PSPCMPROG": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "PROGSEQ"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "NAMECOUNT"
+    },
+    {
+     "name": "PROGLEN"
+    },
+    {
+     "name": "PROGRUNLOC"
+    },
+    {
+     "name": "PROGFLAGS"
+    },
+    {
+     "name": "LICENSE_CODE"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "PROGEXTENDS"
+    },
+    {
+     "name": "PTTOOLSREL"
+    },
+    {
+     "name": "PROGTXT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMTXT": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "PROGSEQ"
+    },
+    {
+     "name": "HASH_SIGNATURE"
+    },
+    {
+     "name": "PCTEXT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMNAME": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "NAMENUM"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "REFNAME"
+    },
+    {
+     "name": "PACKAGEROOT"
+    },
+    {
+     "name": "QUALIFYPATH"
+    },
+    {
+     "name": "APPCLASSMETHOD"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMPROGDEL": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "BCM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "5",
+       "after": "6"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2697",
+       "after": "2698"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "BCM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "5",
+       "after": "6"
+      }
+     }
+    }
+   ]
+  }
+ }
+}

@@ -286,7 +286,11 @@ export class Workspace implements vscode.Disposable {
         key.type === DefinitionType.ComponentPeopleCode || key.type === DefinitionType.ComponentRecordPeopleCode ||
         key.type === DefinitionType.ComponentRecordFieldPeopleCode || key.type === DefinitionType.PagePeopleCode ||
         // App Engine PeopleCode (ap-pc01/02; savePlan targetForKey), scoped by the program's name.
-        key.type === DefinitionType.AppEnginePeopleCode) &&
+        key.type === DefinitionType.AppEnginePeopleCode ||
+        // Menu PeopleCode (ItemSelected on a PeopleCode item; mi06, mb04, mp10), scoped by the menu's name.
+        key.type === DefinitionType.MenuPeopleCode ||
+        // Component Interface PeopleCode (Methods; ci24).
+        key.type === DefinitionType.ComponentInterfacePeopleCode) &&
       isWritableName(key.parts[0]);
   }
 

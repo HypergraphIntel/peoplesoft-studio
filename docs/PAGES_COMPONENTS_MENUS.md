@@ -44,6 +44,8 @@ component record 10 / 39 / 1 record / 12; component record field 10 / 39 /
 
 ## Menus
 
+Editing and saving menus as App Designer does: [MENUS.md](MENUS.md).
+
 | Table | Rows | Holds |
 |---|---|---|
 | `PSMENUDEFN` | 637 | `MENUTYPE`, `MENULABEL`, `MENUGROUP`, description |

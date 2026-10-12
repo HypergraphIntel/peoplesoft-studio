@@ -66,7 +66,7 @@ type CounterName = keyof Counters;
 const COUNTERS: readonly CounterName[] = ['AEM', 'AES', 'SRM', 'PCM', 'PJM', 'SYS'];
 
 const OUT_FORMAT_OBJECT = 4002;
-const PC_KEY_COLUMNS = [1, 2, 3, 4, 5, 6, 7].flatMap((n) => [`OBJECTID${n}`, `OBJECTVALUE${n}`]);
+export const PC_KEY_COLUMNS = [1, 2, 3, 4, 5, 6, 7].flatMap((n) => [`OBJECTID${n}`, `OBJECTVALUE${n}`]);
 const PC_IDS = [66, 77, 39, 20, 21, 78, 12];
 
 /** Reads a program's rows, its SQL, PeopleCode and tombstones; undefined when there is no such program. */
@@ -251,7 +251,7 @@ function valueSql(column: string, bind: string, value: unknown, oracledb: DbType
   return { sql: `:${bind}`, bind: value };
 }
 
-function insertStatement(table: string, row: Row, oracledb: DbTypes): Statement {
+export function insertStatement(table: string, row: Row, oracledb: DbTypes): Statement {
   const cols = Object.keys(row);
   const binds: Record<string, unknown> = {};
   const values = cols.map((c, i) => {
@@ -648,12 +648,12 @@ function setVersion(st: Statement, version: number, ts: string): void {
   }
 }
 
-function pcBinds(objectIds: readonly number[], values: readonly string[]): Record<string, unknown> {
+export function pcBinds(objectIds: readonly number[], values: readonly string[]): Record<string, unknown> {
   return Object.fromEntries([...objectIds.map((id, i) => [`i${i + 1}`, Number(id)]), ...values.map((v, i) => [`v${i + 1}`, v])]);
 }
-const PC_EXACT = [1, 2, 3, 4, 5, 6, 7].map((n) => `OBJECTID${n} = :i${n} AND OBJECTVALUE${n} = :v${n}`).join(' AND ');
+export const PC_EXACT = [1, 2, 3, 4, 5, 6, 7].map((n) => `OBJECTID${n} = :i${n} AND OBJECTVALUE${n} = :v${n}`).join(' AND ');
 
-function deletePeopleCode(_k: string, old: StoredProgram | undefined): Statement[] {
+export function deletePeopleCode(_k: string, old: StoredProgram | undefined): Statement[] {
   if (!old) return [];
   const b = pcBinds(old.key.objectIds, old.key.objectValues);
   return [
@@ -663,12 +663,12 @@ function deletePeopleCode(_k: string, old: StoredProgram | undefined): Statement
   ];
 }
 
-function deletePcTombstone(t: Row): Statement {
+export function deletePcTombstone(t: Row): Statement {
   const b = pcBinds([1, 2, 3, 4, 5, 6, 7].map((n) => Number(t[`OBJECTID${n}`])), [1, 2, 3, 4, 5, 6, 7].map((n) => String(t[`OBJECTVALUE${n}`])));
   return { sql: `DELETE FROM PSPCMPROGDEL WHERE ${PC_EXACT} AND VERSION = :dv`, binds: { ...b, dv: Number(t.VERSION) }, expect: 1, what: 'Deleting PSPCMPROGDEL' };
 }
 
-function insertPeopleCode(p: StoredProgram, oracledb: DbTypes): Statement[] {
+export function insertPeopleCode(p: StoredProgram, oracledb: DbTypes): Statement[] {
   const keyCols = PC_KEY_COLUMNS.join(', ');
   const keyVals = [1, 2, 3, 4, 5, 6, 7].map((n) => `:i${n}, :v${n}`).join(', ');
   const b = pcBinds(p.key.objectIds, p.key.objectValues);
@@ -714,7 +714,7 @@ export interface AeSaveResult {
 }
 
 /** Runs the statements; each must touch the rows it expects. */
-async function run(c: Connection, statements: Statement[]): Promise<void> {
+export async function run(c: Connection, statements: Statement[]): Promise<void> {
   for (const st of statements) {
     if (st.expect === undefined) await c.execute(st.sql, st.binds);
     else await expectRows(c, st.sql, st.binds, st.expect, st.what);

@@ -287,6 +287,14 @@ const WATCH: Array<{ table: string; scratchColumn?: string }> = [
   { table: 'PSSQLTEXTDEFN', scratchColumn: 'SQLID' },
   { table: 'PSSQLHASH', scratchColumn: 'SQLID' },
   { table: 'PSSQLDEL', scratchColumn: 'SQLID' },
+  // Menu save capture (docs/MENUS.md): the scratch menu's rows.
+  { table: 'PSMENUDEFN', scratchColumn: 'MENUNAME' },
+  { table: 'PSMENUITEM', scratchColumn: 'MENUNAME' },
+  { table: 'PSMENUDEFNLANG', scratchColumn: 'MENUNAME' },
+  { table: 'PSMENUITEMLANG', scratchColumn: 'MENUNAME' },
+  { table: 'PSMENUDEL', scratchColumn: 'MENUNAME' },
+  { table: 'PSMENUORIGIN', scratchColumn: 'MENUNAME' },
+  { table: 'PSXFERITEM', scratchColumn: 'MENUNAME' },
   { table: 'PSVERSION' },
   { table: 'PSLOCK' }
 ];

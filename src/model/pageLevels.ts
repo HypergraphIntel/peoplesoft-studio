@@ -47,6 +47,9 @@ export interface CheckedControl extends LevelControl {
   label: string;
   /** ASSOCFIELDNUM: a related display's control field, as its FIELDNUM - 1 (0: the first control). */
   assocFieldNum?: number;
+  /** The control's PNLFLDID after the save, and an added Analytic Grid's model (for App Designer's 15,89 check). */
+  pnlFldId?: number;
+  analytic?: { model: string; collection: string };
 }
 
 /** One problem App Designer's save reports (Message Set 15), before "Invalid page. Do you still want to save?" (46,2). */

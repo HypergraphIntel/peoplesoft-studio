@@ -29,6 +29,8 @@ import {
 } from './writeTools.js';
 
 import { registerAppEngineTools } from './appEngineTools.js';
+import { registerMenuTools } from './menuTools.js';
+import { registerCiTools } from './ciTools.js';
 
 import {
   DEFAULT_MCP_PORT
@@ -179,6 +181,16 @@ export async function startPeopleSoftMcpServer(
 
         // App Engine: read tools always; write tools with the write host.
         registerAppEngineTools(
+          server,
+          workspace,
+          writeHost
+        );
+        registerMenuTools(
+          server,
+          workspace,
+          writeHost
+        );
+        registerCiTools(
           server,
           workspace,
           writeHost

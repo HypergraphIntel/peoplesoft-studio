@@ -1,0 +1,909 @@
+{
+ "format": "def-capture/1",
+ "kind": "ci",
+ "case": "ci19-delete-coll",
+ "name": "ZZ_PCODE_LAB_CI2",
+ "watch": {
+  "PSBCDEFN": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCDISPLAYNAME"
+    },
+    {
+     "name": "BCPGNAME"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "MENUNAME"
+    },
+    {
+     "name": "SEARCHRECNAME"
+    },
+    {
+     "name": "ADDSRCHRECNAME"
+    },
+    {
+     "name": "ITEMCOUNT"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "BCSTDMETHODS"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "BCNAME": "ZZ_PCODE_LAB_CI2"
+     },
+     "changes": {
+      "ITEMCOUNT": {
+       "before": "22",
+       "after": "7"
+      },
+      "VERSION": {
+       "before": "19",
+       "after": "20"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-11T21:41:53",
+       "after": "2026-10-11T21:43:28"
+      }
+     }
+    }
+   ]
+  },
+  "PSBCITEM": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCTYPE"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "SEQUENCE_NBR_6"
+    },
+    {
+     "name": "BCACCESS"
+    },
+    {
+     "name": "BCSCROLL"
+    },
+    {
+     "name": "BCSCROLLNUM"
+    },
+    {
+     "name": "BCSCROLLNAME"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "FIELDNAME"
+    },
+    {
+     "name": "SUBRECNAME"
+    },
+    {
+     "name": "COMMENTSHORT"
+    },
+    {
+     "name": "SYNCID"
+    },
+    {
+     "name": "MPDEVICEPERSISTINT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI2",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "DRIVERS_LIC",
+     "BCITEMNAME": "DRIVER_LTYP",
+     "SEQUENCE_NBR_6": "23",
+     "BCACCESS": "1",
+     "BCSCROLL": "2",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00-02-00",
+     "RECNAME": "DRIVER_LTYP",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37591",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI2",
+     "BCTYPE": "3",
+     "BCITEMPARENT": "PS_ROOT",
+     "BCITEMNAME": "DRIVERS_LIC",
+     "SEQUENCE_NBR_6": "9",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "DRIVERS_LIC",
+     "FIELDNAME": " ",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37579",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI2",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "DRIVERS_LIC",
+     "BCITEMNAME": "COMMENTS",
+     "SEQUENCE_NBR_6": "22",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "DRIVERS_LIC",
+     "FIELDNAME": "COMMENTS",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37732",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI2",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "DRIVERS_LIC",
+     "BCITEMNAME": "COUNTRY",
+     "SEQUENCE_NBR_6": "14",
+     "BCACCESS": "2",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "DRIVERS_LIC",
+     "FIELDNAME": "COUNTRY",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": "Lab comment",
+     "SYNCID": "37580",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI2",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "DRIVERS_LIC",
+     "BCITEMNAME": "DRIVERS_LIC_NBR",
+     "SEQUENCE_NBR_6": "12",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "DRIVERS_LIC",
+     "FIELDNAME": "DRIVERS_LIC_NBR",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37581",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI2",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "DRIVERS_LIC",
+     "BCITEMNAME": "EXPIRATN_DT",
+     "SEQUENCE_NBR_6": "16",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "DRIVERS_LIC",
+     "FIELDNAME": "EXPIRATN_DT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37582",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI2",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "DRIVERS_LIC",
+     "BCITEMNAME": "HCSCM_MASK_DL",
+     "SEQUENCE_NBR_6": "10",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "HCSCM_OVRLY_WRK",
+     "FIELDNAME": "HCSCM_MASK_DL",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37590",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI2",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "DRIVERS_LIC",
+     "BCITEMNAME": "ISSUED_BY_FRA",
+     "SEQUENCE_NBR_6": "20",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "DRIVERS_LIC",
+     "FIELDNAME": "ISSUED_BY_FRA",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37583",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI2",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "DRIVERS_LIC",
+     "BCITEMNAME": "ISSUE_DEST_FRA",
+     "SEQUENCE_NBR_6": "21",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "DRIVERS_LIC",
+     "FIELDNAME": "ISSUE_DEST_FRA",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37584",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI2",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "DRIVERS_LIC",
+     "BCITEMNAME": "LIC_SUSPENDED_SW",
+     "SEQUENCE_NBR_6": "19",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "DRIVERS_LIC",
+     "FIELDNAME": "LIC_SUSPENDED_SW",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37585",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI2",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "DRIVERS_LIC",
+     "BCITEMNAME": "NUMBER_OF_PTS",
+     "SEQUENCE_NBR_6": "18",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "DRIVERS_LIC",
+     "FIELDNAME": "NUMBER_OF_PTS",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37586",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI2",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "DRIVERS_LIC",
+     "BCITEMNAME": "STATE_CD",
+     "SEQUENCE_NBR_6": "13",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "DRIVERS_LIC",
+     "FIELDNAME": "STATE",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37587",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI2",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "DRIVERS_LIC",
+     "BCITEMNAME": "VALID_FROM_DT",
+     "SEQUENCE_NBR_6": "15",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "DRIVERS_LIC",
+     "FIELDNAME": "VALID_FROM_DT",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37588",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI2",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "DRIVERS_LIC",
+     "BCITEMNAME": "VIOLATIONS",
+     "SEQUENCE_NBR_6": "17",
+     "BCACCESS": "1",
+     "BCSCROLL": "1",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00",
+     "RECNAME": "DRIVERS_LIC",
+     "FIELDNAME": "VIOLATIONS",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37731",
+     "MPDEVICEPERSISTINT": "0"
+    },
+    {
+     "BCNAME": "ZZ_PCODE_LAB_CI2",
+     "BCTYPE": "4",
+     "BCITEMPARENT": "DRIVER_LTYP",
+     "BCITEMNAME": "LICENSE_TYPE",
+     "SEQUENCE_NBR_6": "26",
+     "BCACCESS": "1",
+     "BCSCROLL": "2",
+     "BCSCROLLNUM": "0",
+     "BCSCROLLNAME": "00-00-01-00-02-00",
+     "RECNAME": "DRIVER_LTYP",
+     "FIELDNAME": "LICENSE_TYPE",
+     "SUBRECNAME": " ",
+     "COMMENTSHORT": " ",
+     "SYNCID": "37592",
+     "MPDEVICEPERSISTINT": "0"
+    }
+   ],
+   "updated": []
+  },
+  "PSBCDEFNLANG": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSBCITEMLANG": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCTYPE"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "COMMENTSHORT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSBCDEL": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSSYSTEMID": {
+   "columns": [
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "PTNEXTSYSTEMID"
+    },
+    {
+     "name": "PTUPDSYSTEMID"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSCISYNCDEFN": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "SYNCID"
+    },
+    {
+     "name": "CONFLICTRESOLUTION"
+    },
+    {
+     "name": "MSGSET"
+    },
+    {
+     "name": "RELCONTENTPROJ"
+    },
+    {
+     "name": "MPDEVICEPERSIST"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSCIREF": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "REF_CINAME"
+    },
+    {
+     "name": "CI_OWNS_DATA"
+    },
+    {
+     "name": "REF_BACKPOINTER"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSCIREFPROPERTY": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "REF_CINAME"
+    },
+    {
+     "name": "SRC_CIPROPERTYNAME"
+    },
+    {
+     "name": "REF_CIPROPERTYNAME"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSCIREFENUM": {
+   "columns": [
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCITEMPARENT"
+    },
+    {
+     "name": "BCITEMNAME"
+    },
+    {
+     "name": "REF_CINAME"
+    },
+    {
+     "name": "SEQUENCE_NBR_6"
+    },
+    {
+     "name": "FROM_CI"
+    },
+    {
+     "name": "USE_REF"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSAUTHBUSCOMP": {
+   "columns": [
+    {
+     "name": "CLASSID"
+    },
+    {
+     "name": "BCNAME"
+    },
+    {
+     "name": "BCMETHOD"
+    },
+    {
+     "name": "AUTHORIZEDACTIONS"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMPROG": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "PROGSEQ"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "NAMECOUNT"
+    },
+    {
+     "name": "PROGLEN"
+    },
+    {
+     "name": "PROGRUNLOC"
+    },
+    {
+     "name": "PROGFLAGS"
+    },
+    {
+     "name": "LICENSE_CODE"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "PROGEXTENDS"
+    },
+    {
+     "name": "PTTOOLSREL"
+    },
+    {
+     "name": "PROGTXT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMTXT": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "PROGSEQ"
+    },
+    {
+     "name": "HASH_SIGNATURE"
+    },
+    {
+     "name": "PCTEXT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMNAME": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "NAMENUM"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "REFNAME"
+    },
+    {
+     "name": "PACKAGEROOT"
+    },
+    {
+     "name": "QUALIFYPATH"
+    },
+    {
+     "name": "APPCLASSMETHOD"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMPROGDEL": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "BCM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "19",
+       "after": "20"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2711",
+       "after": "2712"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "BCM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "19",
+       "after": "20"
+      }
+     }
+    }
+   ]
+  }
+ }
+}

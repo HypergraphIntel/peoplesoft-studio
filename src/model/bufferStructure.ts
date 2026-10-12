@@ -48,6 +48,10 @@ export interface BufferScroll {
   /** Design notes from the keys (not App Designer checks). */
   notes: string[];
   scrolls: BufferScroll[];
+  /** On a page: the scroll control's kind and id, and a Grid's / Analytic Grid's columns (their control ids, left to right). */
+  kind?: string;
+  control?: number;
+  columns?: number[];
 }
 
 /** The PeopleCode for a scroll reached by `chain` (the primary records from level 1 down), its field `field` of `record`. */
@@ -136,6 +140,9 @@ export function componentBuffer(structure: ComponentStructure, info: ReadonlyMap
 export interface StructureControl extends CheckedControl {
   id: number;
   typeName: string;
+  /** Its stored place: a grid's columns are the (0, 0) controls right after it. */
+  fieldLeft?: number;
+  fieldTop?: number;
 }
 
 /**
@@ -143,7 +150,7 @@ export interface StructureControl extends CheckedControl {
  * records, keys and fields, App Designer's checks on it, and design notes from the keys.
  */
 export function pageStructure(pnlName: string, controls: readonly StructureControl[], info: ReadonlyMap<string, RecordInfo>): {
-  controls: Array<{ order: number; id: number; type: string; level: number; scroll: number | null; record?: string; field?: string; note?: string }>;
+  controls: Array<{ order: number; id: number; type: string; level: number; scroll: number | null; record?: string; field?: string; note?: string; gridColumnOf?: number }>;
   level0: { records: string[] };
   scrolls: BufferScroll[];
   problems: PageProblem[];
@@ -156,6 +163,14 @@ export function pageStructure(pnlName: string, controls: readonly StructureContr
     return out;
   };
   const level0 = recordsOf(-1);
+  // A grid's columns: the (0, 0) controls right after it (GRDCOLUMNCOUNT; pageLayout.ts placeGridColumns).
+  const SCROLL_TYPES = new Set([10, 19, 27, 32]);
+  const columnOf = new Map<number, number>();
+  controls.forEach((g, i) => {
+    if (g.fieldType !== 19 && g.fieldType !== 32) return;
+    for (let j = i + 1; j < controls.length && controls[j].fieldLeft === 0 && controls[j].fieldTop === 0 && !SCROLL_TYPES.has(controls[j].fieldType); j++) columnOf.set(j, g.id);
+  });
+  const KIND: Record<number, string> = { 10: 'scrollBar', 19: 'grid', 27: 'scrollArea', 32: 'analyticGrid' };
   const top = [...new Set([...level0.keys()].flatMap((r) => (info.get(r)?.type === 2 ? [] : info.get(r)?.keys ?? [])))];
   const build = (s: (typeof scrolls)[number], chain: string[], above: string[]): BufferScroll => {
     const recs = recordsOf(s.at);
@@ -163,19 +178,27 @@ export function pageStructure(pnlName: string, controls: readonly StructureContr
     const i = info.get(primary);
     const here = [...chain, primary];
     const k = keyNotes(s.level, primary, i, above);
+    const ctl = controls[s.at];
+    const grid = ctl.fieldType === 19 || ctl.fieldType === 32;
+    // A grid's rows are its own record's: the same record as a level above it is a keying mistake App Designer's page save does not catch.
+    if (grid && [...chain, ...level0.keys()].includes(primary)) {
+      k.notes.push(`${primary} is also a record of the level above: a grid's rows need their own record, keyed by the parent level's keys plus a key for each row.`);
+    }
     return {
+      kind: KIND[ctl.fieldType] ?? 'scroll', control: ctl.id,
+      ...(grid ? { columns: controls.flatMap((c, j) => (columnOf.get(j) === ctl.id ? [c.id] : [])) } : {}),
       level: s.level, primary, primaryType: recordTypeName(i?.type), keys: i?.keys ?? [], parentKeys: k.parentKeys, rowKeys: k.rowKeys,
       records: [...recs].map(([name, f]) => ({ name, type: recordTypeName(info.get(name)?.type), pageFields: f })),
       peopleCode: peopleCodeAccess(here, primary, recs.get(primary)?.[0] ?? ''), notes: k.notes,
       scrolls: scrolls.filter((c) => c.parent === s.at).map((c) => build(c, here, [...new Set([...above, ...(i?.keys ?? [])])]))
     };
   };
-  const SCROLL_TYPES = new Set([10, 19, 27, 32]);
   return {
     controls: controls.map((c, i) => ({
       order: i + 1, id: c.id, type: c.typeName, level: levels[i], scroll: scrollOf[i] >= 0 ? controls[scrollOf[i]].id : null,
       ...(c.recName.trim() ? { record: c.recName.trim() } : {}), ...(c.fieldName.trim() ? { field: c.fieldName.trim() } : {}),
-      ...(SCROLL_TYPES.has(c.fieldType) ? { note: `scroll at Occurs Level ${levels[i]}` } : c.fieldType === 23 && (c.fieldUse & 2) ? { note: `Set to Level ${levels[i]}` } : {})
+      ...(SCROLL_TYPES.has(c.fieldType) ? { note: `scroll at Occurs Level ${levels[i]}` } : c.fieldType === 23 && (c.fieldUse & 2) ? { note: `Set to Level ${levels[i]}` } : {}),
+      ...(columnOf.has(i) ? { gridColumnOf: columnOf.get(i)! } : {})
     })),
     level0: { records: [...level0.keys()] },
     scrolls: scrolls.filter((s) => s.parent < 0).map((s) => build(s, [], top)),
@@ -209,6 +232,15 @@ RECORD KEYING FOR SCROLLS
 - The Component Processor reads level 0 by the search record's keys (the search keys the user entered), then each scroll's rows WHERE its record's keys that also key the rows above it (matched by field name) equal those rows' values. A child record therefore carries its parent's keys plus its own: ZZ_R_L0_A (ZZ_KEY0) -> ZZ_R_L1_A (ZZ_KEY0, ZZ_KEY1) -> ZZ_R_L2_A (ZZ_KEY0, ZZ_KEY1, ZZ_KEY2).
 - Keys the child shares with its parent ("parentKeys") tie each child row to one parent row; the rest ("rowKeys") tell its rows apart. A child keyed by nothing above it is not tied to the parent row; one with no key of its own has at most one row per parent row.
 
+GRIDS: A SCROLL WHOSE ROWS ARE TABLE ROWS
+- A Grid (FIELDTYPE 19) is a scroll like a Scroll Area: it keeps its own Occurs Level (1 when inserted) and the record fields after it in tab order are in it. Its main record (RECNAME; App Designer also makes it the grid's Page Field Name) is its rowset.
+- Its record is its own -- not the record of the scroll it sits in (nor of level 0) -- and is keyed by that parent's keys plus at least one more: the parent's keys pick the grid's rows for the parent row, the extra key tells the grid's rows apart (ZZ_PCODE_LAB_R1 (ZZ_PCODE_LAB_KEY) at level 0 -> a grid on ZZ_PCODE_LAB_R6 (ZZ_PCODE_LAB_KEY, ZZ_PCODE_LAB_N1)). The same record at level 0 and in a grid below it is a keying mistake, though App Designer's page save does not check it; psft_get_page_structure / psft_get_component_structure show parentKeys and rowKeys.
+- Its columns are the controls right after it in tab order stored at (0, 0) (FIELDLEFT / FIELDTOP 0, their width and height in FIELDRIGHT / BOTTOM); GRDCOLUMNCOUNT counts them. A control after the grid at the grid's level but placed elsewhere on the page (a push button beside it) is in the grid's scroll, not a column. A Tab Separator (FIELDTYPE 24) goes only in a grid, as a column that starts a new tab of columns.
+- Columns are fields of the grid's record, Derived/Work fields, or related displays -- 15,22 More than one data record in scroll applies.
+- An Analytic Grid (FIELDTYPE 32) is a scroll on an analytic model's cube collection: its record is the collection's record (PSACECUBECOLL), it is display only, and its columns must include every field of the collection (PSACECUBECOLMAP) -- App Designer's 15,89 "Field X is a required field for the analytic grid" -- with the dimensions on the slicer, column or row axis.
+- A Subpage or Secondary Page placed in a grid's or scroll's rows is walked at that level: its fields join the scroll's rowset (15,19 counts it as data).
+- A Tree (FIELDTYPE 20) is not a scroll: it shows a root record field and levels below it (PSPNLTREECTRL, keyed by the tree's FIELDNUM).
+
 COMPONENTS: THE BUFFER IS THE UNION OF THE PAGES' SCROLLS
 - A component's buffer (App Designer's Structure tab) is built from its pages in order (PSPNLGROUP.SUBITEMNUM), each page's controls in tab order; a subpage or secondary page is walked in place, its levels offset by its control's level.
 - Scrolls under one parent with the same primary record are one rowset, however many pages show it. The same record as primary of scrolls under different parents is different rowsets (App Designer shows both; Scroll.RECORD names the first).
@@ -225,4 +257,4 @@ PEOPLECODE NAVIGATION
 ASKING THIS SERVER
 - psft_get_page_structure: one page's controls with level and scroll, its scroll tree with primary records, keys and PeopleCode paths, and App Designer's checks.
 - psft_get_component_structure: a component's search record and keys, level 0, and every scroll level with its primary record, keys (parentKeys / rowKeys), records with their page fields, PeopleCode paths and notes.
-- psft_edit_page: add_scroll operations (add with kind scrollArea / scrollBar), set_occurs_level, set_level on a Horizontal Rule, set_order for the tab order; every save reassigns levels and runs the checks.`;
+- psft_edit_page: add a scroll (kind scrollArea, scrollBar, grid with its record, analyticGrid with its model), add a field into a grid as its next column (intoGrid: the grid's id), set_occurs_level, set_level on a Horizontal Rule, set_order for the tab order; every save reassigns levels and runs the checks.`;

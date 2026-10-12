@@ -57,6 +57,8 @@ Component Interface PeopleCode: `PSPCMPROG` 74 interface / 12 method
 ## In PeopleSoft Studio
 
 A File Layout opens as its format and options, then its segments as a tree,
-each field with its type and position (FIXED) or length. A Component
-Interface opens as its component, standard methods, keys, then its
-collections and properties as a tree. Read-only.
+each field with its type and position (FIXED) or length; read-only. A
+Component Interface opens in the CI Designer, App Designer's Component
+Interface window, and is made, edited and saved as App Designer does: see
+docs/COMPONENT_INTERFACES.md (which also settles the BCSTDMETHODS bits and
+BCACCESS 2 = Read Only above).

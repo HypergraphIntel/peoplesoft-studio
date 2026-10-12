@@ -86,7 +86,7 @@ test('a delete removes the row and renumbers the survivors (08-delete shape)', (
 test('no change yields no updates', () => {
   const stored = [control({ pnlFldId: 1, fieldNum: 1 })];
   const { checked, ...plan } = planPageSave(stored, [edit(stored[0])]);
-  assert.deepEqual(plan, { deletes: [], updates: [], extUpdates: [], inserts: [], htmlWrites: [], richTextWrites: [], fieldCount: 1, maxPnlFldId: 1 });
+  assert.deepEqual(plan, { deletes: [], updates: [], extUpdates: [], inserts: [], htmlWrites: [], richTextWrites: [], fieldCount: 1, maxPnlFldId: 1, treeRekeys: [], treeDeletes: [] });
   assert.equal(checked.length, 1);
 });
 
@@ -796,4 +796,45 @@ test('added controls take App Designer\'s tab order and level: a scroll at 1, th
     const plan = planPageSave(stored, [...stored.map(edit), ...added], before.length, undefined, page);
     assert.deepEqual(plan.inserts.map((i) => [i.fieldNum, i.control.occursLevel]), inserted.map((r) => [Number(r.FIELDNUM), Number(r.OCCURSLEVEL)]), capture);
   }
+});
+
+// Grids, their columns and Trees (0.8.3, ZZ_PCODE_LAB_IN: gd-column, ts-fresh, ag-fresh, sp-fresh, sbp-fresh, sb-delete).
+const newCtl = (add: EditedControl['add'], l: number, t: number, r = 0, b = 0): EditedControl => ({ pnlFldId: -1, fieldLeft: l, fieldTop: t, fieldRight: r, fieldBottom: b,
+  editLblLeft: 0, editLblTop: 0, editLblRight: 0, editLblBottom: 0, fieldSizeType: 0, lblType: 3, lblText: '', fieldUse: 0, secureInvisible: 0, add });
+
+test('a field dropped in a grid is its next column, at (0, 0), and the grid counts it (gd-column, ts-fresh)', () => {
+  const stored = [control({ pnlFldId: 1, fieldNum: 1, fieldLeft: 8, fieldTop: 8 }),
+    control({ pnlFldId: 8, fieldNum: 2, fieldType: 19, occursLevel: 1, fieldLeft: 100, fieldTop: 204, fieldRight: 480, fieldBottom: 312, grdColumnCount: 1 }),
+    control({ pnlFldId: 9, fieldNum: 3, fieldType: 4, occursLevel: 1, fieldRight: 120, fieldBottom: 15 }),
+    control({ pnlFldId: 4, fieldNum: 4, fieldType: 30, occursLevel: 1, fieldLeft: 380, fieldTop: 252, fieldRight: 384, fieldBottom: 256 })];
+  const plan = planPageSave(stored, [...stored.map(edit), newCtl({ kind: 'tabSeparator', recName: '', fieldName: '', intoGrid: 8 }, 300, 250, 328, 265)], 9);
+  assert.equal(plan.inserts[0].fieldNum, 4); // after the grid's column, before the chart
+  assert.deepEqual([plan.inserts[0].control.fieldLeft, plan.inserts[0].control.fieldTop, plan.inserts[0].control.fieldRight, plan.inserts[0].control.fieldBottom], [0, 0, 28, 15]);
+  assert.equal(plan.inserts[0].control.occursLevel, 1);
+  assert.deepEqual(plan.updates.find((u) => u.pnlFldId === 8)!.columns, { GRDCOLUMNCOUNT: 2 });
+  assert.deepEqual(plan.updates.find((u) => u.pnlFldId === 4)!.columns, { FIELDNUM: 5 });
+});
+
+test('a grid added with its column counts it (ag-fresh); a Tab Separator outside a grid is refused', () => {
+  const stored = [control({ pnlFldId: 1, fieldNum: 1, fieldLeft: 8, fieldTop: 8 })];
+  const grid = { ...newCtl({ kind: 'analyticGrid', recName: 'PTACEVWRGRDREC', fieldName: '', analytic: { model: 'PTACEDUMMODEL', collection: 'DUMMYCC1' } }, 180, 12, 460, 104), pnlFldId: -5 };
+  const plan = planPageSave(stored, [edit(stored[0]), grid, newCtl({ kind: 'editBox', recName: 'PTACEVWRGRDREC', fieldName: 'PTACEGRIDFLD01', intoGrid: -5 }, 200, 40, 300, 40)], 1);
+  assert.deepEqual(plan.inserts.map((i) => [i.pnlFldId, i.fieldNum, i.control.grdColumnCount]), [[2, 2, 1], [3, 3, undefined]]);
+  assert.throws(() => planPageSave(stored, [edit(stored[0]), newCtl({ kind: 'tabSeparator', recName: '', fieldName: '' }, 10, 10)], 1), /only inside a grid/);
+});
+
+test('a grid whose stored count does not follow the (0, 0) rule keeps it (Fluid grids nesting group boxes)', () => {
+  const stored = [control({ pnlFldId: 2, fieldNum: 1, fieldType: 19, occursLevel: 1, fieldLeft: 10, fieldTop: 10, fieldRight: 300, fieldBottom: 200, grdColumnCount: 7 }),
+    control({ pnlFldId: 3, fieldNum: 2, fieldType: 4 })];
+  const plan = planPageSave(stored, [...stored.map(edit), newCtl({ kind: 'editBox', recName: 'R', fieldName: 'F', intoGrid: 2 }, 20, 20)], 3);
+  assert.equal(plan.updates.find((u) => u.pnlFldId === 2), undefined);
+});
+
+test('a Tree\'s TREECTRLID follows its FIELDNUM, with its levels; a deleted tree\'s levels go (sp-fresh, sb-delete)', () => {
+  const stored = [control({ pnlFldId: 1, fieldNum: 1, fieldLeft: 8, fieldTop: 40 }), control({ pnlFldId: 3, fieldNum: 2, fieldType: 20, fieldLeft: 220, fieldTop: 132, treeCtrlId: 2 })];
+  const plan = planPageSave(stored, [...stored.map(edit), newCtl({ kind: 'secondaryPage', recName: '', fieldName: '', subPage: 'ZZ_PCODE_LAB_SEC' }, 480, 52, 504, 74)], 4);
+  assert.deepEqual(plan.updates.find((u) => u.pnlFldId === 3)!.columns, { FIELDNUM: 3, TREECTRLID: 3 });
+  assert.deepEqual(plan.treeRekeys, [{ from: 2, to: 3 }]);
+  const gone = planPageSave(stored, [edit(stored[0])], 4);
+  assert.deepEqual(gone.treeDeletes, [2]);
 });

@@ -32,6 +32,10 @@ import { buildProperties, hasProperties } from './model/properties.js';
 import { PropertiesPanel } from './editors/propertiesPanel.js';
 import { ImagePanel } from './editors/imagePanel.js';
 import { AeDesignerPanel, setAeDesignerExtensionUri } from './editors/aeDesignerPanel.js';
+import { MenuDesignerPanel, setMenuDesignerExtensionUri } from './editors/menuDesignerPanel.js';
+import { CiDesignerPanel, setCiDesignerExtensionUri } from './editors/ciDesignerPanel.js';
+import { copyCi, type CiDocument } from './model/ciDocument.js';
+import { copyMenu, MENU_NAME_MAX, newMenu as newMenuDocument, type MenuDocument } from './model/menuDocument.js';
 import type { AeDocument } from './model/aeDocument.js';
 import { copyProgram as copyAeProgram, newProgram as newAeProgram, PROGRAM_NAME_MAX } from './model/aeDocument.js';
 import { PagePanel, type PageLookup } from './editors/pagePanel.js';
@@ -241,6 +245,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(workspace);
   setAeDesignerExtensionUri(context.extensionUri);
   AeDesignerPanel.register(context);
+  setMenuDesignerExtensionUri(context.extensionUri);
+  setCiDesignerExtensionUri(context.extensionUri);
+  MenuDesignerPanel.register(context);
 
   const statusBar = new StatusBar(workspace);
   context.subscriptions.push(statusBar);
@@ -315,6 +322,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     confirm: async ({ title, detail }) => (await vscode.window.showWarningMessage(title, { modal: true, detail }, 'Allow')) === 'Allow',
     hasUnsavedEditor: (connectionId, key) => {
       if (key.type === DefinitionType.AppEngineProgram) return AeDesignerPanel.sessionOf(connectionId, key.parts[0])?.dirty ?? false;
+      if (key.type === DefinitionType.Menu) return MenuDesignerPanel.sessionOf(connectionId, key.parts[0])?.dirty ?? false;
+      if (key.type === DefinitionType.ComponentInterface) return CiDesignerPanel.sessionOf(connectionId, key.parts[0])?.dirty ?? false;
       const uri = toUri(connectionId, key).toString();
       return vscode.window.tabGroups.all.some((g) => g.tabs.some((t) => t.isDirty &&
         (t.input instanceof vscode.TabInputText || t.input instanceof vscode.TabInputCustom) && t.input.uri.toString() === uri));
@@ -324,6 +333,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         void writeSaveReport(key, connectionId, peopleCode).catch((error) => console.error('PeopleSoft Studio: could not write the save report:', error));
       }
       if (key.type === DefinitionType.AppEngineProgram) void AeDesignerPanel.reloadIfOpen(connectionId, key.parts[0]);
+      else if (key.type === DefinitionType.Menu) void MenuDesignerPanel.reloadIfOpen(connectionId, key.parts[0]);
+      else if (key.type === DefinitionType.ComponentInterface) void CiDesignerPanel.reloadIfOpen(connectionId, key.parts[0]);
+      else if (key.type === DefinitionType.ComponentInterfacePeopleCode) { PeopleSoftFileSystem.instance?.invalidate(toUri(connectionId, key)); void CiDesignerPanel.reloadIfOpen(connectionId, key.parts[0]); }
       else PeopleSoftFileSystem.instance?.invalidate(toUri(connectionId, key));
       refreshAll();
     }
@@ -504,6 +516,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           const provider = await workspace.require(connectionId);
           if ((key.type === DefinitionType.AppEngineProgram || key.type === DefinitionType.AppEngineSection) && provider instanceof DatabaseProvider) {
             await showAeDesigner(workspace, provider, key.parts[0]);
+            return;
+          }
+          if (key.type === DefinitionType.Menu && provider instanceof DatabaseProvider) {
+            await showMenuDesigner(workspace, provider, key.parts[0]);
+            return;
+          }
+          if (key.type === DefinitionType.ComponentInterface && provider instanceof DatabaseProvider) {
+            await showCiDesigner(workspace, provider, key.parts[0]);
             return;
           }
           if (key.type === DefinitionType.Image && provider instanceof DatabaseProvider) {
@@ -706,6 +726,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       withError('New definition', () => newDefinition(workspace))),
     vscode.commands.registerCommand('psft.newPage', () => withError('New Page', () => newPage(workspace))),
     vscode.commands.registerCommand('psft.newAppEngine', () => withError('New App Engine Program', () => newAppEngine(workspace))),
+    vscode.commands.registerCommand('psft.newMenu', () => withError('New Menu', () => newMenu(workspace))),
+    vscode.commands.registerCommand('psft.newComponentInterface', () => withError('New Component Interface', () => newComponentInterface(workspace))),
     vscode.commands.registerCommand('psft.newPageFluid', () => withError('New Page Fluid', () => newPageFluid(workspace))),
 
     vscode.commands.registerCommand('psft.newHtmlDefinition', () =>
@@ -1208,11 +1230,10 @@ async function pickRecordFieldPeopleCode(workspace: Workspace, connectionId: str
 async function newDefinition(workspace: Workspace): Promise<void> {
   type Item = vscode.QuickPickItem & {
     create?: TextDefinitionType | DefinitionType.Record | DefinitionType.Field | DefinitionType.Project | DefinitionType.ApplicationPackage
-      | DefinitionType.ApplicationClassPeopleCode | DefinitionType.Component | DefinitionType.Page | DefinitionType.AppEngineProgram;
+      | DefinitionType.ApplicationClassPeopleCode | DefinitionType.Component | DefinitionType.Page | DefinitionType.AppEngineProgram | DefinitionType.Menu | DefinitionType.ComponentInterface;
     /** Page: New Page Fluid (from a Layout Page). */
     fluid?: boolean;
   };
-  const later = (label: string): Item => ({ label, description: 'not available yet' });
   const picked = await vscode.window.showQuickPick<Item>([
     { label: 'Available', kind: vscode.QuickPickItemKind.Separator },
     { label: '$(table) Record', description: 'SQL Table or Derived/Work; add fields, then save', create: DefinitionType.Record },
@@ -1227,8 +1248,8 @@ async function newDefinition(workspace: Workspace): Promise<void> {
     { label: '$(symbol-color) Style Sheet', description: 'freeform; opens empty, the first save creates it', create: DefinitionType.StyleSheet },
     { label: '$(database) SQL Definition', description: 'opens empty; the first save creates it', create: DefinitionType.SqlDefinition },
     { label: '$(gear) App Engine Program', description: 'MAIN with Step01, as App Designer starts one; the first save creates it', create: DefinitionType.AppEngineProgram },
-    { label: 'Not available yet', kind: vscode.QuickPickItemKind.Separator },
-    ...['Menu'].map(later)
+    { label: '$(list-tree) Menu', description: 'Standard or Popup, as App Designer asks; the first save creates it, once it has an item', create: DefinitionType.Menu },
+    { label: '$(plug) Component Interface', description: 'On a component, its properties defaulted from the component or not, as App Designer asks', create: DefinitionType.ComponentInterface }
   ], { title: 'New Definition', placeHolder: 'Definition type' });
   if (!picked) return;
   // DefinitionType.Record is 0: test for absence, not falsiness.
@@ -1244,6 +1265,8 @@ async function newDefinition(workspace: Workspace): Promise<void> {
   else if (picked.create === DefinitionType.ApplicationPackage) await newPackage(workspace);
   else if (picked.create === DefinitionType.ApplicationClassPeopleCode) await newClass(workspace);
   else if (picked.create === DefinitionType.AppEngineProgram) await newAppEngine(workspace);
+  else if (picked.create === DefinitionType.Menu) await newMenu(workspace);
+  else if (picked.create === DefinitionType.ComponentInterface) await newComponentInterface(workspace);
   else await newTextDefinition(workspace, picked.create);
 }
 
@@ -1585,6 +1608,163 @@ async function newAppEngine(workspace: Workspace): Promise<void> {
   const refusal = writeScopeRefusal(name);
   if (refusal) { vscode.window.showWarningMessage(refusal); return; }
   await showAeDesigner(workspace, provider, name, newAeProgram(name));
+}
+
+/**
+ * A menu in the Menu Designer (editors/menuDesignerPanel.ts): editable on a
+ * Writable connection with an Operator ID, for a name in the write scope;
+ * read-only otherwise. `doc` opens a new, unsaved menu.
+ */
+export async function showMenuDesigner(workspace: Workspace, provider: DatabaseProvider, name: string, doc?: MenuDocument): Promise<void> {
+  const operatorId = workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim();
+  const editable = workspace.isWritable(provider.id) && !!operatorId && !writeScopeRefusal(name);
+  const read = doc ? { doc, token: 'absent' } : await provider.readMenuDocument(name);
+  if (!read) throw new Error(`No menu named ${name}.`);
+  MenuDesignerPanel.show({
+    connection: { id: provider.id, displayName: provider.displayName },
+    ...(editable ? {
+      save: async (d: MenuDocument, token: string, dryRun?: boolean) => {
+        const result = await provider.saveMenuDocument({ doc: d, openedToken: token, operatorId: operatorId!, ...(dryRun ? { dryRun } : {}) });
+        if (result.written && token === 'absent') void vscode.commands.executeCommand('psft.refresh');
+        return result;
+      }
+    } : {}),
+    reload: () => provider.readMenuDocument(name),
+    lookup: provider.menuReferenceLookup(),
+    choices: (what, arg) => provider.menuChoices(what, arg),
+    toolsRelease: async () => (await provider.readEnvironment()).toolsRelease,
+    openComponent: async (component, market) => { await vscode.commands.executeCommand('psft.openDefinition', provider.id, makeKey(DefinitionType.Component, component, market)); },
+    ...(editable ? {
+      saveAs: async (d: MenuDocument, to: string, withPeopleCode: boolean) => {
+        const refusal = writeScopeRefusal(to);
+        if (refusal) throw new Error(refusal);
+        if (await provider.readMenuDocument(to)) throw new Error(`A menu named ${to} already exists.`);
+        await provider.saveMenuDocument({ doc: copyMenu(d, to, withPeopleCode), openedToken: 'absent', operatorId: operatorId! });
+        void vscode.commands.executeCommand('psft.refresh');
+        await showMenuDesigner(workspace, provider, to);
+      },
+      rename: async (from: string, to: string, token: string) => {
+        const refusal = writeScopeRefusal(to);
+        if (refusal) throw new Error(refusal);
+        await provider.renameMenuDefinition(from, to, token, operatorId!);
+        void vscode.commands.executeCommand('psft.refresh');
+        await showMenuDesigner(workspace, provider, to);
+      },
+      remove: async (menu: string, token: string) => {
+        await provider.deleteMenuDefinition(menu, token, operatorId!);
+        void vscode.commands.executeCommand('psft.refresh');
+        vscode.window.showInformationMessage(`Deleted menu ${menu} on ${provider.displayName}.`);
+      }
+    } : {})
+  }, read.doc, read.token, doc ? { status: 'New menu: Save creates it, once it has an item.' } : {});
+}
+
+/** The CI Designer on an interface (or a new one: its first Save creates it). */
+export async function showCiDesigner(workspace: Workspace, provider: DatabaseProvider, name: string, made?: { doc: CiDocument; buffer: import('./model/ciDocument.js').CiBuffer }): Promise<void> {
+  const operatorId = workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim();
+  const editable = workspace.isWritable(provider.id) && !!operatorId && !writeScopeRefusal(name);
+  const read = made ? { doc: made.doc, token: 'absent', buffer: made.buffer } : await provider.readCiDocument(name);
+  if (!read) throw new Error(`No Component Interface named ${name}.`);
+  const pcKey = (ci: string) => makeKey(DefinitionType.ComponentInterfacePeopleCode, ci, 'Methods');
+  CiDesignerPanel.show({
+    connection: { id: provider.id, displayName: provider.displayName },
+    ...(editable ? {
+      save: async (d: CiDocument, token: string, dryRun?: boolean) => {
+        const result = await provider.saveCiDocument({ doc: d, openedToken: token, operatorId: operatorId!, ...(dryRun ? { dryRun } : {}) });
+        if (result.written && token === 'absent') void vscode.commands.executeCommand('psft.refresh');
+        return result;
+      }
+    } : {}),
+    reload: () => provider.readCiDocument(name),
+    choices: (what, arg) => provider.ciChoices(what, arg),
+    userMethods: async () => {
+      const pc = await provider.readPeopleCodeForEdit(pcKey(name)).catch(() => undefined);
+      return [...(pc?.text ?? '').matchAll(/^\s*Function\s+([A-Za-z_][A-Za-z0-9_]*)/gim)].map((m) => m[1]);
+    },
+    openPeopleCode: async (ci) => { await vscode.commands.executeCommand('psft.openDefinition', provider.id, pcKey(ci)); },
+    openRecord: async (record) => { await vscode.commands.executeCommand('psft.openDefinition', provider.id, makeKey(DefinitionType.Record, record)); },
+    openComponent: async (component, market) => { await vscode.commands.executeCommand('psft.openDefinition', provider.id, makeKey(DefinitionType.Component, component, market)); },
+    ...(editable ? {
+      saveAs: async (d: CiDocument, to: string, withPeopleCode: boolean) => {
+        const refusal = writeScopeRefusal(to);
+        if (refusal) throw new Error(refusal);
+        if (await provider.readCiDocument(to)) throw new Error(`A Component Interface named ${to} already exists.`);
+        await provider.saveCiDocument({ doc: copyCi(d, to), openedToken: 'absent', operatorId: operatorId!, ...(withPeopleCode ? { copyPeopleCodeFrom: d.name } : {}) });
+        void vscode.commands.executeCommand('psft.refresh');
+        await showCiDesigner(workspace, provider, to);
+      },
+      rename: async (from: string, to: string, token: string) => {
+        const refusal = writeScopeRefusal(to);
+        if (refusal) throw new Error(refusal);
+        await provider.renameCiDefinition(from, to, token, operatorId!);
+        void vscode.commands.executeCommand('psft.refresh');
+        await showCiDesigner(workspace, provider, to);
+      },
+      remove: async (ci: string, token: string) => {
+        await provider.deleteCiDefinition(ci, token, operatorId!);
+        void vscode.commands.executeCommand('psft.refresh');
+        vscode.window.showInformationMessage(`Deleted Component Interface ${ci} on ${provider.displayName}.`);
+      }
+    } : {})
+  }, read.doc, read.token, read.buffer, made ? { status: 'New Component Interface: Save creates it.' } : {});
+}
+
+/**
+ * File > New > Component Interface: the source component (App Designer's "Select source Component for Component
+ * Interface"), "Do you want to default the properties based on the underlying Component definition? (123,12)",
+ * then a name and the designer -- App Designer asks the name at the first Save; here before, to open the window.
+ */
+async function newComponentInterface(workspace: Workspace): Promise<void> {
+  const provider = await pickWritableConnection(workspace, 'New Component Interface');
+  if (!provider) return;
+  const qp = vscode.window.createQuickPick<vscode.QuickPickItem & { component?: string; market?: string }>();
+  qp.title = 'Select source Component for Component Interface';
+  qp.placeholder = 'Component name (type to search)';
+  let timer: NodeJS.Timeout | undefined;
+  qp.onDidChangeValue((v) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(async () => {
+      if (v.trim().length < 2) return;
+      qp.busy = true;
+      const rows = await provider.ciChoices('components', v.trim()).catch(() => []);
+      qp.items = rows.map((r) => ({ label: r.value, description: r.label, component: r.value, market: r.label ?? 'GBL' }));
+      qp.busy = false;
+    }, 250);
+  });
+  const picked = await new Promise<(vscode.QuickPickItem & { component?: string; market?: string }) | undefined>((resolve) => {
+    qp.onDidAccept(() => { resolve(qp.selectedItems[0]); qp.hide(); });
+    qp.onDidHide(() => resolve(undefined));
+    qp.show();
+  });
+  qp.dispose();
+  if (!picked?.component) return;
+  const answer = await vscode.window.showInformationMessage(
+    `Do you want to default the properties based on the underlying Component definition, ${picked.component}? (123,12)`, { modal: true }, 'Yes', 'No');
+  if (!answer) return;
+  const name = await askDefinitionName(`New Component Interface on ${picked.component}.${picked.market}`, 30, 'Component Interface name (at most 30 characters)');
+  if (!name) return;
+  if (await provider.readCiDocument(name)) { vscode.window.showWarningMessage(`A Component Interface named ${name} already exists.`); return; }
+  const refusal = writeScopeRefusal(name);
+  if (refusal) { vscode.window.showWarningMessage(refusal); return; }
+  const made = await provider.newCiDocument(name, picked.component, picked.market ?? 'GBL', answer === 'Yes');
+  await showCiDesigner(workspace, provider, name, made);
+}
+
+/** File > New > Menu: Standard or Popup (App Designer's New Menu dialog), a name, then the designer. */
+async function newMenu(workspace: Workspace): Promise<void> {
+  const provider = await pickWritableConnection(workspace, 'New Menu');
+  if (!provider) return;
+  const type = await vscode.window.showQuickPick([{ label: 'Standard', type: 0 as const }, { label: 'Popup', type: 1 as const }], { title: 'New Menu', placeHolder: 'Menu Type' });
+  if (!type) return;
+  const name = await askDefinitionName(`New ${type.label} Menu on ${provider.displayName}`, MENU_NAME_MAX, `Menu name (at most ${MENU_NAME_MAX} characters)`);
+  if (!name) return;
+  if (await provider.readMenuDocument(name)) {
+    vscode.window.showWarningMessage(`A menu named ${name} already exists.`);
+    return;
+  }
+  const refusal = writeScopeRefusal(name);
+  if (refusal) { vscode.window.showWarningMessage(refusal); return; }
+  await showMenuDesigner(workspace, provider, name, newMenuDocument(name, type.type));
 }
 
 /** File > New > Page: a name, then the page window on an empty page (App Designer's new page: 570 x 330, Fluid off). */

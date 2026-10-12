@@ -43,6 +43,7 @@ export function pcmProgKeyParts(key: DefinitionKey): readonly string[] {
  *   10 39 12                component, market, event (5,586)
  *   104 [105 [106]] 107 12  package, subpackages, class, OnExecute (12,218)
  *   3 4 5 12                menu, bar, item, event (8)
+ *   74 12                   component interface, Methods (31)
  *
  * A key's parts are the values in this order (an Application Class's without
  * its trailing OnExecute, as PSPROJECTITEM names it).
@@ -54,7 +55,8 @@ export const PEOPLECODE_OBJECTIDS: Readonly<Partial<Record<DefinitionType, reado
   [DefinitionType.PagePeopleCode]: [9, 12],
   [DefinitionType.ComponentRecordPeopleCode]: [10, 39, 1, 12],
   [DefinitionType.ComponentPeopleCode]: [10, 39, 12],
-  [DefinitionType.MenuPeopleCode]: [3, 4, 5, 12]
+  [DefinitionType.MenuPeopleCode]: [3, 4, 5, 12],
+  [DefinitionType.ComponentInterfacePeopleCode]: [74, 12]
 };
 
 /** The OBJECTID1 of every Application Class program (its root package). */

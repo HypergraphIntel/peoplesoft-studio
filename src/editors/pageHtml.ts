@@ -1,7 +1,7 @@
 import { escapeHtml as esc } from './propertiesHtml.js';
 import { controlShape, PAGE_SIZE_PRESETS, type PageControl, type PageLayout } from '../model/pageLayout.js';
 import { PAGE_FIELD_TYPES, PAGE_TYPES } from '../model/uiDefinitions.js';
-import { FIELD_OPTIONAL, NEW_CONTROL_FIELDTYPE, NEW_CONTROL_FIELDUSE, NEW_CONTROL_SIZE, isRecordBound, type NewControlKind } from '../providers/pageControlTemplates.js';
+import { FIELD_OPTIONAL, GRID_ONLY, NEW_CONTROL_FIELDTYPE, NEW_CONTROL_FIELDUSE, NEW_CONTROL_SIZE, RECORD_ONLY, RECORD_OPTIONAL, isRecordBound, type NewControlKind } from '../providers/pageControlTemplates.js';
 
 /*
  * A page in App Designer's Layout view (controls drawn from their stored
@@ -52,12 +52,12 @@ export interface PagePropertyChoices {
  */
 const INSERT_MENU: Array<{ group: string; items: Array<{ label: string; kind?: NewControlKind }> }> = [
   { group: 'Containers and text', items: [{ kind: 'frame', label: 'Frame' }, { kind: 'groupBox', label: 'Group Box' },
-    { kind: 'horizontalRule', label: 'Horizontal Rule' }, { kind: 'staticText', label: 'Static Text' }, { kind: 'staticImage', label: 'Static Image' }, { label: 'Tab Separator' }] },
+    { kind: 'horizontalRule', label: 'Horizontal Rule' }, { kind: 'staticText', label: 'Static Text' }, { kind: 'staticImage', label: 'Static Image' }, { kind: 'tabSeparator', label: 'Tab Separator' }] },
   { group: 'Controls', items: [{ kind: 'checkBox', label: 'Check Box' }, { kind: 'dropDown', label: 'Drop-Down List Box' }, { kind: 'editBox', label: 'Edit Box' },
-    { kind: 'htmlArea', label: 'HTML Area' }, { label: 'Image' }, { kind: 'longEdit', label: 'Long Edit Box' }, { kind: 'pushButton', label: 'Push Button/Hyperlink' }, { kind: 'radioButton', label: 'Radio Button' }, { label: 'Tree' }] },
-  { group: 'Grids and scrolls', items: [{ label: 'Grid' }, { kind: 'scrollArea', label: 'Scroll Area' }, { kind: 'scrollBar', label: 'Scroll Bar' }] },
-  { group: 'Pages', items: [{ label: 'Secondary Page' }, { label: 'Subpage' }] },
-  { group: 'Charts', items: [{ label: 'Chart' }, { label: 'Analytic Grid' }] }
+    { kind: 'htmlArea', label: 'HTML Area' }, { kind: 'image', label: 'Image' }, { kind: 'longEdit', label: 'Long Edit Box' }, { kind: 'pushButton', label: 'Push Button/Hyperlink' }, { kind: 'radioButton', label: 'Radio Button' }, { kind: 'tree', label: 'Tree' }] },
+  { group: 'Grids and scrolls', items: [{ kind: 'grid', label: 'Grid' }, { kind: 'scrollArea', label: 'Scroll Area' }, { kind: 'scrollBar', label: 'Scroll Bar' }] },
+  { group: 'Pages', items: [{ kind: 'secondaryPage', label: 'Secondary Page' }, { kind: 'subpage', label: 'Subpage' }] },
+  { group: 'Charts', items: [{ kind: 'chart', label: 'Chart' }, { kind: 'analyticGrid', label: 'Analytic Grid' }] }
 ];
 const PALETTE = INSERT_MENU.flatMap((g) => g.items).filter((i): i is { label: string; kind: NewControlKind } => !!i.kind);
 
@@ -81,7 +81,10 @@ function paletteKinds(): Record<string, unknown> {
     return [kind, { shape, typeName: PAGE_FIELD_TYPES[NEW_CONTROL_FIELDTYPE[kind]] ?? kind, bound: isRecordBound(kind),
       w: z.width, h: z.height, dw: tiny ? 24 : z.width || drawn[0], dh: tiny ? 24 : z.height || drawn[1], fst: z.fieldSizeType, lt: z.lblType, lx: z.lblText,
       ftype: NEW_CONTROL_FIELDTYPE[kind],
-      fu: NEW_CONTROL_FIELDUSE[kind] ?? 0, fieldOptional: FIELD_OPTIONAL.has(kind) }];
+      fu: NEW_CONTROL_FIELDUSE[kind] ?? 0, fieldOptional: FIELD_OPTIONAL.has(kind),
+      // What else a new one needs before a save: a grid's record, an analytic model, its page, a grid to be a column of.
+      recordOnly: RECORD_ONLY.has(kind) && kind !== 'analyticGrid', recordOptional: RECORD_OPTIONAL.has(kind), analytic: kind === 'analyticGrid',
+      pageRef: kind === 'subpage' || kind === 'secondaryPage', gridOnly: GRID_ONLY.has(kind) }];
   }));
 }
 
@@ -89,6 +92,7 @@ function paletteKinds(): Record<string, unknown> {
 function columnData(c: PageControl): string {
   const k = c.columns;
   return `data-id="${c.pnlFldId}" data-num="${c.num}" data-level="${c.level}" data-type="${esc(c.typeName)}"` +
+    (c.gridColumnOf !== undefined ? ` data-incol="${c.gridColumnOf}"` : '') +
     ` data-target="${esc(c.target)}" data-rec="${esc(c.recName)}" data-field="${esc(c.fieldName)}" data-pfn="${esc(c.pageFieldName)}"` +
     ` data-defer="${c.deferProc ? 1 : 0}" data-ctlfld="${c.controlFieldNum}" data-fl="${k.fieldLeft}" data-ft="${k.fieldTop}"` +
     ` data-fr="${k.fieldRight}" data-fb="${k.fieldBottom}" data-ell="${k.editLblLeft}" data-elt="${k.editLblTop}"` +
@@ -346,6 +350,18 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
     const before = (a, b) => (sameRow(a, b) ? n(a, 'fl') < n(b, 'fl') : n(a, 'ft') < n(b, 'ft'));
     for (const c of canvas.querySelectorAll('.ctl')) {
       if (c.dataset.removed || !(c.dataset.new || c.dataset.copyPage)) continue;
+      if (c.dataset.new && c.dataset.into) {
+        // A grid's new column: after the grid and its columns (pageWriter planPageSave).
+        let at = order.findIndex((o) => o.dataset.id === c.dataset.into);
+        if (at >= 0) { while (at + 1 < order.length && (order[at + 1].dataset.incol === c.dataset.into || order[at + 1].dataset.into === c.dataset.into)) at++; order.splice(at + 1, 0, c); continue; }
+      }
+      if (c.dataset.new && SCROLL_TYPES.includes(n(c, 'ftype'))) {
+        // A new scroll: after the last control whose top is at or above its bottom edge (pageWriter newScrollTabIndex).
+        const bottom = Math.max(n(c, 'fb'), n(c, 'ft'));
+        let last = -1;
+        order.forEach((o, i) => { if (n(o, 'ft') <= bottom) last = i; });
+        order.splice(last + 1, 0, c); continue;
+      }
       if (c.dataset.new) {
         let best = -1;
         order.forEach((o, i) => { if (atOrBefore(o, c) && (best < 0 || before(order[best], o))) best = i; });
@@ -1597,6 +1613,49 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
     unlimited.onchange = () => { if (unlimited.checked) { setN(el, 'oc1', 0); oc.value = '0'; } else { setN(el, 'oc1', 1); oc.value = '1'; } markDirty(); };
   }
   // Grid Options: Occurs Count and the display flags (Show Column Headings / Row Numbers / Allow Column Sorting).
+  // A new Grid's / Analytic Grid's main record: its own record, keyed by the parent level's keys plus a row key
+  // (psft_explain_scrolls). App Designer also makes it the grid's Page Field Name (gd-fresh).
+  function mainRecordTab(ctx, p) {
+    const { el, d, field, text } = ctx;
+    const rec = field(p, 'Main Record', text(d.rec || ''));
+    rec.oninput = () => { d.rec = rec.value.trim().toUpperCase(); d.pfn = d.rec; placeholderLabel(el); markDirty(); };
+    p.appendChild(tn('p', 'The grid\\'s rows: its own record, keyed by the keys of the level above it plus one more for each row. Fields dropped on the grid become its columns.'));
+  }
+  // A new Subpage: the subpage (placed at its own rectangle on save, as App Designer places it) and Subpage Record Name Substitution.
+  function newSubpageTab(ctx, p) {
+    const { d, field, text } = ctx;
+    const sub = field(p, 'Subpage', text(d.sub || '', 30));
+    const to = field(p, 'Record Name Substitution To', text(d.rec || '', 15));
+    sub.oninput = () => { d.sub = sub.value.trim().toUpperCase(); d.target = d.sub; markDirty(); };
+    to.oninput = () => { d.rec = to.value.trim().toUpperCase(); markDirty(); };
+    p.appendChild(tn('p', 'App Designer places a subpage at the subpage\\'s own size and position; the save does the same.'));
+  }
+  function newSecondaryTab(ctx, p) {
+    const { d, field, text } = ctx;
+    const pg = field(p, 'Page', text(d.sub || '', 30));
+    pg.oninput = () => { d.sub = pg.value.trim().toUpperCase(); d.target = d.sub; markDirty(); };
+  }
+  // A new Tree: its root record field (field optional) and its levels below, each the child of the one before (PSPNLTREECTRL).
+  function treeRecordTab(ctx, p) {
+    recordTab(ctx, p);
+    const { d, field } = ctx;
+    const levels = field(p, 'Levels (RECORD.FIELD, one per line)', Object.assign(document.createElement('textarea'), { rows: 3,
+      value: (d.tl ? JSON.parse(d.tl) : []).map((l) => l.recName + '.' + l.fieldName).join('\\n') }));
+    levels.oninput = () => {
+      const ls = levels.value.split('\\n').map((x) => x.trim().toUpperCase()).filter(Boolean).map((x) => { const [r, f] = x.split('.'); return { recName: r || '', fieldName: f || '' }; });
+      d.tl = JSON.stringify(ls); markDirty();
+    };
+  }
+  // An Analytic Grid's model and cube collection (its record is the collection's; its dimensions start on the Row Axis).
+  function analyticsTab(ctx, p) {
+    const { el, d, field, text } = ctx;
+    if (!el.dataset.new) { p.appendChild(propsTable([['Record', d.rec || ''], ['Page Field Name', d.pfn || '']])); return; }
+    const m = field(p, 'Model Name', text(d.acem || '', 30));
+    const cc = field(p, 'Cube Collection Name', text(d.acec || '', 30));
+    m.oninput = () => { d.acem = m.value.trim().toUpperCase(); markDirty(); };
+    cc.oninput = () => { d.acec = cc.value.trim().toUpperCase(); markDirty(); };
+    p.appendChild(tn('p', 'The record is the cube collection\\'s; every field of the collection must be a column (App Designer\\'s 15,89).'));
+  }
   function gridOptionsTab(ctx, p) {
     const { el, field, text, check } = ctx;
     occursLevelField(ctx, p);
@@ -1655,11 +1714,13 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
       case 7: return richInspect(el, 'Check Box Properties', [T('record', 'Record', checkBoxRecordTab), T('label', 'Label', fieldLabelTab), T('use', 'Use', fieldUseTab), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
       case 8: return richInspect(el, 'Radio Button Properties', [T('record', 'Record', record(valueOnly)), T('label', 'Label', label({})), T('use', 'Use', use(USE_FIELD)), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
       case 9: return richInspect(el, 'Image Properties', [T('record', 'Record', record()), T('label', 'Label', label({})), T('general', 'General', general({}))]);
+      case 24: return richInspect(el, 'Tab Separator Properties', [T('label', 'Label', label({})), T('general', 'General', general({}))]);
+      case 32: return richInspect(el, 'Analytic Grid Properties', [T('analytics', 'Analytics', analyticsTab), T('label', 'Label', label({})), T('options', 'Options', gridOptionsTab), T('general', 'General', general({}))]);
       case 10: return richInspect(el, 'Scroll Bar Properties', [T('options', 'Options', scrollOptionsTab), T('use', 'Use', use(USE_COMMON)), T('general', 'General', general({}))]);
-      case 11: return richInspect(el, 'Subpage Properties', [T('subpage', 'Subpage', refInfo('Subpage Name', (d) => d.target || '')), T('general', 'General', general({}))]);
-      case 18: return richInspect(el, 'Secondary Page Properties', [T('secpage', 'Secondary Page', refInfo('Page', (d) => d.target || '')), T('use', 'Use', use([['Invisible', 'fu', 0x2]])), T('label', 'Label', label({})), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
-      case 19: return richInspect(el, 'Grid Properties', [T('label', 'Label', label({})), T('options', 'Options', gridOptionsTab), T('use', 'Use', use(USE_COMMON)), T('general', 'General', general({}))]);
-      case 20: return richInspect(el, 'Tree Properties', [T('record', 'Record', record()), T('general', 'General', general({}))]);
+      case 11: return richInspect(el, 'Subpage Properties', [T('subpage', 'Subpage', el.dataset.new ? newSubpageTab : refInfo('Subpage Name', (d) => d.target || '')), T('general', 'General', general({}))]);
+      case 18: return richInspect(el, 'Secondary Page Properties', [T('secpage', 'Secondary Page', el.dataset.new ? newSecondaryTab : refInfo('Page', (d) => d.target || '')), T('use', 'Use', use([['Invisible', 'fu', 0x2]])), T('label', 'Label', label({})), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
+      case 19: return richInspect(el, 'Grid Properties', [...(el.dataset.new ? [T('record', 'Record', mainRecordTab)] : []), T('label', 'Label', label({})), T('options', 'Options', gridOptionsTab), T('use', 'Use', use(USE_COMMON)), T('general', 'General', general({}))]);
+      case 20: return richInspect(el, 'Tree Properties', [T('record', 'Record', el.dataset.new ? treeRecordTab : record()), T('general', 'General', general({}))]);
       case 23: return richInspect(el, 'Horizontal Rule Properties', [T('label', 'Label', ruleLabelTab), T('use', 'Use', ruleUseTab), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
       case 25: return richInspect(el, 'HTML Area Properties', [T('html', 'HTML', htmlAreaTab), T('label', 'Label', htmlLabelTab), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
       case 27: return richInspect(el, 'Scroll Area Properties', [T('label', 'Label', label({})), T('options', 'Options', scrollOptionsTab), T('use', 'Use', use(USE_COMMON)), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
@@ -1893,6 +1954,8 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
       }
       const resize = e.target.classList.contains('rsz');
       const inGroup = sel.has(el) && sel.size > 1;
+      // A stored grid column stays in its grid (its stored place is (0, 0)): it is selected, not moved.
+      if (el.dataset.incol) { inspect(el); e.preventDefault(); return; }
       if (!inGroup) inspect(el);
       el.focus({ preventScroll: true });
       drag = { el, group: [...sel], resize, collapse: inGroup, x: e.clientX, y: e.clientY, w: el.offsetWidth, h: el.offsetHeight, moved: false };
@@ -1939,6 +2002,12 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
         return;
       }
       if (d.handle) d.handle.classList.remove('dragging');
+      // A new field control dropped on a grid becomes its next column; dragged off, it is not one.
+      if (d.moved && !d.resize && d.el && d.el.dataset.new && !['image', 'tree', 'chart'].includes(d.el.dataset.new) && (kinds[d.el.dataset.new].bound || kinds[d.el.dataset.new].gridOnly)) {
+        const at = { x: d.el.offsetLeft + 2, y: d.el.offsetTop + 2 };
+        const g = live().find((x) => gridOf(x) && x !== d.el && at.x >= x.offsetLeft && at.y >= x.offsetTop && at.x < x.offsetLeft + x.offsetWidth && at.y < x.offsetTop + x.offsetHeight);
+        if (g) intoGrid(d.el, g); else delete d.el.dataset.into;
+      }
       if (d.moved) markDirty();
       else if (d.collapse) inspect(d.el);
     });
@@ -2005,8 +2074,24 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
       l.textContent = el.dataset.rec && el.dataset.field ? el.dataset.rec + '.' + el.dataset.field : '(record field)';
       l.classList.add('placeholder');
     }
+    // A grid's next column: right of its last column, under its headings (App Designer's drop on a grid).
+    function gridOf(el) { return el && [19, 32].includes(n(el, 'ftype')) ? el : null; }
+    function columnSpot(g) {
+      const cols = live().filter((c) => c.dataset.incol === g.dataset.id || c.dataset.into === g.dataset.id);
+      const x = cols.length ? Math.max(...cols.map((c) => c.offsetLeft + c.offsetWidth)) + 1 : g.offsetLeft + (n(g, 'grh') ? 22 : 2);
+      return [x, g.offsetTop + 20];
+    }
+    function intoGrid(el, g) {
+      el.dataset.into = g.dataset.id;
+      const [x, y] = columnSpot(g);
+      const dx = x - el.offsetLeft, dy = y - el.offsetTop;
+      moveBy(el, dx, dy);
+    }
     function addControl(kind) {
-      const k = kinds[kind]; const id = -(++newSeq);
+      const k = kinds[kind];
+      const targetGrid = gridOf(selected);
+      if (k.gridOnly && !targetGrid) { status.textContent = 'A ' + k.typeName + ' goes inside a grid: select the grid first.'; status.classList.add('err'); return; }
+      const id = -(++newSeq);
       const scroller = document.getElementById('panel-layout');
       // Cascade from the visible top-left so successive inserts do not stack.
       const step = 20 * ((newSeq - 1) % 8);
@@ -2031,6 +2116,8 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
       }
       canvas.appendChild(el);
       placeholderLabel(el);
+      // Inserted with a grid selected, a field control (or Tab Separator) is the grid's next column.
+      if (targetGrid && (k.bound || k.gridOnly) && !['image', 'tree', 'chart'].includes(kind)) intoGrid(el, targetGrid);
       show('layout'); inspect(el); el.focus(); markDirty();
     }
     for (const b of document.querySelectorAll('button.tool')) b.addEventListener('click', () => { closeInsertMenu(); addControl(b.dataset.kind); });
@@ -2082,8 +2169,17 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
     saveBtn.addEventListener('click', () => {
       const live = [...canvas.querySelectorAll('.ctl')].filter((el) => !el.dataset.removed);
       // A record-bound control needs its record and field; an HTML Area may name the record alone.
-      const unbound = live.find((el) => { const k = el.dataset.new && kinds[el.dataset.new]; return k && k.bound && !(el.dataset.rec && (el.dataset.field || k.fieldOptional)); });
+      // An Image or Chart may be saved unbound (im-fresh, ch-fresh).
+      const unbound = live.find((el) => { const k = el.dataset.new && kinds[el.dataset.new]; return k && k.bound && !k.recordOptional && !(el.dataset.rec && (el.dataset.field || k.fieldOptional)); });
       if (unbound) { inspect(unbound); status.textContent = 'Give the new ' + unbound.dataset.type + (kinds[unbound.dataset.new].fieldOptional ? ' a record.' : ' a record and field.'); status.classList.add('err'); return; }
+      // A Grid's main record, an Analytic Grid's model, a Subpage's / Secondary Page's page, a Tab Separator's grid.
+      const missing = live.map((el) => { const k = el.dataset.new && kinds[el.dataset.new]; if (!k) return null;
+        if (k.recordOnly && !el.dataset.rec) return [el, 'its main record (Record tab)'];
+        if (k.analytic && !el.dataset.acem) return [el, 'its analytic model (Analytics tab)'];
+        if (k.pageRef && !el.dataset.sub) return [el, 'its page'];
+        if (k.gridOnly && !el.dataset.into) return [el, 'a grid: drop it on one'];
+        return null; }).find(Boolean);
+      if (missing) { inspect(missing[0]); status.textContent = 'Give the new ' + missing[0].dataset.type + ' ' + missing[1] + '.'; status.classList.add('err'); return; }
       const controls = live.map((el) => ({
         pnlFldId: n(el,'id'), fieldLeft: n(el,'fl'), fieldTop: n(el,'ft'), fieldRight: n(el,'fr'), fieldBottom: n(el,'fb'),
         editLblLeft: n(el,'ell'), editLblTop: n(el,'elt'), editLblRight: n(el,'elr'), editLblBottom: n(el,'elb'),
@@ -2119,7 +2215,10 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
         ...(el.dataset.lvlEdited ? { setLevel: n(el, 'n1') } : {}),
         fieldType: n(el, 'ftype'),
         ...(el.dataset.copyPage ? { copy: { pnlName: el.dataset.copyPage, pnlFldId: Number(el.dataset.copyId) } }
-          : el.dataset.new ? { add: { kind: el.dataset.new, recName: el.dataset.rec || '', fieldName: el.dataset.field || '' } } : {})
+          : el.dataset.new ? { add: { kind: el.dataset.new, recName: el.dataset.rec || '', fieldName: el.dataset.field || '',
+            ...(el.dataset.sub ? { subPage: el.dataset.sub } : {}), ...(el.dataset.into ? { intoGrid: Number(el.dataset.into) } : {}),
+            ...(el.dataset.tl ? { treeLevels: JSON.parse(el.dataset.tl) } : {}),
+            ...(el.dataset.new === 'analyticGrid' ? { analytic: { model: el.dataset.acem || '', collection: el.dataset.acec || '' } } : {}) } } : {})
       }));
       saveBtn.disabled = true; status.textContent = 'Saving…'; status.classList.remove('err');
       // The tab order, when the Order tab changed it: the stored controls still on the page, first to last.

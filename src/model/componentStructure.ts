@@ -48,7 +48,21 @@ export interface StructureScroll {
   level: number;
   primary: string;
   records: StructureRecord[];
+  /** The records in the order their fields first appear (a Component Interface's tree lists them so: ci02). */
+  pageOrder?: string[];
+  /** Each record's fields placed in this scroll, in the order they first appear, with every placement's FIELDUSE and control. */
+  placed?: Record<string, StructurePlacement[]>;
   scrolls: StructureScroll[];
+}
+
+export interface StructurePlacement {
+  field: string;
+  /** PSPNLFIELD.FIELDUSE of each placement. */
+  uses: number[];
+  /** PSPNLFIELD.FIELDTYPE of each placement. */
+  controls: number[];
+  /** Whether each placement is on a system page (systemPages: the Fluid header or side page), not the component's own. */
+  system: boolean[];
 }
 
 export interface ComponentStructure {
@@ -57,6 +71,10 @@ export interface ComponentStructure {
   level0: StructureScroll;
   /** Each record's fields placed on the component's pages, in the order they first appear (related displays aside). */
   pageFields: Record<string, string[]>;
+  /** Each placed field's FIELDUSE, every placement (`RECORD.FIELD`). */
+  fieldUses?: Record<string, number[]>;
+  /** Each placed field's control (PSPNLFIELD.FIELDTYPE), every placement (`RECORD.FIELD`). */
+  fieldControls?: Record<string, number[]>;
 }
 
 const SUBPAGE = 11;
@@ -68,9 +86,9 @@ const SUBRECORD = 3;
 
 const trim = (v: unknown) => String(v ?? '').trim();
 
-interface Node { level: number; primary?: string; recs: string[]; kids: Node[]; into?: Node }
+interface Node { level: number; primary?: string; recs: string[]; kids: Node[]; into?: Node; placed?: Record<string, StructurePlacement[]> }
 interface Context { rec: string; level: number; id: number }
-interface FieldEvent { kind: 'field'; level: number; rec: string; field: string; ctx?: Context; node?: Node }
+interface FieldEvent { kind: 'field'; level: number; rec: string; field: string; use: number; control: number; system: boolean; ctx?: Context; node?: Node }
 interface ScrollEvent { kind: 'scroll'; level: number; rec: string }
 
 /**
@@ -79,7 +97,8 @@ interface ScrollEvent { kind: 'scroll'; level: number; rec: string }
  * a record's RECTYPE.
  */
 export function buildComponentStructure(pages: readonly string[], searchRecord: string,
-  fieldsOf: (page: string) => readonly StructureField[] | undefined, typeOf: (record: string) => number): ComponentStructure {
+  fieldsOf: (page: string) => readonly StructureField[] | undefined, typeOf: (record: string) => number,
+  systemPages: ReadonlySet<string> = new Set()): ComponentStructure {
   const derived = (r: string) => typeOf(r) === DERIVED;
   const fields = (p: string) => [...(fieldsOf(p) ?? [])].sort((a, b) => Number(a.FIELDNUM) - Number(b.FIELDNUM));
   const infoRecord = (page: string) => fields(page).find((f) =>
@@ -87,7 +106,7 @@ export function buildComponentStructure(pages: readonly string[], searchRecord: 
 
   const events: Array<FieldEvent | ScrollEvent> = [];
   let contexts = 0;
-  const walk = (page: string, base: number, subst: Record<string, string>, ctx: Context | undefined, seen: Set<string>) => {
+  const walk = (page: string, base: number, subst: Record<string, string>, ctx: Context | undefined, seen: Set<string>, system: boolean) => {
     if (seen.has(page)) return; // a page that includes itself
     const inner = new Set(seen).add(page);
     for (const f of fields(page)) {
@@ -101,15 +120,15 @@ export function buildComponentStructure(pages: readonly string[], searchRecord: 
           if (from && from !== rec && (!toDerived || typeOf(from) === SUBRECORD)) next = { ...subst, [from]: rec };
           if (!toDerived) nextCtx = { rec, level, id: ++contexts };
         }
-        walk(sub, level, next, nextCtx, inner);
+        walk(sub, level, next, nextCtx, inner, system);
         continue;
       }
       const record = subst[rec] ?? rec;
       if (SCROLLS.has(type)) events.push({ kind: 'scroll', level, rec: record });
-      else if (record && trim(f.FIELDNAME) && !(Number(f.FIELDUSE) & RELATED_DISPLAY)) events.push({ kind: 'field', level, rec: record, field: trim(f.FIELDNAME), ...(ctx ? { ctx } : {}) });
+      else if (record && trim(f.FIELDNAME) && !(Number(f.FIELDUSE) & RELATED_DISPLAY)) events.push({ kind: 'field', level, rec: record, field: trim(f.FIELDNAME), use: Number(f.FIELDUSE), control: type, system, ...(ctx ? { ctx } : {}) });
     }
   };
-  for (const p of pages) walk(p, 0, {}, undefined, new Set());
+  for (const p of pages) walk(p, 0, {}, undefined, new Set(), systemPages.has(p));
 
   // First pass: scrolls and the records seen in each.
   const root: Node = { level: 0, recs: [], kids: [] };
@@ -149,7 +168,7 @@ export function buildComponentStructure(pages: readonly string[], searchRecord: 
   const byPrimary = new Map<string, Node>();
   const index = (n: Node) => { for (const k of n.kids) { if (k.primary && !byPrimary.has(k.primary)) byPrimary.set(k.primary, k); index(k); } };
   index(root);
-  const clear = (n: Node) => { n.recs = []; n.kids.forEach(clear); };
+  const clear = (n: Node) => { n.recs = []; n.placed = {}; n.kids.forEach(clear); };
   clear(root);
   const moving = new Set(events.filter((e): e is FieldEvent => e.kind === 'field' && !!e.ctx && e.rec === e.ctx.rec && e.level === e.ctx.level)
     .map((e) => e.ctx!.id));
@@ -159,21 +178,31 @@ export function buildComponentStructure(pages: readonly string[], searchRecord: 
     const home = e.ctx && e.level === e.ctx.level && moving.has(e.ctx.id) ? byPrimary.get(e.ctx.rec) : undefined;
     if (home && home !== node) node = home;
     if (!node.recs.includes(e.rec)) node.recs.push(e.rec);
+    const list = (node.placed![e.rec] ??= []);
+    let p = list.find((x) => x.field === e.field);
+    if (!p) list.push(p = { field: e.field, uses: [], controls: [], system: [] });
+    p.uses.push(e.use);
+    p.controls.push(e.control);
+    p.system.push(e.system);
   }
 
   const out = (n: Node): StructureScroll => {
     const primary = n.primary ?? '';
     const recs = n.recs.includes(primary) ? [primary, ...n.recs.filter((r) => r !== primary)] : n.recs;
-    return { level: n.level, primary, records: recs.map((r) => ({ name: r, type: typeOf(r) })), scrolls: n.kids.map(out) };
+    return { level: n.level, primary, records: recs.map((r) => ({ name: r, type: typeOf(r) })), pageOrder: [...n.recs], placed: n.placed ?? {}, scrolls: n.kids.map(out) };
   };
   const pageFields: Record<string, string[]> = {};
+  const fieldUses: Record<string, number[]> = {};
+  const fieldControls: Record<string, number[]> = {};
   for (const e of events) {
     if (e.kind !== 'field') continue;
     const list = (pageFields[e.rec] ??= []);
     if (!list.includes(e.field)) list.push(e.field);
+    (fieldUses[`${e.rec}.${e.field}`] ??= []).push(e.use);
+    (fieldControls[`${e.rec}.${e.field}`] ??= []).push(e.control);
   }
   const search = searchRecord.trim();
-  return { ...(search ? { searchRecord: { name: search, type: typeOf(search) } } : {}), level0: out(root), pageFields };
+  return { ...(search ? { searchRecord: { name: search, type: typeOf(search) } } : {}), level0: out(root), pageFields, fieldUses, fieldControls };
 }
 
 /** The pages a walk reaches from these: subpages and secondary pages, recursively (for loading their fields). */

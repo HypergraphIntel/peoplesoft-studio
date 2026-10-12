@@ -1,0 +1,66 @@
+mn01-create: IDENTICAL
+mn02-descr: IDENTICAL
+mn03-comments: IDENTICAL
+mn04-owner: IDENTICAL
+mn05-label: IDENTICAL
+mn06-group: IDENTICAL
+mn07-menu-order: IDENTICAL
+mn08-menu-sep: IDENTICAL
+mn09-group-order: IDENTICAL
+mn10-group-sep: IDENTICAL
+mn11-installed: DIFFERENT
+  counters
+    App Designer: ["MDM+2","SYS+1"]
+    writer:       ["MDM+1","SYS+1"]
+mn20-group-order-sep: IDENTICAL
+mn21-installed-on: DIFFERENT
+  counters
+    App Designer: ["MDM+3","SYS+1"]
+    writer:       ["MDM+1","SYS+1"]
+mn22-installed-off: IDENTICAL
+mn12-save-as: IDENTICAL
+mn13-group-order-shared: IDENTICAL
+mn14-group-sep-shared: IDENTICAL
+mn15-installed-shared: DIFFERENT
+  counters
+    App Designer: ["MDM+3","SYS+1"]
+    writer:       ["MDM+1","SYS+1"]
+mn19-recreate-deleted: IDENTICAL
+mi01-add-item: IDENTICAL
+mi02-item-label: IDENTICAL
+mi03-search-override: IDENTICAL
+mi04-separator: IDENTICAL
+mi05-pc-item: IDENTICAL
+mi06-item-peoplecode: IDENTICAL
+mi07-item-reorder: IDENTICAL
+mi10-item-delete: IDENTICAL
+mi11-separator-delete: IDENTICAL
+mi12-item-delete-cmp: IDENTICAL
+mi13-second-bar: IDENTICAL
+mi14-item-move-bar: IDENTICAL
+mb01-add-bar: IDENTICAL
+mb02-bar-label: IDENTICAL
+mb03-baritem-pc: IDENTICAL
+mb04-baritem-code: IDENTICAL
+mb06-bar-reorder: IDENTICAL
+mb07-bar-delete: IDENTICAL
+mi08-item-rename: IDENTICAL
+mi09-item-rename-full: IDENTICAL
+mb05-bar-rename-full: IDENTICAL
+mp01-popup-create: IDENTICAL
+mp02-xfer-add: IDENTICAL
+mp03-xfer-correction: IDENTICAL
+mp04-xfer-upd-all: IDENTICAL
+mp05-xfer-new-window: IDENTICAL
+mp06-xfer-keysearch: IDENTICAL
+mp07-xfer-portal: IDENTICAL
+mp08-xfer-restore: IDENTICAL
+mp09-popup-pc-sep: IDENTICAL
+mp10-popup-code: IDENTICAL
+mp11-popup-label: IDENTICAL
+mp12-xfer-menu: IDENTICAL
+mn16-menu-rename: IDENTICAL
+mn17-menu-rename-refs: IDENTICAL
+mn18-menu-delete: IDENTICAL
+
+52 of 55 identical

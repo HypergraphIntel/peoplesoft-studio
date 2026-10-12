@@ -148,6 +148,16 @@
         "category": "PeopleSoft"
       },
       {
+        "command": "psft.newMenu",
+        "title": "New Menu...",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.newComponentInterface",
+        "title": "New Component Interface...",
+        "category": "PeopleSoft"
+      },
+      {
         "command": "psft.refresh",
         "title": "Refresh",
         "category": "PeopleSoft",

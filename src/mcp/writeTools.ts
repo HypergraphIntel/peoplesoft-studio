@@ -83,11 +83,24 @@ export async function approve(host: McpWriteHost, gate: Gate, key: DefinitionKey
 const pageOperation = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('add'),
-    kind: z.enum(['frame', 'groupBox', 'horizontalRule', 'staticText', 'checkBox', 'dropDown', 'editBox', 'pushButton', 'scrollArea', 'scrollBar'])
-      .describe('A Scroll Area or Scroll Bar starts a scroll at Occurs Level 1 (set_occurs_level to change it); the record fields after it in tab order are in it.'),
+    kind: z.enum(['frame', 'groupBox', 'horizontalRule', 'staticText', 'staticImage', 'checkBox', 'dropDown', 'editBox', 'longEdit', 'htmlArea', 'pushButton',
+      'radioButton', 'image', 'tree', 'chart', 'scrollArea', 'scrollBar', 'grid', 'tabSeparator', 'analyticGrid', 'secondaryPage', 'subpage'])
+      .describe('A Scroll Area, Scroll Bar, Grid or Analytic Grid starts a scroll at Occurs Level 1 (set_occurs_level to change it); the record fields after it in tab ' +
+        'order are in it. A Grid needs its own record (keyed by the parent level\'s keys plus a row key -- psft_explain_scrolls); its columns are added with intoGrid. ' +
+        'An Image or Chart may be unbound; a Tree takes a root record (field optional) and levels; a Secondary Page / Subpage names its page (a Subpage is placed ' +
+        'at its subpage\'s own rectangle, as App Designer places it).'),
     left: z.number(), top: z.number(), width: z.number().optional(), height: z.number().optional(),
-    record: z.string().optional().describe('Record of a record-bound control (check box, drop down, edit box, push button).'),
-    field: z.string().optional(), label: z.string().optional()
+    record: z.string().optional().describe('Record of a record-bound control; a Grid\'s main record; a Subpage\'s record substitution (the record its fields use instead).'),
+    field: z.string().optional(), label: z.string().optional(),
+    page: z.string().optional().describe('Secondary Page / Subpage: the page it shows (a secondary page, PNLTYPE 2 / a subpage, PNLTYPE 1).'),
+    intoGrid: z.number().int().optional().describe('A Grid\'s or Analytic Grid\'s id (psft_get_page_layout; or the negative position, -1, -2 ..., of a grid added ' +
+      'earlier in these operations): the control becomes its next column, stored at (0, 0) after its last column. A Tab Separator needs it.'),
+    treeLevels: z.array(z.object({ record: z.string().min(1), field: z.string().min(1) })).optional()
+      .describe('Tree: the levels below the root, each the child of the one before (PSPNLTREECTRL).'),
+    model: z.string().optional().describe('Analytic Grid: the analytic model (PSACEMDLDEFN); its record comes from the cube collection.'),
+    collection: z.string().optional().describe('Analytic Grid: the cube collection (the model\'s first when omitted).'),
+    axes: z.array(z.object({ field: z.string().min(1), axis: z.number().int().min(0).max(2) })).optional()
+      .describe('Analytic Grid: dimension fields\' axes, 0 Slicer, 1 Column, 2 Row (every dimension on the Row Axis when omitted, as App Designer fills it).')
   }),
   z.object({ op: z.literal('move'), id: z.number().int(), left: z.number(), top: z.number() }),
   z.object({ op: z.literal('resize'), id: z.number().int(), width: z.number(), height: z.number() }),
@@ -179,7 +192,8 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
     description:
       'Compile and save a PeopleCode program to the database, as App Designer does: Record PeopleCode (type 8; parts ' +
       'RECORD, FIELD, EVENT), App Engine PeopleCode (43: PROGRAM, SECTION, MARKET, PLATFORM, EFFDT, STEP, OnExecute -- the step needs a PeopleCode action; ' +
-      'or use psft_ae_edit), ' +
+      'or use psft_ae_edit), Menu PeopleCode (9: MENU, BAR, ITEM, ItemSelected -- a PeopleCode item; or use psft_menu_edit), ' +
+      'Component Interface PeopleCode (42: INTERFACE, Methods -- its user methods are its Functions), ' +
       'Component PeopleCode (46: COMPONENT, MARKET, EVENT; 47: COMPONENT, MARKET, RECORD, EVENT; ' +
       '48: COMPONENT, MARKET, RECORD, FIELD, EVENT; created when new) or an Application Class (type 58; parts PACKAGE[, SUBPACKAGE...], CLASS, OnExecute). ' +
       'Saving an Application Class that does not exist yet creates it in its package. Read the current source with ' +
@@ -189,9 +203,10 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
   }, async ({ connection, type, parts, source }) => {
     const key = keyFromInput(type, parts);
     const saved = [DefinitionType.RecordPeopleCode, DefinitionType.ApplicationClassPeopleCode, DefinitionType.ComponentPeopleCode,
-      DefinitionType.ComponentRecordPeopleCode, DefinitionType.ComponentRecordFieldPeopleCode, DefinitionType.PagePeopleCode, DefinitionType.AppEnginePeopleCode];
+      DefinitionType.ComponentRecordPeopleCode, DefinitionType.ComponentRecordFieldPeopleCode, DefinitionType.PagePeopleCode, DefinitionType.AppEnginePeopleCode,
+      DefinitionType.MenuPeopleCode, DefinitionType.ComponentInterfacePeopleCode];
     if (!saved.includes(key.type)) {
-      throw new Error('Only Record PeopleCode (8), Component PeopleCode (46, 47, 48), Page PeopleCode (44), App Engine PeopleCode (43) and Application Classes (58) are saved here.');
+      throw new Error('Only Record PeopleCode (8), Component PeopleCode (46, 47, 48), Page PeopleCode (44), App Engine PeopleCode (43), Menu PeopleCode (9), Component Interface PeopleCode (42) and Application Classes (58) are saved here.');
     }
     const gate = await writable(workspace, host, connection, key.parts[0]);
     if (!workspace.isPeopleCodeWritable(gate.provider.id, key)) throw new Error(`${displayName(key)} cannot be saved on ${gate.provider.displayName}.`);
@@ -262,8 +277,9 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
   server.registerTool('psft_edit_page', {
     title: 'Edit a page',
     description:
-      'Apply operations to a page and save it as App Designer does: add a control (Frame, Group Box, Horizontal Rule, ' +
-      'Static Text, or a Check Box / Drop Down / Edit Box / Push Button on a record field), move, resize, relabel, ' +
+      'Apply operations to a page and save it as App Designer does: add any control of App Designer\'s Insert menu (Frame, Group Box, ' +
+      'Horizontal Rule, Static Text / Image, a field control on a record field, Image, Tree, Chart, Scroll Area / Bar, Grid with its columns ' +
+      'and Tab Separators, Analytic Grid, Secondary Page, Subpage), move, resize, relabel, ' +
       'set Display Only / Invisible, delete (by the ids psft_get_page_layout gives), and set the page Description, ' +
       'Comments, size, Owner ID, style sheet, background, deferred processing, Adjust Layout for Hidden Fields, popup menu, ' +
       'the page type with a secondary page\'s OK & Cancel, Close Box and Disable Modal, ' +

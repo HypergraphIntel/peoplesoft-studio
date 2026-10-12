@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { newControlFieldRefusal, newControlDataRows, newControlRows, type FieldInfo, type NewControlKind } from '../providers/pageControlTemplates.js';
+import { newControlFieldRefusal, newControlDataRows, newControlRows, type FieldInfo, type NewControl, type NewControlKind } from '../providers/pageControlTemplates.js';
 
 /* Each new-control row must be exactly the row App Designer inserted in the captured save. */
 
@@ -61,6 +61,61 @@ for (const c of cases) {
     assert.deepEqual(asStrings(rows.ext), captured(c.dir, 'PSPNLFIELDEXT', c.id));
   });
 }
+
+// 0.8.3 -- the eight kinds App Designer's Insert menu still lacked, captured on ZZ_PCODE_LAB_IN. "after" rows are the control
+// as App Designer saved it after its dialog bound it (an Image or Chart on a field, a Tree with levels).
+const IN = 'ZZ_PCODE_LAB_IN';
+const savedRow = (caseDir: string, table: string, pnlFldId: number): Inserted => {
+  const t = JSON.parse(readFileSync(join(process.cwd(), 'tools/corpus/save-protocol/results', caseDir, 'after.json'), 'utf8')).watch[table];
+  const r = (t.rows as Array<Array<string | null>>).find((x) => Number(x[(t.columns as Array<{ name: string }>).findIndex((c) => c.name === 'PNLFLDID')]) === pnlFldId)!;
+  return Object.fromEntries((t.columns as Array<{ name: string }>).map((c, i) => [c.name, r[i]]));
+};
+const image = (labelId: string, labelText: string): FieldInfo => ({ fieldType: 8, length: 0, labelId, labelText });
+const newKinds: Array<{ name: string; dir: string; id: number; add: NewControl; info?: FieldInfo; saved?: boolean }> = [
+  { name: 'Image', dir: 'im-fresh', id: 2, add: { kind: 'image', recName: ' ', fieldName: ' ' } },
+  { name: 'Image on an image field', dir: 'im-field', id: 2, add: { kind: 'image', recName: 'EMPL_PHOTO', fieldName: 'EMPLOYEE_PHOTO' }, info: image('EMPLOYEE_PHOTO', 'Employee Photograph'), saved: true },
+  { name: 'Tree', dir: 'tr-fresh', id: 3, add: { kind: 'tree', recName: 'EMPL_PHOTO', fieldName: ' ' } },
+  { name: 'Tree with a root and a level', dir: 'tr-nodes', id: 3, saved: true, info: char('ZZ_PCODE_LAB_VAL', 'Value', 30),
+    add: { kind: 'tree', recName: 'ZZ_PCODE_LAB_T', fieldName: 'ZZ_PCODE_LAB_VAL', treeLevels: [{ recName: 'ZZ_PCODE_LAB_R6', fieldName: 'ZZ_PCODE_LAB_C08' }] } },
+  { name: 'Chart', dir: 'ch-fresh', id: 4, add: { kind: 'chart', recName: 'EMPL_PHOTO', fieldName: ' ' } },
+  { name: 'Chart on a field', dir: 'ch-field', id: 4, add: { kind: 'chart', recName: 'ZZ_PCODE_LAB_R6', fieldName: 'ZZ_PCODE_LAB_C08' }, info: char('ZZ_PCODE_LAB_C08', 'ZZ Lab C08', 8), saved: true },
+  { name: 'Secondary Page', dir: 'sp-fresh', id: 5, add: { kind: 'secondaryPage', recName: ' ', fieldName: ' ', subPage: 'ZZ_PCODE_LAB_SEC' } },
+  { name: 'Subpage', dir: 'sbp-fresh', id: 6, add: { kind: 'subpage', recName: ' ', fieldName: ' ', subPage: 'ZZ_PCODE_LAB_SUB' } },
+  { name: 'Subpage with a record substitution', dir: 'sb-subst', id: 7, add: { kind: 'subpage', recName: 'ZZ_PCODE_LAB_T', fieldName: ' ', subPage: 'PHONE_SBP' } },
+  { name: 'Grid', dir: 'gd-fresh', id: 8, add: { kind: 'grid', recName: 'ZZ_PCODE_LAB_R6', fieldName: ' ' } },
+  { name: 'Tab Separator', dir: 'ts-fresh', id: 10, add: { kind: 'tabSeparator', recName: ' ', fieldName: ' ', intoGrid: 8 } },
+  { name: 'Analytic Grid', dir: 'ag-fresh', id: 11, add: { kind: 'analyticGrid', recName: 'PTACEVWRGRDREC', fieldName: ' ', analytic: { model: 'PTACEDUMMODEL', collection: 'DUMMYCC1', axes: [{ fieldName: 'PTACEGRIDFLD01', axis: 2 }] } } },
+  { name: 'Edit Box column of an Analytic Grid', dir: 'ag-fresh', id: 12, add: { kind: 'editBox', recName: 'PTACEVWRGRDREC', fieldName: 'PTACEGRIDFLD01', intoGrid: 11 }, info: char('PTACEGRIDFLD01', 'ACE Grid Field 02', 30) }
+];
+
+for (const c of newKinds) {
+  test(`a new ${c.name} is the row App Designer wrote (${c.dir})`, () => {
+    const want = c.saved ? savedRow(c.dir, 'PSPNLFIELD', c.id) : captured(c.dir, 'PSPNLFIELD', c.id);
+    const placed = {
+      fieldLeft: Number(want.FIELDLEFT), fieldTop: Number(want.FIELDTOP), fieldRight: Number(want.FIELDRIGHT), fieldBottom: Number(want.FIELDBOTTOM),
+      fieldSizeType: Number(want.FIELDSIZETYPE), lblType: Number(want.LBLTYPE), lblText: '', fieldUse: Number(want.FIELDUSE), secureInvisible: Number(want.SECUREINVISIBLE),
+      occursLevel: Number(want.OCCURSLEVEL)
+    };
+    const rows = newControlRows(IN, c.id, Number(want.FIELDNUM), c.add, placed, c.info);
+    // A grid's column count is the save's (its columns follow it); a new one has none of its own yet.
+    if (Number(want.GRDCOLUMNCOUNT)) rows.field.GRDCOLUMNCOUNT = Number(want.GRDCOLUMNCOUNT);
+    assert.deepEqual(asStrings(rows.field), want);
+    assert.deepEqual(asStrings(rows.ext), c.saved ? savedRow(c.dir, 'PSPNLFIELDEXT', c.id) : captured(c.dir, 'PSPNLFIELDEXT', c.id));
+  });
+}
+
+test('a new Grid\'s, Analytic Grid\'s and Tree\'s own rows are App Designer\'s (gd-fresh, ag-fresh, tr-nodes)', () => {
+  const g = newControlDataRows(IN, 8, 'grid', newKinds[9].add);
+  assert.deepEqual(asStrings(g.controlData!), captured('gd-fresh', 'PSPNLCNTRLDATA', 8));
+  assert.deepEqual(g.buttons, []);
+  const a = newControlDataRows(IN, 11, 'analyticGrid', newKinds[11].add);
+  assert.deepEqual(asStrings(a.controlData!), captured('ag-fresh', 'PSPNLCNTRLDATA', 11));
+  assert.deepEqual(asStrings(a.aceData!), captured('ag-fresh', 'PSPNLACEGRDDATA', 11));
+  assert.deepEqual(a.aceAxes!.map(asStrings), [captured('ag-fresh', 'PSPNLACEGRDAXIS', 11)]);
+  const t = newControlDataRows(IN, 3, 'tree', newKinds[3].add, 2);
+  const nodes = JSON.parse(readFileSync(join(process.cwd(), 'tools/corpus/save-protocol/results/tr-nodes/delta.json'), 'utf8')).watch.PSPNLTREECTRL.inserted;
+  assert.deepEqual(t.treeNodes!.map(asStrings), nodes);
+});
 
 test('an edited label replaces the default label text but keeps the label id', () => {
   const rows = newControlRows('P', 9, 1, { kind: 'editBox', recName: 'PERSON', fieldName: 'EMPLID' },

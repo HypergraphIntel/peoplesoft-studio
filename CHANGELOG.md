@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.8.2
 
 ### Added
 
@@ -24,6 +24,69 @@
   `psft_ae_delete` — the designer's model, validator and writer, with dry runs,
   concurrency tokens and your approval for each write. App Engine PeopleCode
   also saves through `psft_save_peoplecode` and the PeopleCode editor.
+
+- **Menu Designer.** Menus open in App Designer's menu window, editable on
+  Writable connections: the menu bar with its bars and their items (a popup's
+  items alone), dashed slots to add a bar or an item, Menu Properties (General
+  and Use: label, group with its shared order and separator, orders,
+  installed), Bar Item and Menu Item Properties (component, enabling component,
+  Search Rec Override, separator), Transfer Properties for popups, drag to
+  reorder, Cut / Copy / Paste / Delete, ItemSelected PeopleCode in a VS Code
+  editor, undo / redo, validation (App Designer's 43,4 / 43,5 checks,
+  references, PeopleCode compiled), Preview Save, Save As, Rename, Delete and
+  *New Definition > Menu* (Standard or Popup). Saved as App Designer saves:
+  mapped from 60 controlled App Designer saves on the lab VM; 52 of 55 replay
+  row for row through the writer on a live database (the rest are App
+  Designer's Menu installed counter noise). App Designer opens, edits and saves
+  what the writer creates. See docs/MENUS.md.
+- **Menus through the MCP**: `psft_menu_reference`, `psft_menu_get`,
+  `psft_menu_validate`, `psft_menu_create`, `psft_menu_edit`, `psft_menu_copy`,
+  `psft_menu_rename`, `psft_menu_delete`. Menu PeopleCode also saves through
+  `psft_save_peoplecode` and the PeopleCode editor.
+- **CI Designer.** Component Interfaces open in App Designer's Component
+  Interface window, editable on Writable connections: the component's buffer
+  on the left (search records, scrolls, records, fields) and the interface on
+  the right (GETKEYS, FINDKEYS, CREATEKEYS, PROPERTIES and collections,
+  METHODS with the user methods); drag a field, a search key or a whole scroll
+  in; Edit Property (name, comment, Read Only), Toggle Read Only Access,
+  Delete; Component Interface Properties (General, Standard Methods,
+  Synchronization); the Methods PeopleCode in a VS Code editor; undo / redo,
+  Validate, Preview Save, Save As, Rename, Delete, and *New Definition >
+  Component Interface* -- the source component, then App Designer's "default
+  the properties? (123,12)". New interfaces are made from the component as
+  App Designer makes them: keys, the properties its pages show, collections,
+  names (and the names its save makes unique), SEQUENCE_NBR_6 and SYNCIDs,
+  Fluid system pages included -- identical, item for item, to App Designer's
+  own on four components from three-level lab to a 123-item Fluid component.
+  Saved as App Designer saves: mapped from 28 controlled App Designer saves on
+  the lab VM, every one replayed by the tests; the live end to end passes 19 of
+  19, and App Designer opens, validates and saves what the writer creates. See
+  docs/COMPONENT_INTERFACES.md.
+- **Component Interfaces through the MCP**: `psft_ci_reference`, `psft_ci_get`,
+  `psft_ci_buffer`, `psft_ci_validate`, `psft_ci_create`, `psft_ci_edit`,
+  `psft_ci_copy`, `psft_ci_rename`, `psft_ci_delete`. Component Interface
+  PeopleCode also saves through `psft_save_peoplecode` and the PeopleCode
+  editor.
+- **Page editor: every control of App Designer's Insert menu.** Image, Tree,
+  Chart, Secondary Page, Subpage, Grid, Tab Separator and Analytic Grid are no
+  longer greyed out. Each is inserted as App Designer inserts it, captured on
+  the lab VM and replayed live through the writer (12 of 13 rows identical;
+  App Designer opens the result):
+  - a field dropped on a grid becomes its next column, at (0, 0) after its last
+    column, and the grid's column count follows; the Layout view draws the
+    columns inside their grid;
+  - a Subpage takes its subpage's own size and place; a Secondary Page and a
+    Subpage name their page (checked to be a secondary page / subpage);
+  - a Tree takes a root record field and levels (PSPNLTREECTRL), its control id
+    re-derived from its tab order at every save;
+  - an Analytic Grid takes its model, cube collection and axes, and the save
+    runs App Designer's 15,89 check (every field of the collection a column);
+  - a new scroll goes in the tab order where App Designer puts one.
+- **MCP: grid composition.** `psft_edit_page` adds every Insert-menu control
+  (`intoGrid` makes a field a grid column); `psft_get_page_structure` gives each
+  scroll's kind, a grid's columns, and a note when a grid's record is also a
+  record of the level above; `psft_explain_scrolls` explains grids -- their own
+  record, keyed by the parent level's keys plus a row key.
 
 ### Changed
 
@@ -79,10 +142,6 @@
 - **Page editor: a newly inserted control** opens its own Properties panel (its
   Record tab included), not a General-only one; Push Button gains a Record tab.
 
-## 0.8.2
-
-### Changed
-
 - **Page editor Insert**: more controls can be inserted on a page, each written
   byte-for-byte as App Designer's fresh row (verified against captures) —
   **Static Image**, **Radio Button**, **Long Edit Box** and **HTML Area**,
@@ -137,6 +196,12 @@
   few greyed items (a secondary page's OK & Cancel / Close Box / Modal options
   on a standard page, a popup page's Allow Deferred) are disabled only because
   they do not apply to that page type, each saying so on hover.
+
+### Fixed
+
+- `psft_edit_page` added a Static Image, Scroll Bar or Secondary Page without
+  the use bits App Designer gives one (display only / invisible); they now get
+  them, as the Layout editor's inserts always did.
 
 ## 0.8.1
 

@@ -302,9 +302,39 @@ Limits, from the evidence:
   are refused until a capture shows them.
 - A Group Box is written with RECNAME blank (as 7,739 delivered group boxes
   are); App Designer's 07 carried the page's record onto it.
-- Other Insert-menu controls (Radio Button, Long Edit Box, Static Image,
-  Image, HTML Area, Grid, Scroll Area, Subpage, Secondary Page ...) are not
-  offered yet: each needs a capture of its fresh row.
+- Every entry of App Designer's Insert menu is offered. The last eight came in
+  0.8.3, captured on ZZ_PCODE_LAB_IN (driven on the lab VM) and replayed live
+  through the writer onto ZZ_PCODE_LAB_WI by `tools/lab/page-insert-replay.mts`
+  (12 of 13 rows identical, `results/page-insert-replay-report.txt`); App
+  Designer opens the page the writer built:
+
+  | Control | FIELDTYPE | Captures | What App Designer writes |
+  |---|---|---|---|
+  | Image | 9 | im-fresh, im-field | Unbound: 4 x 4, DSPLFORMAT 8193, label "Image". On an image / image-reference field (its dialog's OK): DSPLFORMAT 548865, the field's default label (LBLTYPE stays Text), five blank Fluid slots. |
+  | Tree | 20 | tr-fresh, tr-nodes | 4 x 4, label "Tree" (type None), its record. With a root field and levels (its dialog): DSPLFORMAT 524288, FIELDNAME the root's, MULTIRECTREE 1, NODECOUNT the levels, TREECTRLID its FIELDNUM; each level a PSPNLTREECTRL row (TREELVLNUM n, parent and node 1, the last TREELEAF 1). |
+  | Chart | 30 | ch-fresh, ch-field | 4 x 4, DSPLFORMAT 8193, label "Chart". On a field: DSPLFORMAT 532481, the field's default label. No Fluid tab. |
+  | Secondary Page | 18 | sp-fresh | 24 x 22 (size type 3), invisible (FIELDUSE 2, SECUREINVISIBLE 1), DSPLFORMAT 524288, label blank, SUBPNLNAME the page (a secondary page, PNLTYPE 2), Fluid slots. |
+  | Subpage | 11 | sbp-fresh, sb-subst | Placed at the subpage's own rectangle (its PSPNLDEFN PANELLEFT..BOTTOM), wherever it is dropped; OCCURSOFFSET1-3 its height; DSPLFORMAT 1; RECNAME the Record Name Substitution's record (blank for none). |
+  | Grid | 19 | gd-fresh, gd-column | Drawn; PNLFIELDNAME and RECNAME its main record, FIELDUSE 0x1000, DSPLFORMAT 131072, label "Grid" (None), occurs offsets its height, column headings / row numbers / sorting on, even-row style "Grid Even Row Style (default)", SHOWTABCNTLBTN 1; a PSPNLCNTRLDATA row (the Scroll Area's, but row-action buttons in the header and 15 rows). |
+  | Tab Separator | 24 | ts-fresh | Only in a grid (App Designer refuses it elsewhere): a 28 x 15 column, label "Tab Separator". |
+  | Analytic Grid | 32 | ag-fresh | Drawn; display only (FIELDUSE 1); PNLFIELDNAME / RECNAME its cube collection's record; PSPNLCNTRLDATA (grid lines off), PSPNLACEGRDDATA (model, collection, record, non-dimensional fields on the Column Axis) and a PSPNLACEGRDAXIS row per dimension (Row Axis). Saving one without its record is refused outright (46,69); without every field of its collection it is invalid (15,89). |
+
+- **Grid columns.** A grid's columns are the controls right after it in tab
+  order stored at (0, 0), their width / height in FIELDRIGHT / BOTTOM;
+  GRDCOLUMNCOUNT counts them (9,602 of HRDMO's 9,661 grids; the rest are Fluid
+  grids nesting group boxes). A control dropped on a grid is its next column:
+  after its last column in tab order, at (0, 0), with App Designer's size type;
+  the grid's count follows (gd-column 0 -> 1, ts-fresh 1 -> 2). The Layout view
+  draws the columns inside the grid, left to right after its row numbers, and
+  keeps them there.
+- **A Tree's TREECTRLID is its FIELDNUM**, re-derived at every save with its
+  PSPNLTREECTRL rows (sp-fresh, sbp-fresh, sb-delete moved it 2 -> 3 -> 4 -> 5 -> 4).
+- **Known differences**: gd-column's Edit Box column was written with a NULL
+  FFSTYLELONG, ag-fresh's (in another App Designer session) with five blank
+  slots, and App Designer's next save of the first made it ' '; the writer
+  writes the slots, as 12,711 delivered grid columns hold. After App Designer
+  reopened the page, its save also wrote the grid's two PSPNLBTNDATA buttons; a
+  fresh grid has none (gd-fresh), and neither does the writer's.
 
 ## Page Properties
 
@@ -524,9 +554,18 @@ of controls higher on the page but later in the order).
 
 `pageWriter.ts` `newControlTabIndex`; `pageWriter.test.ts` replays all 22
 captures (the new controls' FIELDNUM and every other control's renumbering).
-Not covered: a field dropped inside a grid (App Designer stores it at 0,0 and
-orders it in the grid; gr-fresh). A pasted control keeps its own rule (after
-its source, c02).
+A field dropped inside a grid is the grid's next column: after the grid's last
+column in tab order (see [Adding controls](#adding-controls)). A new **scroll**
+-- Scroll Area, Scroll Bar, Grid, Analytic Grid -- goes after the last control
+in tab order whose top is at or above the scroll's bottom edge, so what is drawn
+above or beside it stays ahead of it (gd-fresh: a grid drawn over a chart goes
+after the chart; ag-fresh: an analytic grid at the top of the page goes after
+the grid columns stored at (0, 0); lv02, lv03, sa-fresh, sb-fresh, gr-fresh fit
+it too; `newScrollTabIndex`). A pasted control keeps its own rule (after its
+source, c02). One insert does not fit the reading-order rule: sp-fresh's
+Secondary Page (top 52, 22 high) went ahead of a Static Text 20 px below it,
+where 18-number-datetime puts two controls 20 px apart on one row; the writer
+puts it after the text.
 
 ## Scroll levels
 

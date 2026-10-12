@@ -1,0 +1,943 @@
+{
+ "format": "page-capture/1",
+ "case": "tr-nodes",
+ "page": "ZZ_PCODE_LAB_IN",
+ "watch": {
+  "PSPNLDEFN": {
+   "columns": [
+    {
+     "name": "PNLNAME"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "PNLTYPE"
+    },
+    {
+     "name": "FIELDCOUNT"
+    },
+    {
+     "name": "MAXPNLFLDID"
+    },
+    {
+     "name": "GRIDHORZ"
+    },
+    {
+     "name": "GRIDVERT"
+    },
+    {
+     "name": "HELPCONTEXTNUM"
+    },
+    {
+     "name": "PANELTOP"
+    },
+    {
+     "name": "PANELLEFT"
+    },
+    {
+     "name": "PANELRIGHT"
+    },
+    {
+     "name": "PANELBOTTOM"
+    },
+    {
+     "name": "PNLSTYLE"
+    },
+    {
+     "name": "STYLESHEETNAME"
+    },
+    {
+     "name": "FFSTYLESHEETNAME"
+    },
+    {
+     "name": "PNLUSE"
+    },
+    {
+     "name": "DEFERPROC"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "POPUPMENU"
+    },
+    {
+     "name": "LICENSE_CODE"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    },
+    {
+     "name": "FFSTYLEDESKTOP"
+    },
+    {
+     "name": "FFSTYLEPHONE"
+    },
+    {
+     "name": "FFSTYLETABLET"
+    },
+    {
+     "name": "PNLUSETEMP"
+    },
+    {
+     "name": "FFSTYLEMEDIUM"
+    },
+    {
+     "name": "FFSTYLEEXLARGE"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "PNLNAME": "ZZ_PCODE_LAB_IN"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "479",
+       "after": "480"
+      },
+      "LASTUPDDTTM": {
+       "before": "Sun Oct 11 2026 19:50:04 GMT-0500 (Central Daylight Time)",
+       "after": "Sun Oct 11 2026 19:51:19 GMT-0500 (Central Daylight Time)"
+      }
+     }
+    }
+   ]
+  },
+  "PSPNLFIELD": {
+   "columns": [
+    {
+     "name": "PNLNAME"
+    },
+    {
+     "name": "PNLFLDID"
+    },
+    {
+     "name": "FIELDNUM"
+    },
+    {
+     "name": "PNLFIELDNAME"
+    },
+    {
+     "name": "FIELDTYPE"
+    },
+    {
+     "name": "EDITSIZE"
+    },
+    {
+     "name": "DSPLFORMAT"
+    },
+    {
+     "name": "FIELDLEFT"
+    },
+    {
+     "name": "FIELDTOP"
+    },
+    {
+     "name": "FIELDRIGHT"
+    },
+    {
+     "name": "FIELDBOTTOM"
+    },
+    {
+     "name": "EDITLBLLEFT"
+    },
+    {
+     "name": "EDITLBLTOP"
+    },
+    {
+     "name": "EDITLBLRIGHT"
+    },
+    {
+     "name": "EDITLBLBOTTOM"
+    },
+    {
+     "name": "DSPLFILL"
+    },
+    {
+     "name": "LBLTYPE"
+    },
+    {
+     "name": "LBLLOC"
+    },
+    {
+     "name": "LBLPADSIZE"
+    },
+    {
+     "name": "USEDEFAULTLABEL"
+    },
+    {
+     "name": "LABEL_ID"
+    },
+    {
+     "name": "LBLTEXT"
+    },
+    {
+     "name": "FIELDUSE"
+    },
+    {
+     "name": "FIELDUSETMP"
+    },
+    {
+     "name": "DEFERPROC"
+    },
+    {
+     "name": "OCCURSLEVEL"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "FIELDNAME"
+    },
+    {
+     "name": "ONVALUE"
+    },
+    {
+     "name": "OFFVALUE"
+    },
+    {
+     "name": "ASSOCFIELDNUM"
+    },
+    {
+     "name": "OCCURSCOUNT1"
+    },
+    {
+     "name": "OCCURSOFFSET1"
+    },
+    {
+     "name": "OCCURSCOUNT2"
+    },
+    {
+     "name": "OCCURSOFFSET2"
+    },
+    {
+     "name": "OCCURSCOUNT3"
+    },
+    {
+     "name": "OCCURSOFFSET3"
+    },
+    {
+     "name": "SUBPNLNAME"
+    },
+    {
+     "name": "SUBPNLVER"
+    },
+    {
+     "name": "FIELDSTYLE"
+    },
+    {
+     "name": "LABELSTYLE"
+    },
+    {
+     "name": "FIELDSIZETYPE"
+    },
+    {
+     "name": "LABELSIZETYPE"
+    },
+    {
+     "name": "PRCSTYPE"
+    },
+    {
+     "name": "PRCSNAME"
+    },
+    {
+     "name": "PROMPTFIELD"
+    },
+    {
+     "name": "FORMATFAMILY"
+    },
+    {
+     "name": "DISPFMTNAME"
+    },
+    {
+     "name": "POPUPMENU"
+    },
+    {
+     "name": "TREECTRLID"
+    },
+    {
+     "name": "TREECTRLTYPE"
+    },
+    {
+     "name": "MULTIRECTREE"
+    },
+    {
+     "name": "NODECOUNT"
+    },
+    {
+     "name": "GRDCOLUMNCOUNT"
+    },
+    {
+     "name": "GRDSHOWCOLHDG"
+    },
+    {
+     "name": "GRDSHOWROWHDG"
+    },
+    {
+     "name": "GRDODDROWSTYLE"
+    },
+    {
+     "name": "GRDEVENROWSTYLE"
+    },
+    {
+     "name": "GRDACTIVETABSTYLE"
+    },
+    {
+     "name": "GRDINACTIVETABSTYL"
+    },
+    {
+     "name": "GRDNAVBARSTYLE"
+    },
+    {
+     "name": "GRDLABELSTYLE"
+    },
+    {
+     "name": "GRDLBLMSGSET"
+    },
+    {
+     "name": "GRDLBLMSGNUM"
+    },
+    {
+     "name": "GRDLBLALIGN"
+    },
+    {
+     "name": "GRDACTTYPE"
+    },
+    {
+     "name": "GRDALLOWCOLSORT"
+    },
+    {
+     "name": "TABENABLE"
+    },
+    {
+     "name": "PBDISPLAYTYPE"
+    },
+    {
+     "name": "OPENNEWWINDOW"
+    },
+    {
+     "name": "URLDYNAMIC"
+    },
+    {
+     "name": "URL_ID"
+    },
+    {
+     "name": "GOTOPORTALNAME"
+    },
+    {
+     "name": "GOTONODENAME"
+    },
+    {
+     "name": "GOTOMENUNAME"
+    },
+    {
+     "name": "GOTOPNLGRPNAME"
+    },
+    {
+     "name": "GOTOMKTNAME"
+    },
+    {
+     "name": "GOTOPNLNAME"
+    },
+    {
+     "name": "GOTOPNLACTION"
+    },
+    {
+     "name": "SRCHBYPNLDATA"
+    },
+    {
+     "name": "SCROLLACTION"
+    },
+    {
+     "name": "TOOLACTION"
+    },
+    {
+     "name": "CONTNAME"
+    },
+    {
+     "name": "CONTNAMEOVER"
+    },
+    {
+     "name": "CONTNAMEDISABLE"
+    },
+    {
+     "name": "PTLBLIMGCOLLAPSE"
+    },
+    {
+     "name": "PTLBLIMGEXPAND"
+    },
+    {
+     "name": "PTADJHIDDENFIELDS"
+    },
+    {
+     "name": "PTCOLLAPSEDATAAREA"
+    },
+    {
+     "name": "PTDFLTVIEWEXPANDED"
+    },
+    {
+     "name": "PTHIDEFIELDS"
+    },
+    {
+     "name": "SHOWCOLHIDEROWS"
+    },
+    {
+     "name": "PTLEBEXPANDFIELD"
+    },
+    {
+     "name": "SHOWTABCNTLBTN"
+    },
+    {
+     "name": "SELINDICATORTYPE"
+    },
+    {
+     "name": "SECUREINVISIBLE"
+    },
+    {
+     "name": "ENABLEASANCHOR"
+    },
+    {
+     "name": "URLENCODEDBYAPP"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "PNLNAME": "ZZ_PCODE_LAB_IN",
+      "PNLFLDID": "3"
+     },
+     "changes": {
+      "DSPLFORMAT": {
+       "before": "0",
+       "after": "524288"
+      },
+      "RECNAME": {
+       "before": "EMPL_PHOTO",
+       "after": "ZZ_PCODE_LAB_T"
+      },
+      "FIELDNAME": {
+       "before": " ",
+       "after": "ZZ_PCODE_LAB_VAL"
+      },
+      "TREECTRLID": {
+       "before": "0",
+       "after": "2"
+      },
+      "MULTIRECTREE": {
+       "before": "0",
+       "after": "1"
+      },
+      "NODECOUNT": {
+       "before": "0",
+       "after": "1"
+      }
+     }
+    }
+   ]
+  },
+  "PSPNLFIELDEXT": {
+   "columns": [
+    {
+     "name": "PNLNAME"
+    },
+    {
+     "name": "PNLFLDID"
+    },
+    {
+     "name": "PTMODALHEIGHT"
+    },
+    {
+     "name": "PTMODALWIDTH"
+    },
+    {
+     "name": "PTPOPUPPNL"
+    },
+    {
+     "name": "MESSAGE_SET_NBR"
+    },
+    {
+     "name": "MESSAGE_NBR"
+    },
+    {
+     "name": "PT_RELACTDEFAULTJS"
+    },
+    {
+     "name": "PT_NUMFLD1"
+    },
+    {
+     "name": "GRPBOXTYPE"
+    },
+    {
+     "name": "GRPBOXHTMLTYPE"
+    },
+    {
+     "name": "HTML_INPUT_TYPE"
+    },
+    {
+     "name": "PLHTYPE"
+    },
+    {
+     "name": "PLACEHOLDER"
+    },
+    {
+     "name": "PLH_MSG_SET_NBR"
+    },
+    {
+     "name": "PLH_MSG_NBR"
+    },
+    {
+     "name": "SCROLLBARS"
+    },
+    {
+     "name": "MINNUMBER"
+    },
+    {
+     "name": "MAXNUMBER"
+    },
+    {
+     "name": "STEPNUMBER"
+    },
+    {
+     "name": "PARENTPNLFLDID"
+    },
+    {
+     "name": "PAGEPNLFLDID"
+    },
+    {
+     "name": "PTWIDGETSNGACTMNU"
+    },
+    {
+     "name": "PTDSPLINRELACTMNU"
+    },
+    {
+     "name": "PTSHOWWIDGET"
+    },
+    {
+     "name": "PTASSOCWIDGET"
+    },
+    {
+     "name": "FIELDUSETEMP2"
+    },
+    {
+     "name": "PTGBRELTXTINFO"
+    },
+    {
+     "name": "PTGBRELACTINFO"
+    },
+    {
+     "name": "PTGBRELACTFLD"
+    },
+    {
+     "name": "PTFRMTOVERRIDE"
+    },
+    {
+     "name": "PTDISABLESMARTSEL"
+    },
+    {
+     "name": "PTDISABLESMARTPROM"
+    },
+    {
+     "name": "FFSTYLELONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "PNLNAME": "ZZ_PCODE_LAB_IN",
+      "PNLFLDID": "3"
+     },
+     "changes": {
+      "FFSTYLELONG": {
+       "before": " ",
+       "after": " | | | | "
+      }
+     }
+    }
+   ]
+  },
+  "PSPNLCNTRLDATA": {
+   "columns": [
+    {
+     "name": "PNLNAME"
+    },
+    {
+     "name": "PNLFLDID"
+    },
+    {
+     "name": "PTFINDSTRING"
+    },
+    {
+     "name": "PTHDGSHOW"
+    },
+    {
+     "name": "PTHDGROWACTBTNS"
+    },
+    {
+     "name": "PTHDGROWACTALGN"
+    },
+    {
+     "name": "PTHDGNAVBARBTNS"
+    },
+    {
+     "name": "PTHDGNAVBARALGN"
+    },
+    {
+     "name": "PTBAREASTYLENAME"
+    },
+    {
+     "name": "PTBAREAROWACTALGN"
+    },
+    {
+     "name": "PTBAREAHIDEROWSEP"
+    },
+    {
+     "name": "PTBAREASHWGRDLINES"
+    },
+    {
+     "name": "PTFTGSHOW"
+    },
+    {
+     "name": "PTFTGSTYLENAME"
+    },
+    {
+     "name": "PTFTGSHOWROWACT"
+    },
+    {
+     "name": "PTFTGROWACTALGN"
+    },
+    {
+     "name": "PTFTGSHOWNAVBAR"
+    },
+    {
+     "name": "PTFTGNAVBARALGN"
+    },
+    {
+     "name": "PTSEPSTARTOFFSET"
+    },
+    {
+     "name": "PTSEPOCCURSOFFSET"
+    },
+    {
+     "name": "PTBTNSTARTOFFSET"
+    },
+    {
+     "name": "PTBTNOCCURSOFFSET"
+    },
+    {
+     "name": "ALLOWMULTIROWINS"
+    },
+    {
+     "name": "PTGRDLAYOUT"
+    },
+    {
+     "name": "PTGRDSCROLLBAR"
+    },
+    {
+     "name": "GRIDROWS"
+    },
+    {
+     "name": "PTSMRYDFLTTOTITLE"
+    },
+    {
+     "name": "PTSMRYLBLTYPE"
+    },
+    {
+     "name": "PTSMRYMSGSET"
+    },
+    {
+     "name": "PTSMRYMSGNUM"
+    },
+    {
+     "name": "PTSMRYDSPLFORMAT"
+    },
+    {
+     "name": "PTSUMMARYATTRIBUTE"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPNLBTNDATA": {
+   "columns": [
+    {
+     "name": "PNLNAME"
+    },
+    {
+     "name": "PNLFLDID"
+    },
+    {
+     "name": "PTBTNCLASSTYPE"
+    },
+    {
+     "name": "PTBTNFIELDTYPE"
+    },
+    {
+     "name": "PTVISIBLE"
+    },
+    {
+     "name": "PTBTNLBLTYPE"
+    },
+    {
+     "name": "CONTNAME"
+    },
+    {
+     "name": "CONTNAMEOVER"
+    },
+    {
+     "name": "CONTNAMEDISABLE"
+    },
+    {
+     "name": "LBLTYPE"
+    },
+    {
+     "name": "LBLTEXT"
+    },
+    {
+     "name": "MSGSET"
+    },
+    {
+     "name": "MSGNUM"
+    },
+    {
+     "name": "PTBTNLBLTYPE2"
+    },
+    {
+     "name": "PTBTNLBLTEXT2"
+    },
+    {
+     "name": "PTBTNMSGSET2"
+    },
+    {
+     "name": "PTBTNMSGNUM2"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPNLTREECTRL": {
+   "columns": [
+    {
+     "name": "PNLNAME"
+    },
+    {
+     "name": "TREECTRLID"
+    },
+    {
+     "name": "TREELVLNUM"
+    },
+    {
+     "name": "PARENTNODENUM"
+    },
+    {
+     "name": "NODENUM"
+    },
+    {
+     "name": "TREELEAF"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "FIELDNAME"
+    }
+   ],
+   "inserted": [
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_IN",
+     "TREECTRLID": "2",
+     "TREELVLNUM": "1",
+     "PARENTNODENUM": "1",
+     "NODENUM": "1",
+     "TREELEAF": "1",
+     "RECNAME": "ZZ_PCODE_LAB_R6",
+     "FIELDNAME": "ZZ_PCODE_LAB_C08"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPNLACEGRDDATA": {
+   "columns": [
+    {
+     "name": "PNLNAME"
+    },
+    {
+     "name": "PNLFLDID"
+    },
+    {
+     "name": "ACEMODELID"
+    },
+    {
+     "name": "ACECOLLNAME"
+    },
+    {
+     "name": "RECORDNAME"
+    },
+    {
+     "name": "PROBINSTPNLFLDID"
+    },
+    {
+     "name": "ACEGRIDDISPLSLICER"
+    },
+    {
+     "name": "ACESLCDFTVIEWEXPAN"
+    },
+    {
+     "name": "ACEGRIDAXISTYPE"
+    },
+    {
+     "name": "ACEGRIDFRZCOLMODE"
+    },
+    {
+     "name": "ACEGRIDMAXROWCOUNT"
+    },
+    {
+     "name": "ACEGRIDNODRAGDROP"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPNLACEGRDAXIS": {
+   "columns": [
+    {
+     "name": "PNLNAME"
+    },
+    {
+     "name": "PNLFLDID"
+    },
+    {
+     "name": "FIELDNAME"
+    },
+    {
+     "name": "ACEGRIDAXISTYPE"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPNLACTIVEX": {
+   "columns": [
+    {
+     "name": "PNLNAME"
+    },
+    {
+     "name": "PNLFLDID"
+    },
+    {
+     "name": "ACTIVEXDATASEQ"
+    },
+    {
+     "name": "ACTIVEXCLSID"
+    },
+    {
+     "name": "ACTIVEXDATALEN"
+    },
+    {
+     "name": "ACTIVEXDATA"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPNLHTMLAREA": {
+   "columns": [
+    {
+     "name": "PNLNAME"
+    },
+    {
+     "name": "PNLFLDID"
+    },
+    {
+     "name": "HTMLAREA"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "479",
+       "after": "480"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2513",
+       "after": "2514"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "479",
+       "after": "480"
+      }
+     }
+    }
+   ]
+  }
+ }
+}

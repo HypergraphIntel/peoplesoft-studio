@@ -1,0 +1,34 @@
+/* CI Designer (src/editors/ciDesignerPanel.ts); the shared toolbar / properties / output / context menu styles are aeDesigner.css's. */
+#main .pane { overflow: auto; min-width: 0; font-size: 12px; }
+#buffer { width: 38%; flex: none; border-right: 1px solid var(--border); }
+#ci { flex: 1; }
+.vsplit { width: 4px; cursor: col-resize; background: var(--border); opacity: .4; flex: none; }
+.empty { padding: 12px; color: var(--muted); }
+.tree, .cigrid { padding: 4px 0; user-select: none; }
+.tnode { display: flex; align-items: center; gap: 4px; white-space: nowrap; padding: 1px 4px; cursor: default; }
+.tnode:hover, .cirow:hover { background: var(--hover); }
+.tnode.system { color: var(--muted); font-style: italic; }
+.tnode.present { color: var(--muted); }
+.tnode.parentkey { color: var(--muted); text-decoration: line-through; }
+.tnode[draggable=true] { cursor: grab; }
+.tw { display: inline-block; width: 12px; text-align: center; color: var(--muted); cursor: pointer; }
+.ic { display: inline-block; width: 12px; height: 12px; border-radius: 2px; flex: none; background: var(--muted); opacity: .55; }
+.ic.comp { background: #c89b3c; } .ic.rec { background: #4aa3c7; } .ic.scroll { background: #8a8a8a; width: 6px; }
+.ic.key { background: #d4b13a; clip-path: polygon(0 40%, 60% 40%, 60% 20%, 100% 50%, 60% 80%, 60% 60%, 0 60%); opacity: .9; }
+.ic.altkey { background: #8fbf5a; clip-path: polygon(0 40%, 60% 40%, 60% 20%, 100% 50%, 60% 80%, 60% 60%, 0 60%); opacity: .9; }
+.ic.field, .ic.prop { background: #4f8fd6; transform: rotate(45deg) scale(.7); }
+.ic.coll { background: #3fa7a0; } .ic.ci { background: #b85c5c; } .ic.keyset { background: #6c8fb5; border-radius: 50%; }
+.ic.props { background: #3b7a8a; } .ic.method { background: #9a9a9a; transform: rotate(45deg) scale(.6); } .ic.method.user { background: #7d6bbf; }
+.cigrid { display: block; }
+.cihead, .cirow { display: grid; grid-template-columns: minmax(180px, 2fr) minmax(90px, 1fr) minmax(90px, 1fr) 70px minmax(80px, 1fr); align-items: center; }
+.cihead { position: sticky; top: 0; background: var(--vscode-editor-background); border-bottom: 1px solid var(--border); color: var(--muted); padding: 2px 0; z-index: 1; }
+.cihead span { padding: 0 6px; }
+.cirow { white-space: nowrap; cursor: default; }
+.cirow > span { overflow: hidden; text-overflow: ellipsis; padding: 1px 6px; }
+.cirow .cname { display: flex; align-items: center; gap: 4px; }
+.cirow.sel { background: var(--sel); color: var(--selfg); }
+.cirow.empty { color: var(--muted); }
+.cirow.error .cname { text-decoration: underline wavy var(--error); }
+.cirow.drop-here { box-shadow: inset 0 0 0 2px var(--vscode-focusBorder); }
+#props .muted { color: var(--muted); }
+#props a { color: var(--vscode-textLink-foreground); }
