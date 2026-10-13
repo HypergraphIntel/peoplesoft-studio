@@ -1,0 +1,268 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-bb18f22a884a893c5c6a9e15",
+  "fingerprint": "bb18f22a884a893c5c6a9e1594cc6c93baca01830cc4237d279828fcb33f2de8",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLDEFN",
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "MAXPNLFLDID",
+      "PNLFLDID"
+    ]
+  },
+  "assertion": {
+    "kind": "id-allocation",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "idColumn": "PNLFLDID",
+      "newId": "MAXPNLFLDID+1",
+      "highWaterColumn": "PSPNLDEFN.MAXPNLFLDID",
+      "loweredOnDelete": false,
+      "deletedIdReused": false
+    }
+  },
+  "title": "A new page control takes PNLFLDID = MAXPNLFLDID + 1; MAXPNLFLDID never goes down, deleted ids are not reused",
+  "statement": "PSPNLDEFN.MAXPNLFLDID is a high-water mark: each control App Designer adds takes the next id after it, and deleting a control lowers FIELDCOUNT but leaves MAXPNLFLDID, so the deleted id is never handed out again.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-09T16:12:30.908Z",
+      "method": "save-capture",
+      "experimentId": "02-add-edit",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 02-add-edit: the PNLFLDID values inserted or deleted and PSPNLDEFN's FIELDCOUNT and MAXPNLFLDID as the claim states.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "02-add-edit"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "2a63586c126aeadd6b69caa076e46b1fe8e279955f8919cc28771190e930a914"
+    },
+    {
+      "observedAt": "2026-10-09T16:44:25.880Z",
+      "method": "save-capture",
+      "experimentId": "06-types",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 06-types: the PNLFLDID values inserted or deleted and PSPNLDEFN's FIELDCOUNT and MAXPNLFLDID as the claim states.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 3,
+            "deleted": 1,
+            "updated": 2
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 4,
+            "deleted": 2,
+            "updated": 1
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 3,
+          "RDM": 4,
+          "SYS": 7
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "06-types"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "89033c0f2d06aac5a57fa3b3e70f95de5a5f9b7406db8064fadcdbfa634e32ae"
+    },
+    {
+      "observedAt": "2026-10-09T16:49:34.806Z",
+      "method": "save-capture",
+      "experimentId": "07-groupbox",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 07-groupbox: the PNLFLDID values inserted or deleted and PSPNLDEFN's FIELDCOUNT and MAXPNLFLDID as the claim states.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 3
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "07-groupbox"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "207f39d4d1d5d228ed6f5f938d87e59055eff9425fce18f812170ff6b60f9118"
+    },
+    {
+      "observedAt": "2026-10-09T16:51:49.789Z",
+      "method": "save-capture",
+      "experimentId": "08-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 08-delete: the PNLFLDID values inserted or deleted and PSPNLDEFN's FIELDCOUNT and MAXPNLFLDID as the claim states.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 2
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "08-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "2c96e08b1b36f4637ae54d5f05d1ba99351a577a2cf7aaf84d1fca2c46196641"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T02:29:26.217Z",
+    "updatedAt": "2026-10-13T02:29:27.053Z",
+    "schemaVersion": 1
+  }
+}

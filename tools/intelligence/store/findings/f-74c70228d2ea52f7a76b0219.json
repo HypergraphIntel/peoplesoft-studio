@@ -1,0 +1,93 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-74c70228d2ea52f7a76b0219",
+  "fingerprint": "74c70228d2ea52f7a76b0219dea96ff05b609a1473d39a38cce7ad54f9e554de",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "project",
+    "objectType": "Project item",
+    "tables": [
+      "PSPROJECTITEM"
+    ]
+  },
+  "assertion": {
+    "kind": "code-labels",
+    "facts": {
+      "table": "PSPROJECTITEM",
+      "definition": "Message channel",
+      "OBJECTTYPE": 36,
+      "OBJECTID1": 61,
+      "OBJECTVALUE1": "CHNLNAME"
+    }
+  },
+  "title": "A message channel in a project is PSPROJECTITEM OBJECTTYPE 36, OBJECTID1 61 (CHNLNAME)",
+  "statement": "Inserting a message channel into a project writes a PSPROJECTITEM row with OBJECTTYPE 36 and OBJECTID1 61, OBJECTVALUE1 the channel name, and moves PJM.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-12T13:08:27.660Z",
+      "method": "save-capture",
+      "experimentId": "chn16-project-insert",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture chn16-project-insert: PSPROJECTITEM inserted with OBJECTTYPE 36, OBJECTID1 61, OBJECTVALUE1 the channel; PJM +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPROJECTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPROJECTINC",
+            "inserted": 306,
+            "deleted": 306,
+            "updated": 0
+          },
+          {
+            "table": "PSPROJECTITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PJM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "chn16-project-insert"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "5abe6bc5a76106ce381b85ec2f13fe0b17acfc1abe5dd5c9d8318617d635e771"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T02:31:23.837Z",
+    "updatedAt": "2026-10-13T02:31:23.837Z",
+    "schemaVersion": 1
+  }
+}

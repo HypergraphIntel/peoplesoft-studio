@@ -1,0 +1,309 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-cd81a5c55bdbf553224e0f62",
+  "fingerprint": "cd81a5c55bdbf553224e0f62a218a632a53bcf1b871dbd77b1fccec9ab061fb2",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLDEFN",
+      "PSPNLFIELD",
+      "PSPNLFIELDEXT"
+    ]
+  },
+  "assertion": {
+    "kind": "physical-rewrite",
+    "facts": {
+      "tables": "PSPNLDEFN,PSPNLFIELD,PSPNLFIELDEXT",
+      "everyRowDeletedAndReinsertedOnSave": true,
+      "evidence": "ROWID diff"
+    }
+  },
+  "title": "An App Designer page save deletes and re-inserts every row of the page, changed or not",
+  "statement": "On Save, App Designer physically rewrites the page: the PSPNLDEFN row and every PSPNLFIELD and PSPNLFIELDEXT row of the page get new ROWIDs (deleted and re-inserted), though by key only the changed controls differ. Inferred from flashback ROWID diffs; an UPDATE would keep the ROWID. Studio's page writer updates the changed rows in place, which gives the same keyed result.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-09T16:13:51.000Z",
+      "method": "save-capture",
+      "experimentId": "03-move",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 03-move: by ROWID every page row was deleted and re-inserted; by key PSPNLFIELD had 0 inserted, 0 deleted, 1 updated.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "03-move"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "8bc14b39f909c1e430d7b166282ecc2bf99b1040e73a424660fa1ea165b6c9d8"
+    },
+    {
+      "observedAt": "2026-10-09T16:15:23.000Z",
+      "method": "save-capture",
+      "experimentId": "04-resize",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 04-resize: by ROWID every page row was deleted and re-inserted; by key PSPNLFIELD had 0 inserted, 0 deleted, 1 updated.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "04-resize"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "8a4f1ecfe2b4d3cb29e5ea96bc086e9d958518579b64bc3351c5df303e275dd6"
+    },
+    {
+      "observedAt": "2026-10-09T16:18:32.000Z",
+      "method": "save-capture",
+      "experimentId": "05-label",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 05-label: by ROWID every page row was deleted and re-inserted; by key PSPNLFIELD had 0 inserted, 0 deleted, 1 updated.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "05-label"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "45d11f2e9732e894210cc2da7459862661b2a8cf37683626be931163f5971bab"
+    },
+    {
+      "observedAt": "2026-10-09T16:49:34.000Z",
+      "method": "save-capture",
+      "experimentId": "07-groupbox",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 07-groupbox: by ROWID every page row was deleted and re-inserted; by key PSPNLFIELD had 1 inserted, 0 deleted, 3 updated.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 6,
+            "deleted": 5,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 6,
+            "deleted": 5,
+            "updated": 0
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "07-groupbox"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a13a4723c03eaa0e0f83617d4a8dc70cbb45a6aa28ad125f576b72fe10e8dfb1"
+    },
+    {
+      "observedAt": "2026-10-09T16:51:49.000Z",
+      "method": "save-capture",
+      "experimentId": "08-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 08-delete: by ROWID every page row was deleted and re-inserted; by key PSPNLFIELD had 0 inserted, 1 deleted, 2 updated.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 5,
+            "deleted": 6,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 5,
+            "deleted": 6,
+            "updated": 0
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "08-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "9a3940099482a0058e4ac725f3e157356bb7590b7a0b8019f7d54d879128c273"
+    },
+    {
+      "observedAt": "2026-10-09T16:54:24.000Z",
+      "method": "save-capture",
+      "experimentId": "09-property",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 09-property: by ROWID every page row was deleted and re-inserted; by key PSPNLFIELD had 0 inserted, 0 deleted, 2 updated.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 5,
+            "deleted": 5,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 5,
+            "deleted": 5,
+            "updated": 0
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "09-property"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "27e86247b37991cf121ae06e594f3b36be3af3da307294d1e07e17c32ecc3966"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T02:29:54.970Z",
+    "updatedAt": "2026-10-13T02:29:56.440Z",
+    "schemaVersion": 1
+  }
+}

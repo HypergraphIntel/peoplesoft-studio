@@ -122,13 +122,28 @@ fingerprint; server: see `server/intelligence/README.md`.
 
 ## Recorded findings (tools/intelligence/store)
 
-| ID | Claim | Status |
-|---|---|---|
-| f-e3a3f17f095c20582322485d | Fluid Configure Event Mapping re-saves every row (em04, em05, em06) | reproduced |
-| f-76b320392022a312cd7d7562 | PSADSTRACKING.PTKEYHASH algorithm | observed |
-| f-5731b0851774a312b6aa05af | PTCS_ISCOMPSERVICE level codes vs PSXLATITEM labels | observed |
-| f-7e8ece79e395dbb863bc93e5 | Defining a service: RCSDM +1 PSVERSION, +2 PSLOCK (em01) | observed |
-| f-ad18a114ff35fcdc4d8920ef | Studio's Event Mapping writer writes what the page writes (roundtrip, live e2e) | observed |
+18 findings, each checked against its capture rows before recording (2026-10-13); `src/test/intelligence.test.ts` re-derives every capture-backed observation.
+
+| Subsystem | ID | Claim | Status | Obs. |
+|---|---|---|---|---|
+| app-engine | f-7813ad82caab6c1204716fa1 | Renaming an App Engine program tombstones the old name in PSAEAPPLDEL at the new AEM | observed | 1 |
+| app-engine | f-d3a388ee70c25792a50ca764 | Deleting an App Engine program moves AEM, AES, SRM and PCM by 2 and SYS by 1, and leaves tombstones at the final counters | observed | 1 |
+| app-engine | f-d477c0ab70e48a7736224355 | Saving a new App Engine program moves AEM by 1 and stamps PSAEAPPLDEFN.VERSION with it | reproduced | 2 |
+| event-mapping | f-5731b0851774a312b6aa05af | PTCS_ISCOMPSERVICE level codes: C Component, R Page, P Record, F Record Field (PSXLATITEM's labels mislead) | observed | 1 |
+| event-mapping | f-7e8ece79e395dbb863bc93e5 | Defining a related content service moves RCSDM by 1 in PSVERSION but by 2 in PSLOCK | observed | 1 |
+| event-mapping | f-ad18a114ff35fcdc4d8920ef | PeopleSoft Studio's Event Mapping writer writes what the Configure Event Mapping page writes | observed | 1 |
+| event-mapping | f-e3a3f17f095c20582322485d | The fluid Configure Event Mapping page re-saves every row on Save | reproduced | 3 |
+| message-channel | f-13baaf5f7d94524fb24f7c28 | A message channel save moves CHDM by 1 and SYS by 1; PSCHNLDEFN.VERSION is the new CHDM | reproduced | 2 |
+| message-channel | f-63084706f407d6e694a0b917 | Deleting a message channel writes PSCHNLDEL at the new CHDM and removes its partition rows | observed | 1 |
+| message-channel | f-e652e5d38577cf3f511c6456 | Renaming a message channel re-keys its rows in place and moves CHDM, MSDM, PJM and SYS by 1, references or not | reproduced | 2 |
+| other | f-76b320392022a312cd7d7562 | PSADSTRACKING.PTKEYHASH is SHA-1 over UTF-16LE '( NAME = value )' text, keys sorted by name, base64 | observed | 1 |
+| page-designer | f-0a2b843879abf6c142e63b3b | PSPNLFIELD.FIELDNUM stays a contiguous 1..N order: App Designer renumbers existing controls when controls are added or deleted | reproduced | 3 |
+| page-designer | f-6bbfd2ebcb24e3aa8d8a3bee | An App Designer page save moves PDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSPNLDEFN.VERSION is the new PDM | reproduced | 8 |
+| page-designer | f-6f34cd13c903c9cd40a06bfa | Page control Display Only is PSPNLFIELD.FIELDUSE bit 1; Invisible is bit 2 and sets SECUREINVISIBLE | observed | 1 |
+| page-designer | f-a59884249af2192134fa87ee | Every page control has a PSPNLFIELDEXT row beside its PSPNLFIELD row | reproduced | 5 |
+| page-designer | f-bb18f22a884a893c5c6a9e15 | A new page control takes PNLFLDID = MAXPNLFLDID + 1; MAXPNLFLDID never goes down, deleted ids are not reused | reproduced | 4 |
+| page-designer | f-cd81a5c55bdbf553224e0f62 | An App Designer page save deletes and re-inserts every row of the page, changed or not | reproduced | 6 |
+| project | f-74c70228d2ea52f7a76b0219 | A message channel in a project is PSPROJECTITEM OBJECTTYPE 36, OBJECTID1 61 (CHNLNAME) | observed | 1 |
 
 ## Resume: next tasks, in order
 
@@ -136,9 +151,10 @@ fingerprint; server: see `server/intelligence/README.md`.
    built VSIX): the view, a panel, the review; with the local server, one
    submission.
 2. **Page Designer and App Engine planning consult knowledge** (as the
-   customization view does): record the page-save and App Engine rules
-   already proven in `docs/PAGE_SAVE.md` / `docs/APP_ENGINE*.md` as findings
-   with their capture evidence first — only where the evidence is in hand.
+   customization view does): the findings are recorded (page save: 6, App
+   Engine: 3, message channels: 4); the page and App Engine designers do not
+   show them yet. More App Engine and record-save findings need their
+   def-capture cases (not sweep format) read by an adapter first.
 3. Adapters for the controlled compile lab and writer replay tests.
 4. Filing issues / preparing pull requests from CI: the owner's decision
    and a least-privilege token.

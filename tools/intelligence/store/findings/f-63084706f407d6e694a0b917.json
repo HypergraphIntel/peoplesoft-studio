@@ -1,0 +1,95 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-63084706f407d6e694a0b917",
+  "fingerprint": "63084706f407d6e694a0b9170a79c0302456047182a69826fb5ae6a85c0d4379",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "message-channel",
+    "objectType": "Message channel",
+    "tables": [
+      "PSCHNLDEFN",
+      "PSCHNLDEL",
+      "PSSUBCHNL"
+    ]
+  },
+  "assertion": {
+    "kind": "delete-tombstone",
+    "facts": {
+      "table": "PSCHNLDEL",
+      "version": "newCHDM",
+      "CHDM": 1,
+      "SYS": 1,
+      "partitionsDeleted": true
+    }
+  },
+  "title": "Deleting a message channel writes PSCHNLDEL at the new CHDM and removes its partition rows",
+  "statement": "App Designer's Delete of a message channel removes PSCHNLDEFN and its PSSUBCHNL rows, records the name in PSCHNLDEL with VERSION the new CHDM, and moves CHDM and SYS by one.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-12T12:50:04.173Z",
+      "method": "save-capture",
+      "experimentId": "chn08-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture chn08-delete: PSCHNLDEFN and two PSSUBCHNL rows deleted; PSCHNLDEL inserted with VERSION 9 = CHDM after.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCHNLDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSCHNLDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSUBCHNL",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CHDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "chn08-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "3797d5dcf1f9467a1af1f444bbd2f0dcb25180b25e078da956154cc7cc234c66"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T02:31:22.998Z",
+    "updatedAt": "2026-10-13T02:31:22.998Z",
+    "schemaVersion": 1
+  }
+}

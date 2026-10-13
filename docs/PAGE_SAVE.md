@@ -149,7 +149,10 @@ it. (The rule for an added control is now pinned down: see
 
 Counters: a save that adds controls bound to record fields also bumped `RDM`
 (record definition manager) and more `SYS`, besides `PDM` -- `PDM` 49->52,
-`RDM` 160->164, `SYS` +7 for this save. The page write proper is PDM; RDM is
+`RDM` 160->164, `SYS` +7 for this save. (Re-read 2026-10-13: `PSPNLDEFN.VERSION`
+went 49->52 and `LASTUPDDTTM` moved 26 minutes inside the capture window, so this
+was most likely three saves, not one -- one PDM step per save, as in every other
+case. The discovery finding on the PDM step leaves 06 out.) The page write proper is PDM; RDM is
 the referenced records' cache invalidation.
 
 ### 07-groupbox

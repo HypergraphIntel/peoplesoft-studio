@@ -1,0 +1,97 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-6f34cd13c903c9cd40a06bfa",
+  "fingerprint": "6f34cd13c903c9cd40a06bfa01b55d8bf46c31dad2697645c0aaa7ea3fa8f708",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDUSE",
+      "SECUREINVISIBLE"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "FIELDUSE",
+      "displayOnlyBit": 1,
+      "invisibleBit": 2,
+      "invisibleAlsoSets": "SECUREINVISIBLE"
+    }
+  },
+  "title": "Page control Display Only is PSPNLFIELD.FIELDUSE bit 1; Invisible is bit 2 and sets SECUREINVISIBLE",
+  "statement": "In a page control's Use properties, Display Only sets FIELDUSE bit 0x01 and Invisible sets bit 0x02; making a control Invisible also sets SECUREINVISIBLE from 0 to 1.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-09T16:54:24.545Z",
+      "method": "save-capture",
+      "experimentId": "09-property",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 09-property: control 1 FIELDUSE 0 to 1 (Display Only); control 3 FIELDUSE 0 to 2 and SECUREINVISIBLE 0 to 1 (Invisible); nothing else on those rows changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 5,
+            "deleted": 5,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "09-property"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "fd7c1c99d7d1c64486a087e72c58c1e8c15757ca60e9b0c8acb4c7fb50ae6eec"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T02:29:27.345Z",
+    "updatedAt": "2026-10-13T02:29:27.345Z",
+    "schemaVersion": 1
+  }
+}

@@ -1,0 +1,193 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-7813ad82caab6c1204716fa1",
+  "fingerprint": "7813ad82caab6c1204716fa16da8b6da65993c9190a6f09fdbc65a640203f83c",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "app-engine",
+    "objectType": "App Engine program",
+    "tables": [
+      "PSAEAPPLDEL"
+    ]
+  },
+  "assertion": {
+    "kind": "rename-tombstone",
+    "facts": {
+      "table": "PSAEAPPLDEL",
+      "writtenOnRename": true,
+      "version": "newAEM",
+      "AEM": 1,
+      "PJM": 1
+    }
+  },
+  "title": "Renaming an App Engine program tombstones the old name in PSAEAPPLDEL at the new AEM",
+  "statement": "App Designer's Rename of an App Engine program writes PSAEAPPLDEL for the old name with VERSION the new AEM (AEM +1), tombstones its sections, SQL and PeopleCode under the old key, and moves PJM for the projects that list it.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-11T18:15:47.051Z",
+      "method": "save-capture",
+      "experimentId": "ae14-rename-program",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ae14-rename-program: PSAEAPPLDEL inserted with VERSION 82 = AEM after; AEM +1, AES +2, SRM +2, PCM +2, PJM +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAEAPPLDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSAEAPPLSTATE",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAEAPPLTEMPTBL",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDEL",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDTLDEFN",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTEPDEFN",
+            "inserted": 5,
+            "deleted": 5,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTEPMSGDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTMTDEFN",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDESCR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "AES": 2,
+          "PCM": 2,
+          "PJM": 1,
+          "SRM": 2,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ae14-rename-program"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "9047d9ca27a1683b70163bcc6ef06ae60ca4c760f30a4419b7f3d292c35a17d8"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T02:30:46.106Z",
+    "updatedAt": "2026-10-13T02:30:46.106Z",
+    "schemaVersion": 1
+  }
+}

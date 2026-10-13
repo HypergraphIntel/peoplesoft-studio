@@ -361,3 +361,32 @@ test('a finding as engineering work: an issue body with acceptance criteria and 
     assert.equal(engineeringTask(bare).fixture, undefined, 'no capture, no fixture');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test('the research store\'s findings still match their captures: every capture-backed observation re-derives', async () => {
+  const store = await new DiscoveryStore(path.join('tools', 'intelligence', 'store')).open();
+  const results = path.join('tools', 'corpus', 'save-protocol', 'results');
+  let checked = 0;
+  for (const summary of await store.list()) {
+    const f = (await store.get(summary.id))!;
+    assert.equal(f.fingerprint, findingFingerprint(f), `${f.id}: the stored fingerprint is the claim's`);
+    for (const o of f.observations) {
+      const { digest, ...content } = o;
+      assert.equal(digest, observationDigest(content), `${f.id}: an observation's digest is its content's`);
+      const capture = o.evidence?.find((e) => e.kind === 'capture-case')?.ref;
+      if (o.method !== 'save-capture' || !o.delta || !capture || !existsSync(path.join(results, capture, 'delta.json'))) continue;
+      const delta = JSON.parse(readFileSync(path.join(results, capture, 'delta.json'), 'utf8'));
+      if (f.assertion.kind === 'physical-rewrite') {
+        // Recorded from the ROWID (physical) diff, for the tables it names.
+        for (const t of o.delta.tables) {
+          const phys = delta.otherTables[t.table] ?? {};
+          assert.deepEqual([t.inserted, t.deleted, t.updated], [(phys.inserted ?? []).length, (phys.deleted ?? []).length, (phys.updated ?? []).length], `${f.id} ${capture} ${t.table}`);
+        }
+      } else {
+        assert.deepEqual(o.delta, sanitizedDeltaOf(delta), `${f.id}: capture ${capture} no longer shows what was recorded`);
+      }
+      assert.equal(o.environment.peopleToolsRelease, delta.peopleToolsRelease, `${f.id}: ${capture}'s release`);
+      checked++;
+    }
+  }
+  assert.ok(checked >= 30, `${checked} capture-backed observations checked`);
+});

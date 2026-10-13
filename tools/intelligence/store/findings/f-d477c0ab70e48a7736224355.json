@@ -1,0 +1,225 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-d477c0ab70e48a7736224355",
+  "fingerprint": "d477c0ab70e48a7736224355c94a9ef4816cd86451c16a6c5c6f08e4159c5c9a",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "app-engine",
+    "objectType": "App Engine program",
+    "tables": [
+      "PSAEAPPLDEFN",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "counter": "AEM",
+      "newProgramStep": 1,
+      "versionColumn": "PSAEAPPLDEFN.VERSION",
+      "versionIsNewCounter": true,
+      "sysStep": 1
+    }
+  },
+  "title": "Saving a new App Engine program moves AEM by 1 and stamps PSAEAPPLDEFN.VERSION with it",
+  "statement": "When App Designer saves a new App Engine program (File > New, or Save As), PSVERSION and PSLOCK AEM move by one and the program's PSAEAPPLDEFN.VERSION is the new AEM; each new section takes the new AES, and SYS moves by one.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-11T17:22:36.451Z",
+      "method": "save-capture",
+      "experimentId": "ae01-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ae01-create: AEM +1 in PSVERSION and PSLOCK, SYS +1, PSAEAPPLDEFN inserted with VERSION equal to the new AEM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDTLDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTEPDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "AES": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ae01-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "a97afa29f0940ac0387c519e61939872f5a7e2c4cfd61d81d627a564e0afa589"
+    },
+    {
+      "observedAt": "2026-10-11T18:13:49.679Z",
+      "method": "save-capture",
+      "experimentId": "ae13-save-as",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ae13-save-as: AEM +1 in PSVERSION and PSLOCK, SYS +1, PSAEAPPLDEFN inserted with VERSION equal to the new AEM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSAEAPPLSTATE",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSAEAPPLTEMPTBL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDTLDEFN",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTEPDEFN",
+            "inserted": 5,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTEPMSGDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTMTDEFN",
+            "inserted": 10,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDESCR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "AES": 1,
+          "PCM": 1,
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ae13-save-as"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "54b05a5d990547f7a92a4d33337d6958bb10a03f69fdc717456cfaac05d1a890"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T02:30:45.277Z",
+    "updatedAt": "2026-10-13T02:30:45.549Z",
+    "schemaVersion": 1
+  }
+}

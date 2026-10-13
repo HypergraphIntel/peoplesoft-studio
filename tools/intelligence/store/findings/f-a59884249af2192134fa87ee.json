@@ -1,0 +1,310 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-a59884249af2192134fa87ee",
+  "fingerprint": "a59884249af2192134fa87eeda5bb0b78d0760da4eaa69402dc5100c3d03abe6",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD",
+      "PSPNLFIELDEXT"
+    ]
+  },
+  "assertion": {
+    "kind": "companion-row",
+    "facts": {
+      "table": "PSPNLFIELDEXT",
+      "companionOf": "PSPNLFIELD",
+      "key": "PNLNAME,PNLFLDID",
+      "rowPerControl": true
+    }
+  },
+  "title": "Every page control has a PSPNLFIELDEXT row beside its PSPNLFIELD row",
+  "statement": "App Designer inserts and deletes a PSPNLFIELDEXT row (key PNLNAME, PNLFLDID) together with each PSPNLFIELD row: adding a control adds both, deleting one deletes both.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-09T16:08:56.597Z",
+      "method": "save-capture",
+      "experimentId": "01-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 01-create: the PNLFLDIDs inserted or deleted in PSPNLFIELDEXT are exactly those of PSPNLFIELD.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "01-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "e1294aede9b46ff8089c8620403eec4c90947aa1b7a5af67d9eba264ac0d4403"
+    },
+    {
+      "observedAt": "2026-10-09T16:12:30.908Z",
+      "method": "save-capture",
+      "experimentId": "02-add-edit",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 02-add-edit: the PNLFLDIDs inserted or deleted in PSPNLFIELDEXT are exactly those of PSPNLFIELD.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "02-add-edit"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "502ca83fd5a5ff9062ea5e1e5b2a8c5d9e743a96e04f96a5acc0808994db0e34"
+    },
+    {
+      "observedAt": "2026-10-09T16:44:25.880Z",
+      "method": "save-capture",
+      "experimentId": "06-types",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 06-types: the PNLFLDIDs inserted or deleted in PSPNLFIELDEXT are exactly those of PSPNLFIELD.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 3,
+            "deleted": 1,
+            "updated": 2
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 4,
+            "deleted": 2,
+            "updated": 1
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 3,
+          "RDM": 4,
+          "SYS": 7
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "06-types"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "e2ec9aab1c36368db459b774c92ac2f512c2a0d48178033e244c06898b15af41"
+    },
+    {
+      "observedAt": "2026-10-09T16:49:34.806Z",
+      "method": "save-capture",
+      "experimentId": "07-groupbox",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 07-groupbox: the PNLFLDIDs inserted or deleted in PSPNLFIELDEXT are exactly those of PSPNLFIELD.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 3
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "07-groupbox"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "2d627feb64d93fa8a1b2f825e934aad06abd927b1499b2565a541f4b267973b6"
+    },
+    {
+      "observedAt": "2026-10-09T16:51:49.789Z",
+      "method": "save-capture",
+      "experimentId": "08-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 08-delete: the PNLFLDIDs inserted or deleted in PSPNLFIELDEXT are exactly those of PSPNLFIELD.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 2
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "08-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "807362faffa4da669c8ff67a14cdc2297bae8ac4214870af6669d69e7308f347"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T02:29:27.625Z",
+    "updatedAt": "2026-10-13T02:29:28.739Z",
+    "schemaVersion": 1
+  }
+}

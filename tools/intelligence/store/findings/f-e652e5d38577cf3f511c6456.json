@@ -1,0 +1,157 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-e652e5d38577cf3f511c6456",
+  "fingerprint": "e652e5d38577cf3f511c64562b41da59fe008264ce620284405438daed24b12c",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "message-channel",
+    "objectType": "Message channel",
+    "tables": [
+      "PSCHNLDEFN",
+      "PSSUBCHNL",
+      "PSMSGDEFN",
+      "PSPROJECTITEM"
+    ]
+  },
+  "assertion": {
+    "kind": "rename-in-place",
+    "facts": {
+      "rekeyedInPlace": true,
+      "tombstone": false,
+      "CHDM": 1,
+      "MSDM": 1,
+      "PJM": 1,
+      "SYS": 1,
+      "countersMoveWithoutReferences": true,
+      "messagesRepointedVersion": "newMSDM"
+    }
+  },
+  "title": "Renaming a message channel re-keys its rows in place and moves CHDM, MSDM, PJM and SYS by 1, references or not",
+  "statement": "App Designer's Rename of a message channel updates the keys of PSCHNLDEFN (and CHNLDISPLAYNAME, VERSION the new CHDM) and PSSUBCHNL in place, repoints messages naming it (PSMSGDEFN.VERSION the new MSDM) and project items, writes no tombstone, and moves CHDM, MSDM, PJM and SYS by one each even when nothing references the channel.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-12T12:28:57.827Z",
+      "method": "save-capture",
+      "experimentId": "chn07-rename",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture chn07-rename: PSCHNLDEFN and PSSUBCHNL rows updated by key, no PSCHNLDEL row; CHDM, MSDM, PJM and SYS each +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCHNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSUBCHNL",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          }
+        ],
+        "counters": {
+          "MSDM": 1,
+          "CHDM": 1,
+          "PJM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "chn07-rename"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "78c402a66c6438a71a93dd8481ac12b756ec964359e7316cb6c0e9af871e44c0"
+    },
+    {
+      "observedAt": "2026-10-12T13:10:21.348Z",
+      "method": "save-capture",
+      "experimentId": "chn17-rename-refs",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture chn17-rename-refs: PSCHNLDEFN and PSSUBCHNL rows updated by key, no PSCHNLDEL row; CHDM, MSDM, PJM and SYS each +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCHNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMSGDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPROJECTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPROJECTITEM",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSUBCHNL",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          }
+        ],
+        "counters": {
+          "MSDM": 1,
+          "CHDM": 1,
+          "PJM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "chn17-rename-refs"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "0314666feee59227addfc6855811cb6feaf21235d1a54b48ecb3070df6243904"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T02:31:23.273Z",
+    "updatedAt": "2026-10-13T02:31:23.555Z",
+    "schemaVersion": 1
+  }
+}

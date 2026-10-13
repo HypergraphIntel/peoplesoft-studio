@@ -1,0 +1,199 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-d3a388ee70c25792a50ca764",
+  "fingerprint": "d3a388ee70c25792a50ca7644e5b655b58d16ddcb98291735f3e238ec2080d34",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "app-engine",
+    "objectType": "App Engine program",
+    "tables": [
+      "PSAEAPPLDEL",
+      "PSAESECTDEL",
+      "PSSQLDEL",
+      "PSPCMPROGDEL"
+    ]
+  },
+  "assertion": {
+    "kind": "delete-counters-tombstones",
+    "facts": {
+      "AEM": 2,
+      "AES": 2,
+      "SRM": 2,
+      "PCM": 2,
+      "SYS": 1,
+      "programTombstone": "PSAEAPPLDEL",
+      "programTombstoneVersion": "finalAEM",
+      "sectionTombstone": "PSAESECTDEL",
+      "sectionTombstoneVersion": "finalAES"
+    }
+  },
+  "title": "Deleting an App Engine program moves AEM, AES, SRM and PCM by 2 and SYS by 1, and leaves tombstones at the final counters",
+  "statement": "App Designer's Delete of an App Engine program with SQL and PeopleCode moves AEM, AES, SRM and PCM by two each in PSVERSION and PSLOCK and SYS by one; it writes PSAEAPPLDEL at the final AEM, a PSAESECTDEL row per section at the final AES, PSSQLDEL rows at the final SRM and PSPCMPROGDEL rows at the final PCM.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-11T18:17:23.206Z",
+      "method": "save-capture",
+      "experimentId": "ae15-delete-program",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ae15-delete-program: the counter steps as stated; PSAEAPPLDEL VERSION 84 = AEM after, PSAESECTDEL VERSION 72 = AES after.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAEAPPLDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSAEAPPLSTATE",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAEAPPLTEMPTBL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 0,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDEL",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDTLDEFN",
+            "inserted": 0,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTEPDEFN",
+            "inserted": 0,
+            "deleted": 5,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTEPMSGDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTMTDEFN",
+            "inserted": 0,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDESCR",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "AEM": 2,
+          "AES": 2,
+          "PCM": 2,
+          "SRM": 2,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ae15-delete-program"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "13be22fb87ab579a9e767217232e4bbd33e7e426851c11173608772889f213de"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T02:30:45.829Z",
+    "updatedAt": "2026-10-13T02:30:45.829Z",
+    "schemaVersion": 1
+  }
+}

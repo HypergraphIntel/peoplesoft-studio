@@ -1,0 +1,123 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-13baaf5f7d94524fb24f7c28",
+  "fingerprint": "13baaf5f7d94524fb24f7c28eb844bb092b5daa7ad7284b522be65836b6e6307",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "message-channel",
+    "objectType": "Message channel",
+    "tables": [
+      "PSCHNLDEFN"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "counter": "CHDM",
+      "psversionStep": 1,
+      "sysStep": 1,
+      "versionColumn": "PSCHNLDEFN.VERSION",
+      "versionIsNewCounter": true
+    }
+  },
+  "title": "A message channel save moves CHDM by 1 and SYS by 1; PSCHNLDEFN.VERSION is the new CHDM",
+  "statement": "Saving a message channel in App Designer -- created or changed -- moves PSVERSION CHDM and SYS by one and stamps PSCHNLDEFN.VERSION with the new CHDM.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-12T12:51:45.240Z",
+      "method": "save-capture",
+      "experimentId": "chn00-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture chn00-create: CHDM +1, SYS +1; the PSCHNLDEFN row written carries VERSION equal to the new CHDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCHNLDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CHDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "chn00-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "1acebcee99e75d226cddca328a8af66a7679c4cfacbe48cdff7969bfef2715e6"
+    },
+    {
+      "observedAt": "2026-10-12T12:23:03.205Z",
+      "method": "save-capture",
+      "experimentId": "chn01-partition",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture chn01-partition: CHDM +1, SYS +1; the PSCHNLDEFN row written carries VERSION equal to the new CHDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCHNLDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSUBCHNL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CHDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "chn01-partition"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "0981ee8b618edbbcaab6a3096a98cb955ee935ccd6e63d7c404db94f81eb1a6f"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T02:31:22.428Z",
+    "updatedAt": "2026-10-13T02:31:22.719Z",
+    "schemaVersion": 1
+  }
+}

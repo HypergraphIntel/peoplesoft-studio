@@ -1,0 +1,432 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-6bbfd2ebcb24e3aa8d8a3bee",
+  "fingerprint": "6bbfd2ebcb24e3aa8d8a3bee93b184cf925d57da7af51c63afd4501d1bb5dbe4",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLDEFN",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "counter": "PDM",
+      "psversionStep": 1,
+      "pslockStep": 1,
+      "sysStep": 1,
+      "versionColumn": "PSPNLDEFN.VERSION",
+      "versionIsNewCounter": true
+    }
+  },
+  "title": "An App Designer page save moves PDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSPNLDEFN.VERSION is the new PDM",
+  "statement": "Saving a page in Application Designer bumps PSVERSION and PSLOCK OBJECTTYPENAME PDM by one and PSVERSION SYS by one, and stamps PSPNLDEFN.VERSION with the new PDM value. Observed for create, add, move, resize, label, group box, delete and property saves; a save that adds several record-bound controls moved PDM by more (06-types, unexplained) and is not covered.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-09T16:08:56.597Z",
+      "method": "save-capture",
+      "experimentId": "01-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 01-create: PDM +1 in PSVERSION and PSLOCK, SYS +1, PSPNLDEFN.VERSION equal to the new PDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "01-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "e34b48752e3dd2a06cc89e280616470e6be3ad689fd135a4cc47ed9b5c30f3a6"
+    },
+    {
+      "observedAt": "2026-10-09T16:12:30.908Z",
+      "method": "save-capture",
+      "experimentId": "02-add-edit",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 02-add-edit: PDM +1 in PSVERSION and PSLOCK, SYS +1, PSPNLDEFN.VERSION equal to the new PDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "02-add-edit"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "0096230162eb5ea6d2792c774997cf0b25be1a76e8f1133e20e6f2f1d8593312"
+    },
+    {
+      "observedAt": "2026-10-09T16:13:51.087Z",
+      "method": "save-capture",
+      "experimentId": "03-move",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 03-move: PDM +1 in PSVERSION and PSLOCK, SYS +1, PSPNLDEFN.VERSION equal to the new PDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "03-move"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "85c8cef9188c96b6b102bf1f8da4cd1fd977788ee233c2f997aa7bc12a654943"
+    },
+    {
+      "observedAt": "2026-10-09T16:15:23.515Z",
+      "method": "save-capture",
+      "experimentId": "04-resize",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 04-resize: PDM +1 in PSVERSION and PSLOCK, SYS +1, PSPNLDEFN.VERSION equal to the new PDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "04-resize"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "838f65513a7b0f505f80dc15cc85f11842299c7d04e3abea2d9fc4417f7b7db2"
+    },
+    {
+      "observedAt": "2026-10-09T16:18:32.299Z",
+      "method": "save-capture",
+      "experimentId": "05-label",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 05-label: PDM +1 in PSVERSION and PSLOCK, SYS +1, PSPNLDEFN.VERSION equal to the new PDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "05-label"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "ab3ea273025b59a340badd885ee5e57ba14b24df40dd5b61a1ed887435dcd089"
+    },
+    {
+      "observedAt": "2026-10-09T16:49:34.806Z",
+      "method": "save-capture",
+      "experimentId": "07-groupbox",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 07-groupbox: PDM +1 in PSVERSION and PSLOCK, SYS +1, PSPNLDEFN.VERSION equal to the new PDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 3
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "07-groupbox"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "d3dc71a35d0a453fc4a82738e050fb47c37238a6a99cec039be166b490d5fc52"
+    },
+    {
+      "observedAt": "2026-10-09T16:51:49.789Z",
+      "method": "save-capture",
+      "experimentId": "08-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 08-delete: PDM +1 in PSVERSION and PSLOCK, SYS +1, PSPNLDEFN.VERSION equal to the new PDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 2
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "08-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a40334ef8137c85ae6ed9257ae30e64a608ffa4799a9273b98e3fe0f51069035"
+    },
+    {
+      "observedAt": "2026-10-09T16:54:24.545Z",
+      "method": "save-capture",
+      "experimentId": "09-property",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 09-property: PDM +1 in PSVERSION and PSLOCK, SYS +1, PSPNLDEFN.VERSION equal to the new PDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 5,
+            "deleted": 5,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "09-property"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "4e711dbd2244c2e36ddacf3f0f074932ffaf978db470464a79555ecdf4ac8f68"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T02:29:23.948Z",
+    "updatedAt": "2026-10-13T02:29:25.935Z",
+    "schemaVersion": 1
+  }
+}
