@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DefinitionType } from '../model/definitions.js';
-import { definitionKeywordType, definitionReferencePrefix, matchStoredKey, resolveReference } from '../peoplecode/definition.js';
+import { definitionKeywordType, definitionReferencePrefix, matchStoredKey, resolveDeclaredFunction, resolveReference } from '../peoplecode/definition.js';
 
 test('a qualified application class path resolves from any segment', () => {
   const line = '   Local ZZ_PCODE_LAB:ORDERING:PARENT &x;';
@@ -103,4 +103,23 @@ test('definitionReferencePrefix ignores a &variable or %system receiver (those t
   assert.equal(definitionReferencePrefix('&rec.Field'), undefined);
   assert.equal(definitionReferencePrefix('%Request.'), undefined);
   assert.equal(definitionReferencePrefix('no dot here'), undefined);
+});
+
+test('resolveDeclaredFunction finds the Record PeopleCode a function is declared against', () => {
+  const text = [
+    'import ZZ_PCODE_LAB:ORDERING:*;',
+    'Declare Function Get_Action_Reason PeopleCode FUNCLIB_HR.ACTION_REASON FieldFormula;',
+    '',
+    'Local string &r = Get_Action_Reason(&action);'
+  ].join('\n');
+  const ref = resolveDeclaredFunction(text, 'Get_Action_Reason');
+  assert.ok(ref);
+  assert.equal(ref!.type, DefinitionType.RecordPeopleCode);
+  assert.deepEqual(ref!.parts, ['FUNCLIB_HR', 'ACTION_REASON', 'FieldFormula']);
+});
+
+test('resolveDeclaredFunction ignores an undeclared name and is case-insensitive on the name', () => {
+  const text = 'Declare Function DoThing PeopleCode FUNCLIB_X.DO_IT FieldFormula;';
+  assert.equal(resolveDeclaredFunction(text, 'Other'), undefined);
+  assert.deepEqual(resolveDeclaredFunction(text, 'dothing')!.parts, ['FUNCLIB_X', 'DO_IT', 'FieldFormula']);
 });

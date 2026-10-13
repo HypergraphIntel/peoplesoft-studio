@@ -23,6 +23,9 @@
   other definition reference (`Record.JOB`, `Page.X`, an application class, ...)
   shows its type, description and when it was last changed. Built-in functions,
   keywords and system variables still show their static help.
+- **Go to Definition** also follows a declared function: on a call to a function
+  the program brings in with `Declare Function <name> PeopleCode <REC>.<FIELD>
+  <EVENT>`, it opens that Record PeopleCode (for example a FUNCLIB FieldFormula).
 - **Find All References** (Shift+F12 / the editor's references peek) for the
   identifier under the cursor, the same engine as the *Find References* command
   (one PSPCMTXT search on a database, a bounded scan on a project export), now

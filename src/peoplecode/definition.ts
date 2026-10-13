@@ -82,8 +82,27 @@ export function resolveReference(line: string, character: number): ResolvedRefer
   return undefined;
 }
 
+// Declare Function <name> PeopleCode <REC>.<FIELD> <EVENT>;  -- an external PeopleCode function.
+const DECLARE_FUNCTION = /\bDeclare\s+Function\s+([A-Za-z_][A-Za-z0-9_]*)\s+PeopleCode\s+([A-Za-z0-9_#$@]+)\s*\.\s*([A-Za-z0-9_#$@]+)\s+([A-Za-z]+)/gi;
+
+/**
+ * The Record PeopleCode a function is declared against, by scanning the program for its
+ * `Declare Function <name> PeopleCode <REC>.<FIELD> <EVENT>` -- so Go to Definition on a call to
+ * such a function reaches the FieldFormula (or other event) that holds it. Undefined if `funcName`
+ * is not declared this way in `text`.
+ */
+export function resolveDeclaredFunction(text: string, funcName: string): { type: DefinitionType; parts: string[] } | undefined {
+  const want = funcName.toLowerCase();
+  for (const m of text.matchAll(DECLARE_FUNCTION)) {
+    if (m[1].toLowerCase() === want) {
+      return { type: DefinitionType.RecordPeopleCode, parts: [m[2], m[3], m[4]] };
+    }
+  }
+  return undefined;
+}
+
 /** The stored key matching `ref` among `keys` (same parts, case-insensitively), or undefined. */
-export function matchStoredKey(ref: ResolvedReference, keys: readonly DefinitionKey[]): DefinitionKey | undefined {
+export function matchStoredKey(ref: { type: DefinitionType; parts: string[] }, keys: readonly DefinitionKey[]): DefinitionKey | undefined {
   return keys.find((k) =>
     k.type === ref.type &&
     k.parts.length === ref.parts.length &&

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { parseUri, toUri } from '../util/uri.js';
 import type { Workspace } from '../workspace.js';
-import { matchStoredKey, resolveReference } from './definition.js';
+import { matchStoredKey, resolveDeclaredFunction, resolveReference } from './definition.js';
 
 /*
  * The VS Code side of Go to Definition: find the reference under the cursor
@@ -19,8 +19,15 @@ export function registerPeopleCodeDefinition(context: vscode.ExtensionContext, w
       const prov = workspace.getProviderByHandle(handle);
       if (!prov) return undefined;
 
-      const ref = resolveReference(document.lineAt(position.line).text, position.character);
-      if (!ref) return undefined;
+      // A line-level reference (application class path or Keyword.NAME), else a function the program
+      // declares against Record PeopleCode (Declare Function ... PeopleCode REC.FIELD EVENT).
+      let ref = resolveReference(document.lineAt(position.line).text, position.character);
+      if (!ref) {
+        const wordRange = document.getWordRangeAtPosition(position, /[A-Za-z_][A-Za-z0-9_]*/);
+        const declared = wordRange && resolveDeclaredFunction(document.getText(), document.getText(wordRange));
+        if (!declared) return undefined;
+        ref = { ...declared, start: 0, end: 0 };
+      }
 
       let summaries;
       try { summaries = await prov.search({ type: ref.type, namePattern: ref.parts[0], limit: 500 }); }
