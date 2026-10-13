@@ -1,0 +1,91 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-510fe8f23a5e77342c8859e0",
+  "fingerprint": "510fe8f23a5e77342c8859e0ebeaafd6abdff5a721d15415c42a9508bcf4c9a2",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "component",
+    "objectType": "Component",
+    "tables": [
+      "PSPNLGRPDEFN",
+      "PSPNLGROUP",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "PGM": 1,
+      "SYS": 1,
+      "MDM": 0,
+      "versionColumn": "PSPNLGRPDEFN.VERSION",
+      "versionIsNewCounter": "PGM",
+      "operation": "create"
+    }
+  },
+  "title": "Creating a component moves PGM by 1 and SYS by 1, not MDM",
+  "statement": "App Designer's first save of a new component inserts PSPNLGRPDEFN (VERSION = the new PGM, no PSPNLGRPDEFNEXT row) and its PSPNLGROUP item, and bumps PSVERSION and PSLOCK PGM and PSVERSION SYS by one; MDM does not move, unlike a later save. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T15:52:49.000Z",
+      "method": "save-capture",
+      "experimentId": "c01-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c01-create: PSPNLGRPDEFN and one PSPNLGROUP row inserted, no PSPNLGRPDEFNEXT row; PSPNLGRPDEFN.VERSION 325 (the new PGM); PGM +1 in PSVERSION and PSLOCK, SYS +1; MDM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGROUP",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c01-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "e566806a774f1c6aca46bed77af6d0986ca7235dbfb382ff1476e2916c6fa62f"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:18:10.111Z",
+    "updatedAt": "2026-10-13T11:18:10.111Z",
+    "schemaVersion": 1
+  }
+}

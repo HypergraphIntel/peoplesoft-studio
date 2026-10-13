@@ -1,0 +1,142 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-80ff5e4273d52649f898bf83",
+  "fingerprint": "80ff5e4273d52649f898bf831c6d2496c778cd692a2de38e3aeb3b58811b8b04",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "field",
+    "objectType": "Field",
+    "tables": [
+      "PSDBFIELD",
+      "PSDBFLDLABL",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "counter": "RDM",
+      "psversionStep": 1,
+      "pslockStep": 1,
+      "sysStep": 1,
+      "versionColumn": "PSDBFIELD.VERSION",
+      "versionIsNewCounter": true,
+      "operation": "create"
+    }
+  },
+  "title": "Creating a field moves RDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSDBFIELD.VERSION is the new RDM",
+  "statement": "App Designer's first save of a new field definition inserts PSDBFIELD with VERSION = the new RDM and one PSDBFLDLABL row, and bumps PSVERSION and PSLOCK RDM and PSVERSION SYS by one. A short Character field also moves XTM and PDM (a separate finding); a field of length 10 moved nothing else (c01).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T15:03:21.199Z",
+      "method": "save-capture",
+      "experimentId": "c01-field-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c01-field-create: a Character field of length 10 created; PSDBFIELD inserted with VERSION 62 (the new RDM), one PSDBFLDLABL row; RDM +1 in PSVERSION and PSLOCK, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSDBFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSDBFLDLABL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c01-field-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "dc142df1f22cafcb98815f589b7fb939bd50d8f593b8a8c0e7a0007b3874bdc0"
+    },
+    {
+      "observedAt": "2026-10-07T16:49:25.000Z",
+      "method": "save-capture",
+      "experimentId": "f01-field-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f01-field-create: a Character field of length 1 created; PSDBFIELD inserted with VERSION 83 (the new RDM), one PSDBFLDLABL row; RDM +1 in PSVERSION and PSLOCK, SYS +1 (and XTM, PDM +1 with a PSXLATDEFNDEL row).",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSDBFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSDBFLDLABL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSXLATDEFNDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "RDM": 1,
+          "SYS": 1,
+          "XTM": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f01-field-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "4060057f48d6f0ffcc5ba494f5c449abf9e60c777be206caf09a5b7d43c460b3"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:16:19.813Z",
+    "updatedAt": "2026-10-13T11:16:20.248Z",
+    "schemaVersion": 1
+  }
+}

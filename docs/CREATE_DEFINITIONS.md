@@ -39,7 +39,9 @@ Retroactive captures of App Designer's field saves:
 | f06 | length 5 -> 50, the field in ZZ_FIELD_REC | as f02, and **ZZ_FIELD_REC's VERSION = the new RDM, not restamped** |
 
 Every field save moved PSVERSION RDM, **PDM** and SYS by one, and PSLOCK
-RDM and PDM.
+RDM and PDM. (f06's window also holds ZZ_FIELD_REC's creation, a record
+save: RDM and SYS + 2 there, PDM + 1. The record row keeps its creation
+stamp and ends at the field's VERSION.)
 
 **A short Character field's create** also writes an empty translate marker:
 `PSXLATDEFNDEL` with VERSION = the new XTM, and PSVERSION / PSLOCK XTM and

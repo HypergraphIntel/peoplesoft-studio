@@ -121,7 +121,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 
 ## Recorded findings (tools/intelligence/store)
 
-48 findings, 286 observations, each checked against its capture rows before recording (2026-10-13; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
+57 findings, 386 observations, each checked against its capture rows before recording (2026-10-13; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
 
 | Subsystem | ID | Claim | Status | Obs. |
 |---|---|---|---|---|
@@ -134,6 +134,11 @@ fingerprint; server: see `server/intelligence/README.md`.
 | app-engine | f-aca484c980b5bbc3045596c1 | Changing an App Engine section, step or action moves AEM, AES and SYS by 1 | reproduced | 48 |
 | app-engine | f-d3a388ee70c25792a50ca764 | Deleting an App Engine program moves AEM, AES, SRM and PCM by 2 and SYS by 1, and leaves tombstones at the final counters | observed | 1 |
 | app-engine | f-d477c0ab70e48a7736224355 | Saving a new App Engine program moves AEM by 1 and stamps PSAEAPPLDEFN.VERSION with it | reproduced | 2 |
+| component | f-3cacac9b191a0225654a8f3d | Saving an existing component moves PGM and MDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSPNLGRPDEFN.VERSION is the new PGM | reproduced | 78 |
+| component | f-510fe8f23a5e77342c8859e0 | Creating a component moves PGM by 1 and SYS by 1, not MDM | observed | 1 |
+| component | f-64ec2d6391192f12f64cad1a | An App Designer component save deletes and re-inserts the component's PSPNLGRPDEFN, PSPNLGROUP, PSPNLGRPDEFNEXT and PSPNLGRPSCRIPTS rows | reproduced | 6 |
+| component | f-6acf5819cedc01ac096ddc83 | A component save that changes Fluid Mode or Small Form Factor also moves PRSM by 1 | reproduced | 4 |
+| component | f-d26798fcd3f9779bfc1d21d6 | Component style sheets and JavaScript objects are numbered SEQNO 0, 10, 20 ... per PTSCRIPTTYPE, PTSCRIPTCATG DEV | reproduced | 4 |
 | component-interface | f-05f121f074b6a7576e29a858 | File > Rename of a Component Interface moves BCM, CLM, MPM, PCM, PJM and SYS by 1 each | observed | 1 |
 | component-interface | f-7ad3b8980b1c7ae6b464ca59 | File > Delete of a Component Interface moves BCM, CLM and SYS by 1 (PCM too with PeopleCode) | observed | 1 |
 | component-interface | f-cac4dc5f446f39d9dbbb8026 | Taking a standard method away from a Component Interface also moves CLM | observed | 1 |
@@ -145,7 +150,11 @@ fingerprint; server: see `server/intelligence/README.md`.
 | event-mapping | f-e3a3f17f095c20582322485d | The fluid Configure Event Mapping page re-saves every row on Save | reproduced | 3 |
 | field | f-1d79752a8a48303988b8c2ab | Deleting a field's last translate value leaves a PSXLATDEFNDEL row at that save's XTM; adding a value again deletes it | reproduced | 2 |
 | field | f-633064c7628c8b8f0fd8dd36 | A new translate value takes SYNCID from PSSYSTEMID.PTNEXTSYSTEMID, advanced by 1; rewritten values keep theirs | reproduced | 3 |
+| field | f-80ff5e4273d52649f898bf83 | Creating a field moves RDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSDBFIELD.VERSION is the new RDM | reproduced | 2 |
+| field | f-9e12dd246b7e7619702dd929 | Saving a field sets VERSION on each record holding it to the field's new RDM, without restamping | observed | 1 |
 | field | f-e10dc0f6587024ea43dd7abf | A translate value save moves XTM and PDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSXLATDEFN.VERSION is the new XTM | reproduced | 5 |
+| field | f-e4fc9115d38500fbd986c268 | Saving a changed field moves RDM and PDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSDBFIELD.VERSION is the new RDM | reproduced | 2 |
+| field | f-e7c1a3192f3c6684f68e2935 | Creating a Character field of length 1-4 writes a PSXLATDEFNDEL row at the new XTM and moves XTM and PDM by 1 | reproduced | 2 |
 | menu | f-2485f61a61fab9e7ed10364d | File > Delete of a menu moves CLM, MDM and SYS by 1 | observed | 1 |
 | menu | f-6be47b7e2ae3c56a70dc07c4 | File > Rename of a menu moves TSTM, ACM, CLM, MDM, PCM, PJM, SYS and TSM by 1 each | reproduced | 2 |
 | menu | f-747bf896569263b485e2c14c | Deleting or cutting a menu item (not a separator) or bar moves CLM by 1, with MDM and SYS | reproduced | 4 |
@@ -181,9 +190,12 @@ fingerprint; server: see `server/intelligence/README.md`.
    submission.
 2. **More findings**: menus, Component Interfaces, channel properties and
    records (r*: not r02, r25, r53, r65, whose windows held two saves; the
-   rd* writer runs; the r0N-type-* page cases) are recorded. Remaining
-   capture families: fields, components
-   (c*), page controls (eb*, cbx*, gb*, fr*, f*...) -- check each family's
+   rd* writer runs; the r0N-type-* page cases), fields (c01, c07, f01-f06;
+   not the x* writer runs) and components (c01-c08b and the numbered
+   i336-s406 series; not h398, a two-save window, or the w0N writer runs)
+   are recorded. Remaining capture families:
+   page controls (eb*, cbx*, gb*, fr*, le*, lv*, si*, st*, ...), HTML (h*, ha*,
+   hr*), style sheets (s*) -- check each family's
    format with the adapter, select cases by operation, record with
    `--expect-counters` (DISCOVERY_PROTOCOL.md rules 7-9).
 3. Adapters for the controlled compile lab and writer replay tests.

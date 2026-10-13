@@ -1,0 +1,111 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-9e12dd246b7e7619702dd929",
+  "fingerprint": "9e12dd246b7e7619702dd92917fd37c78572bcef5aa6b131e5bcd5b6bf859749",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "field",
+    "objectType": "Field",
+    "tables": [
+      "PSRECDEFN",
+      "PSDBFIELD"
+    ]
+  },
+  "assertion": {
+    "kind": "referrer-version",
+    "facts": {
+      "reference": "PSRECFIELD.FIELDNAME",
+      "referrerVersionIsNewCounter": "RDM",
+      "referrerRestamped": false
+    }
+  },
+  "title": "Saving a field sets VERSION on each record holding it to the field's new RDM, without restamping",
+  "statement": "When App Designer saves a changed field, the PSRECDEFN row of a record that holds the field takes VERSION = the field's new RDM; its LASTUPDDTTM is not changed. One capture, whose window also holds the record's creation.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T16:50:45.000Z",
+      "method": "save-capture",
+      "experimentId": "f06-field-length-in-record",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f06-field-length-in-record: the window holds two saves (RDM +2): the record created (stamped 11:50:35), then the field's length changed (11:50:40). The record's PSRECDEFN row ends with VERSION 89, the field's new PSDBFIELD.VERSION and the final RDM, and keeps its earlier stamp.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSDBFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSDBFLDLABL",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "RDM": 2,
+          "SYS": 2
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f06-field-length-in-record"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "a51135e54b7e65da7ee6d0117b8ab07cc44353474245e9db7db67dce08dd96f3"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:16:22.205Z",
+    "updatedAt": "2026-10-13T11:16:22.205Z",
+    "schemaVersion": 1
+  }
+}

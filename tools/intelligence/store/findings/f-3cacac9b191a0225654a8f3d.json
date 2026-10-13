@@ -1,0 +1,3425 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-3cacac9b191a0225654a8f3d",
+  "fingerprint": "3cacac9b191a0225654a8f3d4e8855048242c56befb266abffa8c75340b9c3c8",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "component",
+    "objectType": "Component",
+    "tables": [
+      "PSPNLGRPDEFN",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "PGM": 1,
+      "MDM": 1,
+      "SYS": 1,
+      "pslockCounters": "MDM,PGM",
+      "versionColumn": "PSPNLGRPDEFN.VERSION",
+      "versionIsNewCounter": "PGM",
+      "operation": "change"
+    }
+  },
+  "title": "Saving an existing component moves PGM and MDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSPNLGRPDEFN.VERSION is the new PGM",
+  "statement": "App Designer's save of an existing component bumps PSVERSION and PSLOCK PGM and MDM and PSVERSION SYS by one and writes PSPNLGRPDEFN.VERSION as the new PGM. Observed for page items (insert, label, hide, reorder, delete), General, Use, and the Internet, Fluid and Style tabs. A create moves no MDM (separate finding); a save that changes Fluid Mode or Small Form Factor also moves PRSM.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T15:53:34.000Z",
+      "method": "save-capture",
+      "experimentId": "c02-insert-page",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c02-insert-page: PGM +1 (to 326) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 326.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGROUP",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c02-insert-page"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "061a8860f50bf4dd92b028a59b47a0aa41896fa37b1c8f35a0229bb6885b807d"
+    },
+    {
+      "observedAt": "2026-10-10T15:53:37.000Z",
+      "method": "save-capture",
+      "experimentId": "c03-item-label",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c03-item-label: PGM +1 (to 327) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 327.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGROUP",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c03-item-label"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "e50981644ab1b1a9c7d726ed1db05fd80ae1c16a73e990b9ea047b0c13c30f95"
+    },
+    {
+      "observedAt": "2026-10-10T15:53:49.000Z",
+      "method": "save-capture",
+      "experimentId": "c04-hidden",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c04-hidden: PGM +1 (to 328) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 328.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGROUP",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c04-hidden"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "a350d534969aeb094f8805ed25705ff4ed58209f66b4f47962c575224abd7d90"
+    },
+    {
+      "observedAt": "2026-10-10T15:53:58.000Z",
+      "method": "save-capture",
+      "experimentId": "c05-reorder",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c05-reorder: PGM +1 (to 329) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 329.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGROUP",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c05-reorder"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "3ac075dba2d50de9c27760cd675bc441d60932bb9bcf9cba99c1935abd970ba4"
+    },
+    {
+      "observedAt": "2026-10-10T15:54:22.000Z",
+      "method": "save-capture",
+      "experimentId": "c06-delete-page",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c06-delete-page: PGM +1 (to 330) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 330.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGROUP",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c06-delete-page"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "32c2d1af3d09be47604e8c7f94501e10f2b0de5f7c83f618f992164cb7170d23"
+    },
+    {
+      "observedAt": "2026-10-10T15:54:37.000Z",
+      "method": "save-capture",
+      "experimentId": "c07-general",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c07-general: PGM +1 (to 331) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 331.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGROUP",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c07-general"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "a7307952398967a7cc565927e90f0bc2347ed841e120ecf3e73149de69188f55"
+    },
+    {
+      "observedAt": "2026-10-10T15:54:46.000Z",
+      "method": "save-capture",
+      "experimentId": "c08a-use-add",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c08a-use-add: PGM +1 (to 332) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 332.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGROUP",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c08a-use-add"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "80b72003b9144cb4ca7d29e6f791fe82f65e3cd98e3780db150ed4b1148f321d"
+    },
+    {
+      "observedAt": "2026-10-10T16:01:29.550Z",
+      "method": "save-capture",
+      "experimentId": "c08b-use-disable-save",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c08b-use-disable-save: PGM +1 (to 333) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 333.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGROUP",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c08b-use-disable-save"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "2d1362d20a7ffd1eb2de8f63f71a913f7e21b1e495bc24a5bef04ca814bbf0f3"
+    },
+    {
+      "observedAt": "2026-10-10T16:44:01.000Z",
+      "method": "save-capture",
+      "experimentId": "f378-fluid-mode",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f378-fluid-mode: PGM +1 (to 378) and MDM +1 in PSVERSION and PSLOCK, SYS +1 (and PRSM +1); PSPNLGRPDEFN rewritten with VERSION 378.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "PRSM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f378-fluid-mode"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "646c6eb77223156c89fe65d2589a9f40d10abe07ca16eabbf31905515b529a34"
+    },
+    {
+      "observedAt": "2026-10-10T16:44:07.000Z",
+      "method": "save-capture",
+      "experimentId": "f379-layout-only",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f379-layout-only: PGM +1 (to 379) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 379.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f379-layout-only"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "fb4eb1e9139977336c549997783ca96445cbab79e6d37e2b6c9168fd217d1c4f"
+    },
+    {
+      "observedAt": "2026-10-10T16:44:16.000Z",
+      "method": "save-capture",
+      "experimentId": "f380-fluid-page-nav-history",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f380-fluid-page-nav-history: PGM +1 (to 380) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 380.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f380-fluid-page-nav-history"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "a6412d52db74987bd5899a23df6f82b103587fd6c9f65185c62a1ea4bc06a74e"
+    },
+    {
+      "observedAt": "2026-10-10T16:44:22.000Z",
+      "method": "save-capture",
+      "experimentId": "f381-fluid-return-last-page",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f381-fluid-return-last-page: PGM +1 (to 381) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 381.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f381-fluid-return-last-page"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "e9bed0abbd89102c1f99b9df72fbfe250b0047f275228551dede58d6602b37ad"
+    },
+    {
+      "observedAt": "2026-10-10T16:44:31.000Z",
+      "method": "save-capture",
+      "experimentId": "f382-small-form-factor",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f382-small-form-factor: PGM +1 (to 382) and MDM +1 in PSVERSION and PSLOCK, SYS +1 (and PRSM +1); PSPNLGRPDEFN rewritten with VERSION 382.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "PRSM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f382-small-form-factor"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "34ceb070222ac1dfc817220cc6d7eadfa7a70b24e9ba2e1a74a46f703e472a18"
+    },
+    {
+      "observedAt": "2026-10-10T16:44:40.000Z",
+      "method": "save-capture",
+      "experimentId": "f383-no-header",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f383-no-header: PGM +1 (to 383) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 383.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f383-no-header"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "055deeabccaa80162cddf03b62fd70a78fa7dc9cf65e43b5def213ced5be9ccb"
+    },
+    {
+      "observedAt": "2026-10-10T16:44:49.000Z",
+      "method": "save-capture",
+      "experimentId": "f384-no-side",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f384-no-side: PGM +1 (to 384) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 384.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f384-no-side"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "3272c51915b2e14d46ec039ee68bd5ada4ecc941487b91065070b4a9337b55f9"
+    },
+    {
+      "observedAt": "2026-10-10T16:44:58.000Z",
+      "method": "save-capture",
+      "experimentId": "f385-component-type-master-detail",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f385-component-type-master-detail: PGM +1 (to 385) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 385.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f385-component-type-master-detail"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "d933dc4f507302d02abf4382bd52352fd24b8a515474edd1fa29eb2965bbd9a9"
+    },
+    {
+      "observedAt": "2026-10-10T16:46:55.000Z",
+      "method": "save-capture",
+      "experimentId": "f386-search-page-type-master-detail",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f386-search-page-type-master-detail: PGM +1 (to 386) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 386.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f386-search-page-type-master-detail"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "8b48c29758acf55d6970dcf6fe76ca73d04fb009bd20616f84b864d552a42d96"
+    },
+    {
+      "observedAt": "2026-10-10T16:48:11.000Z",
+      "method": "save-capture",
+      "experimentId": "f387-fluid-reset-standard-confsearch",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f387-fluid-reset-standard-confsearch: PGM +1 (to 387) and MDM +1 in PSVERSION and PSLOCK, SYS +1 (and PRSM +1); PSPNLGRPDEFN rewritten with VERSION 387.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "PRSM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f387-fluid-reset-standard-confsearch"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "08650648d5c39dfb91af321d71ac5857accb664a28ad20fcd3fb515da2fe8582"
+    },
+    {
+      "observedAt": "2026-10-10T16:48:17.000Z",
+      "method": "save-capture",
+      "experimentId": "h388-initial-save",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture h388-initial-save: PGM +1 (to 388) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 388.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "h388-initial-save"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "066646d5c0f1be0d555cb612b7968a1c6291eaa2fb7ca8c11975ffe90c5e8cf7"
+    },
+    {
+      "observedAt": "2026-10-10T16:48:21.000Z",
+      "method": "save-capture",
+      "experimentId": "h389-logout",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture h389-logout: PGM +1 (to 389) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 389.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "h389-logout"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "80c72b6be5f45ba78f45119293613625d87a75fc07e36aa0c798b5f92986d34b"
+    },
+    {
+      "observedAt": "2026-10-10T16:48:29.000Z",
+      "method": "save-capture",
+      "experimentId": "h390-home",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture h390-home: PGM +1 (to 390) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 390.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "h390-home"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "036b9581b7910ffef553600966649530f6a795115de33fe2c970f409c82df09e"
+    },
+    {
+      "observedAt": "2026-10-10T16:48:40.000Z",
+      "method": "save-capture",
+      "experimentId": "h391-back",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture h391-back: PGM +1 (to 391) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 391.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "h391-back"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "a975ca8282546b4c097e0e3565292c6c935fa588d398667585c78c2dc31c66b0"
+    },
+    {
+      "observedAt": "2026-10-10T16:49:07.000Z",
+      "method": "save-capture",
+      "experimentId": "h392-help",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture h392-help: PGM +1 (to 392) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 392.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "h392-help"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "42781193be7358544109c77d1d7ae27169c08adbc140afc9b2e35ba42904830a"
+    },
+    {
+      "observedAt": "2026-10-10T16:49:13.000Z",
+      "method": "save-capture",
+      "experimentId": "h393-notify",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture h393-notify: PGM +1 (to 393) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 393.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "h393-notify"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "9c17afdb7bf8bfcb142e8c9e975b0a166fc5dfbd2a80078e8093f5384525a268"
+    },
+    {
+      "observedAt": "2026-10-10T16:49:19.000Z",
+      "method": "save-capture",
+      "experimentId": "h394-notifications",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture h394-notifications: PGM +1 (to 394) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 394.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "h394-notifications"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "156274b69d7c3ac105315cc3d8e5d466111222d7f409c3c0d87bb2f1a178bb1b"
+    },
+    {
+      "observedAt": "2026-10-10T16:49:25.000Z",
+      "method": "save-capture",
+      "experimentId": "h395-navbar",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture h395-navbar: PGM +1 (to 395) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 395.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "h395-navbar"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "891c3f29f861e7806b4fa5cf5b594de2c0013e90ee61c696218f013c834cce18"
+    },
+    {
+      "observedAt": "2026-10-10T16:49:29.000Z",
+      "method": "save-capture",
+      "experimentId": "h396-add-to",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture h396-add-to: PGM +1 (to 396) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 396.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "h396-add-to"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "a0bed93f8d8b75047d4c304774ab3a91bf88af95bf8627944264bc8e0dc174d8"
+    },
+    {
+      "observedAt": "2026-10-10T16:49:37.000Z",
+      "method": "save-capture",
+      "experimentId": "h397-new-window",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture h397-new-window: PGM +1 (to 397) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 397.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "h397-new-window"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "1614a67344cd33ca8b2a5e7760eaba30db499e6fc1f4d85888bc04aebf42003e"
+    },
+    {
+      "observedAt": "2026-10-10T16:16:35.000Z",
+      "method": "save-capture",
+      "experimentId": "i336",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i336: PGM +1 (to 336) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 336.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i336"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "1f69834612d4ff273940d4184698625c3e85e25769410d59f66fcb5fb8d863d5"
+    },
+    {
+      "observedAt": "2026-10-10T16:16:50.000Z",
+      "method": "save-capture",
+      "experimentId": "i337",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i337: PGM +1 (to 337) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 337.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i337"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "438f03ea91d09246f9eab0dd0c273a63c03b87ad2b6736b81a40a5c7bc4495ad"
+    },
+    {
+      "observedAt": "2026-10-10T16:17:41.000Z",
+      "method": "save-capture",
+      "experimentId": "i338",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i338: PGM +1 (to 338) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 338.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i338"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "137fab97f8c714af48bdac4052dd8fce66c1ded3bc10d06cee2cfb390c233a1b"
+    },
+    {
+      "observedAt": "2026-10-10T16:18:41.000Z",
+      "method": "save-capture",
+      "experimentId": "i339",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i339: PGM +1 (to 339) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 339.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i339"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "53eafe91f87ff0ee8a24d6b34fd3af5975e45e532de61aa516de3d54fbfe9afe"
+    },
+    {
+      "observedAt": "2026-10-10T16:18:59.000Z",
+      "method": "save-capture",
+      "experimentId": "i340",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i340: PGM +1 (to 340) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 340.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i340"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "7d297589be88f4a5607306322959554219cd532e21e80ff795d3c74d8cbafe4f"
+    },
+    {
+      "observedAt": "2026-10-10T16:19:08.000Z",
+      "method": "save-capture",
+      "experimentId": "i341",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i341: PGM +1 (to 341) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 341.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i341"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "93d400a0d72ca71027cdfde01cd9365a8c88aaaacd3caa1042ae63b2d7fbe64d"
+    },
+    {
+      "observedAt": "2026-10-10T16:19:17.000Z",
+      "method": "save-capture",
+      "experimentId": "i342",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i342: PGM +1 (to 342) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 342.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i342"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "417acdaef77c1a164e0351ca443b5b0775431e2f0a4b87b9473c134df54d285a"
+    },
+    {
+      "observedAt": "2026-10-10T16:19:29.000Z",
+      "method": "save-capture",
+      "experimentId": "i343",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i343: PGM +1 (to 343) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 343.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i343"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "ebe814e31891f6d35672e45b368b39267b7526e5339611415853634195118b9c"
+    },
+    {
+      "observedAt": "2026-10-10T16:19:56.000Z",
+      "method": "save-capture",
+      "experimentId": "i344",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i344: PGM +1 (to 344) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 344.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i344"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "4e9aa91c68f59fe2f79d3b450ac27251fb033209b4b45bc8ec539cec6e46eb8a"
+    },
+    {
+      "observedAt": "2026-10-10T16:20:05.000Z",
+      "method": "save-capture",
+      "experimentId": "i345",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i345: PGM +1 (to 345) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 345.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i345"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "1aa83a9a8cca4e65dd20f7e5324452b09e2c605fe1ee892422d23cad8ee16f63"
+    },
+    {
+      "observedAt": "2026-10-10T16:20:17.000Z",
+      "method": "save-capture",
+      "experimentId": "i346",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i346: PGM +1 (to 346) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 346.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i346"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "5972bb6678b90dd5bc424d0626eb9589c82a99d0b38c1cb347de4e4124e0e7e1"
+    },
+    {
+      "observedAt": "2026-10-10T16:20:23.000Z",
+      "method": "save-capture",
+      "experimentId": "i347",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i347: PGM +1 (to 347) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 347.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i347"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "bb4b3012664199f4a178ea439b3f658203136733083df0f9eb000ec02a559b03"
+    },
+    {
+      "observedAt": "2026-10-10T16:20:29.000Z",
+      "method": "save-capture",
+      "experimentId": "i348",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i348: PGM +1 (to 348) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 348.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i348"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "7de24cecb755ab9193b1e0b6e5ac8fda12d842a47b5de3f88cb9095043c5f8af"
+    },
+    {
+      "observedAt": "2026-10-10T16:20:35.000Z",
+      "method": "save-capture",
+      "experimentId": "i349",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i349: PGM +1 (to 349) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 349.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i349"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "4f7587b6933af0a2498f19a1f91be3ec5411b1b5e042086faea229db1d29294b"
+    },
+    {
+      "observedAt": "2026-10-10T16:20:41.000Z",
+      "method": "save-capture",
+      "experimentId": "i350",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i350: PGM +1 (to 350) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 350.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i350"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "61404f7ef47ef5d1c216b95089de68d62b0e6720a305e8c61b65c7b43d08dd17"
+    },
+    {
+      "observedAt": "2026-10-10T16:20:56.000Z",
+      "method": "save-capture",
+      "experimentId": "i351",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i351: PGM +1 (to 351) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 351.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i351"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "5410bc2d6e0609ab729ddac2344397da3d4e3a610f67c9eb9cabcb3b62599d1d"
+    },
+    {
+      "observedAt": "2026-10-10T16:21:02.000Z",
+      "method": "save-capture",
+      "experimentId": "i352",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i352: PGM +1 (to 352) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 352.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i352"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "76a4d07bde094927b345c221112150db656b4f0338db0ed6807b03d49bc93ec9"
+    },
+    {
+      "observedAt": "2026-10-10T16:21:08.000Z",
+      "method": "save-capture",
+      "experimentId": "i353",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i353: PGM +1 (to 353) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 353.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i353"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "eda63be719bed3d5b119fecf70b07f6e3df41089ec878be93d20b26c2421a47b"
+    },
+    {
+      "observedAt": "2026-10-10T16:21:17.000Z",
+      "method": "save-capture",
+      "experimentId": "i354",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i354: PGM +1 (to 354) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 354.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i354"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "ef3f7be53f9a4a49756f7213fb6edd4ff1de937764f2a7c3451d5f7a79032fbb"
+    },
+    {
+      "observedAt": "2026-10-10T16:21:23.000Z",
+      "method": "save-capture",
+      "experimentId": "i355",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i355: PGM +1 (to 355) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 355.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i355"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "da6c30105f7c2c9a1e25583566dbb2df8d2b5dd14de7b8cfab2669d8ca5ebe28"
+    },
+    {
+      "observedAt": "2026-10-10T16:21:29.000Z",
+      "method": "save-capture",
+      "experimentId": "i356",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i356: PGM +1 (to 356) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 356.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i356"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "efa741cb58a8e5116d3622ba1119a4f7e79a71e489d515c3d5474e7a38d4dee1"
+    },
+    {
+      "observedAt": "2026-10-10T16:21:38.000Z",
+      "method": "save-capture",
+      "experimentId": "i357",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i357: PGM +1 (to 357) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 357.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i357"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "3a56dd4eca4e11b45658393f46487eb766566b5fe83ff051e9ef142b9eca4b04"
+    },
+    {
+      "observedAt": "2026-10-10T16:21:44.000Z",
+      "method": "save-capture",
+      "experimentId": "i358",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i358: PGM +1 (to 358) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 358.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i358"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "75caf20e33c44de4a780cae9431dcd519a3d6aadf750f782e5cd21d139eda8eb"
+    },
+    {
+      "observedAt": "2026-10-10T16:21:53.000Z",
+      "method": "save-capture",
+      "experimentId": "i359",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i359: PGM +1 (to 359) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 359.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i359"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "90171ee8e7ae24e937eb46daa27b0bc0fe6fff7bb39e6218d2e1ffab08323d39"
+    },
+    {
+      "observedAt": "2026-10-10T16:22:17.000Z",
+      "method": "save-capture",
+      "experimentId": "i360",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i360: PGM +1 (to 360) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 360.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i360"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "0735fb73c10a7e30e82613beabd861235ad95e6aa988f4b4af0675a8d7f08a6d"
+    },
+    {
+      "observedAt": "2026-10-10T16:22:23.000Z",
+      "method": "save-capture",
+      "experimentId": "i361",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i361: PGM +1 (to 361) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 361.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i361"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "f93478e1ee518ba6a59d3c4aa97d2f33f148437669c0eb51107731dc0da1d5b6"
+    },
+    {
+      "observedAt": "2026-10-10T16:22:32.000Z",
+      "method": "save-capture",
+      "experimentId": "i362",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i362: PGM +1 (to 362) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 362.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i362"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "c2334c35001c667208350a93667fae50a293d8f406813eb9ca99bea43b6123c4"
+    },
+    {
+      "observedAt": "2026-10-10T16:22:38.000Z",
+      "method": "save-capture",
+      "experimentId": "i363",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i363: PGM +1 (to 363) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 363.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i363"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "e3611a47e669d8a1ed2c6568901e523dc6e8daae4b9e24f9b7f2673679a0e222"
+    },
+    {
+      "observedAt": "2026-10-10T16:22:44.000Z",
+      "method": "save-capture",
+      "experimentId": "i364",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i364: PGM +1 (to 364) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 364.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i364"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "45b03f839efd62db544d4edb97e83e41397d21df7d0d6d4456043785b411f7a6"
+    },
+    {
+      "observedAt": "2026-10-10T16:22:53.000Z",
+      "method": "save-capture",
+      "experimentId": "i365",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i365: PGM +1 (to 365) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 365.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i365"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "ea748a0ad33c3883a278a5a7e91c5c43b6d91fc98d523ba95cad9cdfc83a7c9b"
+    },
+    {
+      "observedAt": "2026-10-10T16:23:32.000Z",
+      "method": "save-capture",
+      "experimentId": "i366",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i366: PGM +1 (to 366) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 366.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i366"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "6f39342e70b6082bbba284c5bfa24eda5c95f828a702fa043a16f73dc09d791c"
+    },
+    {
+      "observedAt": "2026-10-10T16:23:41.000Z",
+      "method": "save-capture",
+      "experimentId": "i367",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i367: PGM +1 (to 367) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 367.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i367"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "c27941778119853ea0f49e4dea636646c583156afd22c7bb82642d19fe57ef3e"
+    },
+    {
+      "observedAt": "2026-10-10T16:23:50.000Z",
+      "method": "save-capture",
+      "experimentId": "i368",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i368: PGM +1 (to 368) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 368.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i368"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "d418fbc828d9f8f5b7e67a1133b0e458858b98b845916bb24b2df9e48eb0f4ce"
+    },
+    {
+      "observedAt": "2026-10-10T16:23:56.000Z",
+      "method": "save-capture",
+      "experimentId": "i369",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i369: PGM +1 (to 369) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 369.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i369"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "8319a75f79883e4f3bf8d43e76580f4ea759b9aa11479a23b6fc3f5629e55056"
+    },
+    {
+      "observedAt": "2026-10-10T16:24:02.000Z",
+      "method": "save-capture",
+      "experimentId": "i370",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i370: PGM +1 (to 370) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 370.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i370"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "a5bd6177413331ba08217fbd1e95869b05ff2570f6238bd2dc1b09437bf275df"
+    },
+    {
+      "observedAt": "2026-10-10T16:24:08.000Z",
+      "method": "save-capture",
+      "experimentId": "i371",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i371: PGM +1 (to 371) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 371.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i371"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "d2a809188d03c386a538b3a9d4d0c38476a785d210b22b690260d66b0172a97b"
+    },
+    {
+      "observedAt": "2026-10-10T16:39:01.000Z",
+      "method": "save-capture",
+      "experimentId": "i372",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i372: PGM +1 (to 372) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 372.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i372"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "53266780c39f0ce4fd186a14f972fd11dd1f2bd3ce604b673ac94f3c29d6e714"
+    },
+    {
+      "observedAt": "2026-10-10T16:54:55.000Z",
+      "method": "save-capture",
+      "experimentId": "s399-fluid-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s399-fluid-off: PGM +1 (to 399) and MDM +1 in PSVERSION and PSLOCK, SYS +1 (and PRSM +1); PSPNLGRPDEFN rewritten with VERSION 399.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "PRSM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s399-fluid-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "802c8803fb530b05c1200315c13ecc6a7c540563141527872236aca75a7c0ca1"
+    },
+    {
+      "observedAt": "2026-10-10T16:55:10.000Z",
+      "method": "save-capture",
+      "experimentId": "s400-css-add",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s400-css-add: PGM +1 (to 400) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 400.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPSCRIPTS",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s400-css-add"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "46cb68d19a52ada6bdfcbc1eb7c02ecbe2dc88c5d4f6ce678c7eac1d4e6f20d8"
+    },
+    {
+      "observedAt": "2026-10-10T16:55:22.000Z",
+      "method": "save-capture",
+      "experimentId": "s401-css-add-second",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s401-css-add-second: PGM +1 (to 401) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 401.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPSCRIPTS",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s401-css-add-second"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "936358d3de8daa0331ad92e98466de302cd95e3c7ab186d52676287b0ebd37cd"
+    },
+    {
+      "observedAt": "2026-10-10T16:55:31.000Z",
+      "method": "save-capture",
+      "experimentId": "s402-css-move-up",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s402-css-move-up: PGM +1 (to 402) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 402.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPSCRIPTS",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s402-css-move-up"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "203733b22b7d9c038cd004382d3c9c2d805bcd0438a326b1a6f89499e8e265a9"
+    },
+    {
+      "observedAt": "2026-10-10T16:55:49.000Z",
+      "method": "save-capture",
+      "experimentId": "s403-css-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s403-css-delete: PGM +1 (to 403) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 403.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPSCRIPTS",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s403-css-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "f6bb4776154e3eaa81cc7ade9dd3ac6915fbafbb3a42dd73b074f0f726e09545"
+    },
+    {
+      "observedAt": "2026-10-10T16:56:01.000Z",
+      "method": "save-capture",
+      "experimentId": "s404-js-add",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s404-js-add: PGM +1 (to 404) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 404.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPSCRIPTS",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s404-js-add"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "f53df592bbbd815622751ce2fd13983fc39c17f7bc6f849dcd9047c71319f6a4"
+    },
+    {
+      "observedAt": "2026-10-10T16:56:13.000Z",
+      "method": "save-capture",
+      "experimentId": "s405-js-add-second",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s405-js-add-second: PGM +1 (to 405) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 405.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPSCRIPTS",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s405-js-add-second"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "0ecaa77506e81f354e28de9728d98f6c75aca733884db179160866c512b7c588"
+    },
+    {
+      "observedAt": "2026-10-10T17:01:43.381Z",
+      "method": "save-capture",
+      "experimentId": "s406-classic-plus",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s406-classic-plus: PGM +1 (to 406) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 406.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPSCRIPTS",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s406-classic-plus"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "8e58a5ca6a72c55c75b7d90c0992be9e2df4f366f2604b0a5e476387fe8db163"
+    },
+    {
+      "observedAt": "2026-10-10T16:39:16.000Z",
+      "method": "save-capture",
+      "experimentId": "x373-hyperlinks",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture x373-hyperlinks: PGM +1 (to 373) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 373.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "x373-hyperlinks"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "5b75961b10ff843370a7769dba5d6e70c9a1215463d32b71da303f842e45f46e"
+    },
+    {
+      "observedAt": "2026-10-10T16:40:04.000Z",
+      "method": "save-capture",
+      "experimentId": "x374-page-nav-history",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture x374-page-nav-history: PGM +1 (to 374) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 374.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "x374-page-nav-history"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "98a6777a3ce637166ff679a0aabd871d36dceed178497b446ad05957f6baeeb3"
+    },
+    {
+      "observedAt": "2026-10-10T16:40:43.000Z",
+      "method": "save-capture",
+      "experimentId": "x375-toolbar-on",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture x375-toolbar-on: PGM +1 (to 375) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 375.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "x375-toolbar-on"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "0b69634eab1379c98f9da13279ee4992cb750654f43e529baed4b98cf03a5c31"
+    },
+    {
+      "observedAt": "2026-10-10T16:40:52.000Z",
+      "method": "save-capture",
+      "experimentId": "x376-toolbar-add",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture x376-toolbar-add: PGM +1 (to 376) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 376.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "x376-toolbar-add"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "968e93ffd7c0ef1969114485787027315254312d4054d2fc19acf2535df371c8"
+    },
+    {
+      "observedAt": "2026-10-10T16:43:52.000Z",
+      "method": "save-capture",
+      "experimentId": "x377-toolbar-update-display",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture x377-toolbar-update-display: PGM +1 (to 377) and MDM +1 in PSVERSION and PSLOCK, SYS +1; PSPNLGRPDEFN rewritten with VERSION 377.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "x377-toolbar-update-display"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "f4269e73ccb12459764db9209221575a83a10ce6323552ad71bc8e6b9be5c4d9"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:17:39.641Z",
+    "updatedAt": "2026-10-13T11:18:09.735Z",
+    "schemaVersion": 1
+  }
+}

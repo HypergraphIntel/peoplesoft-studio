@@ -1,0 +1,242 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-d26798fcd3f9779bfc1d21d6",
+  "fingerprint": "d26798fcd3f9779bfc1d21d6a0957e36402438731da07ec5899c81c2d6e41439",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "component",
+    "objectType": "Component",
+    "tables": [
+      "PSPNLGRPSCRIPTS"
+    ]
+  },
+  "assertion": {
+    "kind": "numbering",
+    "facts": {
+      "column": "PSPNLGRPSCRIPTS.SEQNO",
+      "start": 0,
+      "step": 10,
+      "scope": "PTSCRIPTTYPE",
+      "order": "list order",
+      "category": "DEV"
+    }
+  },
+  "title": "Component style sheets and JavaScript objects are numbered SEQNO 0, 10, 20 ... per PTSCRIPTTYPE, PTSCRIPTCATG DEV",
+  "statement": "App Designer stores a component's Style tab lists as PSPNLGRPSCRIPTS rows, PTSCRIPTTYPE CSS or JS, PTSCRIPTCATG DEV, numbered from 0 in steps of 10 separately for each type in list order, renumbered on every save (a deleted or moved entry leaves no gap).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T16:55:10.000Z",
+      "method": "save-capture",
+      "experimentId": "s400-css-add",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s400-css-add: PSPNLGRPSCRIPTS after the save: CSS 0, all PTSCRIPTCATG DEV.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPSCRIPTS",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s400-css-add"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "9114554c334206fbdb19f5464028b8e52960afd8bd70174b4ff7a6fec9dd7269"
+    },
+    {
+      "observedAt": "2026-10-10T16:55:22.000Z",
+      "method": "save-capture",
+      "experimentId": "s401-css-add-second",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s401-css-add-second: PSPNLGRPSCRIPTS after the save: CSS 0, CSS 10, all PTSCRIPTCATG DEV.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPSCRIPTS",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s401-css-add-second"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "609e29fc3e7edfa65504d908517394bbf7a1ffbb79b4ac103601092705c36d9a"
+    },
+    {
+      "observedAt": "2026-10-10T16:55:49.000Z",
+      "method": "save-capture",
+      "experimentId": "s403-css-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s403-css-delete: PSPNLGRPSCRIPTS after the save: CSS 0, all PTSCRIPTCATG DEV.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPSCRIPTS",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s403-css-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "4813644f2a0690d9e2cd4788a02f919c133b15b1c6239b137d7ceba65c0f3ed5"
+    },
+    {
+      "observedAt": "2026-10-10T16:56:13.000Z",
+      "method": "save-capture",
+      "experimentId": "s405-js-add-second",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s405-js-add-second: PSPNLGRPSCRIPTS after the save: CSS 0, JS 0, JS 10, all PTSCRIPTCATG DEV.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPSCRIPTS",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s405-js-add-second"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "99d7b4c79dae50087914c63ad5365a3ef59918d023c654cec1f23f8cc8e4244b"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:18:14.333Z",
+    "updatedAt": "2026-10-13T11:18:15.504Z",
+    "schemaVersion": 1
+  }
+}

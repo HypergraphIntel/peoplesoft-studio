@@ -1,0 +1,136 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-e4fc9115d38500fbd986c268",
+  "fingerprint": "e4fc9115d38500fbd986c268d9347e8e2e48d1f043ce38ce5fa777ab09055506",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "field",
+    "objectType": "Field",
+    "tables": [
+      "PSDBFIELD",
+      "PSDBFLDLABL",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "RDM": 1,
+      "PDM": 1,
+      "SYS": 1,
+      "pslockCounters": "PDM,RDM",
+      "versionColumn": "PSDBFIELD.VERSION",
+      "versionIsNewCounter": "RDM",
+      "operation": "change"
+    }
+  },
+  "title": "Saving a changed field moves RDM and PDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSDBFIELD.VERSION is the new RDM",
+  "statement": "App Designer's save of an existing field (length, description) deletes and re-inserts its PSDBFIELD row with VERSION = the new RDM and a new stamp, rewrites its PSDBFLDLABL rows, and bumps PSVERSION and PSLOCK RDM and PDM and PSVERSION SYS by one. Why PDM moves is not established.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T16:49:35.000Z",
+      "method": "save-capture",
+      "experimentId": "f02-field-length",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f02-field-length: length changed; PSDBFIELD deleted (VERSION 83) and re-inserted with VERSION 84 (the new RDM), length 1 -> 5; PSDBFLDLABL 1 rewritten; RDM and PDM +1 in PSVERSION and PSLOCK, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSDBFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSDBFLDLABL",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f02-field-length"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "43cd8cd9ca2b0fa550809553e5e4cea3557b3016b2b708bfd1e5743b364ba715"
+    },
+    {
+      "observedAt": "2026-10-07T16:50:10.000Z",
+      "method": "save-capture",
+      "experimentId": "f04-field-descr",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f04-field-descr: description changed; PSDBFIELD deleted (VERSION 86) and re-inserted with VERSION 87 (the new RDM), length 5 -> 5; PSDBFLDLABL 2 rewritten; RDM and PDM +1 in PSVERSION and PSLOCK, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSDBFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSDBFLDLABL",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f04-field-descr"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "e9521a3420ee77621d949174e6e5fabac9272611eab9dda94fd6536bdfd7dc1e"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:16:21.446Z",
+    "updatedAt": "2026-10-13T11:16:21.829Z",
+    "schemaVersion": 1
+  }
+}

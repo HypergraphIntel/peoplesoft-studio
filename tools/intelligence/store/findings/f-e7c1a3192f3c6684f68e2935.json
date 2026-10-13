@@ -1,0 +1,149 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-e7c1a3192f3c6684f68e2935",
+  "fingerprint": "e7c1a3192f3c6684f68e2935d215cf2da73d93d6757653de925a7fb5053d871c",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "field",
+    "objectType": "Field",
+    "tables": [
+      "PSXLATDEFNDEL",
+      "PSDBFIELD",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "create-marker",
+    "facts": {
+      "table": "PSXLATDEFNDEL",
+      "fieldType": "Character",
+      "lengthRange": "1-4",
+      "XTM": 1,
+      "PDM": 1,
+      "versionIsNewCounter": "XTM"
+    }
+  },
+  "title": "Creating a Character field of length 1-4 writes a PSXLATDEFNDEL row at the new XTM and moves XTM and PDM by 1",
+  "statement": "When App Designer creates a Character field short enough to carry translate values, it also inserts PSXLATDEFNDEL for the field with VERSION = the new XTM and bumps PSVERSION and PSLOCK XTM and PDM by one. Observed at lengths 1 and 4; not at 5 (c07's second field) or 10 (c01). Lengths 2 and 3 are not observed.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T16:49:25.000Z",
+      "method": "save-capture",
+      "experimentId": "f01-field-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f01-field-create: Character field of length 1 created; PSXLATDEFNDEL inserted with VERSION 17 (the new XTM); XTM and PDM +1 in PSVERSION and PSLOCK.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSDBFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSDBFLDLABL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSXLATDEFNDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "RDM": 1,
+          "SYS": 1,
+          "XTM": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f01-field-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "3e062e3b734370f972cb19da10a48697e2ea116c2550fac4a7c828b4f22c5a69"
+    },
+    {
+      "observedAt": "2026-10-07T18:41:22.278Z",
+      "method": "save-capture",
+      "experimentId": "c07-field-create-len4",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c07-field-create-len4: two Character fields created (lengths 4, 5; RDM and SYS +2); one PSXLATDEFNDEL row, for the length-4 field, with VERSION 18 (the new XTM); XTM and PDM +1 in PSVERSION and PSLOCK.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSDBFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSDBFLDLABL",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSXLATDEFNDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "RDM": 2,
+          "SYS": 2,
+          "XTM": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c07-field-create-len4"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "fe84655ebdb5c6b92356d4ac37454aa6f3e5cbe362c4da640bca67e282f98cd8"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:16:20.640Z",
+    "updatedAt": "2026-10-13T11:16:21.039Z",
+    "schemaVersion": 1
+  }
+}

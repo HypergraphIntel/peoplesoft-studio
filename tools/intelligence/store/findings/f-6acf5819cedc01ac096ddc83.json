@@ -1,0 +1,223 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-6acf5819cedc01ac096ddc83",
+  "fingerprint": "6acf5819cedc01ac096ddc838be9042bfabdaa57216ace1eedb182f3980b7892",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "component",
+    "objectType": "Component",
+    "tables": [
+      "PSPNLGRPDEFN",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "PRSM": 1,
+      "PGM": 1,
+      "MDM": 1,
+      "SYS": 1,
+      "trigger": "PSPNLGRPDEFN.FLUIDMODE or SMALLFFOPT changed"
+    }
+  },
+  "title": "A component save that changes Fluid Mode or Small Form Factor also moves PRSM by 1",
+  "statement": "When App Designer saves a component whose PSPNLGRPDEFN.FLUIDMODE or SMALLFFOPT changed, PSVERSION and PSLOCK PRSM move by one besides PGM, MDM and SYS. In the component captures PRSM moved in exactly the four saves that changed one of them (on or off) and in none of the others; no portal registry row changed in those windows, so what PRSM versions here is not established.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T16:44:01.000Z",
+      "method": "save-capture",
+      "experimentId": "f378-fluid-mode",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f378-fluid-mode: FLUIDMODE 0 -> 1; PRSM +1 in PSVERSION and PSLOCK with PGM and MDM, SYS +1; only PSPNLGRPDEFN and PSPNLGRPDEFNEXT rows changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "PRSM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f378-fluid-mode"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "1f78e41115a89ae0aa9f45dd7fa5200b804d82969cec66a5b33d07f932e4ec1f"
+    },
+    {
+      "observedAt": "2026-10-10T16:44:31.000Z",
+      "method": "save-capture",
+      "experimentId": "f382-small-form-factor",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f382-small-form-factor: SMALLFFOPT 0 -> 1; PRSM +1 in PSVERSION and PSLOCK with PGM and MDM, SYS +1; only PSPNLGRPDEFN and PSPNLGRPDEFNEXT rows changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "PRSM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f382-small-form-factor"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "97df4bbc0ee34392ddbc13d242b9ae6369d5d7e956b0dbfcda0f05b14ec87e82"
+    },
+    {
+      "observedAt": "2026-10-10T16:48:11.000Z",
+      "method": "save-capture",
+      "experimentId": "f387-fluid-reset-standard-confsearch",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f387-fluid-reset-standard-confsearch: SMALLFFOPT 1 -> 0 among other Fluid tab changes; PRSM +1 in PSVERSION and PSLOCK with PGM and MDM, SYS +1; only PSPNLGRPDEFN and PSPNLGRPDEFNEXT rows changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "PRSM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f387-fluid-reset-standard-confsearch"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "6dafe078b3c5aa9bc12f0d03f7e15cfb2308d8888f3ad51f609c424b05f64d90"
+    },
+    {
+      "observedAt": "2026-10-10T16:54:55.000Z",
+      "method": "save-capture",
+      "experimentId": "s399-fluid-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s399-fluid-off: FLUIDMODE 1 -> 0; PRSM +1 in PSVERSION and PSLOCK with PGM and MDM, SYS +1; only PSPNLGRPDEFN and PSPNLGRPDEFNEXT rows changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "PRSM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s399-fluid-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "c0951a4e71f938f9b6642ed03ffec368fc88b068312e46eb4cf4d28f7e047630"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:18:10.506Z",
+    "updatedAt": "2026-10-13T11:18:11.635Z",
+    "schemaVersion": 1
+  }
+}

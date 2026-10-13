@@ -1,0 +1,316 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-64ec2d6391192f12f64cad1a",
+  "fingerprint": "64ec2d6391192f12f64cad1a11665bfc154e901d73b38277c109d0c80d6f9a55",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "component",
+    "objectType": "Component",
+    "tables": [
+      "PSPNLGRPDEFN",
+      "PSPNLGROUP",
+      "PSPNLGRPDEFNEXT",
+      "PSPNLGRPSCRIPTS"
+    ]
+  },
+  "assertion": {
+    "kind": "physical-rewrite",
+    "facts": {
+      "tables": "PSPNLGRPDEFN,PSPNLGROUP,PSPNLGRPDEFNEXT,PSPNLGRPSCRIPTS",
+      "everyRowDeletedAndReinsertedOnSave": true,
+      "evidence": "ROWID diff"
+    }
+  },
+  "title": "An App Designer component save deletes and re-inserts the component's PSPNLGRPDEFN, PSPNLGROUP, PSPNLGRPDEFNEXT and PSPNLGRPSCRIPTS rows",
+  "statement": "On Save, App Designer physically rewrites the component: its PSPNLGRPDEFN row, every PSPNLGROUP item and, where they exist, its PSPNLGRPDEFNEXT row and every PSPNLGRPSCRIPTS row get new ROWIDs, changed or not. Inferred from flashback ROWID diffs. Studio's component writer updates in place, which leaves the same keyed rows.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T15:53:37.000Z",
+      "method": "save-capture",
+      "experimentId": "c03-item-label",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c03-item-label: inserted / deleted by ROWID: PSPNLGRPDEFN 1/1, PSPNLGROUP 2/2, PSPNLGRPDEFNEXT 0/0, PSPNLGRPSCRIPTS 0/0; no in-place updates.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGROUP",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c03-item-label"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "c42b5587bcacb0544d0db9f1481803b573977e52dadbdbb48188cba1574819b2"
+    },
+    {
+      "observedAt": "2026-10-10T15:53:49.000Z",
+      "method": "save-capture",
+      "experimentId": "c04-hidden",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c04-hidden: inserted / deleted by ROWID: PSPNLGRPDEFN 1/1, PSPNLGROUP 2/2, PSPNLGRPDEFNEXT 0/0, PSPNLGRPSCRIPTS 0/0; no in-place updates.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGROUP",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c04-hidden"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "ce6a01fcf316ea90d90a0a711b12bc4cc332ca9064fdd74cff14e409b81aec42"
+    },
+    {
+      "observedAt": "2026-10-10T15:53:58.000Z",
+      "method": "save-capture",
+      "experimentId": "c05-reorder",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c05-reorder: inserted / deleted by ROWID: PSPNLGRPDEFN 1/1, PSPNLGROUP 2/2, PSPNLGRPDEFNEXT 0/0, PSPNLGRPSCRIPTS 0/0; no in-place updates.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGROUP",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c05-reorder"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "9de1fec91e1d08b256a74e90cc9d23448f0503184472dea9a1a8d7aa9398c801"
+    },
+    {
+      "observedAt": "2026-10-10T16:19:08.000Z",
+      "method": "save-capture",
+      "experimentId": "i341",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture i341: inserted / deleted by ROWID: PSPNLGRPDEFN 1/1, PSPNLGROUP 0/0, PSPNLGRPDEFNEXT 1/1, PSPNLGRPSCRIPTS 0/0; no in-place updates.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "i341"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "385edadb593f8cbdd5a93a280b821b4a0364b4e8c4d9e18fd16a4495c0252603"
+    },
+    {
+      "observedAt": "2026-10-10T16:55:31.000Z",
+      "method": "save-capture",
+      "experimentId": "s402-css-move-up",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s402-css-move-up: inserted / deleted by ROWID: PSPNLGRPDEFN 1/1, PSPNLGROUP 0/0, PSPNLGRPDEFNEXT 1/1, PSPNLGRPSCRIPTS 2/2; no in-place updates.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPSCRIPTS",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s402-css-move-up"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "724e308438781022ddb910184e6fc92512e976bffce1981a3c93caabde894b7e"
+    },
+    {
+      "observedAt": "2026-10-10T17:01:43.381Z",
+      "method": "save-capture",
+      "experimentId": "s406-classic-plus",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s406-classic-plus: inserted / deleted by ROWID: PSPNLGRPDEFN 1/1, PSPNLGROUP 0/0, PSPNLGRPDEFNEXT 1/1, PSPNLGRPSCRIPTS 3/3; no in-place updates.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPSCRIPTS",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s406-classic-plus"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "1dc182f087126faba949054cd9b5135879c93a7f70b8e707e204ff4a52e81180"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:18:11.998Z",
+    "updatedAt": "2026-10-13T11:18:13.939Z",
+    "schemaVersion": 1
+  }
+}

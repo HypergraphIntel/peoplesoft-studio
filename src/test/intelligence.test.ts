@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import {
   answerCapability, decideUpload, engineeringTask, observationFromLabRun, parseLabRun, DiscoveryInputError, KNOWLEDGE_NEVER_GRANTS, DiscoveryStore, keyIdOf, KnowledgeStore, policyFileLocations, TRUSTED_KNOWLEDGE_KEYS, verifyEnvelope, findingFingerprint, observationDigest, observationFromCapture, previewSubmission, PrivacyRejectedError,
   sanitizedDeltaOf, scanFinding, type FindingInput
@@ -376,10 +377,16 @@ test('the research store\'s findings still match their captures: every capture-b
       if (o.method !== 'save-capture' || !o.delta || !capture || !existsSync(path.join(results, capture, 'delta.json'))) continue;
       const delta = JSON.parse(readFileSync(path.join(results, capture, 'delta.json'), 'utf8'));
       if (f.assertion.kind === 'physical-rewrite') {
-        // Recorded from the ROWID (physical) diff, for the tables it names.
-        for (const t of o.delta.tables) {
-          const phys = delta.otherTables[t.table] ?? {};
-          assert.deepEqual([t.inserted, t.deleted, t.updated], [(phys.inserted ?? []).length, (phys.deleted ?? []).length, (phys.updated ?? []).length], `${f.id} ${capture} ${t.table}`);
+        // The claim: in the ROWID (physical) diff, no table it names was updated in place.
+        for (const t of String(f.assertion.facts.tables).split(',')) {
+          assert.equal((delta.otherTables[t]?.updated ?? []).length, 0, `${f.id} ${capture} ${t}: updated in place`);
+        }
+        // Recorded by the adapter (watch tables by key), or from the ROWID diff for the tables it names.
+        if (!isDeepStrictEqual(o.delta, sanitizedDeltaOf(delta))) {
+          for (const t of o.delta.tables) {
+            const phys = delta.otherTables[t.table] ?? {};
+            assert.deepEqual([t.inserted, t.deleted, t.updated], [(phys.inserted ?? []).length, (phys.deleted ?? []).length, (phys.updated ?? []).length], `${f.id} ${capture} ${t.table}`);
+          }
         }
       } else {
         assert.deepEqual(o.delta, sanitizedDeltaOf(delta), `${f.id}: capture ${capture} no longer shows what was recorded`);
