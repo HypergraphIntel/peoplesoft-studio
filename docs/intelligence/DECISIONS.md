@@ -253,3 +253,20 @@ re-verified whenever it is read.
 `manual`) gates *Check for Knowledge Updates*, separately from submissions.
 A download sends nothing but the request; it needs an HTTPS server (plain
 HTTP only to this machine) and installs only what verifies.
+
+## D18 — Capability answers: only published knowledge verifies (2026-10-13)
+
+**Decided.** `answerCapability()` matches findings by subsystem, object
+type, table (subject or facts), assertion kind and words, from the
+installed verified bundle (revoked ids excluded, also locally) and local
+findings. For a release (a connection's PSSTATUS.TOOLSREL, or given; a
+family such as 8.62 matches its patch levels): VERIFIED needs a published
+finding verified on it; UNSUPPORTED a finding naming it incompatible;
+CONFLICTING both; UNVERIFIED only local or unverified-on-this-release
+evidence; UNKNOWN nothing. Local findings never make an answer VERIFIED.
+Answers carry no permission field; the first note always says knowledge
+never grants a write.
+
+**Not chosen.** A numeric score (invites thresholds an agent would treat as
+permission); folding confidence into the answer (confidence is the author's,
+the answer is about verification).

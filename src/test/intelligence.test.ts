@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import {
-  decideUpload, DiscoveryInputError, DiscoveryStore, keyIdOf, KnowledgeStore, policyFileLocations, TRUSTED_KNOWLEDGE_KEYS, verifyEnvelope, findingFingerprint, observationDigest, observationFromCapture, previewSubmission, PrivacyRejectedError,
+  answerCapability, decideUpload, DiscoveryInputError, KNOWLEDGE_NEVER_GRANTS, DiscoveryStore, keyIdOf, KnowledgeStore, policyFileLocations, TRUSTED_KNOWLEDGE_KEYS, verifyEnvelope, findingFingerprint, observationDigest, observationFromCapture, previewSubmission, PrivacyRejectedError,
   sanitizedDeltaOf, scanFinding, type FindingInput
 } from '../intelligence/index.js';
 import { contractVectors, findingInputJsonSchema } from '../intelligence/contract.js';
@@ -288,5 +288,37 @@ test('a bundle signed by the server verifies here; tampering, untrusted keys, ex
     assert.equal((await k.current(now))?.bundle?.version, 3);
     assert.match((await k.install(vector.envelope, now)).reasons.join(), /rollback refused/);
     assert.equal((await new KnowledgeStore(root, () => []).current(now))?.ok, false, 'a key no longer trusted invalidates what was installed');
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('capability answers: verified on a release, unsupported, conflicting, unverified, unknown -- never a grant', async () => {
+  const vector = JSON.parse(readFileSync('server/intelligence/contract/bundle-vector.json', 'utf8'));
+  const now = new Date('2026-10-14T00:00:00Z');
+  const bundle = verifyEnvelope(vector.envelope, [{ keyId: vector.keyId, publicKey: vector.publicKey }], { now }).bundle!;
+  const root = temp();
+  try {
+    const s = await new DiscoveryStore(root).open();
+    const local = (await s.record(base())).finding;
+    const q = { subsystem: 'event-mapping', table: 'PSPTCSSRVCONF' };
+    const v = answerCapability({ ...q, release: '8.62.09' }, [local], bundle);
+    assert.equal(v.answer, 'VERIFIED');
+    assert.deepEqual(v.evidence.map((e) => [e.source, e.onRelease]), [['published', 'verified'], ['local', 'observed']]);
+    assert.ok(v.notes[0] === KNOWLEDGE_NEVER_GRANTS && /never grants a write/.test(v.notes[0]));
+    assert.ok(!('allowed' in v) && !('permission' in v), 'an answer carries no permission');
+    assert.equal(answerCapability({ ...q, release: '8.62' }, [local], bundle).answer, 'VERIFIED', 'a release family matches its patch level');
+    const other = answerCapability({ ...q, release: '8.60' }, [local], bundle);
+    assert.equal(other.answer, 'UNVERIFIED');
+    assert.match(other.notes.join(), /none is verified on 8.60/);
+    assert.equal(answerCapability({ ...q, release: '8.62.09' }, [local]).answer, 'UNVERIFIED', 'local findings alone never verify');
+    assert.equal(answerCapability({ subsystem: 'page-designer', release: '8.62' }, [local], bundle).answer, 'UNKNOWN');
+    const incompatible = (await s.record({ ...base(), assertion: { kind: 'row-resave', facts: { table: 'PSPTCSSRVCONF', everyRowOnSave: false } }, knownIncompatible: ['8.62.09'],
+      observation: { ...base().observation, environment: { peopleToolsRelease: '8.61.05' } } })).finding;
+    assert.equal(answerCapability({ ...q, release: '8.62.09' }, [local, incompatible], bundle).answer, 'CONFLICTING');
+    assert.equal(answerCapability({ ...q, release: '8.62.09' }, [incompatible]).answer, 'UNSUPPORTED');
+    // A revoked id in the bundle silences the local copy too.
+    const revokedBundle = { ...bundle, findings: [], revoked: [local.id] };
+    const r = answerCapability({ ...q, release: '8.62.09' }, [local], revokedBundle);
+    assert.equal(r.answer, 'UNKNOWN');
+    assert.match(r.notes.join(), /revoked/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

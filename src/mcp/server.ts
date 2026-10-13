@@ -34,6 +34,7 @@ import { registerCiTools } from './ciTools.js';
 import { registerChannelTools } from './channelTools.js';
 import { registerCustomizationTools } from './customizationTools.js';
 import { registerEventMappingTools } from './eventMappingTools.js';
+import { registerDiscoveryTools } from './discoveryTools.js';
 import { runToolsAsAgent } from './agentOrigin.js';
 
 import {
@@ -209,6 +210,7 @@ export async function startPeopleSoftMcpServer(
         );
         registerCustomizationTools(server, workspace);
         registerEventMappingTools(server, workspace, writeHost);
+        registerDiscoveryTools(server, workspace, writeHost);
 
         if (writeHost) {
           registerPeopleSoftWriteTools(

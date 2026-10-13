@@ -14,3 +14,4 @@ export { previewSubmission, type ProjectionOptions, type Removal, type Submissio
 export { decideUpload, policyFileLocations, type MachinePolicy, type UploadDecision, type UploadInputs, type UploadMode } from './policy.js';
 export { BUNDLE_FORMAT, ENVELOPE_FORMAT, keyIdOf, KnowledgeStore, verifyEnvelope, type KnowledgeBundle, type KnowledgeFinding, type TrustedKey, type VerifyResult } from './knowledge.js';
 export { TRUSTED_KNOWLEDGE_KEYS } from './trustedKeys.js';
+export { answerCapability, KNOWLEDGE_NEVER_GRANTS, type CapabilityAnswer, type CapabilityEvidence, type CapabilityQuestion, type CapabilityResult } from './capability.js';

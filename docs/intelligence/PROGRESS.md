@@ -1,7 +1,7 @@
 # Progress and handoff
 
 **Read this first when resuming the Discovery & Intelligence Network.**
-Last updated 2026-10-13 (phase 4). The founding directive: `CUSTOMIZATION_INTEL_SERVER.md`
+Last updated 2026-10-13 (phase 5). The founding directive: `CUSTOMIZATION_INTEL_SERVER.md`
 (repository root).
 
 ## Current state
@@ -13,8 +13,8 @@ Last updated 2026-10-13 (phase 4). The founding directive: `CUSTOMIZATION_INTEL_
   window. Evidence below.
 - **Phase 4 (verification, distribution): done** but for a production
   signing key (none is trusted: every bundle is refused). Evidence below.
-- **Phases 5–6: not started.** MCP knowledge tools, GitHub automation are
-  design only.
+- **Phase 5 (MCP): tools done**; planning features do not consult them yet.
+- **Phase 6 (development automation): not started.**
 - **Nothing leaves by default.** Submissions need four gates (D13) and the
   user's approval of the exact payloads. The server has run only on localhost.
 
@@ -75,7 +75,17 @@ Last updated 2026-10-13 (phase 4). The founding directive: `CUSTOMIZATION_INTEL_
 | Withdrawal | `DELETE /contributors/me` (test: observations gone, finding withdrawn, token revoked) |
 | Tests | pytest 44 on PostgreSQL, 43 + 1 skipped on SQLite; `npm test` intelligence 12 |
 
-**Not verified:** the Discovery Center and *Show Discoveries* in a real VS Code window; the
+## Phase 5 evidence
+
+| Criterion | Evidence |
+|---|---|
+| Verified knowledge lookup | `psft_knowledge_capability` over the installed verified bundle + local findings |
+| Capability confidence reporting | Five answers, D18; test with the server-signed bundle: VERIFIED on 8.62.09 and 8.62, UNVERIFIED on 8.60 and with local findings only, CONFLICTING, UNSUPPORTED, UNKNOWN, revocation |
+| Version-scoped | The connection's PSSTATUS.TOOLSREL (`releaseFrom`), or a given release |
+| Evidence and provenance | `psft_knowledge_evidence`, `psft_knowledge_compatibility` |
+| Gates unchanged | Answers carry no permission (tested); no tool touches a writer; recording needs MCP writes on and the user's approval |
+
+**Not verified:** the MCP tools from a real MCP client; the Discovery Center and *Show Discoveries* in a real VS Code window; the
 CI workflow has not run on GitHub (nothing pushed); concurrent writers on
 one *local* store across processes (documented limit, D1); the server under
 load or behind TLS.
@@ -91,6 +101,7 @@ load or behind TLS.
 | `src/intelligence/{submission,policy}.ts` | `previewSubmission()`, `decideUpload()` (pure) |
 | `src/intelligence/{knowledge,trustedKeys}.ts` | Bundle verification, `KnowledgeStore`; trusted keys (none yet) |
 | `server/intelligence/app/{review,bundle}.py` | Review rules; bundle build, sign, verify |
+| `src/intelligence/capability.ts`, `src/mcp/discoveryTools.ts` | Capability answers; the six MCP tools |
 | `server/intelligence/contract/bundle-vector.json` | A server-signed bundle the extension must verify (test key, private half discarded) |
 | `tools/intelligence/discovery.mts` | CLI: record, capture, list, get |
 | `tools/intelligence/export-contract.mts` | Writes `server/intelligence/contract/` |
@@ -117,15 +128,13 @@ fingerprint; server: see `server/intelligence/README.md`.
 1. **Open the Discovery Center in a real VS Code window** (install the
    built VSIX): the view, a panel, the review; with the local server, one
    submission.
-2. **Phase 5 start — MCP knowledge tools** (MCP_INTEGRATION.md):
-   `psft_discovery_list` / `_get` over the installation's and the
-   workspace's stores; `psft_knowledge_capability` / `_compatibility` /
-   `_evidence` over installed verified knowledge plus local findings,
-   answering VERIFIED / UNVERIFIED / UNSUPPORTED / UNKNOWN / CONFLICTING with
-   provenance and the connection's release (`readRelease`); a test proving no
-   answer opens a write gate. `psft_discovery_record` (agent-recorded,
-   approved like any MCP write).
-3. A lab-e2e adapter (`testResults` from `tools/lab/*-e2e.mts`).
+2. **Planning consults knowledge**: the Customization Strategy view's
+   Event Mapping capability row and `psft_customization_discover` show the
+   matching findings' answer for the connection's release (information only).
+3. **Phase 6 start**: a script turning a verified (or reproduced) finding
+   into a GitHub issue body and a regression-fixture stub (dry-run output;
+   creating issues needs the owner's go-ahead and least-privilege token).
+4. A lab-e2e adapter (`testResults` from `tools/lab/*-e2e.mts`).
 4. Owner decisions: the production signing key (generate offline, add to
    `trustedKeys.ts` in a release); the retention policy (SECURITY_PRIVACY.md)
    before uploads are used outside this project.

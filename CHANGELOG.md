@@ -81,6 +81,11 @@ See docs/CUSTOMIZATION.md.
   from findings. *Check for Knowledge Updates* (`peoplesoft.intelligence.knowledgeSync`,
   off by default), *Install Knowledge Bundle from File…*. No signing key is
   trusted yet, so no bundle is installed.
+- MCP: `psft_discovery_list`, `psft_discovery_get`, `psft_discovery_record`
+  (local only, approved by you), `psft_knowledge_capability` (VERIFIED /
+  UNVERIFIED / UNSUPPORTED / CONFLICTING / UNKNOWN for the connection's
+  PeopleTools release, with the evidence; never a permission),
+  `psft_knowledge_compatibility`, `psft_knowledge_evidence`.
 
 ## 0.8.4
 

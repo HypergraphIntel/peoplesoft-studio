@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { readFile } from 'node:fs/promises';
 import { DiscoveryInputError, DiscoveryStore, KnowledgeStore, PrivacyRejectedError, TRUSTED_KNOWLEDGE_KEYS } from './intelligence/index.js';
-import { DiscoveryPanel, DiscoveryTree, discoverySources, TOKEN_KEY } from './views/discoveryView.js';
+import { DiscoveryPanel, DiscoveryTree, discoverySources, TOKEN_KEY, type DiscoverySource } from './views/discoveryView.js';
 
 /*
  * The extension's side of the Discovery & Intelligence Network
@@ -28,9 +28,21 @@ export function discoveryStore(context: vscode.ExtensionContext): Promise<Discov
   return store;
 }
 
+/** What the MCP's discovery and knowledge tools read (src/mcp/discoveryTools.ts), once the extension has activated. */
+export interface IntelligenceAccess {
+  sources: () => Promise<DiscoverySource[]>;
+  installation: () => Promise<DiscoveryStore>;
+  knowledge: () => Promise<KnowledgeStore>;
+  refresh: () => void;
+}
+
+let access: IntelligenceAccess | undefined;
+export function intelligenceAccess(): IntelligenceAccess | undefined { return access; }
+
 export function registerIntelligenceCommands(context: vscode.ExtensionContext): void {
   const sources = discoverySources(() => discoveryStore(context));
   const tree = new DiscoveryTree(sources, () => knowledgeStore(context));
+  access = { sources, installation: () => discoveryStore(context), knowledge: () => knowledgeStore(context), refresh: () => tree.refresh() };
   const report = async (r: { ok: boolean; reasons: string[]; bundle?: { version: number; findings: unknown[] } }, from: string) => {
     tree.refresh();
     if (r.ok && r.bundle) void vscode.window.showInformationMessage(`Knowledge bundle ${r.bundle.version} installed from ${from}: ${r.bundle.findings.length} published finding(s).`);
