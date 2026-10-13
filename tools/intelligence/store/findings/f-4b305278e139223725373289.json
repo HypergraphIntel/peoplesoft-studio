@@ -1,0 +1,95 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-4b305278e139223725373289",
+  "fingerprint": "4b305278e139223725373289e6588e3c466b2f44640901d513c4b06ae383c307",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "peoplecode",
+    "objectType": "Application Class PeopleCode",
+    "tables": [
+      "PSPCMPROG",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "PCM": 1,
+      "SYS": 1,
+      "APM": 0,
+      "versionIsNewCounter": "PCM",
+      "untouched": "PSAPPCLASSDEFN,PSPACKAGEDEFN"
+    }
+  },
+  "title": "Changing an application class's PeopleCode, its interface included, moves only PCM and SYS; PSAPPCLASSDEFN and PSPACKAGEDEFN are not touched",
+  "statement": "App Designer's save of an existing application class whose PeopleCode changed -- a new method declared and defined included -- replaces the class's PSPCMTXT, PSPCMPROG and PSPCMNAME rows (VERSION = the new PCM) and moves PCM and SYS by one; no PSAPPCLASSDEFN or PSPACKAGEDEFN row and no APM moves.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-06T17:09:07.352Z",
+      "method": "save-capture",
+      "experimentId": "12b-class-signature",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 12b-class-signature: a method added to the class's declaration and body; PSPCMTXT, PSPCMPROG, PSPCMNAME replaced with VERSION 77 (the new PCM); PCM +1, SYS +1; no other table changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "12b-class-signature"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "1bdef9faff1d375b4c6b7ae3be37b492634a07fdece8b21bb53fd36eccb32fe6"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:49:00.592Z",
+    "updatedAt": "2026-10-13T11:49:00.592Z",
+    "schemaVersion": 1
+  }
+}

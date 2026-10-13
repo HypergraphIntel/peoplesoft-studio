@@ -1,0 +1,153 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-f5ee5f5d3c262cf5fcefaf63",
+  "fingerprint": "f5ee5f5d3c262cf5fcefaf637ba7e035fd80160a71c4eedbd53349550fad1b7d",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "peoplecode",
+    "objectType": "Record PeopleCode",
+    "tables": [
+      "PSPCMPROGDEL",
+      "PSPCMPROG"
+    ]
+  },
+  "assertion": {
+    "kind": "tombstone",
+    "facts": {
+      "table": "PSPCMPROGDEL",
+      "writtenWhen": "program saved empty",
+      "versionIsNewCounter": "PCM",
+      "clearedWhen": "key saved again"
+    }
+  },
+  "title": "Saving a PeopleCode program empty deletes it and writes PSPCMPROGDEL at the new PCM; saving the key again deletes that marker",
+  "statement": "When App Designer saves a PeopleCode program with all its text deleted, every PSPCMTXT, PSPCMPROG and PSPCMNAME row of its key goes and a PSPCMPROGDEL row (the seven-part key, VERSION = the new PCM, no timestamp) remains; the next save that creates a program on that key deletes the PSPCMPROGDEL row.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-06T16:53:00.676Z",
+      "method": "save-capture",
+      "experimentId": "11-empty",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 11-empty: the key's PSPCMTXT, PSPCMPROG and PSPCMNAME rows deleted (1 / 1 / 2), nothing inserted; PSPCMPROGDEL inserted with VERSION 72 (the new PCM).",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "11-empty"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "74a8ae71b8978789f8f30f2885d573c34a858b413281f4403a251c56635d3e09"
+    },
+    {
+      "observedAt": "2026-10-06T16:59:16.862Z",
+      "method": "save-capture",
+      "experimentId": "11b-recreate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 11b-recreate: the program created again on the same key; its PSPCMPROGDEL row deleted.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "11b-recreate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "3a80217bbcbf3b89ce9bcb96fc522388b9383947d6d0b3db79051fe702b87890"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:48:58.585Z",
+    "updatedAt": "2026-10-13T11:48:59.821Z",
+    "schemaVersion": 1
+  }
+}

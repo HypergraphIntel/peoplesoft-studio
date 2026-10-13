@@ -1,0 +1,146 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-5bf95fb66564b0f38173eb9f",
+  "fingerprint": "5bf95fb66564b0f38173eb9fed930dd453277ed2a6bb18c8f47343ecc807263f",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "peoplecode",
+    "objectType": "Record PeopleCode",
+    "tables": [
+      "PSPCMPROG"
+    ]
+  },
+  "assertion": {
+    "kind": "program-key",
+    "facts": {
+      "record": 1,
+      "field": 2,
+      "event": 12,
+      "unused": "OBJECTID 0, OBJECTVALUE blank"
+    }
+  },
+  "title": "Record Field PeopleCode is keyed PSPCMPROG OBJECTID 1 (record) / 2 (field) / 12 (event)",
+  "statement": "A Record Field PeopleCode program is keyed in PSPCMPROG by the record (OBJECTID 1), the field (2) and the event (12); the other OBJECTIDs are 0 with blank values.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-06T16:23:37.088Z",
+      "method": "save-capture",
+      "experimentId": "02-resave",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 02-resave: the program's OBJECTIDs are 1 / 2 / 12, the rest 0 with blank values.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "02-resave"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "a11dab377daf82114b7df1ce5e9144a359905361dd2c1ece666680b8461aef2e"
+    },
+    {
+      "observedAt": "2026-10-06T16:59:16.862Z",
+      "method": "save-capture",
+      "experimentId": "11b-recreate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 11b-recreate: the program's OBJECTIDs are 1 / 2 / 12, the rest 0 with blank values.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "11b-recreate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "6401ba9594ebca16344bbdef77f72585468930fe2d79bd092b53194f23416742"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:48:51.276Z",
+    "updatedAt": "2026-10-13T11:48:59.413Z",
+    "schemaVersion": 1
+  }
+}

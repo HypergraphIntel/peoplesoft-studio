@@ -1,0 +1,491 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-6f30e5b716884d8f951e7ff5",
+  "fingerprint": "6f30e5b716884d8f951e7ff56514f173856296c2cf5a6eb0e0544069facca92c",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "peoplecode",
+    "objectType": "Record PeopleCode",
+    "tables": [
+      "PSPCMPROG",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "PCM": 1,
+      "SYS": 1,
+      "pslockCounters": "PCM",
+      "versionColumn": "PSPCMPROG.VERSION",
+      "versionIsNewCounter": "PCM"
+    }
+  },
+  "title": "A Record PeopleCode save moves PCM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSPCMPROG.VERSION is the new PCM",
+  "statement": "Each App Designer save of a Record Field PeopleCode program -- unchanged, changed, emptied (deleted) or re-created -- bumps PSVERSION and PSLOCK PCM and PSVERSION SYS by one (PSLOCK SYS does not move), and the program's PSPCMPROG rows take VERSION = the new PCM, not their own previous VERSION + 1. No other table changes but the PeopleCode tables. 03-a-to-b moved them by 2 (two saves in its window) and is not covered.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-06T16:23:37.088Z",
+      "method": "save-capture",
+      "experimentId": "02-resave",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 02-resave: PCM +1 (to 63) in PSVERSION and PSLOCK, SYS +1; PSPCMPROG re-inserted with VERSION 63 (was 62); no table outside PSPCMTXT, PSPCMPROG, PSPCMNAME, PSPCMPROGDEL changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "02-resave"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "acaaa1ae9778634626fd8daac527559efdd4ace5793f5093aa1b8fbb207cf4dd"
+    },
+    {
+      "observedAt": "2026-10-06T16:27:54.934Z",
+      "method": "save-capture",
+      "experimentId": "04-b-to-a",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 04-b-to-a: PCM +1 (to 66) in PSVERSION and PSLOCK, SYS +1; PSPCMPROG re-inserted with VERSION 66 (was 65); no table outside PSPCMTXT, PSPCMPROG, PSPCMNAME, PSPCMPROGDEL changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "04-b-to-a"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "5e659572bed9ad4c0c92001e96c16fb02257e03dd2c6714c58d365bc54df7dbf"
+    },
+    {
+      "observedAt": "2026-10-06T16:30:06.708Z",
+      "method": "save-capture",
+      "experimentId": "05-comment",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 05-comment: PCM +1 (to 67) in PSVERSION and PSLOCK, SYS +1; PSPCMPROG re-inserted with VERSION 67 (was 66); no table outside PSPCMTXT, PSPCMPROG, PSPCMNAME, PSPCMPROGDEL changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "05-comment"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "417fc69bbe94595200894b7faa2dd2196f12f568936581e2baefc7fa36bd6fb6"
+    },
+    {
+      "observedAt": "2026-10-06T16:39:02.114Z",
+      "method": "save-capture",
+      "experimentId": "06-literal",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 06-literal: PCM +1 (to 68) in PSVERSION and PSLOCK, SYS +1; PSPCMPROG re-inserted with VERSION 68 (was 67); no table outside PSPCMTXT, PSPCMPROG, PSPCMNAME, PSPCMPROGDEL changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "06-literal"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "53171eb3b275d8ab587b2f9501ea46e8569eae61bee6a4caf2846de68e225201"
+    },
+    {
+      "observedAt": "2026-10-06T16:45:14.335Z",
+      "method": "save-capture",
+      "experimentId": "07-source-same-names",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 07-source-same-names: PCM +1 (to 69) in PSVERSION and PSLOCK, SYS +1; PSPCMPROG re-inserted with VERSION 69 (was 68); no table outside PSPCMTXT, PSPCMPROG, PSPCMNAME, PSPCMPROGDEL changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "07-source-same-names"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "2dcff1a2330ca876d05924359ec4e36325e5cda86cd543e84f7e4893b36e247d"
+    },
+    {
+      "observedAt": "2026-10-06T16:47:04.287Z",
+      "method": "save-capture",
+      "experimentId": "08-source-new-names",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 08-source-new-names: PCM +1 (to 70) in PSVERSION and PSLOCK, SYS +1; PSPCMPROG re-inserted with VERSION 70 (was 69); no table outside PSPCMTXT, PSPCMPROG, PSPCMNAME, PSPCMPROGDEL changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "08-source-new-names"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "784269997309e05bc6413c663baf0caf9907e615e3af8717173ff728995631b7"
+    },
+    {
+      "observedAt": "2026-10-06T16:48:41.017Z",
+      "method": "save-capture",
+      "experimentId": "09-reference-row",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 09-reference-row: PCM +1 (to 71) in PSVERSION and PSLOCK, SYS +1; PSPCMPROG re-inserted with VERSION 71 (was 70); no table outside PSPCMTXT, PSPCMPROG, PSPCMNAME, PSPCMPROGDEL changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "09-reference-row"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "d6d9aaa9fd01715885f2eaa8b89028b24d4c1d7baa6275c80a60d0d9aeb2c86d"
+    },
+    {
+      "observedAt": "2026-10-06T16:53:00.676Z",
+      "method": "save-capture",
+      "experimentId": "11-empty",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 11-empty: PCM +1 (to 72) in PSVERSION and PSLOCK, SYS +1; the program deleted; no table outside PSPCMTXT, PSPCMPROG, PSPCMNAME, PSPCMPROGDEL changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "11-empty"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "465d63b6990f734e440536809f728dc877f2ee3758c03c94257efaccb0809396"
+    },
+    {
+      "observedAt": "2026-10-06T16:59:16.862Z",
+      "method": "save-capture",
+      "experimentId": "11b-recreate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 11b-recreate: PCM +1 (to 73) in PSVERSION and PSLOCK, SYS +1; PSPCMPROG re-inserted with VERSION 73; no table outside PSPCMTXT, PSPCMPROG, PSPCMNAME, PSPCMPROGDEL changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "11b-recreate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "3a6b237c4b2c588e6dc90e953deaf265208e403fc200eed452992880026aa1b6"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:48:50.497Z",
+    "updatedAt": "2026-10-13T11:48:59.006Z",
+    "schemaVersion": 1
+  }
+}

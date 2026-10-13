@@ -121,7 +121,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 
 ## Recorded findings (tools/intelligence/store)
 
-178 findings, 916 observations, each checked against its capture rows before recording (2026-10-13; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
+185 findings, 942 observations, each checked against its capture rows before recording (2026-10-13; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
 
 | Subsystem | ID | Claim | Status | Obs. |
 |---|---|---|---|---|
@@ -282,10 +282,17 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-ffe416ba3fff85f9abc83c88 | An edit box's Fluid Input Type is PSPNLFIELDEXT.HTML_INPUT_TYPE: 0 text, 1 color, 2 date, 3 datetime, 5 email, 7 number, 8 range, 9 search, 10 tel, 11 time, 12 url | reproduced | 11 |
 | peoplecode | f-232ea6241450a52b85ba008e | Component PeopleCode keys are PSPCMPROG OBJECTIDs 10 / 39 / 12 (component), 10 / 39 / 1 / 12 (record), 10 / 39 / 1 / 2 / 12 (record field) | reproduced | 3 |
 | peoplecode | f-3761278ebeac004eaa038d19 | Page PeopleCode is keyed PSPCMPROG OBJECTID 9 (page) / 12 (event Activate) | reproduced | 2 |
+| peoplecode | f-4b305278e139223725373289 | Changing an application class's PeopleCode, its interface included, moves only PCM and SYS; PSAPPCLASSDEFN and PSPACKAGEDEFN are not touched | observed | 1 |
 | peoplecode | f-5841ece4e2d085787c72b537 | Deleting Page PeopleCode writes a PSPCMPROGDEL row at the new PCM | observed | 1 |
 | peoplecode | f-59da48c7debdd679ee3e231e | Deleting a component PeopleCode program writes a PSPCMPROGDEL row at the new PCM | observed | 1 |
+| peoplecode | f-5bf95fb66564b0f38173eb9f | Record Field PeopleCode is keyed PSPCMPROG OBJECTID 1 (record) / 2 (field) / 12 (event) | reproduced | 2 |
+| peoplecode | f-6f30e5b716884d8f951e7ff5 | A Record PeopleCode save moves PCM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSPCMPROG.VERSION is the new PCM | reproduced | 9 |
+| peoplecode | f-8fcfa52cbc8b14ffc8bc9bb8 | PSPCMPROG.PROGLEN is the program's total bytes and NAMECOUNT the number of its PSPCMNAME rows | reproduced | 4 |
 | peoplecode | f-a0584c68febd6fc37ec6e774 | Creating, editing or deleting Page PeopleCode moves PCM and SYS by 1; the page's PDM does not move | reproduced | 3 |
+| peoplecode | f-a8f691f0029aa37a5c51e405 | App Designer writes nothing when a PeopleCode program does not compile | observed | 1 |
 | peoplecode | f-c25d40474b82a4b3d5f39a89 | Creating, editing or deleting a component PeopleCode program moves PCM and SYS by 1; the component's PGM and MDM do not move | reproduced | 5 |
+| peoplecode | f-f5ee5f5d3c262cf5fcefaf63 | Saving a PeopleCode program empty deletes it and writes PSPCMPROGDEL at the new PCM; saving the key again deletes that marker | reproduced | 2 |
+| peoplecode | f-fb2ffc81365c4d15d0ea8077 | A PeopleCode save deletes and re-inserts every PSPCMTXT, PSPCMPROG and PSPCMNAME row of the program's key, unchanged rows included | reproduced | 7 |
 | project | f-1a1df3b9c0cdf0d0553e5ffb | Creating a project writes one PSPROJECTDEFN row (VERSION = new PJM; KEEPTGT 31, COMPARETYPE 1, COMMITLIMIT 50, REPORTFILTER 16232832) and moves PJM and SYS by 1 | observed | 1 |
 | project | f-26c465f2ded30e5cb29a474d | Saving a project after Insert Into Project adds one PSPROJECTITEM row, rewrites PSPROJECTDEFN at the new PJM and moves PJM and SYS by 1 | observed | 1 |
 | project | f-74c70228d2ea52f7a76b0219 | A message channel in a project is PSPROJECTITEM OBJECTTYPE 36, OBJECTID1 61 (CHNLNAME) | observed | 1 |
@@ -325,8 +332,9 @@ fingerprint; server: see `server/intelligence/README.md`.
    long mixed window), packages and classes (c03-c06), control FIELDTYPE
    codes and insert defaults (*-fresh, in01, in03), the property-grid saves
    (cb-*; Invisible there leaves SECUREINVISIBLE 0) and menu groups
-   (mn06-mn22). Not yet recorded: PeopleCode writeback (00-12), message
-   PeopleCode (msg02-03), where an inserted control goes (to-*), the
+   (mn06-mn22), Record PeopleCode writeback (02-12b; not 03 or 12, multi-
+   save windows). Not yet recorded: message PeopleCode (msg02-03), where an
+   inserted control goes (to-*), the
    App Engine and CI leftovers (ae10/11/16/17, ad01/02, ar01, ap*, ci18,
    ci25); the n*/nae/nce/nchn/nme "native" and d* / e01 cases are to be
    checked as writer runs first. When adding captures -- check each family's

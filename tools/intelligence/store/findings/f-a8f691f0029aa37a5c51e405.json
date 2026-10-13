@@ -1,0 +1,68 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-a8f691f0029aa37a5c51e405",
+  "fingerprint": "a8f691f0029aa37a5c51e4059da75cc84bac0b41da8580a39ec2f68b195a956e",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "peoplecode",
+    "objectType": "Record PeopleCode",
+    "tables": [
+      "PSPCMTXT",
+      "PSPCMPROG"
+    ]
+  },
+  "assertion": {
+    "kind": "no-write",
+    "facts": {
+      "onCompileError": "nothing written",
+      "savesSourceAheadOfProgram": false
+    }
+  },
+  "title": "App Designer writes nothing when a PeopleCode program does not compile",
+  "statement": "When App Designer cannot compile a PeopleCode program, it refuses the save (a syntax error message with only OK) and writes no row and moves no counter: it never stores source the compiler rejected, so PSPCMTXT is never ahead of PSPCMPROG. The sweep's no-op control (00-noop) is empty too, so an empty delta is not an artifact.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-06T16:50:34.240Z",
+      "method": "save-capture",
+      "experimentId": "10-compile-failure",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 10-compile-failure: App Designer refused the save of a program with a syntax error; the sweep of every table shows no row changed and no counter moved.",
+      "delta": {
+        "tables": []
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "10-compile-failure"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "a1b47e5037655560a139ac965a06238cc0287cf186d3b8471016566cfe82132b"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:49:00.219Z",
+    "updatedAt": "2026-10-13T11:49:00.219Z",
+    "schemaVersion": 1
+  }
+}

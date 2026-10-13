@@ -1,0 +1,381 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-fb2ffc81365c4d15d0ea8077",
+  "fingerprint": "fb2ffc81365c4d15d0ea80776eda624f1520c2ea8e43f3febb00bacc9ce4269c",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "peoplecode",
+    "objectType": "Record PeopleCode",
+    "tables": [
+      "PSPCMTXT",
+      "PSPCMPROG",
+      "PSPCMNAME"
+    ]
+  },
+  "assertion": {
+    "kind": "physical-rewrite",
+    "facts": {
+      "tables": "PSPCMTXT,PSPCMPROG,PSPCMNAME",
+      "everyRowDeletedAndReinsertedOnSave": true,
+      "evidence": "ROWID diff"
+    }
+  },
+  "title": "A PeopleCode save deletes and re-inserts every PSPCMTXT, PSPCMPROG and PSPCMNAME row of the program's key, unchanged rows included",
+  "statement": "App Designer replaces a PeopleCode program on every save: each of its PSPCMTXT, PSPCMPROG and PSPCMNAME rows is deleted and inserted again (new ROWIDs), even on a save with the source unchanged, never updated in place. A transaction can reuse the slot its delete freed, so a kept ROWID (03-a-to-b) does not disprove a replace.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-06T16:23:37.088Z",
+      "method": "save-capture",
+      "experimentId": "02-resave",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 02-resave (ROWID diff): PSPCMTXT 1 inserted / 1 deleted, PSPCMPROG 1 inserted / 1 deleted, PSPCMNAME 1 inserted / 1 deleted; none updated in place -- the source was saved unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "02-resave"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "44a13850b29bdde9482bdef03f44798197e16c647bfd84219a7f7d6b8894c497"
+    },
+    {
+      "observedAt": "2026-10-06T16:27:54.934Z",
+      "method": "save-capture",
+      "experimentId": "04-b-to-a",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 04-b-to-a (ROWID diff): PSPCMTXT 1 inserted / 1 deleted, PSPCMPROG 1 inserted / 1 deleted, PSPCMNAME 1 inserted / 1 deleted; none updated in place.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "04-b-to-a"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "dda06a646383e07e7332ea47a755697a7a58a133234a0bcb1eb3758994b25130"
+    },
+    {
+      "observedAt": "2026-10-06T16:30:06.708Z",
+      "method": "save-capture",
+      "experimentId": "05-comment",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 05-comment (ROWID diff): PSPCMTXT 1 inserted / 1 deleted, PSPCMPROG 1 inserted / 1 deleted, PSPCMNAME 1 inserted / 1 deleted; none updated in place.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "05-comment"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "2e39f44cb5d9a074b41f00f4b394aba48b99186b0edd6555b1829ccc0fe6ab31"
+    },
+    {
+      "observedAt": "2026-10-06T16:39:02.114Z",
+      "method": "save-capture",
+      "experimentId": "06-literal",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 06-literal (ROWID diff): PSPCMTXT 1 inserted / 1 deleted, PSPCMPROG 1 inserted / 1 deleted, PSPCMNAME 1 inserted / 1 deleted; none updated in place.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "06-literal"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "78cbf78b9162b4057167dbcda576602eb5202a40fcbdd406a86d63aed148875c"
+    },
+    {
+      "observedAt": "2026-10-06T16:45:14.335Z",
+      "method": "save-capture",
+      "experimentId": "07-source-same-names",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 07-source-same-names (ROWID diff): PSPCMTXT 1 inserted / 1 deleted, PSPCMPROG 1 inserted / 1 deleted, PSPCMNAME 1 inserted / 1 deleted; none updated in place.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "07-source-same-names"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "787e5f319249971f74fdded37f1bb4d2231dd148ea3df80110100224420d1965"
+    },
+    {
+      "observedAt": "2026-10-06T16:47:04.287Z",
+      "method": "save-capture",
+      "experimentId": "08-source-new-names",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 08-source-new-names (ROWID diff): PSPCMTXT 1 inserted / 1 deleted, PSPCMPROG 1 inserted / 1 deleted, PSPCMNAME 2 inserted / 1 deleted; none updated in place.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "08-source-new-names"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "9b4d2f9f230bfe4fa37b4554d711dab2c102ee2d1d5b61e094bc304c2b87d04d"
+    },
+    {
+      "observedAt": "2026-10-06T16:48:41.017Z",
+      "method": "save-capture",
+      "experimentId": "09-reference-row",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 09-reference-row (ROWID diff): PSPCMTXT 1 inserted / 1 deleted, PSPCMPROG 1 inserted / 1 deleted, PSPCMNAME 2 inserted / 2 deleted; none updated in place.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "09-reference-row"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "11b6c18e990701d01661a8442e3365d9020827fd2601318d92b808172713cc82"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:48:50.903Z",
+    "updatedAt": "2026-10-13T11:48:57.378Z",
+    "schemaVersion": 1
+  }
+}
