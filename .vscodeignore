@@ -17,12 +17,6 @@ run_full_inventory.sh
 *.patch
 AUDIT_REPORT.md
 863_MCP_SUPPORT.md
-one
-two
-44
-54
-body
-PACKAGE
 
 # Source/build artifacts not needed at runtime
 src/**
