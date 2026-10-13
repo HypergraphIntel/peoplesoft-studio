@@ -8,6 +8,10 @@ import {
 } from '../intelligence/index.js';
 import { escapeHtml as esc } from '../editors/propertiesHtml.js';
 import { submitFinding } from '../intelligenceClient.js';
+import { readCustomizationPolicy } from './customizationView.js';
+
+/** The organization's and bolt-on vendors' naming prefixes: names with them never leave in a submission. */
+const ownPrefixes = (): string[] => readCustomizationPolicy().prefixes.map((p) => p.prefix);
 
 /*
  * The Discovery Center (docs/intelligence, phase 3): the Discoveries view
@@ -172,7 +176,7 @@ export class DiscoveryPanel {
   private static async submit(context: vscode.ExtensionContext, state: PanelState): Promise<void> {
     const decision = currentUploadDecision();
     if (!decision.allowed || !decision.serverUrl) { state.results.push(`Not sent: ${decision.reasons.join(' ')}`); return; }
-    const preview = previewSubmission(state.finding, { keepProvenance: state.keepProvenance });
+    const preview = previewSubmission(state.finding, { keepProvenance: state.keepProvenance, ownPrefixes: ownPrefixes() });
     if (preview.blocked.length) { state.results.push(`Not sent: ${preview.blocked.join('; ')}`); return; }
     const token = await context.secrets.get(TOKEN_KEY);
     if (!token) {
@@ -202,7 +206,7 @@ export class DiscoveryPanel {
   private static async render(panel: vscode.WebviewPanel, state: PanelState): Promise<void> {
     const f = state.finding;
     const decision = currentUploadDecision();
-    const preview = previewSubmission(f, { keepProvenance: state.keepProvenance });
+    const preview = previewSubmission(f, { keepProvenance: state.keepProvenance, ownPrefixes: ownPrefixes() });
     const history = await state.source.store.submissions(f.id);
     const nonce = randomBytes(16).toString('base64');
     const canSubmit = decision.allowed && preview.blocked.length === 0;

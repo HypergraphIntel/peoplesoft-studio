@@ -1,4 +1,4 @@
-import { scanFinding } from './privacy.js';
+import { ownNameViolations, scanFinding } from './privacy.js';
 import { findingInput, type Finding, type FindingInput, type Observation } from './schema.js';
 
 /*
@@ -30,13 +30,22 @@ export interface SubmissionPreview {
 export interface ProjectionOptions {
   /** Keep experiment and run IDs, capture cases, repository paths and the application release (default: strip them). */
   keepProvenance?: boolean;
+  /** This installation's naming prefixes (peoplesoft.customization.namingPrefixes): a payload naming a definition with one is blocked. */
+  ownPrefixes?: readonly string[];
 }
 
 const PROVENANCE_REASON = 'lab provenance (internal): kept only when you choose to share it';
+const TIME_REASON = 'rounded to the day: the time of day could identify who observed it';
 
 function projectObservation(o: Finding['observations'][number], index: number, keep: boolean, removed: Removal[]): Observation {
   const { digest: _digest, ...rest } = o;
   const out: Observation = JSON.parse(JSON.stringify(rest));
+  // Always, provenance kept or not: the day is evidence, the time of day is not.
+  const day = `${out.observedAt.slice(0, 10)}T00:00:00.000Z`;
+  if (!Number.isNaN(Date.parse(day)) && out.observedAt !== day) {
+    out.observedAt = day;
+    removed.push({ observation: index, path: 'observedAt (time of day)', reason: TIME_REASON });
+  }
   if (keep) return out;
   const drop = (path: string, test: boolean, apply: () => void) => {
     if (!test) return;
@@ -68,7 +77,7 @@ export function previewSubmission(f: Finding, options: ProjectionOptions = {}): 
     // The projection is re-checked as the server will check it: the allowlist, then the privacy scan.
     const parsed = findingInput.safeParse(payload);
     if (!parsed.success) blocked.push(`Observation ${i + 1}: ${parsed.error.issues.slice(0, 3).map((x) => `${x.path.join('.')}: ${x.message}`).join('; ')}`);
-    else for (const v of scanFinding(parsed.data)) blocked.push(`Observation ${i + 1}: ${v.path} (${v.rule})`);
+    else for (const v of [...scanFinding(parsed.data), ...ownNameViolations(parsed.data, options.ownPrefixes ?? [])]) blocked.push(`Observation ${i + 1}: ${v.path} (${v.rule})`);
     return payload;
   });
   return { findingId: f.id, payloads, removed, blocked };

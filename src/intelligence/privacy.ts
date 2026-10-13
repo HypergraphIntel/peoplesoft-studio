@@ -79,6 +79,25 @@ export function scanFinding(input: FindingInput): PrivacyViolation[] {
   return dedupe(out);
 }
 
+/**
+ * Names this installation owns: an upper-case PeopleSoft-style name (record, field, package, program
+ * key...) starting with one of its naming prefixes (peoplesoft.customization.namingPrefixes) -- the
+ * organization's or a bolt-on vendor's. The scan cannot tell such a name from a delivered one on its
+ * own; given the prefixes it can. The violation names the prefix, never the name.
+ */
+export function ownNameViolations(input: FindingInput, prefixes: readonly string[]): PrivacyViolation[] {
+  const wanted = [...new Set(prefixes.map((p) => p.trim().toUpperCase()).filter((p) => /^[A-Z0-9_#$@]+$/.test(p)))];
+  if (!wanted.length) return [];
+  const out: PrivacyViolation[] = [];
+  for (const [path, text] of strings(input, '$')) {
+    for (const m of text.matchAll(/(?<![A-Za-z0-9_#$@])[A-Z][A-Z0-9_#$@]*/g)) {
+      const hit = wanted.find((p) => m[0].startsWith(p));
+      if (hit) out.push({ path: path.replace(/#key$/, ' (key)'), rule: `a definition name with this installation's prefix ${hit}` });
+    }
+  }
+  return dedupe(out);
+}
+
 function dedupe(v: PrivacyViolation[]): PrivacyViolation[] {
   const seen = new Set<string>();
   return v.filter((x) => { const k = `${x.path}|${x.rule}`; if (seen.has(k)) return false; seen.add(k); return true; });

@@ -234,12 +234,14 @@ test('a submission preview: one payload per observation, lab provenance stripped
     }
     assert.deepEqual(p.payloads[0].observation.evidence, [{ kind: 'commit', ref: 'aa9469a' }], 'a commit reference stays; the capture case goes');
     assert.deepEqual(p.removed.map((r) => `${r.observation}:${r.path}`), [
-      '1:experimentId', '1:environment.appRelease', '1:evidence (1 capture case / repository path reference(s))', '2:experimentId', '2:runId', '2:environment.appRelease'
+      '1:observedAt (time of day)', '1:experimentId', '1:environment.appRelease', '1:evidence (1 capture case / repository path reference(s))',
+      '2:observedAt (time of day)', '2:experimentId', '2:runId', '2:environment.appRelease'
     ]);
+    assert.equal(p.payloads[0].observation.observedAt, '2026-10-12T00:00:00.000Z', 'the day stays, the time of day goes');
     // The claim is the same claim on the server: the fingerprint does not depend on what was stripped.
     assert.equal(findingFingerprint(p.payloads[0]), finding.fingerprint);
     const kept = previewSubmission(finding, { keepProvenance: true });
-    assert.deepEqual(kept.removed, []);
+    assert.deepEqual(kept.removed.map((r) => r.path), ['observedAt (time of day)', 'observedAt (time of day)'], 'rounding is privacy, not provenance: it always applies');
     assert.equal(kept.payloads[1].observation.runId, 'run-2');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
@@ -325,6 +327,24 @@ test('capability answers: verified on a release, unsupported, conflicting, unver
     const r = answerCapability({ ...q, release: '8.62.09' }, [local], revokedBundle);
     assert.equal(r.answer, 'UNKNOWN');
     assert.match(r.notes.join(), /revoked/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('a submission naming a definition with this installation\'s prefix is blocked; delivered and lab names are not', async () => {
+  const root = temp();
+  try {
+    const s = await new DiscoveryStore(root).open();
+    const own = { ...base(), assertion: { kind: 'row-resave', facts: { table: 'PSPTCSSRVCONF', component: 'ACME_PAYROLL_CMP', everyRowOnSave: true } },
+      statement: 'Saving ACME_PAYROLL_CMP re-saves every row.' };
+    const { finding } = await s.record(own);
+    const p = previewSubmission(finding, { ownPrefixes: ['acme_', 'VND'] });
+    assert.ok(p.blocked.some((b) => b.includes('assertion.facts.component') && b.includes('prefix ACME_')));
+    assert.ok(p.blocked.some((b) => b.includes('$.statement')));
+    assert.ok(!p.blocked.join(' ').includes('ACME_PAYROLL_CMP'), 'the name itself is never echoed');
+    assert.deepEqual(previewSubmission(finding).blocked, [], 'without prefixes the scan cannot know the name is the installation\'s');
+    // Delivered names, lab names and ordinary words pass.
+    const { finding: other } = await s.record({ ...base(), statement: 'JOB_DATA and ZZ_PCODE_LAB rows; Acme words in prose.' });
+    assert.deepEqual(previewSubmission(other, { ownPrefixes: ['ACME_'] }).blocked, []);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

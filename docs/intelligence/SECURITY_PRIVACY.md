@@ -32,11 +32,19 @@ developers).
 5. **No standing approval.** `approvedForSubmission` stays `false`: approval
    is given per submission, in the review, never stored on the finding.
 
-What the scan cannot know: whether an identifier in a fact is an
+What the scan cannot know on its own: whether an identifier is an
 institution's own definition name (a `ZZ_` lab object is fine; an
-institution's custom record name may not be). The submission review
-(phase 3) shows every field before anything leaves, and classifies the
+institution's custom record name may not be). Given the installation's
+naming prefixes (`peoplesoft.customization.namingPrefixes`, the
+organization's and each bolt-on vendor's), the submission review blocks any
+payload holding an upper-case name that starts with one of them
+(`ownNameViolations`); the message names the prefix, never the name. The
+review also shows every field before anything leaves, and classifies the
 finding before it can be approved.
+
+**The time of day never leaves.** Each payload's `observedAt` is rounded to
+the day (UTC), whether or not lab provenance is kept, and the review lists
+the rounding among the removals.
 
 ## Submission review (phase 3, implemented)
 
