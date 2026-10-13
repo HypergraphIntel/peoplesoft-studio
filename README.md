@@ -209,7 +209,7 @@ reproducing App Designer's saves; **Read-only** = viewer, from the database;
 
 ## What does **not** work yet
 
-- Comparing a whole project across environments (single definitions compare: *Compare With Environment...*)
+- Copying or migrating a project between environments (compare works: *Compare Project*, *Compare With Environment...*)
 - Editing record shapes and settings no App Designer save has been captured for (see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md))
 - Register Menu Item (portal registration) and menu translations
 - Component Interfaces: Test Component Interface, Java / C templates, CI references
@@ -276,6 +276,7 @@ compile the program in Application Designer as well (see the Disclaimer). See
 - **Snippets** — `if`, `for`, `try`, `locs`, `msgbox`, `sqlexec`, …
 - **Validate PeopleCode** — compiles the program in the editor with PeopleSoft Studio's compiler (the one saves use) for the connection's PeopleTools release, and shows where it stops in Problems; Application Designer has the last word
 - **Find References** — where an identifier (a whole word) or any text occurs in every PeopleCode program of the connection, from the word at the cursor; on a database one search of the stored source, so every program is covered. Pick an occurrence to open it at that line
+- **Compare Project** (Projects view) — every definition of a project read from this connection and from another (a database or a project export), listed as different, missing there, same, or not compared (no text form); choosing a difference opens it side by side
 - **Compare With Environment** — a definition side by side with the same one in another connection (a database or a project export), in VS Code's diff editor. The other side is read once, without making that connection the active one
 
 SQL documents use language id `psft-sql` (basic highlighting).

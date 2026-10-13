@@ -10,6 +10,14 @@
   diff editor. The other side is read once through a temporary connection,
   as *Test Connection* reads, so the active connection stays as it is (one
   connection is still active at a time).
+- **Compare Project** (Projects view, a project's inline button or the
+  view's title bar): each definition of a project read from the active
+  connection and from another -- a database or a project export, read
+  through a temporary connection -- listed as different, not in the other
+  environment, could not be read, not compared (no text form) or the same;
+  choosing a difference opens it in the diff editor, and the list stays
+  open for the next. Line endings and trailing whitespace at the end are
+  not differences.
 - **Validate PeopleCode** (PeopleCode editor title bar): compiles the
   editor's text with PeopleSoft Studio's compiler -- the one saves use --
   against the program's own record and field or class, for the

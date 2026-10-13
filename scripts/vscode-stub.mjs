@@ -130,6 +130,7 @@ export function createStub() {
     TabInputText, TabInputCustom, TabInputWebview,
     MarkdownString, FileSystemError, CompletionItem, SnippetString, Hover,
     DocumentSymbol, Range, Position, Diagnostic,
+    QuickPickItemKind: { Separator: -1, Default: 0 },
     DiagnosticSeverity: { Error: 0, Warning: 1, Information: 2, Hint: 3 },
 
     FileType: { Unknown: 0, File: 1, Directory: 2, SymbolicLink: 64 },
@@ -192,6 +193,7 @@ export function createStub() {
     // VS Code's own commands a smoke test observes: vscode.diff records its arguments.
     _handlers: new Map([['vscode.diff', (left, right, title) => { vscode._diffs.push({ left, right, title }); }]]),
     _diffs: [],
+    _createdQuickPicks: [],
     _diagnostics: new Map(),
     _inputBoxes: [],
     _inputBoxResult: undefined,
@@ -303,6 +305,20 @@ export function createStub() {
         return undefined;
       },
       showOpenDialog: async () => undefined,
+      // A list that stays open: a smoke test reads its items and title from _createdQuickPicks.
+      createQuickPick() {
+        const accept = [];
+        const qp = {
+          items: [], selectedItems: [], title: '', placeholder: '', shown: false,
+          onDidAccept: (f) => { accept.push(f); return new Disposable(() => {}); },
+          onDidHide: () => new Disposable(() => {}),
+          onDidChangeValue: () => new Disposable(() => {}),
+          show() { qp.shown = true; }, hide() { qp.shown = false; }, dispose() {},
+          _accept: async (item) => { qp.selectedItems = [item]; for (const f of accept) await f(); }
+        };
+        vscode._createdQuickPicks.push(qp);
+        return qp;
+      },
       withProgress: async (_opts, task) => task({ report() {} }, { isCancellationRequested: false }),
       showTextDocument: async (doc, options) => { vscode._shownDocuments.push({ doc, options }); return { document: doc }; }
     },

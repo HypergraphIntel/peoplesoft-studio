@@ -367,6 +367,22 @@ try {
       'Compare With Environment activated the other connection');
   }
 
+  // Compare Project compares the active export's project with HCTST, read without activating it.
+  {
+    const projectsTree = vscode._trees.get('psft.projects');
+    const projectNode = (projectsTree ? await projectsTree.getChildren(undefined) : []).find((n) => n.kind === 'project');
+    const before = vscode._quickPickResult;
+    vscode._quickPickResult = 0; // HCTST
+    if (projectNode) await vscode.commands.executeCommand('psft.project.compare', projectNode);
+    vscode._quickPickResult = before;
+    const list = vscode._createdQuickPicks.at(-1);
+    check(!!projectNode && list?.shown && /^DEMO_PROJECT: 0 different, \d+ same \(HCDEV ↔ HCTST\)$/.test(list.title)
+      && list.items.some((i) => /^Same \(\d+\)$/.test(i.label) && i.kind === -1),
+      `Compare Project did not list the project's definitions as the same (${list?.title}; ${JSON.stringify(vscode._messages.slice(-1))})`);
+    check(lastState()?.connections?.filter((c) => c.connected).map((c) => c.name).join() === 'HCDEV',
+      'Compare Project activated the other connection');
+  }
+
   // Validate PeopleCode compiles the active editor's text and reports where it stopped, in Problems.
   {
     const programUri = vscode._diffs.at(-1)?.left;

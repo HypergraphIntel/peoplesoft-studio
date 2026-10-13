@@ -789,9 +789,9 @@ function renderRecord(record: RecordDefinition, webview: vscode.Webview): string
   <div class="sub">${esc(RECORD_TYPE_LABELS[record.recordType] ?? 'Unknown type')}
     &middot; ${record.fields.length} fields
     &middot; version ${record.version}${record.description ? ' &middot; ' + esc(record.description) : ''}</div>
-  <div class="banner">Read-only. Saving record definitions is not implemented yet &mdash;
-    changes would have to update PSRECDEFN, PSRECFIELD and the PeopleTools version
-    counters together, and regenerate DDL.</div>
+  <div class="banner">Read-only: this source gives the record's fields only (a project
+    export, for one). Open the record from a database connection for App Designer's
+    record editor, editable on a Writable connection.</div>
   <table>
     <thead><tr>
       <th>#</th><th>Field</th><th>Type</th><th>Len</th>

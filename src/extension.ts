@@ -20,6 +20,10 @@ import { StyleSheetSaveRefusedError } from './providers/styleSheetWriter.js';
 import { CREATABLE_FIELD_TYPES, FIXED_FIELD_LENGTH, FieldCreateRefusedError, fieldCreateRefusal } from './providers/fieldWriter.js';
 import { toUri } from './util/uri.js';
 import { COMPARE_SCHEME, CompareContent } from './compareContent.js';
+import { compareProjectItems, type ProjectItemComparison, type ProjectItemOutcome } from './projectCompare.js';
+
+/** Compare With Environment's snapshots, shared with Compare Project (set on activation). */
+let compareContentForProjects: CompareContent | undefined;
 import type { McpWriteMode } from './mcp/writeTools.js';
 import type { PeopleCodeSaveResult } from './providers/peopleCodeWriter.js';
 import { registerPeopleCodeCompletion } from './peoplecode/completion.js';
@@ -262,6 +266,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
   // Compare With Environment's other side: read-only snapshots, forgotten when their tab closes.
   const compareContent = new CompareContent();
+  compareContentForProjects = compareContent;
   context.subscriptions.push(
     vscode.workspace.registerTextDocumentContentProvider(COMPARE_SCHEME, compareContent),
     vscode.workspace.onDidCloseTextDocument((d) => { if (d.uri.scheme === COMPARE_SCHEME) compareContent.forget(d.uri); })
@@ -531,9 +536,43 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         'Project build (DDL) is not implemented yet. See docs/ROADMAP.md.');
     }),
 
-    vscode.commands.registerCommand('psft.project.compare', () => {
-      vscode.window.showInformationMessage(
-        'Project compare is not implemented yet. See docs/ROADMAP.md.');
+    vscode.commands.registerCommand('psft.project.compare', async (node?: unknown) => {
+      await withError('Compare Project', async () => {
+        const n = node as { kind?: string; provider?: DefinitionProvider; project?: { name: string } } | undefined;
+        const here = n?.kind === 'project' && n.provider ? n.provider : workspace.activeProviders.find((p) => p.isConnected);
+        if (!here) {
+          vscode.window.showInformationMessage('Compare Project compares a project of the active connection with another environment: connect one first.');
+          return;
+        }
+        let project = n?.kind === 'project' ? n.project?.name : undefined;
+        if (!project) {
+          const projects = await here.listProjects();
+          const pickedProject = await vscode.window.showQuickPick(projects.map((p) => ({ label: p.name, description: p.description ?? '' })),
+            { title: `Compare which project of ${here.displayName}?`, matchOnDescription: true });
+          project = pickedProject?.label;
+        }
+        if (!project) return;
+        const others = workspace.connections.filter((c) => providerId(c) !== here.id);
+        if (!others.length) {
+          vscode.window.showInformationMessage('Compare Project needs another connection (a database or a project export file) to compare with: add one first.');
+          return;
+        }
+        let right = others[0];
+        if (others.length > 1) {
+          const picked = await vscode.window.showQuickPick(
+            others.map((c) => ({ label: c.name, description: c.kind === 'projectFile' ? 'project export' : 'database', config: c })),
+            { title: `Compare ${project} with…`, placeHolder: 'Other environment (read only; your active connection stays as it is)' });
+          if (!picked) return;
+          right = picked.config;
+        }
+        const projectName = project;
+        const items = await here.listProjectItems(projectName);
+        const results = await vscode.window.withProgress(
+          { location: vscode.ProgressLocation.Notification, title: `Comparing ${projectName} (${here.displayName} ↔ ${right.name})` },
+          (progress) => workspace.readFromConnection(right, (other) =>
+            compareProjectItems(items, here, other, (done, total) => progress.report({ message: `${done} of ${total}` }))));
+        showProjectComparison(here, right.name, projectName, results);
+      });
     }),
 
     vscode.commands.registerCommand('psft.addConnection', () => addConnection(workspace)),
@@ -1078,6 +1117,41 @@ async function installDb2Driver(dir: string): Promise<void> {
 }
 
 /** Collects a connection interactively rather than making the user hand-edit settings.json. */
+/** Compare Project's results: differences first; choosing one opens its diff, and the list stays open for the next. */
+function showProjectComparison(here: DefinitionProvider, otherName: string, project: string, results: ProjectItemComparison[]): void {
+  const order: Array<[ProjectItemOutcome, string, string]> = [
+    ['different', 'Different', '$(diff)'], ['missing', `Not in ${otherName}`, '$(question)'], ['error', 'Could not be read here', '$(error)'],
+    ['notCompared', 'Not compared (no text form)', '$(dash)'], ['same', 'Same', '$(check)']
+  ];
+  type Item = vscode.QuickPickItem & { result?: ProjectItemComparison };
+  const items: Item[] = [];
+  for (const [outcome, heading, icon] of order) {
+    const these = results.filter((r) => r.outcome === outcome);
+    if (!these.length) continue;
+    items.push({ label: `${heading} (${these.length})`, kind: vscode.QuickPickItemKind.Separator });
+    for (const r of these) items.push({ label: `${icon} ${r.label}`, description: typeLabel(r.key.type), ...(r.detail ? { detail: r.detail } : {}), result: r });
+  }
+  const differ = results.filter((r) => r.outcome === 'different').length;
+  const qp = vscode.window.createQuickPick<Item>();
+  qp.title = `${project}: ${differ} different, ${results.filter((r) => r.outcome === 'same').length} same (${here.displayName} ↔ ${otherName})`;
+  qp.placeholder = 'Choose a difference to see it side by side';
+  qp.items = items;
+  qp.matchOnDescription = true;
+  qp.ignoreFocusOut = true;
+  qp.onDidAccept(async () => {
+    const r = qp.selectedItems[0]?.result;
+    if (!r) return;
+    if (r.outcome === 'different') {
+      const rightUri = compareContentForProjects!.put(otherName, r.key, r.otherText ?? '');
+      await vscode.commands.executeCommand('vscode.diff', toUri(here.id, r.key), rightUri, `${r.label} (${here.displayName} ↔ ${otherName})`, { preview: true, preserveFocus: true });
+    } else if (r.outcome === 'same' || r.outcome === 'missing') {
+      await vscode.commands.executeCommand('psft.openDefinition', here.id, r.key);
+    }
+  });
+  qp.onDidHide(() => qp.dispose());
+  qp.show();
+}
+
 async function addConnection(workspace: Workspace): Promise<void> {
   const kind = await vscode.window.showQuickPick(
     [

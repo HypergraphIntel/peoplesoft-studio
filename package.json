@@ -611,7 +611,7 @@
         },
         {
           "command": "psft.project.compare",
-          "when": "view == psft.projects && viewItem == project.opened",
+          "when": "view == psft.projects && viewItem =~ /^project/",
           "group": "inline@2"
         },
         {
