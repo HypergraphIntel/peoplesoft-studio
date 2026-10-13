@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import { definitionKeywordType, definitionReferencePrefix } from './definition.js';
-import { displayName } from '../model/definitions.js';
+import { DefinitionType, displayName } from '../model/definitions.js';
 import { parseUri } from '../util/uri.js';
 import type { Workspace } from '../workspace.js';
+import { parseApplicationClassSource } from './applicationClassProgram.js';
+import { declaredClassOf, publicMembers, qualifiedExtends } from './memberCompletion.js';
 
 const KEYWORDS: string[] = [
   'If', 'Then', 'Else', 'End-If',
@@ -392,6 +394,42 @@ function receiverBeforeDot(prefix: string): string | undefined {
   return m?.[1];
 }
 
+/** Public members of the class `&obj` is declared as, walking its qualified `extends` chain, as completion items. */
+async function completeClassMembers(document: vscode.TextDocument, workspace: Workspace, receiver: string): Promise<vscode.CompletionItem[]> {
+  let handle: string;
+  try { handle = parseUri(document.uri).handle; } catch { return []; }
+  const provider = workspace.getProviderByHandle(handle);
+  if (!provider) return [];
+  let parts = declaredClassOf(document.getText(), receiver);
+  if (!parts) return [];
+
+  const items: vscode.CompletionItem[] = [];
+  const seenClasses = new Set<string>();
+  const seenNames = new Set<string>();
+  const kindOf = { method: vscode.CompletionItemKind.Method, property: vscode.CompletionItemKind.Property, constant: vscode.CompletionItemKind.Constant };
+  for (let depth = 0; parts && depth < 8; depth++) {
+    const id = parts.join(':');
+    if (seenClasses.has(id)) break;
+    seenClasses.add(id);
+    let program;
+    try {
+      const source = await provider.readText({ type: DefinitionType.ApplicationClassPeopleCode, parts });
+      program = parseApplicationClassSource(source);
+    } catch { break; } // the class (or a parent) is not readable here
+    if (!program) break;
+    for (const m of publicMembers(program)) {
+      if (seenNames.has(m.name.toLowerCase())) continue; // a subclass override wins over the parent's
+      seenNames.add(m.name.toLowerCase());
+      const item = new vscode.CompletionItem(m.name, kindOf[m.kind]);
+      item.detail = depth === 0 ? m.detail : `${m.detail} (inherited)`;
+      item.sortText = `0_${m.name}`;
+      items.push(item);
+    }
+    parts = qualifiedExtends(program); // follow a qualified base class
+  }
+  return items;
+}
+
 /** The definitions of `type` whose name starts with `partial`, as completion items, from the document's connection. */
 async function completeDefinitionNames(document: vscode.TextDocument, workspace: Workspace,
   type: import('../model/definitions.js').DefinitionType, partial: string): Promise<vscode.CompletionItem[]> {
@@ -430,6 +468,13 @@ export function registerPeopleCodeCompletion(context: vscode.ExtensionContext, w
 
       if (afterDot) {
         const receiver = receiverBeforeDot(prefix) ?? '';
+
+        // `&obj.` where &obj has an explicit application-class type: that class's real public members.
+        if (receiver.startsWith('&') && document.uri.scheme === 'psft') {
+          const classMembers = await completeClassMembers(document, workspace, receiver);
+          if (classMembers.length) return classMembers;
+        }
+
         const members = membersForReceiver(receiver);
         return members.map((m) => {
           const item = new vscode.CompletionItem(

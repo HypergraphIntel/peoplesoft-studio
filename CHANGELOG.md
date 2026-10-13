@@ -33,6 +33,12 @@
 - **Signature help** for common built-in functions: typing `(` or `,` in a call
   to a known built-in (CreateRecord, SQLExec, MsgGet, GetRowset, Substring, …)
   shows its parameters with the current one highlighted.
+- **Member completion** after `&obj.` when `&obj` has an explicit application
+  class type (`Local/Component/Global/instance PKG:SUB:CLASS &obj`, or an
+  `&obj As PKG:SUB:CLASS` parameter): the class's real public methods,
+  properties and constants, including those inherited from its qualified
+  `extends` chain. This is not type inference — it fires only on a declared
+  type, so the members offered are always real.
 
 ## 0.8.6 — 2026-10-13
 
