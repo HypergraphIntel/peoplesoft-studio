@@ -92,6 +92,12 @@
           "visibility": "collapsed"
         },
         {
+          "icon": "./resources/flask.svg",
+          "id": "psft.discoveries",
+          "name": "Discoveries",
+          "visibility": "collapsed"
+        },
+        {
           "icon": "./resources/link.svg",
           "id": "psft.connections",
           "name": "Connections"
@@ -219,7 +225,7 @@
       },
       {
         "command": "psft.intelligence.showDiscoveries",
-        "title": "Show Local Discoveries",
+        "title": "Show Discoveries",
         "category": "PeopleSoft"
       },
       {
@@ -457,6 +463,32 @@
         "command": "psft.mcp.restart",
         "title": "Restart MCP Server",
         "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.intelligence.refreshDiscoveries",
+        "title": "Refresh Discoveries",
+        "category": "PeopleSoft",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "psft.intelligence.openDiscovery",
+        "title": "Open Discovery",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.intelligence.recordFromEditor",
+        "title": "Record Discovery from JSON",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.intelligence.setServerToken",
+        "title": "Set Discovery Server Token…",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.intelligence.clearServerToken",
+        "title": "Clear Discovery Server Token",
+        "category": "PeopleSoft"
       }
     ],
     "snippets": [
@@ -536,6 +568,11 @@
           "command": "psft.customization.showAuditLog",
           "when": "view == psft.customizationStrategy",
           "group": "9_admin@2"
+        },
+        {
+          "command": "psft.intelligence.refreshDiscoveries",
+          "when": "view == psft.discoveries",
+          "group": "navigation@1"
         }
       ],
       "view/item/context": [
@@ -689,6 +726,10 @@
         },
         {
           "command": "psft.mcp.restart",
+          "when": "false"
+        },
+        {
+          "command": "psft.intelligence.openDiscovery",
           "when": "false"
         }
       ]
@@ -1075,6 +1116,26 @@
           "type": "boolean",
           "default": true,
           "description": "Preview, not enforced yet. Suggest the organization prefix when naming a new definition."
+        },
+        "peoplesoft.intelligence.uploadMode": {
+          "type": "string",
+          "enum": [
+            "off",
+            "manual"
+          ],
+          "default": "off",
+          "scope": "application",
+          "enumDescriptions": [
+            "Nothing is sent (default).",
+            "You may submit a discovery to the server below; each submission is shown to you, exactly, and sent only when you approve it."
+          ],
+          "markdownDescription": "Whether discoveries may be submitted to a Discovery & Intelligence server (docs/intelligence). VS Code telemetry set to `off` and a machine policy (`/etc/peoplesoft-studio/policy.json`, `%ProgramData%\\\\PeopleSoftStudio\\\\policy.json`) override this."
+        },
+        "peoplesoft.intelligence.serverUrl": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "markdownDescription": "The discovery server submissions go to (HTTPS; plain HTTP only to this machine). The token is set with *PeopleSoft: Set Discovery Server Token…* and kept in VS Code's secret storage."
         }
       }
     }

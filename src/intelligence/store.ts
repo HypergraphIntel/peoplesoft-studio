@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import * as path from 'node:path';
 import { findingFingerprint, findingId, observationDigest } from './fingerprint.js';
 import { classify, PrivacyRejectedError, scanFinding } from './privacy.js';
@@ -58,6 +58,20 @@ export interface ListFilter {
   release?: string;
   /** Title, statement or assertion text containing it (case-insensitive). */
   text?: string;
+}
+
+export interface SubmissionRecord {
+  findingId: string;
+  /** 1-based observation the payload carried. */
+  observation: number;
+  at: string;
+  /** The server's origin (scheme, host, port). */
+  server: string;
+  outcome: 'created' | 'merged' | 'duplicate' | 'failed';
+  remoteId?: string;
+  remoteStatus?: string;
+  /** For a failure: the HTTP status and the server's problem title (never a value it refused). */
+  error?: string;
 }
 
 const CONFIDENCE_RANK = { low: 0, medium: 1, high: 2 } as const;
@@ -152,6 +166,25 @@ export class DiscoveryStore {
       });
     }
     return out.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : a.id.localeCompare(b.id)));
+  }
+
+  /**
+   * The submission history: one line per request sent -- the finding, which
+   * observation, when, to which server (its origin), the outcome and the
+   * server's id. Never a payload or a token.
+   */
+  async appendSubmission(entry: SubmissionRecord): Promise<void> {
+    await mkdir(this.root, { recursive: true });
+    await appendFile(path.join(this.root, 'submissions.jsonl'), `${JSON.stringify(entry)}\n`, 'utf8');
+  }
+
+  async submissions(findingId?: string): Promise<SubmissionRecord[]> {
+    let text: string;
+    try { text = await readFile(path.join(this.root, 'submissions.jsonl'), 'utf8'); } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+      throw error;
+    }
+    return text.split('\n').filter(Boolean).map((l) => JSON.parse(l) as SubmissionRecord).filter((r) => !findingId || r.findingId === findingId);
   }
 
   /** Withdraws a finding from this store (the contributor's own copy). */

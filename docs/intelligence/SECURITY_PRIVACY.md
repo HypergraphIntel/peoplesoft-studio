@@ -2,8 +2,11 @@
 
 ## What leaves this machine today
 
-**Nothing.** Phase 1 has no network code (a test asserts the engine imports
-no network module), no upload, no settings that enable one. Findings stay in
+**Nothing, by default.** The engine (`src/intelligence/`) has no network
+code (tested). Since phase 3 the extension can submit a finding — only when
+every gate opens (DECISIONS D13: machine policy, VS Code telemetry,
+`peoplesoft.intelligence.uploadMode` = `manual`, an HTTPS server) and the
+user approves that submission after seeing its exact payloads. Findings stay in
 `<globalStorage>/intelligence` (each installation) and
 `tools/intelligence/store` (this repository's research, committed by its
 developers).
@@ -26,7 +29,8 @@ developers).
 4. **Classification.** `internal` when a finding carries lab provenance
    (experiment or run IDs, capture cases, repository paths, the application
    release), `public-technical` otherwise.
-5. **No approval in phase 1.** `approvedForSubmission` is always `false`.
+5. **No standing approval.** `approvedForSubmission` stays `false`: approval
+   is given per submission, in the review, never stored on the finding.
 
 What the scan cannot know: whether an identifier in a fact is an
 institution's own definition name (a `ZZ_` lab object is fine; an
@@ -34,18 +38,23 @@ institution's custom record name may not be). The submission review
 (phase 3) shows every field before anything leaves, and classifies the
 finding before it can be approved.
 
-## Submission review (phase 3, proposed)
+## Submission review (phase 3, implemented)
 
 - Off by default: `peoplesoft.intelligence.uploadMode` = `off`; `manual`
-  requires a review of every submission; an administrator policy (machine or
-  workspace setting the user cannot override) may set `off` permanently.
+  requires a review of every submission; an administrator's machine policy
+  file (`/etc/peoplesoft-studio/policy.json` and platform equivalents,
+  D13) disables submissions or pins the server; unreadable, it fails closed.
+- Example policy: `{ "intelligence": { "uploads": "disabled" } }` or
+  `{ "intelligence": { "uploads": "allowed", "serverUrl": "https://discovery.example.org" } }`.
 - The review shows the exact JSON payload, what was removed and why, and
   where it goes; Cancel has no side effect.
 - The payload is a projection: only allowlisted fields of a finding, with
   `internal` provenance stripped unless the user keeps it explicitly.
 - The contributor token is in VS Code `SecretStorage`, never in settings,
   logs or findings.
-- An upload failure is reported and retried later; it never blocks Studio.
+- An upload failure is reported in the panel and recorded in the submission
+  history (status and the server's problem title, never a value or token);
+  the user may submit again. Nothing retries on its own; nothing blocks Studio.
 - VS Code's telemetry setting (`telemetry.telemetryLevel` = `off`) disables
   submission regardless of other settings.
 

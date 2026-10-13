@@ -4,8 +4,8 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import {
-  DiscoveryInputError, DiscoveryStore, findingFingerprint, observationDigest, observationFromCapture, PrivacyRejectedError, sanitizedDeltaOf,
-  scanFinding, type FindingInput
+  decideUpload, DiscoveryInputError, DiscoveryStore, policyFileLocations, findingFingerprint, observationDigest, observationFromCapture, previewSubmission, PrivacyRejectedError,
+  sanitizedDeltaOf, scanFinding, type FindingInput
 } from '../intelligence/index.js';
 import { contractVectors, findingInputJsonSchema } from '../intelligence/contract.js';
 
@@ -208,4 +208,53 @@ test('the server contract is the code\'s: the exported JSON Schema and fingerpri
   const by = Object.fromEntries(vectors.vectors.map((v: { name: string; fingerprint: string }) => [v.name, v.fingerprint]));
   assert.equal(by['facts in another order'], by.basic);
   assert.equal(by['object type case and padding'], by.basic);
+});
+
+test('a submission preview: one payload per observation, lab provenance stripped and listed, exactly the server\'s input', async () => {
+  const root = temp();
+  try {
+    const s = await new DiscoveryStore(root).open();
+    await s.record({ ...base(), observation: { ...base().observation, evidence: [{ kind: 'capture-case', ref: 'em04-fluid-add-record' }, { kind: 'commit', ref: 'aa9469a' }] } });
+    const { finding } = await s.record({ ...base(), observation: { ...base().observation, runId: 'run-2' } });
+    const p = previewSubmission(finding);
+    assert.equal(p.payloads.length, 2);
+    assert.deepEqual(p.blocked, []);
+    for (const payload of p.payloads) {
+      assert.equal(payload.observation.experimentId, undefined);
+      assert.equal(payload.observation.runId, undefined);
+      assert.equal(payload.observation.environment.appRelease, undefined);
+      assert.ok(!('digest' in payload.observation), 'local bookkeeping does not leave');
+      assert.ok(!('localStatus' in payload) && !('privacy' in payload) && !('provenance' in payload));
+      assert.deepEqual(scanFinding(payload), []);
+    }
+    assert.deepEqual(p.payloads[0].observation.evidence, [{ kind: 'commit', ref: 'aa9469a' }], 'a commit reference stays; the capture case goes');
+    assert.deepEqual(p.removed.map((r) => `${r.observation}:${r.path}`), [
+      '1:experimentId', '1:environment.appRelease', '1:evidence (1 capture case / repository path reference(s))', '2:experimentId', '2:runId', '2:environment.appRelease'
+    ]);
+    // The claim is the same claim on the server: the fingerprint does not depend on what was stripped.
+    assert.equal(findingFingerprint(p.payloads[0]), finding.fingerprint);
+    const kept = previewSubmission(finding, { keepProvenance: true });
+    assert.deepEqual(kept.removed, []);
+    assert.equal(kept.payloads[1].observation.runId, 'run-2');
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('submissions are off unless every gate opens; the machine policy and telemetry win', () => {
+  const open = { uploadMode: 'manual' as const, serverUrl: 'https://discovery.example/', telemetryLevel: 'all' };
+  assert.deepEqual(decideUpload(open), { allowed: true, serverUrl: 'https://discovery.example', reasons: [] });
+  const why = (i: Partial<Parameters<typeof decideUpload>[0]>) => decideUpload({ ...open, ...i }).reasons.join(' | ');
+  assert.match(why({ uploadMode: 'off' }), /Submissions are off/);
+  assert.match(why({ telemetryLevel: 'off' }), /telemetry is off/);
+  assert.match(why({ policy: { intelligence: { uploads: 'disabled' } } }), /policy disables/);
+  assert.match(why({ policyError: 'EACCES' }), /could not be read/);
+  assert.match(why({ serverUrl: '' }), /No discovery server/);
+  assert.match(why({ serverUrl: 'http://discovery.example' }), /HTTPS/);
+  assert.match(why({ serverUrl: 'https://user:pw@discovery.example' }), /must not carry credentials/);
+  assert.match(why({ serverUrl: 'not a url' }), /not a URL/);
+  assert.equal(decideUpload({ ...open, serverUrl: 'http://127.0.0.1:8000' }).allowed, true, 'plain HTTP to this machine, for development');
+  assert.match(why({ policy: { intelligence: { serverUrl: 'https://approved.example' } } }), /allows only https:\/\/approved.example/);
+  assert.equal(decideUpload({ ...open, serverUrl: '', policy: { intelligence: { serverUrl: 'https://approved.example' } } }).serverUrl, 'https://approved.example');
+  assert.equal(decideUpload({ uploadMode: 'off', serverUrl: '', telemetryLevel: 'off' }).reasons.length, 3, 'every reason, not the first');
+  assert.deepEqual(policyFileLocations('linux', {}), ['/etc/peoplesoft-studio/policy.json']);
+  assert.deepEqual(policyFileLocations('win32', { ProgramData: 'D:\\PD' }), ['D:\\PD\\PeopleSoftStudio\\policy.json']);
 });

@@ -130,7 +130,7 @@ control, tests and an extension release.
 **Why.** The directive: no remote code execution disguised as knowledge
 sync. Remote findings are untrusted data, never instructions to an agent.
 
-## D9 — Phase 1 adds one command, no settings (2026-10-12)
+## D9 — Phase 1 adds one command, no settings (2026-10-12; superseded in part by D13)
 
 **Decided.** Phase 1 registers *PeopleSoft: Show Local Discoveries* and
 adds no settings. The proposed `peoplesoft.intelligence.*` settings
@@ -175,3 +175,40 @@ receipt time; reviewers see everything.
 **Why.** Observations may carry lab provenance (experiment and run IDs,
 capture cases) classified `internal`; sharing a claim must not disclose
 another installation's research context.
+
+## D13 — Submissions: four gates, a machine policy file, approval per submission (2026-10-13)
+
+**Decided.** `decideUpload()` (pure, `src/intelligence/policy.ts`) allows a
+submission only when: no machine policy disables it; VS Code telemetry is not
+`off`; `peoplesoft.intelligence.uploadMode` is `manual` (default `off`); a
+server is set and uses HTTPS (plain HTTP only to this machine) without
+credentials in the URL. Every reason is reported, not the first. The machine
+policy is a JSON file in a system location an administrator owns
+(`/etc/peoplesoft-studio/policy.json`, `/Library/Application Support/PeopleSoftStudio/policy.json`,
+`%ProgramData%\PeopleSoftStudio\policy.json`); an unreadable policy file
+fails closed; a policy `serverUrl` pins the only server. Both settings are
+application-scoped (a workspace cannot turn submissions on). Even when
+allowed, each submission needs the user's approval in a modal naming the
+destination and the number of requests. The token is in SecretStorage.
+
+**Why.** "Institution-level policy must be enforced, not merely
+documented": a user setting can be changed by the user; a root-owned file
+cannot. VS Code's own telemetry switch is the user's clearest statement
+that nothing should leave.
+
+**Not chosen.** VS Code's enterprise `policy` setting metadata (only for
+built-in settings today); environment variables (user-controlled).
+
+## D14 — A submission strips lab provenance unless the user keeps it (2026-10-13)
+
+**Decided.** `previewSubmission()` builds one payload per observation —
+the allowlisted finding input, nothing of the store's bookkeeping (digest,
+local status, privacy, provenance) — and, unless the user ticks *Share lab
+provenance*, removes experiment and run IDs, capture-case and repository
+references and the application release, listing each removal with its
+reason. The payload's fingerprint is the finding's (identity does not
+depend on provenance); its observation digest differs from the local one,
+so the server counts it as its own evidence.
+
+**Why.** A lab's experiment names and paths are its business; the claim and
+the technical evidence are what others can use.

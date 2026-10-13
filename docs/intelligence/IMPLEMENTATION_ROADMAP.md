@@ -48,7 +48,16 @@ Tasks: export JSON Schema from zod (`z.toJSONSchema`) into
 Python); FastAPI app, PostgreSQL migrations, token auth, audit table;
 pytest suite; compose file.
 
-## Phase 3 — VS Code Discovery Center
+## Phase 3 — VS Code Discovery Center — DONE (2026-10-13), but for a run in a real VS Code window
+
+- [x] *Discoveries* view (PeopleSoft container): submissions status with every reason, this installation's findings, the workspace's research store.
+- [x] Finding panel: claim, facts, evidence (deltas, tests, references), submission history.
+- [x] Submission review: the exact payloads (one per observation), what was removed and why, what blocks it, where it would go; *Share lab provenance* opt-in.
+- [x] Gates (D13): machine policy file (fails closed), VS Code telemetry, `peoplesoft.intelligence.uploadMode` (off | manual), HTTPS `serverUrl`; approval modal per submission; token in SecretStorage (*Set / Clear Discovery Server Token*).
+- [x] Upload client (`src/intelligenceClient.ts`): timeout, no redirects, errors without values or tokens; history in `submissions.jsonl` without payloads or tokens.
+- [x] *Record Discovery from JSON* (manual creation); *Show Discoveries* quick pick.
+- [x] Verified through the bundled extension against the local server: off → review only; declined → nothing sent; approved → 3 requests created/merged/merged; telemetry off → blocked.
+- [ ] A run in a real VS Code window.
 
 Acceptance: a Discovery view in the PeopleSoft container (overview,
 details, history) built on the existing tree/webview conventions; a

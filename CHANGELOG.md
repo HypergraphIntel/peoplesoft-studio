@@ -61,7 +61,19 @@ See docs/CUSTOMIZATION.md.
   duplicates and reproductions told apart, the PeopleTools releases it was
   seen on. Deny by default: an allowlisted schema and a privacy scan refuse
   hosts, paths, addresses, credentials and data. Offline; nothing is
-  uploaded. *PeopleSoft: Show Local Discoveries*. See docs/intelligence.
+  uploaded. See docs/intelligence.
+- **Discovery Center** (*Discoveries* view): this installation's findings
+  and the workspace's research findings, each with its claim, evidence and
+  submission history; a submission review showing exactly what would leave
+  the machine and what was removed. Submitting to a discovery server is off
+  by default (`peoplesoft.intelligence.uploadMode`, `serverUrl`), closed by
+  VS Code telemetry `off` or an administrator's machine policy file, and
+  needs your approval of each submission; the token is kept in secret
+  storage. *Record Discovery from JSON*, *Show Discoveries*.
+- **Discovery server MVP** (`server/intelligence/`, local development only):
+  FastAPI and PostgreSQL; submissions validated and privacy-checked again,
+  the same identities and outcomes as the extension, tokens and roles,
+  an audit log.
 
 ## 0.8.4
 

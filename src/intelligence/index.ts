@@ -8,5 +8,7 @@
 export * from './schema.js';
 export { canonicalJson, findingFingerprint, findingId, observationDigest } from './fingerprint.js';
 export { classify, PrivacyRejectedError, scanFinding, type PrivacyViolation } from './privacy.js';
-export { DiscoveryInputError, DiscoveryStore, STORE_FORMAT, type FindingSummary, type ListFilter, type RecordOutcome, type RecordResult } from './store.js';
+export { DiscoveryInputError, DiscoveryStore, STORE_FORMAT, type FindingSummary, type ListFilter, type RecordOutcome, type RecordResult, type SubmissionRecord } from './store.js';
 export { BACKGROUND_TABLES, observationFromCapture, sanitizedDeltaOf } from './adapters/saveCapture.js';
+export { previewSubmission, type ProjectionOptions, type Removal, type SubmissionPreview } from './submission.js';
+export { decideUpload, policyFileLocations, type MachinePolicy, type UploadDecision, type UploadInputs, type UploadMode } from './policy.js';

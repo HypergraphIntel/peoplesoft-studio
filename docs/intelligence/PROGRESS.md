@@ -1,7 +1,7 @@
 # Progress and handoff
 
 **Read this first when resuming the Discovery & Intelligence Network.**
-Last updated 2026-10-13. The founding directive: `CUSTOMIZATION_INTEL_SERVER.md`
+Last updated 2026-10-13 (phase 3). The founding directive: `CUSTOMIZATION_INTEL_SERVER.md`
 (repository root).
 
 ## Current state
@@ -9,11 +9,12 @@ Last updated 2026-10-13. The founding directive: `CUSTOMIZATION_INTEL_SERVER.md`
 - **Phase 0 (reconnaissance, architecture): done.** ARCHITECTURE.md; DECISIONS.md D1–D12.
 - **Phase 1 (local discovery foundation): done.** Evidence below.
 - **Phase 2 (server MVP): done, local only.** Evidence below.
-- **Phases 3–6: not started.** Discovery Center UI, submission review and
-  upload, verification workflow, signed bundles, MCP tools, GitHub
-  automation are design only.
-- **Nothing is uploaded or synchronized by the extension.** No settings
-  exist for it. The server has run only on localhost.
+- **Phase 3 (Discovery Center): done** but for a run in a real VS Code
+  window. Evidence below.
+- **Phases 4–6: not started.** Verification workflow, signed bundles, MCP
+  tools, GitHub automation are design only.
+- **Nothing leaves by default.** Submissions need four gates (D13) and the
+  user's approval of the exact payloads. The server has run only on localhost.
 
 ## Phase 1 evidence
 
@@ -28,8 +29,8 @@ Last updated 2026-10-13. The founding directive: `CUSTOMIZATION_INTEL_SERVER.md`
 | Private / unsupported fields rejected | Strict schema + privacy scan; tests (values never echoed) |
 | PeopleTools version and evidence kept | Required release; compatibility; evidence refs; adapter test on em04 |
 | Offline | No network module (tested) |
-| Tests | `src/test/intelligence.test.ts` — 9 tests (incl. contract drift) |
-| Existing functionality | `npm test`: 1637 tests, 1636 pass, 0 fail, 1 pre-existing skip; smoke 59 commands |
+| Tests | `src/test/intelligence.test.ts` — 11 tests (incl. contract drift, submission preview, upload gates) |
+| Existing functionality | `npm test`: 1639 tests, 1638 pass, 0 fail, 1 pre-existing skip; smoke 64 commands, 8 views |
 
 ## Phase 2 evidence
 
@@ -45,7 +46,19 @@ Last updated 2026-10-13. The founding directive: `CUSTOMIZATION_INTEL_SERVER.md`
 | Local deployment configuration | compose + README; run with uvicorn on localhost: the 4 repository findings got the local IDs and statuses |
 | Security / deployment docs | DEPLOYMENT.md (review required before exposure), SECURITY_PRIVACY.md |
 
-**Not verified:** *Show Local Discoveries* in a real VS Code window; the
+## Phase 3 evidence
+
+| Criterion | Evidence |
+|---|---|
+| Discovery navigation | *Discoveries* view: status row, This Installation, Workspace Research (tree read through the bundle: 4 + 4 findings) |
+| Finding details | Panel: claim, facts, evidence (deltas, tests, refs), history |
+| Submission preview / privacy review | `previewSubmission()` (test); panel shows exact payloads (3 for f-e3a3…), 6 removals with reasons, blocking problems |
+| Opt-in controls, policy enforced | `decideUpload()` (test: every gate, every reason); settings application-scoped; machine policy file fails closed |
+| Server connectivity, upload results | `src/intelligenceClient.ts`; bundled extension → local server: declined = nothing sent; approved = created, merged, merged; server shows reproduced, no experiment IDs |
+| Graceful offline / failures | Failures reported and recorded, never thrown out of the panel; nothing retries silently |
+| Secrets | Token in SecretStorage; history and audit never contain it (checked) |
+
+**Not verified:** the Discovery Center and *Show Discoveries* in a real VS Code window; the
 CI workflow has not run on GitHub (nothing pushed); concurrent writers on
 one *local* store across processes (documented limit, D1); the server under
 load or behind TLS.
@@ -55,7 +68,10 @@ load or behind TLS.
 | File | Role |
 |---|---|
 | `src/intelligence/{schema,fingerprint,privacy,store,contract,index}.ts`, `adapters/saveCapture.ts` | Local engine |
-| `src/intelligenceCommands.ts` | Extension store; `psft.intelligence.showDiscoveries` |
+| `src/intelligenceCommands.ts` | Extension store; commands (open, show, record from JSON, token) |
+| `src/views/discoveryView.ts` | *Discoveries* tree, finding panel, submission review, `currentUploadDecision()` |
+| `src/intelligenceClient.ts` | Upload client (fetch; no tokens in errors) |
+| `src/intelligence/{submission,policy}.ts` | `previewSubmission()`, `decideUpload()` (pure) |
 | `tools/intelligence/discovery.mts` | CLI: record, capture, list, get |
 | `tools/intelligence/export-contract.mts` | Writes `server/intelligence/contract/` |
 | `tools/intelligence/store/` | The repository's research findings (commit them) |
@@ -78,23 +94,22 @@ fingerprint; server: see `server/intelligence/README.md`.
 
 ## Resume: next tasks, in order
 
-1. **Phase 3 start — Discovery Center, read side**: a *Discoveries* tree
-   view in the PeopleSoft container listing the installation's store
-   (overview, details as in *Show Local Discoveries*), following the
-   existing tree/webview conventions (`src/views/`).
-2. **Submission projection** (pure, tested): the exact payload that would
-   leave — allowlisted fields, `internal` provenance stripped unless kept —
-   and a review webview showing it. Upload stays impossible until the
-   settings below exist and the user approves each submission.
-3. **Settings** with the features: `peoplesoft.intelligence.uploadMode`
-   (`off` default | `manual`), `peoplesoft.intelligence.serverUrl`; token in
-   SecretStorage; VS Code telemetry off ⇒ no submission; machine-scoped
-   policy to force `off`.
+1. **Open the Discovery Center in a real VS Code window** (install the
+   built VSIX): the view, a panel, the review; with the local server, one
+   submission.
+2. **Phase 4 start — reviews on the server**: `POST /reviews` (reviewer):
+   status changes with criteria and rationale, independence check for
+   *corroborated* (different method, experiment or contributor — never a
+   re-run), audit; `POST /validation-results`; contributor withdrawal.
+3. **Signed bundles** (Ed25519): bundle format, offline signing tool,
+   client verification (signature, expiry, rollback), stored apart from
+   local findings.
 4. A lab-e2e adapter (`testResults` from `tools/lab/*-e2e.mts`).
 5. Settle the retention policy (SECURITY_PRIVACY.md) with the owner before
-   any upload ships.
+   uploads are used by anyone outside this project.
 
 **Do not repeat:** reconnaissance; recording the 4 findings; the contract
-export (regenerate only after a schema change).
+export (regenerate only after a schema change); the phase 3 bundle-driven
+verification (scripted in this session, not kept: redo it in a real window).
 
 **Blockers:** none. Exposure beyond localhost needs the DEPLOYMENT.md review.
