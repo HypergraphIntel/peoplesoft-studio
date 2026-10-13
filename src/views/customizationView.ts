@@ -233,6 +233,47 @@ async function newEventMappingService(provider: DatabaseProvider, operatorId: st
   return serviceId;
 }
 
+/** A component content reference, searched by name on a connected database (Configuration Tools > Event Mapping). */
+async function pickContentReference(workspace: Workspace): Promise<{ connectionId: string; cref: string; portal: string } | undefined> {
+  const connected = workspace.activeProviders.filter((p): p is DatabaseProvider => p instanceof DatabaseProvider && p.isConnected);
+  if (!connected.length) { void vscode.window.showInformationMessage('Event Mapping is configured on a connected database: connect one first.'); return undefined; }
+  let provider = connected[0];
+  if (connected.length > 1) {
+    const chosen = await vscode.window.showQuickPick(connected.map((p) => ({ label: p.displayName, provider: p })), { title: 'Event Mapping: which database?' });
+    if (!chosen) return undefined;
+    provider = chosen.provider;
+  }
+  type Item = vscode.QuickPickItem & { portal: string; cref: string };
+  const qp = vscode.window.createQuickPick<Item>();
+  qp.title = `Event Mapping on ${provider.displayName}`;
+  qp.placeholder = 'Type part of a component content reference (e.g. JOB_DATA)';
+  qp.matchOnDescription = true;
+  let seq = 0;
+  qp.onDidChangeValue(async (text) => {
+    const term = text.trim().toUpperCase();
+    if (term.length < 2) { qp.items = []; return; }
+    const mine = ++seq;
+    qp.busy = true;
+    try {
+      const found = await provider.search({ type: DefinitionType.PortalRegistry, namePattern: `%${term}%`, limit: 200 });
+      if (mine !== seq) return;
+      qp.items = found.filter((d) => d.key.parts[1] === 'C').slice(0, 100)
+        .map((d) => ({ label: d.key.parts[2], description: d.description ?? '', detail: `${d.key.parts[0]} portal`, portal: d.key.parts[0], cref: d.key.parts[2] }));
+    } catch (error) {
+      if (mine === seq) qp.items = [{ label: 'Search failed', description: error instanceof Error ? error.message : String(error), portal: '', cref: '' }];
+    } finally {
+      if (mine === seq) qp.busy = false;
+    }
+  });
+  const choice = await new Promise<Item | undefined>((resolve) => {
+    qp.onDidAccept(() => { resolve(qp.selectedItems[0]); qp.hide(); });
+    qp.onDidHide(() => resolve(undefined));
+    qp.show();
+  });
+  qp.dispose();
+  return choice?.cref ? { connectionId: provider.id, cref: choice.cref, portal: choice.portal } : undefined;
+}
+
 /** A content reference's Event Mapping configuration in its editor: editable on a Writable connection with an Operator ID. */
 export async function showEventMapping(workspace: Workspace, connectionId: string, cref: string, portal = 'EMPLOYEE'): Promise<void> {
   const provider = workspace.activeProviders.find((p) => p.id === connectionId);
@@ -285,8 +326,10 @@ export function registerCustomizationStrategy(context: vscode.ExtensionContext, 
     }),
     vscode.commands.registerCommand('psft.customization.configureEventMapping', async (connectionId?: string, cref?: string, portal?: string) => {
       if (!connectionId || !cref) {
-        void vscode.window.showInformationMessage('Open a component, page or record from a connected database: the Customization Strategy view lists its content references under Event Mapping.');
-        return;
+        // From Configuration Tools (no context): choose the content reference.
+        const picked = await pickContentReference(workspace);
+        if (!picked) return;
+        ({ connectionId, cref, portal } = picked);
       }
       try { await showEventMapping(workspace, connectionId, cref, portal); } catch (error) {
         void vscode.window.showErrorMessage(error instanceof Error ? error.message : String(error));

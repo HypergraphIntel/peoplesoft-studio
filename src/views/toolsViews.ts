@@ -5,7 +5,7 @@ import { TOOL_TREES, type ToolNode, type ToolViewId } from '../model/toolTrees.j
  * Configuration Tools and Data Migration Tools: two panes of PeopleSoft's
  * online tools, placeholders for now. Every entry is shown greyed (its label
  * through a file decoration colour, its icon in the disabled colour) and says
- * it is not available yet when chosen. The trees themselves are plain data
+ * it is not available yet when chosen; a built entry runs its command. The trees themselves are plain data
  * (model/toolTrees.ts), so filling one in later is a matter of giving an
  * entry a command and dropping `planned`.
  */
@@ -45,6 +45,9 @@ export class ToolsView implements vscode.TreeDataProvider<Node> {
         item.description = 'Coming soon';
         item.command = { command: PLANNED_TOOL_COMMAND, title: 'Not available yet', arguments: [node.path.join(' › ')] };
       }
+    } else if (tool.command) {
+      item.command = { command: tool.command, title: tool.label };
+      item.tooltip = node.path.join(' › ');
     }
     return item;
   }
@@ -62,7 +65,9 @@ class PlannedToolDecorations implements vscode.FileDecorationProvider {
 export function registerToolsViews(context: vscode.ExtensionContext): void {
   for (const id of Object.keys(TOOL_TREES) as ToolViewId[]) {
     const view = vscode.window.createTreeView(id, { treeDataProvider: new ToolsView(id), showCollapseAll: true });
-    view.description = 'Coming soon';
+    // A pane whose every entry is a placeholder says so in its header.
+    const anyBuilt = (nodes: readonly ToolNode[]): boolean => nodes.some((n) => (!n.planned && !!n.command) || anyBuilt(n.children ?? []));
+    if (!anyBuilt(TOOL_TREES[id].nodes)) view.description = 'Coming soon';
     context.subscriptions.push(view);
   }
   context.subscriptions.push(

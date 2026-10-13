@@ -1,7 +1,8 @@
 /*
  * The Configuration Tools and Data Migration Tools panes' trees
  * (views/toolsViews.ts): PeopleSoft's online tools, as entries. `planned`
- * entries are placeholders -- shown greyed, not available yet.
+ * entries are placeholders -- shown greyed, not available yet; a built entry
+ * runs its `command`.
  */
 
 export interface ToolNode {
@@ -11,13 +12,15 @@ export interface ToolNode {
   children?: ToolNode[];
   /** Not built yet: shown greyed, and choosing it says so. */
   planned?: boolean;
+  /** What choosing a built entry runs. */
+  command?: string;
 }
 
 export const CONFIGURATION_TOOLS: readonly ToolNode[] = [
   { label: 'PS Query', icon: 'search', planned: true },
-  { label: 'Customization', icon: 'wand', planned: true, children: [
+  { label: 'Customization', icon: 'wand', children: [
     { label: 'Page and Field Configurator', icon: 'layout', planned: true },
-    { label: 'Event Mapping', icon: 'symbol-event', planned: true },
+    { label: 'Event Mapping', icon: 'symbol-event', command: 'psft.customization.configureEventMapping' },
     { label: 'Drop Zones', icon: 'inbox', planned: true }
   ] },
   { label: 'Administration', icon: 'settings', planned: true, children: [

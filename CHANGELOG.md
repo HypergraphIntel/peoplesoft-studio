@@ -94,6 +94,11 @@ See docs/CUSTOMIZATION.md.
   findings (check names and outcomes only); a finding turned into an issue body and a regression
   fixture for review (`tools/intelligence/engineering-task.mts`; files nothing).
 
+- **Configuration Tools > Customization > Event Mapping** opens the Event
+  Mapping editor: type part of a component content reference's name and
+  pick it (on a connected database); the entry and its group are no longer
+  placeholders.
+
 ### Fixed
 
 - A static text's Alignment in the page editor wrote Centered or Right on

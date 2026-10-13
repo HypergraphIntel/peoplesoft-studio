@@ -22,7 +22,14 @@ test('Data Migration Tools: the requested list', () => {
   assert.deepEqual(outline(DATA_MIGRATION_TOOLS), ['Data Mover Scripts', 'Data Migration Workbench']);
 });
 
-test('every entry is a placeholder with an icon, and both panes are registered by id', () => {
-  for (const n of [...all(CONFIGURATION_TOOLS), ...all(DATA_MIGRATION_TOOLS)]) assert.ok(n.planned && n.icon, n.label);
+test('every leaf is a placeholder or runs a command, every entry has an icon, and both panes are registered by id', () => {
+  for (const n of [...all(CONFIGURATION_TOOLS), ...all(DATA_MIGRATION_TOOLS)]) {
+    assert.ok(n.icon, n.label);
+    if (!n.children?.length) assert.ok(n.planned !== !!n.command, `${n.label}: a leaf is either planned or built`);
+  }
+  // Built so far: Event Mapping (the Configure Event Mapping editor); its group is no longer a placeholder.
+  const built = all(CONFIGURATION_TOOLS).filter((n) => n.command).map((n) => `${n.label} -> ${n.command}`);
+  assert.deepEqual(built, ['Event Mapping -> psft.customization.configureEventMapping']);
+  assert.ok(!CONFIGURATION_TOOLS.find((n) => n.label === 'Customization')!.planned);
   assert.deepEqual(Object.keys(TOOL_TREES), ['psft.configurationTools', 'psft.dataMigrationTools']);
 });
