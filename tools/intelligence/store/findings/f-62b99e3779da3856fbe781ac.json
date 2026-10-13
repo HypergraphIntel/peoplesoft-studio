@@ -1,0 +1,780 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-62b99e3779da3856fbe781ac",
+  "fingerprint": "62b99e3779da3856fbe781acaeaa59d3aa1639ffde10d5f40fb0b64bf58c0e53",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "OCCURSLEVEL"
+    ]
+  },
+  "assertion": {
+    "kind": "level-rule",
+    "facts": {
+      "column": "PSPNLFIELD.OCCURSLEVEL",
+      "order": "FIELDNUM",
+      "start": 0,
+      "setters": "FIELDTYPE 10,19,27,32; FIELDTYPE 23 with FIELDUSE 0x2",
+      "position": "ignored"
+    }
+  },
+  "title": "App Designer stores each page control's OCCURSLEVEL from tab order: a running level that each scroll and each Set to Level rule sets to its own",
+  "statement": "On every page save App Designer assigns PSPNLFIELD.OCCURSLEVEL by walking the controls in tab order (FIELDNUM) with a running level from 0: a Scroll Bar, Grid, Scroll Area or Analytic Grid (FIELDTYPE 10, 19, 27, 32) keeps its own level and the running level becomes it, as does a Horizontal Rule with Set to Level (FIELDTYPE 23, FIELDUSE 0x2); every other control takes the running level. Where a control sits on the page plays no part. Checked against the whole page after each of 16 App Designer saves that inserted scrolls and rules, changed levels and reordered controls.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:41:28.794Z",
+      "method": "save-capture",
+      "experimentId": "lv02-scroll-area",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv02-scroll-area, the whole page after the save: the 3 controls' OCCURSLEVEL in tab order are 0 1 1, each the level the rule gives.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv02-scroll-area"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "145b4afe69c6f93ad5dc5c213d6567cd221366d7cc98546384e4e62722d6925c"
+    },
+    {
+      "observedAt": "2026-10-13T11:41:29.198Z",
+      "method": "save-capture",
+      "experimentId": "lv03-scroll-bar",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv03-scroll-bar, the whole page after the save: the 5 controls' OCCURSLEVEL in tab order are 0 1 1 1 1, each the level the rule gives.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv03-scroll-bar"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a450c520415be8c26f639dbedf60365fdd9457c10000d25a5d2dfd9d6f1b3832"
+    },
+    {
+      "observedAt": "2026-10-13T11:41:29.605Z",
+      "method": "save-capture",
+      "experimentId": "lv04-sb-level2",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv04-sb-level2, the whole page after the save: the 5 controls' OCCURSLEVEL in tab order are 0 1 1 2 2, each the level the rule gives.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv04-sb-level2"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "4ff26ea10242b707e350e2ffa1926d52de3d346ac2168ba6c1e992d36dea0de4"
+    },
+    {
+      "observedAt": "2026-10-13T11:41:30.030Z",
+      "method": "save-capture",
+      "experimentId": "lv05-hr-default",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv05-hr-default, the whole page after the save: the 7 controls' OCCURSLEVEL in tab order are 0 1 1 2 2 2 2, each the level the rule gives.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv05-hr-default"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "d0b1183943bd15ffc6bd8f6ef580a7b7392a6f7f5cea1091b707734b9fa56a26"
+    },
+    {
+      "observedAt": "2026-10-13T11:41:30.485Z",
+      "method": "save-capture",
+      "experimentId": "lv06-hr-level1",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv06-hr-level1, the whole page after the save: the 7 controls' OCCURSLEVEL in tab order are 0 1 1 2 2 1 1, each the level the rule gives.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv06-hr-level1"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "3259e0a69bb8d372824d45f08061d5649194dca3107fe0b11af6b4b5986fee43"
+    },
+    {
+      "observedAt": "2026-10-13T11:41:30.889Z",
+      "method": "save-capture",
+      "experimentId": "lv07-hr2-default",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv07-hr2-default, the whole page after the save: the 9 controls' OCCURSLEVEL in tab order are 0 1 1 2 2 1 1 1 1, each the level the rule gives.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv07-hr2-default"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "aebeef1131070ebbc3fa41499b940cda3669a2e4af212973f2a40309c9e37f41"
+    },
+    {
+      "observedAt": "2026-10-13T11:41:31.290Z",
+      "method": "save-capture",
+      "experimentId": "lv08-hr2-level0",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv08-hr2-level0, the whole page after the save: the 9 controls' OCCURSLEVEL in tab order are 0 1 1 2 2 1 1 0 0, each the level the rule gives.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv08-hr2-level0"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "65aade3cd573c71be58a4c87e1eb5177af4a9090082718f220f80345dbc5b53c"
+    },
+    {
+      "observedAt": "2026-10-13T11:41:31.719Z",
+      "method": "save-capture",
+      "experimentId": "lv09-sb-level1",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv09-sb-level1, the whole page after the save: the 9 controls' OCCURSLEVEL in tab order are 0 1 1 1 1 1 1 0 0, each the level the rule gives.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv09-sb-level1"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "e60797ae2086ca29ee3f2dbe131852fbe0c3fd37d9082d92a981206a020f6e5b"
+    },
+    {
+      "observedAt": "2026-10-13T11:41:32.126Z",
+      "method": "save-capture",
+      "experimentId": "lv10-sb-level2b",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv10-sb-level2b, the whole page after the save: the 9 controls' OCCURSLEVEL in tab order are 0 1 1 2 2 1 1 0 0, each the level the rule gives.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv10-sb-level2b"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "3b7c17652691b2670058b3dfe430c7f595f864e25670065fc4d233f4ed6194f9"
+    },
+    {
+      "observedAt": "2026-10-13T11:41:32.517Z",
+      "method": "save-capture",
+      "experimentId": "lv11-hr1-unset",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv11-hr1-unset, the whole page after the save: the 9 controls' OCCURSLEVEL in tab order are 0 1 1 2 2 2 2 0 0, each the level the rule gives.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv11-hr1-unset"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "6f811e637c350d75c8ca74d4b85775720f1efb1c6915fa1104e063908a5887e3"
+    },
+    {
+      "observedAt": "2026-10-13T11:41:32.924Z",
+      "method": "save-capture",
+      "experimentId": "lv12-hr1-reset",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv12-hr1-reset, the whole page after the save: the 9 controls' OCCURSLEVEL in tab order are 0 1 1 2 2 0 0 0 0, each the level the rule gives.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv12-hr1-reset"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "8bd928e9882c9a81b72da895a8e0290abad982020de64d3c4d198dac64312a3b"
+    },
+    {
+      "observedAt": "2026-10-13T11:41:33.324Z",
+      "method": "save-capture",
+      "experimentId": "lv13-hr1-level1",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv13-hr1-level1, the whole page after the save: the 9 controls' OCCURSLEVEL in tab order are 0 1 1 2 2 1 1 0 0, each the level the rule gives.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv13-hr1-level1"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "06e92ca4dffdb3e55c0705d3b4b5622b533467851cc3e2b12fbd2fb4d4a616f0"
+    },
+    {
+      "observedAt": "2026-10-13T11:41:33.733Z",
+      "method": "save-capture",
+      "experimentId": "lv14-reorder",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv14-reorder, the whole page after the save: the 9 controls' OCCURSLEVEL in tab order are 0 0 1 1 2 2 1 1 0, each the level the rule gives.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 8
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv14-reorder"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "0565c048760f39584cab71af2f31258248e79273e04a09e57385e9191a508768"
+    },
+    {
+      "observedAt": "2026-10-13T11:41:34.117Z",
+      "method": "save-capture",
+      "experimentId": "lv15-reorder-in",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv15-reorder-in, the whole page after the save: the 9 controls' OCCURSLEVEL in tab order are 0 1 1 2 2 2 1 1 0, each the level the rule gives.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 4
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv15-reorder-in"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "d6b3a49640a8a73a97ac803d9d2c6cb0ff6f49ba2fcfb0b953eb59810ef35193"
+    },
+    {
+      "observedAt": "2026-10-13T11:41:34.557Z",
+      "method": "save-capture",
+      "experimentId": "lv16-reorder-back",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv16-reorder-back, the whole page after the save: the 9 controls' OCCURSLEVEL in tab order are 0 1 1 2 2 1 1 0 0, each the level the rule gives.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 5
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv16-reorder-back"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "63135c5dd33dd6b294ce25db38a063917bb9fe539b31d5461ea3ca2b277f36ca"
+    },
+    {
+      "observedAt": "2026-10-13T11:41:34.959Z",
+      "method": "save-capture",
+      "experimentId": "lv18-derived-in-scroll",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv18-derived-in-scroll, the whole page after the save: the 10 controls' OCCURSLEVEL in tab order are 0 1 1 2 2 2 1 1 0 0, each the level the rule gives.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 4
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv18-derived-in-scroll"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "ea869cbf57bb93cee6375b648610760ffd09967d982dc0a58807f1966a55ef11"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:41:28.802Z",
+    "updatedAt": "2026-10-13T11:41:34.966Z",
+    "schemaVersion": 1
+  }
+}

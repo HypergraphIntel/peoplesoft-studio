@@ -1,0 +1,227 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-0955875d330562f340b9c23e",
+  "fingerprint": "0955875d330562f340b9c23e6383d32f6ed1163e04ebabe72bfa8636068f0e18",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "application-class",
+    "objectType": "Application Class",
+    "tables": [
+      "PSPACKAGEDEFN"
+    ]
+  },
+  "assertion": {
+    "kind": "package-restamp",
+    "facts": {
+      "table": "PSPACKAGEDEFN",
+      "rows": "every package row of the root",
+      "versionIsNewCounter": "APM",
+      "physical": "deleted and re-inserted"
+    }
+  },
+  "title": "Adding an application class rewrites every PSPACKAGEDEFN row of its root package with VERSION = the new APM",
+  "statement": "When App Designer saves a new class, every PSPACKAGEDEFN row under the class's root package (the root and its subpackages) is deleted and re-inserted with VERSION = the new APM, changed or not; the package's other PSAPPCLASSDEFN rows are deleted and re-inserted unchanged.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T15:18:05.852Z",
+      "method": "save-capture",
+      "experimentId": "c04-package-class",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c04-package-class: PSPACKAGEDEFN 1 inserted / 1 deleted, every inserted row with VERSION 11 (the new APM): ZZ_PCODE_LAB_PK2 level 0; PSAPPCLASSDEFN 1 inserted / 0 deleted.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAPPCLASSDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPACKAGEDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "APM": 1,
+          "PCM": 1,
+          "SYS": 2
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c04-package-class"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CREATE_DEFINITIONS.md"
+        }
+      ],
+      "digest": "0dde73c0486c32e3f5963f46055fc2ae79743d69dd2b6c163fc7b9567caac5fa"
+    },
+    {
+      "observedAt": "2026-10-07T16:22:42.325Z",
+      "method": "save-capture",
+      "experimentId": "c05-subpackage-class",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c05-subpackage-class: PSPACKAGEDEFN 2 inserted / 1 deleted, every inserted row with VERSION 14 (the new APM): SUB1 level 1, ZZ_PCODE_LAB_PK2 level 0; PSAPPCLASSDEFN 2 inserted / 1 deleted.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAPPCLASSDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPACKAGEDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "APM": 1,
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c05-subpackage-class"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CREATE_DEFINITIONS.md"
+        }
+      ],
+      "digest": "d3ecec5e15919331f2ad04f389fb9ddcf63df6c6d00e7272da62a115bae1b4df"
+    },
+    {
+      "observedAt": "2026-10-07T16:24:37.062Z",
+      "method": "save-capture",
+      "experimentId": "c06-subpackage-second",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c06-subpackage-second: PSPACKAGEDEFN 2 inserted / 2 deleted, every inserted row with VERSION 15 (the new APM): SUB1 level 1, ZZ_PCODE_LAB_PK2 level 0; PSAPPCLASSDEFN 3 inserted / 2 deleted.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAPPCLASSDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPACKAGEDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "APM": 1,
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c06-subpackage-second"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CREATE_DEFINITIONS.md"
+        }
+      ],
+      "digest": "dda5f5733b8bb5799fff7ee916c7d3bbeb72f7f318414cac658b27888695d9b6"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:43:31.607Z",
+    "updatedAt": "2026-10-13T11:43:34.051Z",
+    "schemaVersion": 1
+  }
+}

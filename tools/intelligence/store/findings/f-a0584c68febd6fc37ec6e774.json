@@ -1,0 +1,192 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-a0584c68febd6fc37ec6e774",
+  "fingerprint": "a0584c68febd6fc37ec6e774be0dc28867974c2397debe26f253227c6c3a3aaa",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "peoplecode",
+    "objectType": "Page PeopleCode",
+    "tables": [
+      "PSPCMPROG",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "PCM": 1,
+      "SYS": 1,
+      "PDM": 0,
+      "pslockCounters": "PCM",
+      "versionColumn": "PSPCMPROG.VERSION",
+      "versionIsNewCounter": "PCM"
+    }
+  },
+  "title": "Creating, editing or deleting Page PeopleCode moves PCM and SYS by 1; the page's PDM does not move",
+  "statement": "App Designer's save of a page's Activate PeopleCode (create, edit, delete) bumps PSVERSION and PSLOCK PCM and PSVERSION SYS by one, writes PSPCMPROG.VERSION as the new PCM, and leaves the page definition and PDM alone.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T19:12:27.000Z",
+      "method": "save-capture",
+      "experimentId": "q01-page-activate-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture q01-page-activate-create: Activate created; PSPCMPROG written with VERSION 118 (the new PCM); PCM +1 in PSVERSION and PSLOCK, SYS +1; PDM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "q01-page-activate-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a04a0624e0587fb54903fdaf06f9e8c402c3562ee284ba9fb341ecd1ab4f6049"
+    },
+    {
+      "observedAt": "2026-10-10T19:12:27.000Z",
+      "method": "save-capture",
+      "experimentId": "q02-page-activate-edit",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture q02-page-activate-edit: Activate edited; PSPCMPROG written with VERSION 119 (the new PCM); PCM +1 in PSVERSION and PSLOCK, SYS +1; PDM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "q02-page-activate-edit"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "8ca81fa30d07d2ee1a88e5d77136df8cc6b62c012c10c7e3166f8a6092f8959f"
+    },
+    {
+      "observedAt": "2026-10-10T19:12:39.000Z",
+      "method": "save-capture",
+      "experimentId": "q03-page-activate-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture q03-page-activate-delete: Activate deleted; PSPCMPROG row deleted; PCM +1 in PSVERSION and PSLOCK, SYS +1; PDM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "q03-page-activate-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "030608f8c4ec13653752a3ffc0a824847b2ff114d5cca460e47794c151d3d281"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:43:36.086Z",
+    "updatedAt": "2026-10-13T11:43:37.729Z",
+    "schemaVersion": 1
+  }
+}

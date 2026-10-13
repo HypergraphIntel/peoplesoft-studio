@@ -1,0 +1,92 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-26c465f2ded30e5cb29a474d",
+  "fingerprint": "26c465f2ded30e5cb29a474dd72e01b84cdef57c6b3eb8839bdd892d0addf7e3",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "project",
+    "objectType": "Project",
+    "tables": [
+      "PSPROJECTITEM",
+      "PSPROJECTDEFN",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "counter": "PJM",
+      "psversionStep": 1,
+      "pslockStep": 1,
+      "sysStep": 1,
+      "versionColumn": "PSPROJECTDEFN.VERSION",
+      "versionIsNewCounter": true,
+      "operation": "insert item"
+    }
+  },
+  "title": "Saving a project after Insert Into Project adds one PSPROJECTITEM row, rewrites PSPROJECTDEFN at the new PJM and moves PJM and SYS by 1",
+  "statement": "App Designer's project save after inserting a definition adds its PSPROJECTITEM row, leaves the project's other items untouched, deletes and re-inserts the PSPROJECTDEFN row with VERSION = the new PJM and a new stamp, and bumps PSVERSION and PSLOCK PJM and PSVERSION SYS by one. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-06T20:08:29.587Z",
+      "method": "save-capture",
+      "experimentId": "p01-insert-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture p01-insert-field: one PSPROJECTITEM row inserted, none deleted; PSPROJECTDEFN deleted and re-inserted with VERSION 42 (the new PJM); PJM +1 in PSVERSION and PSLOCK, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPROJECTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPROJECTITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PJM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "p01-insert-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PROJECT_INSERT.md"
+        }
+      ],
+      "digest": "47729934413451656f4c1fc049f791ddd45d2450fff8a8c392430ac051bd1bef"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:43:35.280Z",
+    "updatedAt": "2026-10-13T11:43:35.280Z",
+    "schemaVersion": 1
+  }
+}

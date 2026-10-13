@@ -1,0 +1,171 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-25040e230f523de62ee3f1d6",
+  "fingerprint": "25040e230f523de62ee3f1d6b4c608dc82deed5c8328cd62ce32fb2646f9bec7",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "application-class",
+    "objectType": "Application Class",
+    "tables": [
+      "PSAPPCLASSDEFN",
+      "PSPACKAGEDEFN",
+      "PSPCMPROG",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "APM": 1,
+      "PCM": 1,
+      "SYS": 1,
+      "pslockCounters": "APM,PCM",
+      "operation": "create class in one save"
+    }
+  },
+  "title": "Creating an application class in one save moves APM and PCM by 1 and SYS by 1",
+  "statement": "App Designer's save that creates an application class (with its program, and a new subpackage when the class is in one) bumps PSVERSION and PSLOCK APM and PCM by one and PSVERSION SYS by one. A class created by saving the package and then the program separately moves SYS by 2 (c04).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T16:22:42.325Z",
+      "method": "save-capture",
+      "experimentId": "c05-subpackage-class",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c05-subpackage-class: APM +1 (to 14) and PCM +1 (to 99) in PSVERSION and PSLOCK, SYS +1, in one save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAPPCLASSDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPACKAGEDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "APM": 1,
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c05-subpackage-class"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CREATE_DEFINITIONS.md"
+        }
+      ],
+      "digest": "c18e6d3151a4609362d1373af1db43bbf5faa3816f65f1e18d84be25d7cbc678"
+    },
+    {
+      "observedAt": "2026-10-07T16:24:37.062Z",
+      "method": "save-capture",
+      "experimentId": "c06-subpackage-second",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c06-subpackage-second: APM +1 (to 15) and PCM +1 (to 100) in PSVERSION and PSLOCK, SYS +1, in one save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAPPCLASSDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPACKAGEDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "APM": 1,
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c06-subpackage-second"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CREATE_DEFINITIONS.md"
+        }
+      ],
+      "digest": "56097aa1763245164543b5800c99f3f5084d8a82d36cd366c2f99f46b24ad031"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:43:32.407Z",
+    "updatedAt": "2026-10-13T11:43:33.608Z",
+    "schemaVersion": 1
+  }
+}

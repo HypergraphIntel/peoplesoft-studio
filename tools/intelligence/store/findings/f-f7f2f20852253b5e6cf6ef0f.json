@@ -1,0 +1,85 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-f7f2f20852253b5e6cf6ef0f",
+  "fingerprint": "f7f2f20852253b5e6cf6ef0f21cc4f48eb272c994bef779539dce380c03b9b13",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "application-class",
+    "objectType": "Application Package",
+    "tables": [
+      "PSPACKAGEDEFN",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "create",
+    "facts": {
+      "APM": 1,
+      "SYS": 1,
+      "versionColumn": "PSPACKAGEDEFN.VERSION",
+      "versionIsNewCounter": "APM",
+      "packageRoot": "name",
+      "qualifyPath": ".",
+      "packageLevel": 0
+    }
+  },
+  "title": "Creating an application package writes one PSPACKAGEDEFN row (PACKAGEROOT = its name, QUALIFYPATH '.', PACKAGELEVEL 0, VERSION = new APM) and moves APM and SYS by 1",
+  "statement": "App Designer's first save of a new application package inserts one PSPACKAGEDEFN row with PACKAGEID and PACKAGEROOT the package name, QUALIFYPATH '.', PACKAGELEVEL 0 and VERSION = the new APM, and bumps PSVERSION and PSLOCK APM and PSVERSION SYS by one. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T15:14:07.074Z",
+      "method": "save-capture",
+      "experimentId": "c03-package-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c03-package-create: PSPACKAGEDEFN inserted with PACKAGEROOT = PACKAGEID, QUALIFYPATH '.', PACKAGELEVEL 0, VERSION 10 (the new APM); APM +1 in PSVERSION and PSLOCK, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPACKAGEDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "APM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c03-package-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CREATE_DEFINITIONS.md"
+        }
+      ],
+      "digest": "f3455b88560a1175c2a38a29cc67bd02df07e6eb83dc2cc0ab2b106260733b91"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:43:31.194Z",
+    "updatedAt": "2026-10-13T11:43:31.194Z",
+    "schemaVersion": 1
+  }
+}

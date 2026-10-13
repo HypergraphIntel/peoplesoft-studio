@@ -1,0 +1,239 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-5c5c7eb705e2fbee555fbfe3",
+  "fingerprint": "5c5c7eb705e2fbee555fbfe34835f92ffbe7020afb5e31b16b7eabed139829ba",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD",
+      "PSPNLFIELDEXT"
+    ],
+    "properties": [
+      "FIELDUSE",
+      "SECUREINVISIBLE",
+      "OCCURSLEVEL",
+      "PT_NUMFLD1"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "flag": "FIELDUSE 0x2",
+      "alsoSets": "SECUREINVISIBLE=1",
+      "level": "OCCURSLEVEL,PSPNLFIELDEXT.PT_NUMFLD1",
+      "clearKeeps": "PT_NUMFLD1",
+      "control": "Horizontal Rule"
+    }
+  },
+  "title": "A horizontal rule's Set to Level is FIELDUSE 0x2 with SECUREINVISIBLE 1; its level is OCCURSLEVEL and PSPNLFIELDEXT.PT_NUMFLD1, which clearing keeps",
+  "statement": "Use tab Set to Level on a horizontal rule sets PSPNLFIELD.FIELDUSE bit 0x2 and SECUREINVISIBLE 1 and stores the chosen level in OCCURSLEVEL and in PSPNLFIELDEXT.PT_NUMFLD1; clearing it returns FIELDUSE and SECUREINVISIBLE to 0 and leaves PT_NUMFLD1 as it was.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:41:48.276Z",
+      "method": "save-capture",
+      "experimentId": "lv06-hr-level1",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv06-hr-level1, control 6: FIELDUSE 0x0 -> 0x2; OCCURSLEVEL 2 -> 1; SECUREINVISIBLE 0 -> 1; EXT.PT_NUMFLD1 0 -> 1; EXT.FFSTYLELONG ' ' -> ' | | | | '. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv06-hr-level1"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "49bf1fb2eb80a152d8e665ba3cd8589bd5d6990b2221bc5721b66fdf80f73940"
+    },
+    {
+      "observedAt": "2026-10-13T11:41:48.669Z",
+      "method": "save-capture",
+      "experimentId": "lv12-hr1-reset",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv12-hr1-reset, control 6: FIELDUSE 0x0 -> 0x2; OCCURSLEVEL 2 -> 0; SECUREINVISIBLE 0 -> 1; EXT.PT_NUMFLD1 1 -> 0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv12-hr1-reset"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "fbaaaa582268b2ba3084edd8b213c0cf8e1474303bd20174eb13a9c6b850095d"
+    },
+    {
+      "observedAt": "2026-10-13T11:41:49.084Z",
+      "method": "save-capture",
+      "experimentId": "lv13-hr1-level1",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv13-hr1-level1, control 6: OCCURSLEVEL 0 -> 1; EXT.PT_NUMFLD1 0 -> 1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv13-hr1-level1"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "7488a1f91ca3983cc36a1140866707e86bdb75b997ae70f41894ab8ec49aea7c"
+    },
+    {
+      "observedAt": "2026-10-13T11:41:49.476Z",
+      "method": "save-capture",
+      "experimentId": "lv11-hr1-unset",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture lv11-hr1-unset, control 6: FIELDUSE 0x2 -> 0x0; OCCURSLEVEL 1 -> 2; SECUREINVISIBLE 1 -> 0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "lv11-hr1-unset"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a70b57f3e6d4cd99ffee10d9eaf465b17356052deae9cc359f7ef747fff5d054"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:41:48.285Z",
+    "updatedAt": "2026-10-13T11:41:49.483Z",
+    "schemaVersion": 1
+  }
+}

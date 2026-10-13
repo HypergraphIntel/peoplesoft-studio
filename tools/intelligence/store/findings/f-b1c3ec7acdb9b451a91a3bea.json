@@ -1,0 +1,86 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-b1c3ec7acdb9b451a91a3bea",
+  "fingerprint": "b1c3ec7acdb9b451a91a3bea7598015e32c20989396ea619472b4c89a80e2a63",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "project",
+    "objectType": "Project",
+    "tables": [
+      "PSPROJECTITEM"
+    ]
+  },
+  "assertion": {
+    "kind": "item-layout",
+    "facts": {
+      "definition": "Field",
+      "OBJECTTYPE": 2,
+      "OBJECTID1": 6,
+      "value": "FIELDNAME"
+    }
+  },
+  "title": "A field in a project is PSPROJECTITEM OBJECTTYPE 2, OBJECTID1 6 (FIELDNAME)",
+  "statement": "App Designer's Insert Into Project of a field writes a PSPROJECTITEM row with OBJECTTYPE 2 and OBJECTID1 6 holding the field name, the other slots 0 / ' '.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-06T20:08:29.587Z",
+      "method": "save-capture",
+      "experimentId": "p01-insert-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture p01-insert-field: the inserted item has OBJECTTYPE 2, OBJECTID1 6, OBJECTID2-4 0/0/0.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPROJECTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPROJECTITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PJM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "p01-insert-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PROJECT_INSERT.md"
+        }
+      ],
+      "digest": "8cb69d115bb67c7dfca5552154333abf181be1ff0b7defb93a68093e4ec12b8a"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:43:35.679Z",
+    "updatedAt": "2026-10-13T11:43:35.679Z",
+    "schemaVersion": 1
+  }
+}

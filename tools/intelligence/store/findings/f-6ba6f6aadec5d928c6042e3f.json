@@ -1,0 +1,233 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-6ba6f6aadec5d928c6042e3f",
+  "fingerprint": "6ba6f6aadec5d928c6042e3fe9019c91243771bb2c6033ff3c27a9e92c2aa786",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "application-class",
+    "objectType": "Application Class",
+    "tables": [
+      "PSPCMPROG",
+      "PSAPPCLASSDEFN",
+      "PSPACKAGEDEFN"
+    ]
+  },
+  "assertion": {
+    "kind": "program-key",
+    "facts": {
+      "root": 104,
+      "subpackage": 105,
+      "class": 107,
+      "event": "12 OnExecute",
+      "classQualifyPathRoot": ":",
+      "classQualifyPathSub": "subpackage path",
+      "subpackageQualifyPathLevel1": ":",
+      "subpackageLevel": 1
+    }
+  },
+  "title": "An application class's program is PSPCMPROG 104 (root) / 105 (subpackage) / 107 (class) / 12 OnExecute; a class's QUALIFYPATH is ':' in the root, else its subpackage path",
+  "statement": "App Designer keys an application class's PeopleCode in PSPCMPROG by package root (OBJECTID 104), each subpackage (105), the class (107) and event 12 with value OnExecute. In PSAPPCLASSDEFN a class in the root has QUALIFYPATH ':', a class in a subpackage the subpackage path; a level-1 subpackage's PSPACKAGEDEFN row has PACKAGELEVEL 1 and QUALIFYPATH ':'.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T15:18:05.852Z",
+      "method": "save-capture",
+      "experimentId": "c04-package-class",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c04-package-class: the new program's OBJECTIDs 104 / 107 / 12 (event OnExecute); the new class's QUALIFYPATH ':'.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAPPCLASSDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPACKAGEDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "APM": 1,
+          "PCM": 1,
+          "SYS": 2
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c04-package-class"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CREATE_DEFINITIONS.md"
+        }
+      ],
+      "digest": "7d9d0330889c12d74008c074feed7d1539ea79a37cc3d3be3388921523b9feca"
+    },
+    {
+      "observedAt": "2026-10-07T16:22:42.325Z",
+      "method": "save-capture",
+      "experimentId": "c05-subpackage-class",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c05-subpackage-class: the new program's OBJECTIDs 104 / 105 / 107 / 12 (event OnExecute); the new class's QUALIFYPATH 'SUB1'; the subpackage row PACKAGELEVEL 1, QUALIFYPATH ':'.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAPPCLASSDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPACKAGEDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "APM": 1,
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c05-subpackage-class"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CREATE_DEFINITIONS.md"
+        }
+      ],
+      "digest": "70c7e51bb44ce8e403df8338710be6ee43ca9245ad2c8adeee42672dcffdab4d"
+    },
+    {
+      "observedAt": "2026-10-07T16:24:37.062Z",
+      "method": "save-capture",
+      "experimentId": "c06-subpackage-second",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c06-subpackage-second: the new program's OBJECTIDs 104 / 105 / 107 / 12 (event OnExecute); the new class's QUALIFYPATH 'SUB1'; the subpackage row PACKAGELEVEL 1, QUALIFYPATH ':'.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAPPCLASSDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPACKAGEDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "APM": 1,
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c06-subpackage-second"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CREATE_DEFINITIONS.md"
+        }
+      ],
+      "digest": "b1a602aeac0b833088cb5a374c74088194417a2670ea770bc5c176cb984579c9"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:43:32.005Z",
+    "updatedAt": "2026-10-13T11:43:34.509Z",
+    "schemaVersion": 1
+  }
+}

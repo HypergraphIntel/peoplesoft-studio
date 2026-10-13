@@ -121,7 +121,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 
 ## Recorded findings (tools/intelligence/store)
 
-154 findings, 827 observations, each checked against its capture rows before recording (2026-10-13; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
+166 findings, 865 observations, each checked against its capture rows before recording (2026-10-13; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
 
 | Subsystem | ID | Claim | Status | Obs. |
 |---|---|---|---|---|
@@ -134,6 +134,10 @@ fingerprint; server: see `server/intelligence/README.md`.
 | app-engine | f-aca484c980b5bbc3045596c1 | Changing an App Engine section, step or action moves AEM, AES and SYS by 1 | reproduced | 48 |
 | app-engine | f-d3a388ee70c25792a50ca764 | Deleting an App Engine program moves AEM, AES, SRM and PCM by 2 and SYS by 1, and leaves tombstones at the final counters | observed | 1 |
 | app-engine | f-d477c0ab70e48a7736224355 | Saving a new App Engine program moves AEM by 1 and stamps PSAEAPPLDEFN.VERSION with it | reproduced | 2 |
+| application-class | f-0955875d330562f340b9c23e | Adding an application class rewrites every PSPACKAGEDEFN row of its root package with VERSION = the new APM | reproduced | 3 |
+| application-class | f-25040e230f523de62ee3f1d6 | Creating an application class in one save moves APM and PCM by 1 and SYS by 1 | reproduced | 2 |
+| application-class | f-6ba6f6aadec5d928c6042e3f | An application class's program is PSPCMPROG 104 (root) / 105 (subpackage) / 107 (class) / 12 OnExecute; a class's QUALIFYPATH is ':' in the root, else its subpackage path | reproduced | 3 |
+| application-class | f-f7f2f20852253b5e6cf6ef0f | Creating an application package writes one PSPACKAGEDEFN row (PACKAGEROOT = its name, QUALIFYPATH '.', PACKAGELEVEL 0, VERSION = new APM) and moves APM and SYS by 1 | observed | 1 |
 | component | f-3cacac9b191a0225654a8f3d | Saving an existing component moves PGM and MDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSPNLGRPDEFN.VERSION is the new PGM | reproduced | 78 |
 | component | f-510fe8f23a5e77342c8859e0 | Creating a component moves PGM by 1 and SYS by 1, not MDM | observed | 1 |
 | component | f-64ec2d6391192f12f64cad1a | An App Designer component save deletes and re-inserts the component's PSPNLGRPDEFN, PSPNLGROUP, PSPNLGRPDEFNEXT and PSPNLGRPSCRIPTS rows | reproduced | 6 |
@@ -202,8 +206,10 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-52f47bd73ce2e52fc4b384ca | An edit box's Message Catalog popup is PSPNLFIELD.FIELDUSETMP 0x2200 with PSPNLFIELDEXT.MESSAGE_SET_NBR / MESSAGE_NBR | reproduced | 2 |
 | page-designer | f-552b4d2db08e2d40b5859f3e | An edit box's Display Time Zone is PSPNLFIELD.DSPLFORMAT 0x20000000 | reproduced | 2 |
 | page-designer | f-59dfdd3d38ea37d8e5ced4a6 | Enable Spell Check is PSPNLFIELD.FIELDUSETMP 0x2 | reproduced | 3 |
+| page-designer | f-5c5c7eb705e2fbee555fbfe3 | A horizontal rule's Set to Level is FIELDUSE 0x2 with SECUREINVISIBLE 1; its level is OCCURSLEVEL and PSPNLFIELDEXT.PT_NUMFLD1, which clearing keeps | reproduced | 4 |
 | page-designer | f-5efa432327cbb9df35f96e29 | Display Control Field is PSPNLFIELD.FIELDUSE 0x8 | reproduced | 4 |
 | page-designer | f-60f36939a246a479af94f7ba | A page control label's type is PSPNLFIELD.LBLTYPE: 0 None, 1 Text, 2 RFT Short, 3 RFT Long, 7 Message Catalog | reproduced | 15 |
+| page-designer | f-62b99e3779da3856fbe781ac | App Designer stores each page control's OCCURSLEVEL from tab order: a running level that each scroll and each Set to Level rule sets to its own | reproduced | 16 |
 | page-designer | f-6a77a4c6fa99303b68267217 | Fluid Control Structure: Basic is PSPNLFIELD.FIELDUSETMP 0x4000000 | observed | 1 |
 | page-designer | f-6bbfd2ebcb24e3aa8d8a3bee | An App Designer page save moves PDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSPNLDEFN.VERSION is the new PDM | reproduced | 95 |
 | page-designer | f-6db3412abdca45605004f823 | A group box's Draggable is PSPNLFIELD.FIELDUSETMP 0x800000 | observed | 1 |
@@ -263,9 +269,15 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-fe89a32dd42b46075306c28e | An HTML Area's Constant value is a PSPNLHTMLAREA row; going back to Field deletes it | reproduced | 2 |
 | page-designer | f-ffe416ba3fff85f9abc83c88 | An edit box's Fluid Input Type is PSPNLFIELDEXT.HTML_INPUT_TYPE: 0 text, 1 color, 2 date, 3 datetime, 5 email, 7 number, 8 range, 9 search, 10 tel, 11 time, 12 url | reproduced | 11 |
 | peoplecode | f-232ea6241450a52b85ba008e | Component PeopleCode keys are PSPCMPROG OBJECTIDs 10 / 39 / 12 (component), 10 / 39 / 1 / 12 (record), 10 / 39 / 1 / 2 / 12 (record field) | reproduced | 3 |
+| peoplecode | f-3761278ebeac004eaa038d19 | Page PeopleCode is keyed PSPCMPROG OBJECTID 9 (page) / 12 (event Activate) | reproduced | 2 |
+| peoplecode | f-5841ece4e2d085787c72b537 | Deleting Page PeopleCode writes a PSPCMPROGDEL row at the new PCM | observed | 1 |
 | peoplecode | f-59da48c7debdd679ee3e231e | Deleting a component PeopleCode program writes a PSPCMPROGDEL row at the new PCM | observed | 1 |
+| peoplecode | f-a0584c68febd6fc37ec6e774 | Creating, editing or deleting Page PeopleCode moves PCM and SYS by 1; the page's PDM does not move | reproduced | 3 |
 | peoplecode | f-c25d40474b82a4b3d5f39a89 | Creating, editing or deleting a component PeopleCode program moves PCM and SYS by 1; the component's PGM and MDM do not move | reproduced | 5 |
+| project | f-1a1df3b9c0cdf0d0553e5ffb | Creating a project writes one PSPROJECTDEFN row (VERSION = new PJM; KEEPTGT 31, COMPARETYPE 1, COMMITLIMIT 50, REPORTFILTER 16232832) and moves PJM and SYS by 1 | observed | 1 |
+| project | f-26c465f2ded30e5cb29a474d | Saving a project after Insert Into Project adds one PSPROJECTITEM row, rewrites PSPROJECTDEFN at the new PJM and moves PJM and SYS by 1 | observed | 1 |
 | project | f-74c70228d2ea52f7a76b0219 | A message channel in a project is PSPROJECTITEM OBJECTTYPE 36, OBJECTID1 61 (CHNLNAME) | observed | 1 |
+| project | f-b1c3ec7acdb9b451a91a3bea | A field in a project is PSPROJECTITEM OBJECTTYPE 2, OBJECTID1 6 (FIELDNAME) | observed | 1 |
 | record | f-02b34d989d83e3631d9abc1c | An Analytic Delete reference does not move the referring record when the referenced record is saved | observed | 1 |
 | record | f-13f37132ac91664fbbd38a05 | Removing a field or subrecord from a record moves PGM by 1 as well as RDM | reproduced | 4 |
 | record | f-1ae1a55f3e464f2673977ca6 | An App Designer record save moves RDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSRECDEFN.VERSION is the new RDM | reproduced | 41 |
@@ -296,9 +308,15 @@ fingerprint; server: see `server/intelligence/README.md`.
    and physical-rewrite findings; page properties (t*, r0N-type-*, u*,
    s02-s08, f01-f06, g01, o01), HTML definitions (h01, h04), style sheets
    (s01-s03; s04's window holds the writer's x10) and component PeopleCode
-   (p01-p05). Remaining capture families: scroll areas and grids (lv*,
-   page-capture), Page PeopleCode (q*), projects (p01-insert-field,
-   c02-project-create), packages and classes (c03-c06) -- check each family's
+   (p01-p05), scroll levels (lv*: every after-image checked against the
+   level rule), Page PeopleCode (q01-q03), projects (c02, p01; not p03, a
+   long mixed window), packages and classes (c03-c06). Not yet recorded:
+   PeopleCode writeback (00-12), fresh-insert defaults per control
+   (*-fresh, in01-in03), the property-grid saves (cb-*), menu groups
+   (mn06-mn22), message definitions (msg01-03), tab order (to-*), the
+   App Engine and CI leftovers (ae10/11/16/17, ad01/02, ar01, ap*, ci18,
+   ci25); the n*/nae/nce/nchn/nme "native" and d* / e01 cases are to be
+   checked as writer runs first. When adding captures -- check each family's
    format with the adapter, select cases by operation, record with
    `--expect-counters` (DISCOVERY_PROTOCOL.md rules 7-9).
 3. Adapters for the controlled compile lab and writer replay tests.

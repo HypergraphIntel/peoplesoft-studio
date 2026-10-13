@@ -78,7 +78,7 @@ on HRDMO: a save presenting version 41 against version 44 was refused).
 | Change | Status |
 |---|---|
 | Add items | Proven: p01 (App Designer), p02 (writer) |
-| Save with no changes | Proven: p03 — App Designer's Save Project with nothing changed writes nothing (no project row, item or counter moved); the writer refuses an empty save |
+| Save with no changes | p03 — App Designer's Save Project with nothing changed wrote nothing of its own. The capture's window (15:17-17:36) also holds the writer's insert of ZZ_PCODE_LAB_C04 (15:24, the project row updated in place) and r01's record save (17:32), so the evidence is that no App Designer delete-and-reinsert of the project row appears in it; the writer refuses an empty save |
 | Remove items | Needs a case: remove an item in App Designer, save the project |
 | Project properties (description, comments) | Needs a case: edit them, save |
 | Create a project | Needs a case: new project, insert one definition, save |

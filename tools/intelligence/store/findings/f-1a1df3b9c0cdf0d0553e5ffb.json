@@ -1,0 +1,85 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-1a1df3b9c0cdf0d0553e5ffb",
+  "fingerprint": "1a1df3b9c0cdf0d0553e5ffbe66525d040b491e40e29c2946762bcf99b0c9cbf",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "project",
+    "objectType": "Project",
+    "tables": [
+      "PSPROJECTDEFN",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "create",
+    "facts": {
+      "PJM": 1,
+      "SYS": 1,
+      "versionIsNewCounter": "PJM",
+      "KEEPTGT": 31,
+      "COMPARETYPE": 1,
+      "COMMITLIMIT": 50,
+      "REPORTFILTER": 16232832
+    }
+  },
+  "title": "Creating a project writes one PSPROJECTDEFN row (VERSION = new PJM; KEEPTGT 31, COMPARETYPE 1, COMMITLIMIT 50, REPORTFILTER 16232832) and moves PJM and SYS by 1",
+  "statement": "App Designer's first save of a new, empty project inserts one PSPROJECTDEFN row with VERSION = the new PJM and the defaults KEEPTGT 31, COMPARETYPE 1, COMMITLIMIT 50, REPORTFILTER 16232832, and bumps PSVERSION and PSLOCK PJM and PSVERSION SYS by one. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T15:09:56.686Z",
+      "method": "save-capture",
+      "experimentId": "c02-project-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture c02-project-create: PSPROJECTDEFN inserted with VERSION 48 (the new PJM), KEEPTGT 31, COMPARETYPE 1, COMMITLIMIT 50, REPORTFILTER 16232832; PJM +1 in PSVERSION and PSLOCK, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPROJECTDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PJM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "c02-project-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CREATE_DEFINITIONS.md"
+        }
+      ],
+      "digest": "77e29de0b37ec0c8f8b7906924306b0c4b0442555a4f4b30bc48f8d279125582"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:43:34.884Z",
+    "updatedAt": "2026-10-13T11:43:34.884Z",
+    "schemaVersion": 1
+  }
+}
