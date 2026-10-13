@@ -274,6 +274,7 @@ compile the program in Application Designer as well (see the Disclaimer). See
 - **Hover** — short docs for keywords, built-ins, `%` system variables
 - **Outline** — class / method / function / property symbols
 - **Snippets** — `if`, `for`, `try`, `locs`, `msgbox`, `sqlexec`, …
+- **Find References** — where an identifier (a whole word) or any text occurs in every PeopleCode program of the connection, from the word at the cursor; on a database one search of the stored source, so every program is covered. Pick an occurrence to open it at that line
 - **Compare With Environment** — a definition side by side with the same one in another connection (a database or a project export), in VS Code's diff editor. The other side is read once, without making that connection the active one
 
 SQL documents use language id `psft-sql` (basic highlighting).

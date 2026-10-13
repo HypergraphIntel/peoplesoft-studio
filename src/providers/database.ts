@@ -2568,6 +2568,35 @@ export class DatabaseProvider implements DefinitionProvider {
     });
   }
 
+  /**
+   * The PeopleCode programs whose stored source (PSPCMTXT) contains a text, case-insensitively: one
+   * query over every program's source, not a scan of decoded programs. PSPCMTXT splits a program only
+   * after a line feed, so a symbol never spans two rows. Keys the editor can open, in key order, at
+   * most `limit`; programs whose key is not a PeopleCode type Studio opens are left out.
+   */
+  async findPeopleCodeContaining(text: string, limit = 200): Promise<{ keys: DefinitionKey[]; truncated: boolean }> {
+    const needle = text.trim();
+    if (!needle) return { keys: [], truncated: false };
+    const pattern = `%${needle.toUpperCase().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+    return this.withConnection(async (c) => {
+      const cols = [1, 2, 3, 4, 5, 6, 7].map((n) => `OBJECTID${n}, OBJECTVALUE${n}`).join(', ');
+      const r = await c.execute<Record<string, string | number>>(
+        `SELECT DISTINCT ${cols} FROM PSPCMTXT WHERE UPPER(PCTEXT) LIKE :p ESCAPE '\\'
+          ORDER BY OBJECTVALUE1, OBJECTVALUE2, OBJECTVALUE3, OBJECTVALUE4, OBJECTVALUE5, OBJECTVALUE6, OBJECTVALUE7
+          FETCH FIRST :lim ROWS ONLY`, { p: pattern, lim: limit + 1 });
+      const t = (v: string | number | null | undefined) => String(v ?? '').trim();
+      const keys: DefinitionKey[] = [];
+      const rows = r.rows ?? [];
+      for (const row of rows.slice(0, limit)) {
+        const ids = [1, 2, 3, 4, 5, 6, 7].map((n) => Number(row[`OBJECTID${n}`]));
+        const vals = [1, 2, 3, 4, 5, 6, 7].map((n) => t(row[`OBJECTVALUE${n}`])).filter((_, i) => ids[i] !== 0);
+        const type = peopleCodeTypeOf(ids.filter((id) => id !== 0));
+        if (type !== undefined) keys.push(makeKey(type, ...peopleCodeKeyFromValues(type, vals)));
+      }
+      return { keys, truncated: rows.length > limit };
+    });
+  }
+
   /** A field's translate values (PSXLATITEM), as App Designer's View Translates lists them. */
   async readTranslates(fieldName: string): Promise<TranslateValue[]> {
     return this.withConnection(async (c) => {

@@ -367,6 +367,25 @@ try {
       'Compare With Environment activated the other connection');
   }
 
+  // Find References searches the active connection's PeopleCode and opens the line chosen.
+  {
+    const before = vscode._quickPickResult;
+    const editorBefore = vscode.window.activeTextEditor;
+    vscode.window.activeTextEditor = undefined; // no PeopleCode editor: the active connection (HCDEV) is searched
+    vscode._inputBoxResult = '%response';
+    vscode._quickPickResult = 0;
+    await vscode.commands.executeCommand('psft.peoplecode.findReferences');
+    vscode._inputBoxResult = undefined;
+    vscode._quickPickResult = before;
+    vscode.window.activeTextEditor = editorBefore;
+    const shown = vscode._quickPicks.at(-1);
+    check(shown?.items?.length === 1 && shown.items[0].label === 'WEBLIB_DEMO.ISCRIPT1.FieldFormula:4',
+      `Find References did not list the one occurrence (${JSON.stringify(shown?.items?.map((i) => i.label))}; messages ${JSON.stringify(vscode._messages.slice(-2))})`);
+    const opened = vscode._shownDocuments.at(-1);
+    check(opened?.options?.selection?.start?.line === 3 && String(opened?.doc?.uri).includes('FieldFormula'),
+      'Find References did not open the program at the occurrence');
+  }
+
   // The side-bar Settings view summarizes the same target.
   const settingsTree = vscode._trees.get('psft.settings');
   const rows = settingsTree ? settingsTree.getChildren(undefined) : [];

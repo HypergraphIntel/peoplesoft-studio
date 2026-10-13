@@ -25,7 +25,9 @@ import type { PeopleCodeSaveResult } from './providers/peopleCodeWriter.js';
 import { registerPeopleCodeCompletion } from './peoplecode/completion.js';
 import { registerPeopleCodeHover } from './peoplecode/hover.js';
 import { registerPeopleCodeSymbols } from './peoplecode/symbols.js';
-import { parseUri } from './util/uri.js';
+import { parseUri, SCHEME } from './util/uri.js';
+import { findPeopleCodeReferences } from './peoplecode/findReferences.js';
+import type { DefinitionProvider } from './providers/provider.js';
 import { StatusBar } from './views/statusBar.js';
 import { selectConnection } from './views/connectionSelection.js';
 import { registerSettings } from './settings/index.js';
@@ -432,9 +434,49 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         'PeopleCode validate is not implemented yet.');
     }),
 
-    vscode.commands.registerCommand('psft.peoplecode.findReferences', () => {
-      vscode.window.showInformationMessage(
-        'Find References is not implemented yet.');
+    vscode.commands.registerCommand('psft.peoplecode.findReferences', async () => {
+      await withError('Find References', async () => {
+        // The PeopleCode editor's own connection and the word at the cursor; else the active connection.
+        const editor = vscode.window.activeTextEditor;
+        let provider: DefinitionProvider | undefined;
+        let initial = '';
+        if (editor?.document.uri.scheme === SCHEME) {
+          provider = await workspace.requireByHandle(parseUri(editor.document.uri).handle);
+          const doc = editor.document;
+          const sel = editor.selection;
+          const word = sel ? doc.getWordRangeAtPosition(sel.active, /[A-Za-z0-9_&%#$@]+(?:[.:][A-Za-z0-9_&%#$@]+)*/) : undefined;
+          initial = !sel || sel.isEmpty ? (word ? doc.getText(word) : '') : doc.getText(sel).split(/\r?\n/)[0];
+        } else {
+          provider = workspace.activeProviders.find((p) => p.isConnected);
+        }
+        if (!provider) {
+          vscode.window.showInformationMessage('Find References searches PeopleCode in a connected database or an open project export: connect one first.');
+          return;
+        }
+        const searchIn = provider;
+        const needle = (await vscode.window.showInputBox({
+          title: `Find References in ${searchIn.displayName}`, value: initial,
+          prompt: 'An identifier (matched as a whole word) or any text, in every PeopleCode program; case is ignored'
+        }))?.trim();
+        if (!needle) return;
+        const r = await vscode.window.withProgress(
+          { location: vscode.ProgressLocation.Notification, title: `Finding "${needle}" in ${searchIn.displayName}'s PeopleCode…` },
+          () => findPeopleCodeReferences(searchIn, needle));
+        if (!r.hits.length) {
+          vscode.window.showInformationMessage(`"${needle}" was not found in ${searchIn.displayName}'s PeopleCode${r.truncated ? ' (the search stopped early)' : ''}.`);
+          return;
+        }
+        const picked = await vscode.window.showQuickPick(
+          r.hits.map((h) => ({ label: `${displayName(h.key)}:${h.line + 1}`, description: typeLabel(h.key.type), detail: h.context, hit: h })),
+          {
+            title: `"${needle}": ${r.hits.length} in ${r.programs} program${r.programs === 1 ? '' : 's'}${r.truncated ? ' (more programs contain it; narrow the search)' : ''}`,
+            matchOnDescription: true, matchOnDetail: true
+          });
+        if (!picked) return;
+        const doc = await vscode.workspace.openTextDocument(toUri(searchIn.id, picked.hit.key));
+        const at = new vscode.Position(picked.hit.line, picked.hit.column);
+        await vscode.window.showTextDocument(doc, { selection: new vscode.Range(at, at.translate(0, needle.length)) });
+      });
     }),
 
     vscode.commands.registerCommand('psft.sql.run', () => {

@@ -94,8 +94,19 @@ export function createStub() {
     }
   }
 
+  class Position {
+    constructor(line, character) { this.line = line; this.character = character; }
+    translate(lines = 0, chars = 0) { return new Position(this.line + lines, this.character + chars); }
+  }
+
   class Range {
+    // (startLine, startChar, endLine, endChar), or (start, end) as Positions.
     constructor(startLine, startChar, endLine, endChar) {
+      if (typeof startLine === 'object') {
+        this.start = { line: startLine.line, character: startLine.character };
+        this.end = { line: startChar.line, character: startChar.character };
+        return;
+      }
       this.start = { line: startLine, character: startChar };
       this.end = { line: endLine, character: endChar };
     }
@@ -114,7 +125,7 @@ export function createStub() {
     Disposable, EventEmitter, Uri, TreeItem, ThemeIcon, ThemeColor,
     TabInputText, TabInputCustom, TabInputWebview,
     MarkdownString, FileSystemError, CompletionItem, SnippetString, Hover,
-    DocumentSymbol, Range,
+    DocumentSymbol, Range, Position,
 
     FileType: { Unknown: 0, File: 1, Directory: 2, SymbolicLink: 64 },
     FilePermission: { Readonly: 1 },
@@ -176,6 +187,9 @@ export function createStub() {
     // VS Code's own commands a smoke test observes: vscode.diff records its arguments.
     _handlers: new Map([['vscode.diff', (left, right, title) => { vscode._diffs.push({ left, right, title }); }]]),
     _diffs: [],
+    _inputBoxes: [],
+    _inputBoxResult: undefined,
+    _shownDocuments: [],
     _contentProviders: new Map(),
     StatusBarAlignment: {
       Left: 1,
@@ -267,7 +281,8 @@ export function createStub() {
       showErrorMessage: async (m) => { vscode._messages.push(['error', m]); },
       showWarningMessage: async (m) => { vscode._messages.push(['warn', m]); },
       showInformationMessage: async (m) => { vscode._messages.push(['info', m]); },
-      showInputBox: async () => undefined,
+      // A smoke test sets _inputBoxResult to answer the next input boxes.
+      showInputBox: async (options) => { vscode._inputBoxes.push(options); return vscode._inputBoxResult; },
       showQuickPick: async (items, options) => {
         vscode._quickPicks.push({ items, options });
 
@@ -283,7 +298,7 @@ export function createStub() {
       },
       showOpenDialog: async () => undefined,
       withProgress: async (_opts, task) => task({ report() {} }, { isCancellationRequested: false }),
-      showTextDocument: async (doc) => ({ document: doc })
+      showTextDocument: async (doc, options) => { vscode._shownDocuments.push({ doc, options }); return { document: doc }; }
     },
     _trees: new Map(),
     _panels: [],

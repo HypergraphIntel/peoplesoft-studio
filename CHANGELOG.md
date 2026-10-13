@@ -10,6 +10,12 @@
   diff editor. The other side is read once through a temporary connection,
   as *Test Connection* reads, so the active connection stays as it is (one
   connection is still active at a time).
+- **Find References** (PeopleCode editor title bar, or the command palette):
+  every occurrence of an identifier -- a whole word, so `JOB` finds neither
+  `JOB_DATA` nor `&JOB` -- or of any text, in all PeopleCode of the
+  connection, listed by program and line; picking one opens it there. On a
+  database it is one search of the stored source (PSPCMTXT), so no program
+  is missed; a project export is scanned.
 
 ## 0.8.5
 
