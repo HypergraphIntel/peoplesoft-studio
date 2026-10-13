@@ -1229,6 +1229,9 @@ async function insertedControlRows(c: Connection, pnlName: string, ins: { pnlFld
   if (refusal) throw new PageSaveRefusedError(refusal);
   const rows = { ...newControlRows(pnlName, ins.pnlFldId, ins.fieldNum, full, ins.control, field), ...newControlDataRows(pnlName, ins.pnlFldId, add.kind, full, ins.fieldNum) };
   if (GRID_FIELD_TYPES.has(Number(rows.field.FIELDTYPE))) rows.field.GRDCOLUMNCOUNT = ins.control.grdColumnCount ?? 0;
+  // A Group Box's dialog settings sent with the new control (its Fluid Group Box Type: 21 Related Content for a drop zone)
+  // over the captured default row, as dropping it and setting them before the save stores them.
+  for (const { col, of, key } of EXT_EDITABLE) if (ins.control[key] !== undefined) rows.ext[col] = of(ins.control);
   return rows;
 }
 

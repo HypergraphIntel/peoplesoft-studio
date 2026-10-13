@@ -56,6 +56,19 @@ test('page operations: add, resize, label, use, delete and properties make the e
   assert.throws(() => applyPageOperations(layout, [{ op: 'move', id: 99, left: 0, top: 0 }]), PageOperationError);
 });
 
+test('page operations: a group box added with a type carries it (21 Related Content: a drop zone)', () => {
+  const layout = page([field({ FIELDNUM: 1, PNLFLDID: 3 })]);
+  const { controls } = applyPageOperations(layout, [
+    { op: 'add', kind: 'groupBox', left: 24, top: 800, width: 640, height: 120, label: 'Drop Zone', groupBoxType: 21 },
+    { op: 'add', kind: 'groupBox', left: 24, top: 960 },
+    { op: 'add', kind: 'editBox', left: 20, top: 40, record: 'person', field: 'emplid', groupBoxType: 21 }
+  ]);
+  const added = controls.filter((c) => c.pnlFldId < 0);
+  assert.equal(added[0].groupBoxType, 21);
+  assert.equal(added[1].groupBoxType, undefined); // none sent: the captured default row's type stands
+  assert.equal(added[2].groupBoxType, undefined); // a group box setting only
+});
+
 test('page operations: set_properties carries the captured General / Use settings', () => {
   const layout = page([field({ FIELDNUM: 1, PNLFLDID: 3 })]);
   const { properties } = applyPageOperations(layout, [

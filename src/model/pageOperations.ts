@@ -14,7 +14,8 @@ import type { EditedControl, EditedPageProperties } from '../providers/pageWrite
 
 export type PageOperation =
   | { op: 'add'; kind: NewControlKind; left: number; top: number; width?: number; height?: number; record?: string; field?: string; label?: string;
-      page?: string; intoGrid?: number; treeLevels?: Array<{ record: string; field: string }>; model?: string; collection?: string; axes?: Array<{ field: string; axis: number }> }
+      page?: string; intoGrid?: number; treeLevels?: Array<{ record: string; field: string }>; model?: string; collection?: string; axes?: Array<{ field: string; axis: number }>;
+      groupBoxType?: number }
   | { op: 'move'; id: number; left: number; top: number }
   | { op: 'resize'; id: number; width: number; height: number }
   | { op: 'set_label'; id: number; text?: string; labelType?: number }
@@ -76,6 +77,8 @@ export function applyPageOperations(layout: PageLayout, operations: readonly Pag
           // The kind's own use bits, as App Designer drops it: a Static Image display only (in01), a Scroll Bar or Secondary Page
           // invisible (lv03, sp-fresh), a Grid 0x1000 (gd-fresh), an Analytic Grid display only (ag-fresh).
           fieldUse: NEW_CONTROL_FIELDUSE[o.kind] ?? 0, secureInvisible: (NEW_CONTROL_FIELDUSE[o.kind] ?? 0) & 0x2 ? 1 : 0,
+          // A Group Box's Fluid Group Box Type (PSPNLFIELDEXT.GRPBOXTYPE): 21 Related Content marks a drop zone (model/dropZones.ts).
+          ...(o.kind === 'groupBox' && o.groupBoxType !== undefined ? { groupBoxType: whole(o.groupBoxType, 'groupBoxType') } : {}),
           add: { kind: o.kind, recName: (o.record ?? '').trim().toUpperCase(), fieldName: (o.field ?? '').trim().toUpperCase(),
             ...(o.page ? { subPage: o.page.trim().toUpperCase() } : {}),
             // A grid added earlier in these operations is named by its negative position (-1 the first added control).

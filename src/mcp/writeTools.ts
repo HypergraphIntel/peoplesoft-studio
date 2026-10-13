@@ -100,7 +100,10 @@ const pageOperation = z.discriminatedUnion('op', [
     model: z.string().optional().describe('Analytic Grid: the analytic model (PSACEMDLDEFN); its record comes from the cube collection.'),
     collection: z.string().optional().describe('Analytic Grid: the cube collection (the model\'s first when omitted).'),
     axes: z.array(z.object({ field: z.string().min(1), axis: z.number().int().min(0).max(2) })).optional()
-      .describe('Analytic Grid: dimension fields\' axes, 0 Slicer, 1 Column, 2 Row (every dimension on the Row Axis when omitted, as App Designer fills it).')
+      .describe('Analytic Grid: dimension fields\' axes, 0 Slicer, 1 Column, 2 Row (every dimension on the Row Axis when omitted, as App Designer fills it).'),
+    groupBoxType: z.number().int().min(0).optional()
+      .describe('Group Box: its Fluid Group Box Type (PSPNLFIELDEXT.GRPBOXTYPE, App Designer\'s list index: 0 Default, 1 Container, ... 21 Related Content). ' +
+        'A Related Content group box followed in tab order by a Subpage showing the stub subpage PSOPTIONS.PTSTUBSUBPAGE (PT_ERCSUBPAGE_STUB) is a drop zone.')
   }),
   z.object({ op: z.literal('move'), id: z.number().int(), left: z.number(), top: z.number() }),
   z.object({ op: z.literal('resize'), id: z.number().int(), width: z.number(), height: z.number() }),
