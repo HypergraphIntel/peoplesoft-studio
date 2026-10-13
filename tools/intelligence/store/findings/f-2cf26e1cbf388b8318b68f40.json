@@ -1,0 +1,132 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-2cf26e1cbf388b8318b68f40",
+  "fingerprint": "2cf26e1cbf388b8318b68f403f4da2a5a2a84a3f00317b9409ea6606eb7ddba0",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDUSETMP"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "FIELDUSETMP",
+      "setting": "Generate As Hyperlink",
+      "bit": "0x80000",
+      "control": "Edit Box"
+    }
+  },
+  "title": "An edit box's Generate As Hyperlink is PSPNLFIELD.FIELDUSETMP 0x80000",
+  "statement": "Fluid tab Generate As Hyperlink (email and url input types) sets PSPNLFIELD.FIELDUSETMP bit 0x80000.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:57.833Z",
+      "method": "save-capture",
+      "experimentId": "eb62-email-hyperlink",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb62-email-hyperlink, control 13: FIELDUSETMP 0x0 -> 0x80000. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb62-email-hyperlink"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "49546cf51db626000c5f7eeeb602e3d99eb57238ca3129fbf8c5a8aed68a19b8"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:58.257Z",
+      "method": "save-capture",
+      "experimentId": "eb75-hyperlink-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb75-hyperlink-off, control 13: FIELDUSETMP 0x80000 -> 0x0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb75-hyperlink-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "f4a07717a1e96d52c7bc4bb29e1ab64f7a23bf0c043c88e401896b9a3d18cfe6"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:57.841Z",
+    "updatedAt": "2026-10-13T11:27:58.264Z",
+    "schemaVersion": 1
+  }
+}

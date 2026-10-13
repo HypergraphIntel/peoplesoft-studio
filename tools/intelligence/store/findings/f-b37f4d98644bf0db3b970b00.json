@@ -1,0 +1,89 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-b37f4d98644bf0db3b970b00",
+  "fingerprint": "b37f4d98644bf0db3b970b00184fba5368b7da46cd6b194b4814394732579edb",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDUSETMP"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "FIELDUSETMP",
+      "setting": "Set Component Changed",
+      "bitWhenOff": "0x8"
+    }
+  },
+  "title": "Set Component Changed off is PSPNLFIELD.FIELDUSETMP 0x8",
+  "statement": "Use tab Set Component Changed is stored inverted: unchecking it sets PSPNLFIELD.FIELDUSETMP bit 0x8.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:50.940Z",
+      "method": "save-capture",
+      "experimentId": "eb55-scc-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb55-scc-off, control 13: FIELDUSETMP 0x4 -> 0xc. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb55-scc-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "554175625152caeb781b3240c53e2e87b322d5e9688890115af57294c214d3fe"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:50.947Z",
+    "updatedAt": "2026-10-13T11:27:50.947Z",
+    "schemaVersion": 1
+  }
+}

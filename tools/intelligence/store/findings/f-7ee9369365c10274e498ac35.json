@@ -1,0 +1,147 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-7ee9369365c10274e498ac35",
+  "fingerprint": "7ee9369365c10274e498ac3542a7d4489cc273335008a95c9de2c859a9429671",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD",
+      "PSPNLFIELDEXT"
+    ],
+    "properties": [
+      "FIELDUSETMP",
+      "PTPOPUPPNL"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "FIELDUSETMP",
+      "setting": "Mouse Over Popup Page Popup",
+      "bit": "0x200",
+      "page": "PSPNLFIELDEXT.PTPOPUPPNL",
+      "control": "Edit Box"
+    }
+  },
+  "title": "An edit box's Page Popup is PSPNLFIELD.FIELDUSETMP 0x200 and PSPNLFIELDEXT.PTPOPUPPNL",
+  "statement": "Use tab Mouse Over Popup: Page Popup sets PSPNLFIELD.FIELDUSETMP bit 0x200 and stores the popup page in PSPNLFIELDEXT.PTPOPUPPNL.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:51.720Z",
+      "method": "save-capture",
+      "experimentId": "eb39-page-popup",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb39-page-popup, control 13: FIELDUSETMP 0x0 -> 0x200; EXT.PTPOPUPPNL ' ' -> FSFB_WHERE_POP. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb39-page-popup"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "7ff693c383b83753d2ae39d78d2c35a6ef318a4eff8b3c7365812db38c055fe0"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:52.143Z",
+      "method": "save-capture",
+      "experimentId": "eb42-page-popup2",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb42-page-popup2, control 13: FIELDUSETMP 0x0 -> 0x200; EXT.PTPOPUPPNL ' ' -> FSFB_WHERE_POP. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb42-page-popup2"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "1e798cd8a0d6f613ba5f6b2b42780e15a7852f7a02eb1cf003c52331ecb05b40"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:51.727Z",
+    "updatedAt": "2026-10-13T11:27:52.151Z",
+    "schemaVersion": 1
+  }
+}

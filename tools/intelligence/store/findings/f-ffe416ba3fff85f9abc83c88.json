@@ -1,0 +1,519 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-ffe416ba3fff85f9abc83c88",
+  "fingerprint": "ffe416ba3fff85f9abc83c884cd3ade46cd11e7737ce5f7f1e456339729aceba",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELDEXT"
+    ],
+    "properties": [
+      "HTML_INPUT_TYPE"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELDEXT",
+      "column": "HTML_INPUT_TYPE",
+      "text": 0,
+      "color": 1,
+      "date": 2,
+      "datetime": 3,
+      "email": 5,
+      "number": 7,
+      "range": 8,
+      "search": 9,
+      "tel": 10,
+      "time": 11,
+      "url": 12,
+      "control": "Edit Box"
+    }
+  },
+  "title": "An edit box's Fluid Input Type is PSPNLFIELDEXT.HTML_INPUT_TYPE: 0 text, 1 color, 2 date, 3 datetime, 5 email, 7 number, 8 range, 9 search, 10 tel, 11 time, 12 url",
+  "statement": "Fluid tab Input Type is stored in PSPNLFIELDEXT.HTML_INPUT_TYPE as the codes listed; 4 and 6 were not offered.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:53.354Z",
+      "method": "save-capture",
+      "experimentId": "eb61-input-email",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb61-input-email, control 13: EXT.HTML_INPUT_TYPE 0 -> 5. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb61-input-email"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "8e9297b74e228b0d0def47cb90067735a63c737342a596fcd6ec954c96f9719f"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:53.780Z",
+      "method": "save-capture",
+      "experimentId": "eb63-it-time",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb63-it-time, control 13: EXT.HTML_INPUT_TYPE 12 -> 11. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb63-it-time"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "1bd3b755ca9815edf18f1f54314a5356c8622f0a418d057a103fe01198ffbc92"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:54.183Z",
+      "method": "save-capture",
+      "experimentId": "eb64-it-tel",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb64-it-tel, control 13: EXT.HTML_INPUT_TYPE 11 -> 10. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb64-it-tel"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "f280bceff11a322fe7f37ede9e0c529c4166d5c1e4252d84d7e4390d4e6dec74"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:54.597Z",
+      "method": "save-capture",
+      "experimentId": "eb65-it-search",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb65-it-search, control 13: EXT.HTML_INPUT_TYPE 10 -> 9. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb65-it-search"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "dc4b0495ba90f30f08edea9f716a02df6aa99418103c862e37c1d6284e6c34d3"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:54.980Z",
+      "method": "save-capture",
+      "experimentId": "eb66-it-range",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb66-it-range, control 13: EXT.HTML_INPUT_TYPE 9 -> 8. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb66-it-range"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "aeefca373b12b49fb4e921c3f3b4af4a5bc4d2625dfc1d93292f6cd8851dc26d"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:55.370Z",
+      "method": "save-capture",
+      "experimentId": "eb67-it-number",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb67-it-number, control 13: EXT.HTML_INPUT_TYPE 8 -> 7. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb67-it-number"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "82f5732bed267357c2d55675a26d6d612d9ba89b215a129784c80cc1742d073c"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:55.775Z",
+      "method": "save-capture",
+      "experimentId": "eb68-it-email",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb68-it-email, control 13: EXT.HTML_INPUT_TYPE 7 -> 5. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb68-it-email"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "c0a9c47ccc75df121d954006fb601310c118ffc6eac5d7129c39b745da0c08c5"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:56.177Z",
+      "method": "save-capture",
+      "experimentId": "eb69-it-datetime",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb69-it-datetime, control 13: EXT.HTML_INPUT_TYPE 5 -> 3. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb69-it-datetime"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "c5602b50a66fd4f8c5caebeb44739ae4e34a695b597b05ac225ed00e904abd38"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:56.601Z",
+      "method": "save-capture",
+      "experimentId": "eb70-it-date",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb70-it-date, control 13: EXT.HTML_INPUT_TYPE 3 -> 2. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb70-it-date"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "1177ca2edbfed30db172c473ff953f2589037e17a7dd6fe86ea2bcd89aef02cb"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:56.995Z",
+      "method": "save-capture",
+      "experimentId": "eb71-it-color",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb71-it-color, control 13: EXT.HTML_INPUT_TYPE 2 -> 1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb71-it-color"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "889d474cd342ec5045cf2ba92892da42f4c816486c66c69ac27cadf725c1e355"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:57.386Z",
+      "method": "save-capture",
+      "experimentId": "eb72-it-text",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb72-it-text, control 13: EXT.HTML_INPUT_TYPE 1 -> 0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb72-it-text"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "9233c5c0b4be52baaa354a436d95562767c289dddeee4b1df9a14918b7256193"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:53.371Z",
+    "updatedAt": "2026-10-13T11:27:57.394Z",
+    "schemaVersion": 1
+  }
+}

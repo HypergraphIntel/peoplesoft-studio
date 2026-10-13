@@ -1,0 +1,222 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-45cd887de7d76193944eec38",
+  "fingerprint": "45cd887de7d76193944eec3846f4df6fd016a3d88a0e3818b4ead0133c7171e6",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "LBLTEXT",
+      "LBLTYPE"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "LBLTEXT",
+      "when": "LBLTYPE set to 7",
+      "value": "blank"
+    }
+  },
+  "title": "Choosing a Message Catalog label blanks PSPNLFIELD.LBLTEXT to ' '",
+  "statement": "When a page control's label type is changed to Message Catalog (LBLTYPE 7), App Designer stores LBLTEXT as ' '; the text is not kept. Observed on a static text, a static image, a group box and an HTML area (which also blanks LABEL_ID).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:14.758Z",
+      "method": "save-capture",
+      "experimentId": "st01-static-msgcat",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture st01-static-msgcat, control 1: LBLTYPE 1 -> 7; LBLTEXT 'Control mapping' -> ' '; EXT.FFSTYLELONG NULL -> ' '; DEFN.LICENSE_CODE ' ' -> (text). Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "st01-static-msgcat"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "2e6018011a898d4ae0c9b7f74418fc8f488546320f40eb14a1d5154df37e1edf"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:15.198Z",
+      "method": "save-capture",
+      "experimentId": "si04-image-type-msgcat",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture si04-image-type-msgcat, control 2: LBLTYPE 1 -> 7; LBLTEXT 'ZZ Alt' -> ' '. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "si04-image-type-msgcat"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "f3fdd36c7f897e16bebaee19f03211a5de2ccde70b5144066d2d5db618cfdb94"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:15.573Z",
+      "method": "save-capture",
+      "experimentId": "gb14-type-msgcat",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gb14-type-msgcat, control 21: LBLTYPE 1 -> 7; LBLTEXT 'Group Box' -> ' '; GRDLBLMSGSET 0 -> 3; GRDLBLMSGNUM 0 -> 4. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gb14-type-msgcat"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "72efe46bae1fc3befb71e2eb304853e5b51403ab38cb83d3c84fe674a4df86ee"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:15.959Z",
+      "method": "save-capture",
+      "experimentId": "ha06-msgcat",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ha06-msgcat, control 15: LBLTYPE 0 -> 7; LABEL_ID ZZ_PCODE_LAB_L2 -> ' '; LBLTEXT 'Long 254' -> ' '; GRDLBLMSGSET 0 -> 3; GRDLBLMSGNUM 0 -> 4. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ha06-msgcat"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "f7f42ae1aec540eb4fb1a648504ef9330d31f60d900871d91b16a0727ab66893"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:14.767Z",
+    "updatedAt": "2026-10-13T11:27:15.964Z",
+    "schemaVersion": 1
+  }
+}

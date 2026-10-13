@@ -1,0 +1,289 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-c949f4189df653ce6c5c6b4b",
+  "fingerprint": "c949f4189df653ce6c5c6b4be5c1e3751f8eb77a2481eaa8dfb29807f0c85fc0",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELDEXT"
+    ],
+    "properties": [
+      "FFSTYLELONG"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELDEXT",
+      "column": "FFSTYLELONG",
+      "slots": 5,
+      "separator": "|",
+      "order": "default,small,medium,large,extraLarge",
+      "empty": "blank"
+    }
+  },
+  "title": "A Fluid control's style classes are PSPNLFIELDEXT.FFSTYLELONG: five '|'-separated slots, Default, Small, Medium, Large, Extra Large",
+  "statement": "Fluid tab Style Classes and the Small / Medium / Large / Extra Large classes are stored together in PSPNLFIELDEXT.FFSTYLELONG as five entries in that order separated by '|', an empty entry as ' ', classes as typed.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T22:53:23.000Z",
+      "method": "save-capture",
+      "experimentId": "fr08-frame-style-classes",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fr08-frame-style-classes, control 16: EXT.FFSTYLELONG ' | | | | ' -> 'zz-fc| | | | '. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 23,
+            "deleted": 23,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fr08-frame-style-classes"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "4d71412c84b9e96945484ce4bdf31490fdd1376a0227989d1dabf9acca205c9e"
+    },
+    {
+      "observedAt": "2026-10-10T22:54:59.000Z",
+      "method": "save-capture",
+      "experimentId": "fr09-frame-small",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fr09-frame-small, control 16: EXT.FFSTYLELONG 'zz-fc| | | | ' -> 'zz-fc|zz-fs| | | '. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 23,
+            "deleted": 23,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fr09-frame-small"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "3a1935dae59d0ed823856b952002eb282b539cce7a18ffe30da9c153de1b4e5b"
+    },
+    {
+      "observedAt": "2026-10-10T22:55:11.000Z",
+      "method": "save-capture",
+      "experimentId": "fr10-frame-medium",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fr10-frame-medium, control 16: EXT.FFSTYLELONG 'zz-fc|zz-fs| | | ' -> 'zz-fc|zz-fs|zz-fm| | '. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 23,
+            "deleted": 23,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fr10-frame-medium"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "6c44c7e21ce3696dacfe12e6949ced74ef0deb9d6603db0edeb9ed4509ed43ea"
+    },
+    {
+      "observedAt": "2026-10-10T22:55:20.000Z",
+      "method": "save-capture",
+      "experimentId": "fr11-frame-large",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fr11-frame-large, control 16: EXT.FFSTYLELONG 'zz-fc|zz-fs|zz-fm| | ' -> 'zz-fc|zz-fs|zz-fm|zzfl| '. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 23,
+            "deleted": 23,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fr11-frame-large"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "8413e3a6434473e4bb176d3ccba5cfa0f5abe940c3ca39cf093055bdedc0608a"
+    },
+    {
+      "observedAt": "2026-10-10T22:55:32.000Z",
+      "method": "save-capture",
+      "experimentId": "fr12-frame-xlarge",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fr12-frame-xlarge, control 16: EXT.FFSTYLELONG 'zz-fc|zz-fs|zz-fm|zzfl| ' -> zz-fc|zz-fs|zz-fm|zzfl|zz-fx. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 23,
+            "deleted": 23,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fr12-frame-xlarge"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "2429092c5bd9477ad630c0a0b69eea09ea1c9ad9cff2c45fdce3abdc224937db"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:31.870Z",
+    "updatedAt": "2026-10-13T11:27:33.495Z",
+    "schemaVersion": 1
+  }
+}

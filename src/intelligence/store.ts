@@ -15,8 +15,10 @@ import { findingInput, SCHEMA_ID, SCHEMA_VERSION, type Finding, type FindingInpu
  * a privacy violation, and then either creates the finding, adds the
  * observation to the finding with the same fingerprint (widening its
  * compatibility), or -- the same evidence recorded again -- changes nothing
- * and says so. Files are written whole to a temporary name and renamed, so a
- * reader never sees half a finding; writes to one finding are serialized in
+ * and says so (the same evidence: the same digest, or the same run of the
+ * same experiment by the same method in other words). Files are written
+ * whole to a temporary name and renamed, so a reader never sees half a
+ * finding; writes to one finding are serialized in
  * this process (two processes writing the same store may lose an
  * observation: one writer per store, ARCHITECTURE.md).
  */
@@ -119,7 +121,7 @@ export class DiscoveryStore {
         return { outcome: 'created' as const, finding };
       }
       if (existing.fingerprint !== fingerprint) throw new Error(`${id} holds another finding (fingerprint ${existing.fingerprint.slice(0, 12)}…); refusing to merge.`);
-      if (existing.observations.some((o) => o.digest === obs.digest)) return { outcome: 'duplicate' as const, finding: existing };
+      if (existing.observations.some((o) => o.digest === obs.digest || runKey(o) === runKey(obs))) return { outcome: 'duplicate' as const, finding: existing };
       const merged: Finding = {
         ...build(input, fingerprint, id, [...existing.observations, obs], existing.provenance.createdAt, at),
         // The first record's words stand; a later one adds evidence, not a rewrite.
@@ -207,8 +209,13 @@ export class DiscoveryStore {
   }
 }
 
+/** One run of one experiment by one method; an observation without an experiment ID is its own run. */
+function runKey(o: StoredObservation): string {
+  return o.experimentId ? `${o.method}|${o.experimentId}|${o.runId ?? ''}` : o.digest;
+}
+
 function build(input: FindingInput, fingerprint: string, id: string, observations: StoredObservation[], createdAt: string, updatedAt: string): Finding {
-  const runs = new Set(observations.map((o) => o.runId ? `${o.experimentId ?? ''}|${o.runId}` : o.digest));
+  const runs = new Set(observations.map(runKey));
   return {
     schema: SCHEMA_ID, id, fingerprint, type: input.type, subject: input.subject, assertion: input.assertion,
     title: input.title, statement: input.statement, confidence: input.confidence,

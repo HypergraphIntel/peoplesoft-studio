@@ -94,6 +94,13 @@ See docs/CUSTOMIZATION.md.
   outcomes only); a finding turned into an issue body and a regression
   fixture for review (`tools/intelligence/engineering-task.mts`; files nothing).
 
+### Fixed
+
+- A static text's Alignment in the page editor wrote Centered or Right on
+  top of Left (DSPLFORMAT 0x3 / 0x5). App Designer keeps exactly one of
+  Left 0x1, Centered 0x2 and Right 0x4; the editor now does too. Found by
+  checking docs/PAGE_SAVE.md against the st06 capture while recording it.
+
 ## 0.8.4
 
 ### Added

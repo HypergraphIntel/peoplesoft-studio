@@ -1,0 +1,216 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-d2864b0e380ba5130201ba51",
+  "fingerprint": "d2864b0e380ba5130201ba51fc1624820d7d99407bcb04e15787841c726a6fbb",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "DSPLFORMAT"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "DSPLFORMAT",
+      "scale": "0x800",
+      "size": "0x4000",
+      "control": "Static Image"
+    }
+  },
+  "title": "A static image's Scale / Size is PSPNLFIELD.DSPLFORMAT 0x800 / 0x4000",
+  "statement": "Image Format Scale sets DSPLFORMAT 0x800; Size sets 0x4000; choosing one replaces the other and keeps the rest of DSPLFORMAT.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:28:05.519Z",
+      "method": "save-capture",
+      "experimentId": "si07-image-scale",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture si07-image-scale, control 2: DSPLFORMAT 0x2001 -> 0x2801. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "si07-image-scale"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "b5136907d23c4841dee6549c42399bca08d8a43c0d214a490f9a77d85628f539"
+    },
+    {
+      "observedAt": "2026-10-13T11:28:05.945Z",
+      "method": "save-capture",
+      "experimentId": "si10-image-size",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture si10-image-size, control 2: DSPLFORMAT 0x2801 -> 0x6001. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "si10-image-size"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "b566bb1aa1824732a95a9f799420957d8476e89afb867e71b7743dc3bc89feaf"
+    },
+    {
+      "observedAt": "2026-10-13T11:28:06.355Z",
+      "method": "save-capture",
+      "experimentId": "si11-image-scale-again",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture si11-image-scale-again, control 2: DSPLFORMAT 0x6001 -> 0x2801. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "si11-image-scale-again"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "5f9471de73facb0b70843ccc221ea682594a28d0cc5d0d7719e59075f5f92cfc"
+    },
+    {
+      "observedAt": "2026-10-13T11:28:06.743Z",
+      "method": "save-capture",
+      "experimentId": "si12-image-size-again",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture si12-image-size-again, control 2: DSPLFORMAT 0x2801 -> 0x6001. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "si12-image-size-again"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "719be2eec9922a3f8594ea13315c68326b42e322ebec9e047362136e87f2d673"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:28:05.527Z",
+    "updatedAt": "2026-10-13T11:28:06.750Z",
+    "schemaVersion": 1
+  }
+}

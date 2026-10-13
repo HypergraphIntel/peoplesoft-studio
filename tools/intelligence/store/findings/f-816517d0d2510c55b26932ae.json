@@ -1,0 +1,94 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-816517d0d2510c55b26932ae",
+  "fingerprint": "816517d0d2510c55b26932ae73e78ea884bc183bf423969f251e44ab855f3788",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "PNLFIELDNAME"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "PNLFIELDNAME",
+      "setting": "Page Field Name"
+    }
+  },
+  "title": "A page control's Page Field Name is PSPNLFIELD.PNLFIELDNAME",
+  "statement": "General tab Page Field Name is stored in PSPNLFIELD.PNLFIELDNAME; none is ' '.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T22:38:13.000Z",
+      "method": "save-capture",
+      "experimentId": "fr06-frame-page-field-name",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fr06-frame-page-field-name, control 16: PNLFIELDNAME ' ' -> ZZ_FRAME1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 23,
+            "deleted": 23,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fr06-frame-page-field-name"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "488b60f74a8d7c8187c285e0e0ffb5a6c0ad88a63a792b1c3f36b276f5472669"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:28:16.801Z",
+    "updatedAt": "2026-10-13T11:28:16.801Z",
+    "schemaVersion": 1
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-a86d3314045b11099b172255",
+  "fingerprint": "a86d3314045b11099b17225532f9eb6f2c0b1945ea647a3917c9decda3b27ca9",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDUSETMP"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "FIELDUSETMP",
+      "setting": "Suppress On Form Factor: Small",
+      "bit": "0x40000000"
+    }
+  },
+  "title": "Fluid Suppress On Form Factor: Small is PSPNLFIELD.FIELDUSETMP 0x40000000",
+  "statement": "Fluid tab Suppress On Form Factor: Small sets PSPNLFIELD.FIELDUSETMP bit 0x40000000 (observed on a frame).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T22:56:56.000Z",
+      "method": "save-capture",
+      "experimentId": "fr14-frame-suppress-small",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fr14-frame-suppress-small, control 16: FIELDUSETMP 0x400000 -> 0x40400000. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 23,
+            "deleted": 23,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fr14-frame-suppress-small"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "ea8617bb45624dcab9ec03340c2a3718fc7c1285946737d5f7e01722b2afda2a"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:28:13.981Z",
+    "updatedAt": "2026-10-13T11:28:13.981Z",
+    "schemaVersion": 1
+  }
+}

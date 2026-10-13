@@ -709,7 +709,7 @@ General and Fluid:
 | Label | Message Set / Number | GRDLBLMSGSET / GRDLBLMSGNUM |
 | Label | Message Catalog shown as Explanation | DSPLFORMAT 0x40000000 |
 | Label | Style | FIELDSTYLE |
-| Label | Alignment Centered / Right (Left = neither) | DSPLFORMAT 0x2 / 0x4 |
+| Label | Alignment Left / Centered / Right | DSPLFORMAT 0x1 / 0x2 / 0x4, exactly one (st06 replaced 0x1 with 0x2) |
 | Use | Multi-Currency Field | FIELDUSE 0x20 (st11) |
 | Use | Paragraph | PSPNLFIELDEXT.FIELDUSETEMP2 0x800 |
 | General | Page Field Name, Enable as Page Anchor | PNLFIELDNAME, ENABLEASANCHOR |

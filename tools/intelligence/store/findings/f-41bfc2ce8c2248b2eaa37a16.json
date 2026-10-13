@@ -1,0 +1,132 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-41bfc2ce8c2248b2eaa37a16",
+  "fingerprint": "41bfc2ce8c2248b2eaa37a1699723799366fe622d8a871c8c50101bd42b5bfef",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "DSPLFORMAT"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "DSPLFORMAT",
+      "setting": "Display Zero",
+      "bit": "0x80",
+      "control": "Edit Box"
+    }
+  },
+  "title": "An edit box's Display Zero is PSPNLFIELD.DSPLFORMAT 0x80",
+  "statement": "Record tab Display Zero on an edit box sets PSPNLFIELD.DSPLFORMAT bit 0x80; turning it off clears the bit and nothing else.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:36.794Z",
+      "method": "save-capture",
+      "experimentId": "eb01-display-zero",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb01-display-zero, control 13: DSPLFORMAT 0x200008 -> 0x200088. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb01-display-zero"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "d1d53a6192c6d522b92c48b3a25f5bdcdde27197a2dc26f0a1afd297ae018589"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:37.195Z",
+      "method": "save-capture",
+      "experimentId": "eb22-zero-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb22-zero-off, control 13: DSPLFORMAT 0x2104b8 -> 0x210438. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb22-zero-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "d2626fa20d1714a97df9866910779e6e27ac74af91429d4003ec2e3f42453572"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:36.801Z",
+    "updatedAt": "2026-10-13T11:27:37.202Z",
+    "schemaVersion": 1
+  }
+}

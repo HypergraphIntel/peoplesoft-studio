@@ -1,0 +1,132 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-bf31ed91a2ed6881bd7b30c6",
+  "fingerprint": "bf31ed91a2ed6881bd7b30c6d2510ba78e6fbebce8515417ca12e3eb7bde4d90",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "SECUREINVISIBLE"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "SECUREINVISIBLE",
+      "setting": "Modifiable by JavaScript",
+      "on": 0,
+      "requires": "Invisible"
+    }
+  },
+  "title": "Modifiable by JavaScript on an invisible page control is PSPNLFIELD.SECUREINVISIBLE 0",
+  "statement": "On an Invisible control, Modifiable by JavaScript clears PSPNLFIELD.SECUREINVISIBLE (1 -> 0), which Invisible had set. Observed on a check box and an edit box.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:18.825Z",
+      "method": "save-capture",
+      "experimentId": "cbx07-modjs",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture cbx07-modjs, control 3: SECUREINVISIBLE 1 -> 0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "cbx07-modjs"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "693a73fc3486ba9b0b4de03356b110f9a301b45ed5019f7da18891c268a336d9"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:19.212Z",
+      "method": "save-capture",
+      "experimentId": "eb46-modjs",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb46-modjs, control 13: SECUREINVISIBLE 1 -> 0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb46-modjs"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "1385de2990e1a21be183070bdf1468837b22d871f2b63ca852a32c33ec0f5152"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:18.832Z",
+    "updatedAt": "2026-10-13T11:27:19.220Z",
+    "schemaVersion": 1
+  }
+}

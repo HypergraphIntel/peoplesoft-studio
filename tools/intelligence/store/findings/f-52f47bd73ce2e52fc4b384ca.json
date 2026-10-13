@@ -1,0 +1,148 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-52f47bd73ce2e52fc4b384ca",
+  "fingerprint": "52f47bd73ce2e52fc4b384cafec033918a6f51b882b0bfa2dcaf71caafd2dc13",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD",
+      "PSPNLFIELDEXT"
+    ],
+    "properties": [
+      "FIELDUSETMP",
+      "MESSAGE_SET_NBR",
+      "MESSAGE_NBR"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "FIELDUSETMP",
+      "setting": "Mouse Over Popup Message Catalog",
+      "bits": "0x2200",
+      "message": "PSPNLFIELDEXT.MESSAGE_SET_NBR,MESSAGE_NBR",
+      "control": "Edit Box"
+    }
+  },
+  "title": "An edit box's Message Catalog popup is PSPNLFIELD.FIELDUSETMP 0x2200 with PSPNLFIELDEXT.MESSAGE_SET_NBR / MESSAGE_NBR",
+  "statement": "Use tab Mouse Over Popup: Message Catalog Popup sets PSPNLFIELD.FIELDUSETMP bits 0x2200 and stores the message in PSPNLFIELDEXT.MESSAGE_SET_NBR / MESSAGE_NBR; switching from a Page Popup blanks PTPOPUPPNL, and No Popup clears all of them. A group box's Message Catalog Popup uses 0xA000 instead.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:52.536Z",
+      "method": "save-capture",
+      "experimentId": "eb40-msgcat-popup",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb40-msgcat-popup, control 13: FIELDUSETMP 0x200 -> 0x2200; EXT.PTPOPUPPNL FSFB_WHERE_POP -> ' '; EXT.MESSAGE_SET_NBR 0 -> 2; EXT.MESSAGE_NBR 0 -> 1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb40-msgcat-popup"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "f92e0cb569ccc06ef90fffd523e1b7e9b7731cd60bc2bf7617d5aa804bdc2ad3"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:52.955Z",
+      "method": "save-capture",
+      "experimentId": "eb41-no-popup",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb41-no-popup, control 13: FIELDUSETMP 0x2200 -> 0x0; EXT.MESSAGE_SET_NBR 2 -> 0; EXT.MESSAGE_NBR 1 -> 0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb41-no-popup"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "00c3d785f8d0ab4b5c647b43425482a5de860cccc513a608c2c1c7788efcd88f"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:52.544Z",
+    "updatedAt": "2026-10-13T11:27:52.963Z",
+    "schemaVersion": 1
+  }
+}

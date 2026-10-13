@@ -1,0 +1,173 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-59dfdd3d38ea37d8e5ced4a6",
+  "fingerprint": "59dfdd3d38ea37d8e5ced4a60d975e614df4a66d7cfb68fea6b62ee235399145",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDUSETMP"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "FIELDUSETMP",
+      "setting": "Enable Spell Check",
+      "bit": "0x2"
+    }
+  },
+  "title": "Enable Spell Check is PSPNLFIELD.FIELDUSETMP 0x2",
+  "statement": "Enable Spell Check sets PSPNLFIELD.FIELDUSETMP bit 0x2 on an edit box and a long edit box. On an edit box it also clears Show Prompt Button (DSPLFORMAT 0x800000 set on the next OK).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:27.730Z",
+      "method": "save-capture",
+      "experimentId": "eb11-spell",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb11-spell, control 13: FIELDUSETMP 0x0 -> 0x2. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb11-spell"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "f490134fdaa8b71bb5571de5655bbf7a078501b0a22df14c92c3a63d2a876620"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:28.115Z",
+      "method": "save-capture",
+      "experimentId": "le02-spell",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture le02-spell, control 9: FIELDUSETMP 0x80 -> 0x82. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "le02-spell"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a39a61aa1225bfcf8c6245c6f31beebf9f899a09e26941aed1799e56cb627344"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:28.535Z",
+      "method": "save-capture",
+      "experimentId": "eb27-spell-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb27-spell-off, control 13: DSPLFORMAT 0x200008 -> 0xa00008; FIELDUSETMP 0x2 -> 0x0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb27-spell-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "09bdcca533140141d735f6c9cc560bb00e51209278b161d17fb9c2ffdfe816c4"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:27.737Z",
+    "updatedAt": "2026-10-13T11:27:28.543Z",
+    "schemaVersion": 1
+  }
+}

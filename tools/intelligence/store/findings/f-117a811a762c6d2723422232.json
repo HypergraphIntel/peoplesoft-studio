@@ -1,0 +1,135 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-117a811a762c6d2723422232",
+  "fingerprint": "117a811a762c6d2723422232a4b3c026f5bea2a0ba0a00e7ae4f67805c0fc380",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELDEXT"
+    ],
+    "properties": [
+      "MINNUMBER",
+      "MAXNUMBER",
+      "STEPNUMBER"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELDEXT",
+      "min": "MINNUMBER",
+      "max": "MAXNUMBER",
+      "step": "STEPNUMBER",
+      "stored": "text",
+      "control": "Edit Box"
+    }
+  },
+  "title": "A range input's Min / Max / Step are PSPNLFIELDEXT.MINNUMBER / MAXNUMBER / STEPNUMBER, as text",
+  "statement": "For Input Type range, Fluid tab Min, Max and Step are stored as text in PSPNLFIELDEXT.MINNUMBER, MAXNUMBER and STEPNUMBER; cleared, they are ' '.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:58.671Z",
+      "method": "save-capture",
+      "experimentId": "eb73-range-min-max-step",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb73-range-min-max-step, control 13: EXT.HTML_INPUT_TYPE 0 -> 8; EXT.MINNUMBER ' ' -> 1; EXT.MAXNUMBER ' ' -> 100; EXT.STEPNUMBER ' ' -> 5. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb73-range-min-max-step"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "1e414f9279c73be1ce5d1b37be2f07cd7015a4dfe212276b4a3b8d13cbbcf306"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:59.101Z",
+      "method": "save-capture",
+      "experimentId": "eb76-range-clear",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb76-range-clear, control 13: EXT.MINNUMBER 1 -> ' '; EXT.MAXNUMBER 100 -> ' '; EXT.STEPNUMBER 5 -> ' '. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb76-range-clear"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "e69abcc8606478bcb385cf8b69660f2fc40cb482ce24ea7fc5b6927912a624e0"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:58.679Z",
+    "updatedAt": "2026-10-13T11:27:59.108Z",
+    "schemaVersion": 1
+  }
+}

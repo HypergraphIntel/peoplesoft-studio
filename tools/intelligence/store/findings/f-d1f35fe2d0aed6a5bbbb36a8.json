@@ -1,0 +1,173 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-d1f35fe2d0aed6a5bbbb36a8",
+  "fingerprint": "d1f35fe2d0aed6a5bbbb36a82bcf0e180324f7457aa64118063113ef8d8a4b1d",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELDEXT"
+    ],
+    "properties": [
+      "FIELDUSETEMP2"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELDEXT",
+      "column": "FIELDUSETEMP2",
+      "setting": "Paragraph",
+      "bit": "0x800"
+    }
+  },
+  "title": "Paragraph is PSPNLFIELDEXT.FIELDUSETEMP2 0x800",
+  "statement": "Paragraph (Use tab of a static text; a hidden checkbox over an edit box's Wrap Long Words) sets PSPNLFIELDEXT.FIELDUSETEMP2 bit 0x800.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:26.537Z",
+      "method": "save-capture",
+      "experimentId": "st08-static-paragraph",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture st08-static-paragraph, control 1: EXT.FIELDUSETEMP2 0x0 -> 0x800. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "st08-static-paragraph"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "d2bd2b058060afc2bc2334ae9afecf2d7ace2796be944510bf9cbcba7a0351e2"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:26.932Z",
+      "method": "save-capture",
+      "experimentId": "eb57-wrap-on",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb57-wrap-on, control 13: EXT.FIELDUSETEMP2 0x800 -> 0x0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb57-wrap-on"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "52fcd993db151cc002d3a46de5daf21f4d59d89f7b5a4eeff5f5687aeaf1548c"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:27.307Z",
+      "method": "save-capture",
+      "experimentId": "eb58-wrap-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb58-wrap-off, control 13: EXT.FIELDUSETEMP2 0x0 -> 0x800. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb58-wrap-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "99ef9cc0d06fda88df9d0f8b6dfae98e6ef5483ac5e7de0bd7394c52275a98f5"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:26.544Z",
+    "updatedAt": "2026-10-13T11:27:27.314Z",
+    "schemaVersion": 1
+  }
+}

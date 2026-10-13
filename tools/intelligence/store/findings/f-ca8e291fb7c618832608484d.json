@@ -1,0 +1,95 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-ca8e291fb7c618832608484d",
+  "fingerprint": "ca8e291fb7c618832608484d9a0365c0dc1d44394da795204a8f8cbc31f87e29",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDUSETMP"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "FIELDUSETMP",
+      "setting": "Suppress System-Supplied Style Classes",
+      "bit": "0x400000"
+    }
+  },
+  "title": "Fluid Suppress System-Supplied Style Classes is PSPNLFIELD.FIELDUSETMP 0x400000",
+  "statement": "Fluid tab Suppress System-Supplied Style Classes sets PSPNLFIELD.FIELDUSETMP bit 0x400000 (observed on a frame).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T22:55:53.000Z",
+      "method": "save-capture",
+      "experimentId": "fr13-frame-suppress-classes",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fr13-frame-suppress-classes, control 16: FIELDUSETMP 0x0 -> 0x400000. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 23,
+            "deleted": 23,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fr13-frame-suppress-classes"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "04c753e9823ba366791529014b8935e60583a2fffb00d2a4f0c710736f4d03d1"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:28:13.584Z",
+    "updatedAt": "2026-10-13T11:28:13.584Z",
+    "schemaVersion": 1
+  }
+}

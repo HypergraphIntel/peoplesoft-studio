@@ -1,0 +1,176 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-8eb6c38024387aa0c2a9c163",
+  "fingerprint": "8eb6c38024387aa0c2a9c1633f45b69870fe5b2d00045d364ad4554101b51597",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "DSPLFORMAT"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "DSPLFORMAT",
+      "setting": "Alignment",
+      "auto": "0x8",
+      "left": "0x1",
+      "right": "0x4",
+      "control": "Edit Box"
+    }
+  },
+  "title": "An edit box's Alignment Auto / Left / Right is PSPNLFIELD.DSPLFORMAT 0x8 / 0x1 / 0x4",
+  "statement": "Record tab Alignment of an edit box is stored as one of DSPLFORMAT 0x8 (Auto), 0x1 (Left), 0x4 (Right); choosing another replaces the bit.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:44.133Z",
+      "method": "save-capture",
+      "experimentId": "eb16-align-left",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb16-align-left, control 13: DSPLFORMAT 0x202186b8 -> 0x202186b1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb16-align-left"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "8fb1f96a4edcece2775e1ff3388f22d866087248817a49523761b59fb42727e3"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:44.515Z",
+      "method": "save-capture",
+      "experimentId": "eb17-align-right",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb17-align-right, control 13: DSPLFORMAT 0x202186b1 -> 0x202186b4. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb17-align-right"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "5529221c4d8b0e102acb1b8a585855932bdfbd6dd97bc4d2998cf599f1605e7b"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:44.948Z",
+      "method": "save-capture",
+      "experimentId": "eb18-align-auto",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb18-align-auto, control 13: DSPLFORMAT 0x202186b4 -> 0x202186b8. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb18-align-auto"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "1df5fb8ab87c862dc0547f142a425e7ada2f9b8e450dd70f4751861979d91a03"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:44.140Z",
+    "updatedAt": "2026-10-13T11:27:44.955Z",
+    "schemaVersion": 1
+  }
+}

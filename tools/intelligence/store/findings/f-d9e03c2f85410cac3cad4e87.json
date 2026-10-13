@@ -1,0 +1,132 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-d9e03c2f85410cac3cad4e87",
+  "fingerprint": "d9e03c2f85410cac3cad4e877ac7be42c4f4646f87c0c973e50253c1f17a53b4",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELDEXT"
+    ],
+    "properties": [
+      "PTDISABLESMARTPROM"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELDEXT",
+      "column": "PTDISABLESMARTPROM",
+      "on": 0,
+      "off": 1,
+      "control": "Edit Box"
+    }
+  },
+  "title": "An edit box's Smart Prompt is PSPNLFIELDEXT.PTDISABLESMARTPROM 0",
+  "statement": "Use tab Smart Prompt (offered when the field has a prompt table) is stored inverted in PSPNLFIELDEXT.PTDISABLESMARTPROM: 0 on, 1 off.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:59.486Z",
+      "method": "save-capture",
+      "experimentId": "eb80-smart-prompt",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb80-smart-prompt, control 5: EXT.PTDISABLESMARTPROM 1 -> 0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb80-smart-prompt"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "0a632d7ae0196cf3a71e40c05514686a9be99e57d6b6c8ed76f78868cc3c30c9"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:59.883Z",
+      "method": "save-capture",
+      "experimentId": "eb81-smart-prompt-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb81-smart-prompt-off, control 5: EXT.PTDISABLESMARTPROM 0 -> 1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb81-smart-prompt-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "725183a80fd8e00df096d9a6c50994d35b284ac65bedd3e0cfd4fae90c6bff85"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:59.494Z",
+    "updatedAt": "2026-10-13T11:27:59.890Z",
+    "schemaVersion": 1
+  }
+}

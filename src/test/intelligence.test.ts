@@ -77,6 +77,10 @@ test('the same evidence twice is a duplicate; new evidence merges; a second run 
     const dup = await s.record({ ...base(), title: 'reworded', observation: { ...base().observation, observedAt: '2026-10-13T00:00:00Z' } });
     assert.equal(dup.outcome, 'duplicate');
     assert.equal(readFileSync(file, 'utf8'), before, 'a duplicate writes nothing');
+    // The same run of the same experiment in other words is the same evidence, not a reproduction.
+    const reworded = await s.record({ ...base(), observation: { ...base().observation, observation: 'The same capture, described again.' } });
+    assert.equal(reworded.outcome, 'duplicate');
+    assert.equal(readFileSync(file, 'utf8'), before);
     const again = await s.record({ ...base(), confidence: 'medium', observation: { ...base().observation, runId: 'run-2', environment: { peopleToolsRelease: '8.61.05' } } });
     assert.equal(again.outcome, 'merged');
     assert.equal(again.finding.observations.length, 2);

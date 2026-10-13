@@ -1,0 +1,90 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-11419628b6ca7ab9de21fe1e",
+  "fingerprint": "11419628b6ca7ab9de21fe1e5b61ff88ed0a134ae20371331fa8a90f32339994",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDUSE"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "FIELDUSE",
+      "setting": "Show Label",
+      "bit": "0x400",
+      "control": "Edit Box"
+    }
+  },
+  "title": "An edit box's Show Label is PSPNLFIELD.FIELDUSE 0x400",
+  "statement": "Use tab Show Label (offered under Invisible) sets PSPNLFIELD.FIELDUSE bit 0x400; turning Invisible off clears it.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:50.529Z",
+      "method": "save-capture",
+      "experimentId": "eb45-show-label",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb45-show-label, control 13: FIELDUSE 0x2 -> 0x402. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb45-show-label"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "286ca96c8fed31389639639a7b2de877b5832ba935cb09a0998fc7fb58b9f09b"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:50.536Z",
+    "updatedAt": "2026-10-13T11:27:50.536Z",
+    "schemaVersion": 1
+  }
+}

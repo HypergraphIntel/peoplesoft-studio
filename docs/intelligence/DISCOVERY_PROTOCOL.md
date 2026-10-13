@@ -59,7 +59,8 @@ it supports. `--store DIR` or `PSFT_DISCOVERY_STORE` points elsewhere.
    infer claims; the researcher states the assertion, and its confidence
    says how far the evidence goes.
 2. **The same evidence twice is a duplicate.** Re-running a recorder adds
-   nothing. A *reproduction* is a different run (`--run-id`) or a different
+   nothing, even with the observation in other words: the store takes the
+   same method, experiment and run (`--run-id`) as the same evidence. A *reproduction* is a different run (`--run-id`) or a different
    experiment that shows the same claim.
 3. **Studio's own output is not evidence of the native behavior.** A sweep
    of a Studio writer that was built from a rule shows the rule, not
@@ -90,7 +91,9 @@ it supports. `--store DIR` or `PSFT_DISCOVERY_STORE` points elsewhere.
    `tools/lab/ae-replay.mts` runs of Studio's own writer — never evidence of
    App Designer's behavior. So are the record family's `rd` cases
    (`rd1-native-reorder`…): saves by Studio's record writer, which updates
-   `PSRECDEFN` in place where App Designer deletes and re-inserts it.
+   `PSRECDEFN` in place where App Designer deletes and re-inserts it. The
+   page family's `NN-writer-*` cases (`10-writer-move`…) are the page
+   writer's: their page rows are updated in place.
 9. **Counter-evidence narrows the claim.** When one capture contradicts a
    fact (aa02 did not move AES), drop the fact from the assertion and say in
    the statement what is not established; never record the contradicting

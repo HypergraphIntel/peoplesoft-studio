@@ -100,6 +100,12 @@ test('editable render adds the save toolbar, resize handles and round-trip data;
   assert.doesNotMatch(ro, /class="rsz"/);
 });
 
+test('a static text\'s Alignment keeps exactly one of DSPLFORMAT 0x1 / 0x2 / 0x4, Left included (st06, st07)', () => {
+  const edit = renderPageHtml(buildPageLayout('P', view([field({ FIELDTYPE: 0, LBLTYPE: 1, LBLTEXT: 'X' })])), '', 'N', { editable: true });
+  assert.match(edit, /\[\['1', 'Left'\], \['2', 'Centered'\], \['4', 'Right'\]\]/);
+  assert.match(edit, /setN\(el, 'dspl', \(n\(el, 'dspl'\) & ~0x7\) \| Number\(v\)\)/);
+});
+
 test('LBLTYPE 0 (None) shows no label even when LBLTEXT is set; types 1-3 do', () => {
   const none = buildPageLayout('P', view([field({ LBLTYPE: 0, LBLTEXT: 'Department Name', EDITLBLLEFT: 0, EDITLBLTOP: 9 })])).controls[0];
   assert.equal(none.label, undefined);

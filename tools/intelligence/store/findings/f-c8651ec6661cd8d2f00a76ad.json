@@ -1,0 +1,227 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-c8651ec6661cd8d2f00a76ad",
+  "fingerprint": "c8651ec6661cd8d2f00a76ad277c9b535ab7109d9f66866508baf975946581d7",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELDEXT"
+    ],
+    "properties": [
+      "FIELDUSETEMP2"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELDEXT",
+      "column": "FIELDUSETEMP2",
+      "setting": "Read only control for screen reader",
+      "bit": "0x10000"
+    }
+  },
+  "title": "Read only control for screen reader is PSPNLFIELDEXT.FIELDUSETEMP2 0x10000",
+  "statement": "Use tab Read only control for screen reader sets PSPNLFIELDEXT.FIELDUSETEMP2 bit 0x10000. Observed on a check box, an edit box and a long edit box.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:22.470Z",
+      "method": "save-capture",
+      "experimentId": "cbx10-screen-reader",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture cbx10-screen-reader, control 3: FIELDUSETMP 0x4 -> 0x0; EXT.FIELDUSETEMP2 0x20 -> 0x10020. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "cbx10-screen-reader"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "dd0dc3110e9610e80c511cd9bb47750252d4e49a825e98ff9b62b5b9f84c7cbe"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:22.878Z",
+      "method": "save-capture",
+      "experimentId": "eb51-screen-reader",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb51-screen-reader, control 13: EXT.FIELDUSETEMP2 0x0 -> 0x10000. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb51-screen-reader"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "884e2be4f6b866f1bcde3323e4abf35cd68be399d7e4e69730c5e4a3dffdee9f"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:23.290Z",
+      "method": "save-capture",
+      "experimentId": "le15-screen-reader",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture le15-screen-reader, control 9: FIELDUSETMP 0x8000002 -> 0x2; EXT.FIELDUSETEMP2 0x0 -> 0x10000. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "le15-screen-reader"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "0b1d67b8ab16ef5c69415aa37dc8fa16b6b342f6ad2a9496880e88bd626d312b"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:23.687Z",
+      "method": "save-capture",
+      "experimentId": "le16-sr-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture le16-sr-off, control 9: EXT.FIELDUSETEMP2 0x10000 -> 0x0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "le16-sr-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "2231922293525bcb7c4cbbce888e0ff9b8365b2f027e83a9b416b00bfcf4cd11"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:22.478Z",
+    "updatedAt": "2026-10-13T11:27:23.695Z",
+    "schemaVersion": 1
+  }
+}

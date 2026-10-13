@@ -1,0 +1,179 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-af75869018e651465d3e0897",
+  "fingerprint": "af75869018e651465d3e089764cbd2b89c10451f02b607af9574ff95637b536a",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "PTHIDEFIELDS",
+      "PTCOLLAPSEDATAAREA",
+      "PTDFLTVIEWEXPANDED",
+      "PTLBLIMGCOLLAPSE",
+      "PTLBLIMGEXPAND"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "hideAll": "PTHIDEFIELDS",
+      "collapsible": "PTCOLLAPSEDATAAREA",
+      "expanded": "PTDFLTVIEWEXPANDED",
+      "images": "PTLBLIMGCOLLAPSE,PTLBLIMGEXPAND",
+      "control": "Group Box"
+    }
+  },
+  "title": "A group box's Collapsible Data Area, Default Initial View to Expanded and Hide all Fields are PSPNLFIELD.PTCOLLAPSEDATAAREA, PTDFLTVIEWEXPANDED and PTHIDEFIELDS",
+  "statement": "Use tab Hide all Fields when Group Box Hidden, Collapsible Data Area and Default Initial View to Expanded State are stored as 1 / 0 in PSPNLFIELD.PTHIDEFIELDS, PTCOLLAPSEDATAAREA and PTDFLTVIEWEXPANDED; the collapsed / expanded label images in PTLBLIMGCOLLAPSE / PTLBLIMGEXPAND.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:28:12.372Z",
+      "method": "save-capture",
+      "experimentId": "gb18-mc-hideall",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gb18-mc-hideall, control 21: FIELDUSE 0x0 -> 0x20; PTHIDEFIELDS 0 -> 1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gb18-mc-hideall"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "5e0e526cd39c4caa138cd3a54306d831cc549bbe85f8ac2b604b3452adc7f40b"
+    },
+    {
+      "observedAt": "2026-10-13T11:28:12.762Z",
+      "method": "save-capture",
+      "experimentId": "gb19-collapsible",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gb19-collapsible, control 21: FIELDUSE 0x20 -> 0x0; PTCOLLAPSEDATAAREA 0 -> 1; PTHIDEFIELDS 1 -> 0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gb19-collapsible"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "60e04eb1e422cca16bb803f435ccf61fe131a37a681d7eb1f044abdcda1a83e6"
+    },
+    {
+      "observedAt": "2026-10-13T11:28:13.179Z",
+      "method": "save-capture",
+      "experimentId": "gb20-expanded-img",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gb20-expanded-img, control 21: PTLBLIMGCOLLAPSE ' ' -> A_RIGHT; PTLBLIMGEXPAND ' ' -> A_UP; PTDFLTVIEWEXPANDED 0 -> 1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gb20-expanded-img"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "520b878c8f821e7e3d24ecc77c3ebd26cd3c06f5caee4ce5b06357527b65a010"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:28:12.380Z",
+    "updatedAt": "2026-10-13T11:28:13.187Z",
+    "schemaVersion": 1
+  }
+}

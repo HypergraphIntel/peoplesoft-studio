@@ -1,0 +1,150 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-a4b24a8100957266f22d7bb3",
+  "fingerprint": "a4b24a8100957266f22d7bb32f75d4cd8225500505457cdfea76825f92e86eda",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELDEXT"
+    ],
+    "properties": [
+      "FIELDUSETEMP2"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELDEXT",
+      "column": "FIELDUSETEMP2",
+      "setting": "Respond Only Once",
+      "bit": "0x1000",
+      "control": "HTML Area"
+    }
+  },
+  "title": "An HTML Area's Respond Only Once is PSPNLFIELDEXT.FIELDUSETEMP2 0x1000",
+  "statement": "HTML tab Respond Only Once sets PSPNLFIELDEXT.FIELDUSETEMP2 bit 0x1000.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:28:18.414Z",
+      "method": "save-capture",
+      "experimentId": "ha02-respond-once",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ha02-respond-once, control 15: FIELDUSETMP 0x100000 -> 0x0; EXT.FIELDUSETEMP2 0x0 -> 0x1000. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ha02-respond-once"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "763476eea70e0f73e62d448d64a2079477aa1ed1842059c7741c98a96b08194a"
+    },
+    {
+      "observedAt": "2026-10-11T14:05:21.422Z",
+      "method": "save-capture",
+      "experimentId": "ha05-back-to-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ha05-back-to-field, control 15: LABEL_ID ' ' -> ZZ_PCODE_LAB_L2; LBLTEXT ' ' -> 'Long 254'; RECNAME ' ' -> ZZ_PCODE_LAB_R6; FIELDNAME ' ' -> ZZ_PCODE_LAB_L2; EXT.FIELDUSETEMP2 0x1000 -> 0x0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLHTMLAREA",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ha05-back-to-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "d980d72e41b0a862cc3b1af68725e8219ba0a3d1bd54cc7a2ac455aa408ee372"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:28:18.421Z",
+    "updatedAt": "2026-10-13T11:28:18.816Z",
+    "schemaVersion": 1
+  }
+}

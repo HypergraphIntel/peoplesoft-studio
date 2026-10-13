@@ -1,0 +1,158 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-cee49e5b7ed853fea8bf7dcf",
+  "fingerprint": "cee49e5b7ed853fea8bf7dcfdc187c43822968c6378451e96432d7f42f04113d",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD",
+      "PSPTPNLRTEDITOR"
+    ],
+    "properties": [
+      "FIELDUSETMP"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "FIELDUSETMP",
+      "setting": "Enable Rich Text",
+      "bit": "0x80",
+      "row": "PSPTPNLRTEDITOR",
+      "control": "Long Edit Box"
+    }
+  },
+  "title": "A long edit box's Enable Rich Text is PSPNLFIELD.FIELDUSETMP 0x80 and a PSPTPNLRTEDITOR row",
+  "statement": "Options tab Enable Rich Text sets PSPNLFIELD.FIELDUSETMP bit 0x80 and inserts the control's PSPTPNLRTEDITOR row; turning it off clears the bit and deletes the row.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-11T14:19:45.785Z",
+      "method": "save-capture",
+      "experimentId": "le01-rich-text",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture le01-rich-text, control 9: FIELDUSETMP 0x0 -> 0x80; PSPTPNLRTEDITOR 1 inserted, 0 deleted. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 17,
+            "deleted": 17,
+            "updated": 0
+          },
+          {
+            "table": "PSPTPNLRTEDITOR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "le01-rich-text"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "08bdd268e8693bdf1ae2700a3973f851660b4c6533e2505482635768e7e0830b"
+    },
+    {
+      "observedAt": "2026-10-11T14:22:21.152Z",
+      "method": "save-capture",
+      "experimentId": "le03-rich-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture le03-rich-off, control 9: FIELDUSETMP 0x82 -> 0x2; PSPTPNLRTEDITOR 0 inserted, 1 deleted. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 17,
+            "deleted": 17,
+            "updated": 0
+          },
+          {
+            "table": "PSPTPNLRTEDITOR",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "le03-rich-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "f0170429f8355194aa9f13fc0fab8698c3fd56a61eee92b95248baff6b3f29cf"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:28:01.107Z",
+    "updatedAt": "2026-10-13T11:28:01.497Z",
+    "schemaVersion": 1
+  }
+}

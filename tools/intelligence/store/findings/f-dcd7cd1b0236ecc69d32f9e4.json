@@ -1,0 +1,137 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-dcd7cd1b0236ecc69d32f9e4",
+  "fingerprint": "dcd7cd1b0236ecc69d32f9e48988cc2a29e1a4b29d29563e837dc25ed34ae063",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELDEXT"
+    ],
+    "properties": [
+      "PLHTYPE",
+      "PLACEHOLDER",
+      "PLH_MSG_SET_NBR",
+      "PLH_MSG_NBR"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELDEXT",
+      "column": "PLHTYPE",
+      "none": 0,
+      "static": 1,
+      "messageCatalog": 2,
+      "text": "PLACEHOLDER",
+      "message": "PLH_MSG_SET_NBR,PLH_MSG_NBR"
+    }
+  },
+  "title": "Fluid Placeholder Text is PSPNLFIELDEXT.PLHTYPE 0 None / 1 Static / 2 Message Catalog with PLACEHOLDER or PLH_MSG_SET_NBR / PLH_MSG_NBR",
+  "statement": "Fluid tab Placeholder Text is stored in PSPNLFIELDEXT: PLHTYPE 0 None, 1 Static (text in PLACEHOLDER), 2 Message Catalog (PLH_MSG_SET_NBR / PLH_MSG_NBR; PLACEHOLDER blanked).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:28:03.454Z",
+      "method": "save-capture",
+      "experimentId": "le17-plh-static",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture le17-plh-static, control 9: EXT.PLHTYPE 0 -> 1; EXT.PLACEHOLDER ' ' -> 'ZZ hint'. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "le17-plh-static"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "62942d1e9237ff3b3e23fc6fa30935d0079f96c1a6ba17aea9af3e5282315bad"
+    },
+    {
+      "observedAt": "2026-10-13T11:28:03.864Z",
+      "method": "save-capture",
+      "experimentId": "le18-plh-msgcat",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture le18-plh-msgcat, control 9: EXT.PLHTYPE 1 -> 2; EXT.PLACEHOLDER 'ZZ hint' -> ' '; EXT.PLH_MSG_SET_NBR 0 -> 3; EXT.PLH_MSG_NBR 0 -> 4. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "le18-plh-msgcat"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "1b439798103ef68047da3d0876268d980a8c9e8c9207c1a4d67f1a68aa16d86d"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:28:03.462Z",
+    "updatedAt": "2026-10-13T11:28:03.871Z",
+    "schemaVersion": 1
+  }
+}

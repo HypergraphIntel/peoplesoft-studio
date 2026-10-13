@@ -1,0 +1,343 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-1d8a1339e6ad19df29cbe338",
+  "fingerprint": "1d8a1339e6ad19df29cbe338b6e107e97032a86313cbcaab94bdc97b1d0b7020",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "DSPLFORMAT"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "DSPLFORMAT",
+      "setting": "Label Alignment",
+      "left": "0x80000",
+      "centered": "0x100000",
+      "right": "0x200000"
+    }
+  },
+  "title": "A page control label's Alignment Left / Centered / Right is PSPNLFIELD.DSPLFORMAT 0x80000 / 0x100000 / 0x200000",
+  "statement": "Label alignment is stored as exactly one of DSPLFORMAT 0x80000 (Left), 0x100000 (Centered) and 0x200000 (Right); choosing another replaces the bit and keeps the rest of DSPLFORMAT. Observed on check boxes, group boxes, an edit box and a long edit box. A static text's own alignment is stored differently (0x1 / 0x2 / 0x4).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:01.786Z",
+      "method": "save-capture",
+      "experimentId": "cbx02-loc-left-centered",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture cbx02-loc-left-centered, control 3: DSPLFORMAT 0x80001 -> 0x100001; LBLLOC 1 -> 0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "cbx02-loc-left-centered"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "746db04755a9e36123f3bdc5128ff2cd5ebfffc31d30682e58d620a6c4ae6ddb"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:02.189Z",
+      "method": "save-capture",
+      "experimentId": "cbx03-text-right",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture cbx03-text-right, control 3: DSPLFORMAT 0x100001 -> 0x200001; LBLTYPE 3 -> 1; LBLLOC 0 -> 1; LBLTEXT ZZ_PCODE_LAB_C01 -> 'ZZ CB'. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "cbx03-text-right"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "b64248004d78b9b774b385faffca7fa22e91cc658ce82b8921d133d60ae65915"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:02.581Z",
+      "method": "save-capture",
+      "experimentId": "gb07-context-centered",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gb07-context-centered, control 21: DSPLFORMAT 0x80001 -> 0x100001. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gb07-context-centered"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "5b6196852638237405fa6b77eb4ad6ca2bcb2c57d63b7078d8a08bb2d27aef15"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:02.987Z",
+      "method": "save-capture",
+      "experimentId": "gb10-adjust-right",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gb10-adjust-right, control 21: DSPLFORMAT 0x100001 -> 0x200001; FIELDUSE 0x2000 -> 0x0; PTADJHIDDENFIELDS 0 -> 1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gb10-adjust-right"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "6eae9ba24bdf48a2d79f8b56801a745594064b0acfb3b7386a412882c54cfec3"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:03.429Z",
+      "method": "save-capture",
+      "experimentId": "gb11-styles",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gb11-styles, control 21: DSPLFORMAT 0x200001 -> 0x80001; FIELDSTYLE ' ' -> ACEFEVNROW; LABELSTYLE ' ' -> EDGE; PTADJHIDDENFIELDS 1 -> 0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gb11-styles"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "110f07a95d734efc5b48c273ae2fff992e0b7320bed449eaef6e3d45b504d1d5"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:03.839Z",
+      "method": "save-capture",
+      "experimentId": "eb35-align-centered",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb35-align-centered, control 13: DSPLFORMAT 0x600008 -> 0x500008. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb35-align-centered"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "ef15dbaa47de197e135483c660de7bb55f9aa7a825c4c3f2913f4b292b90bdcd"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:04.221Z",
+      "method": "save-capture",
+      "experimentId": "le05-centered-top",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture le05-centered-top, control 9: DSPLFORMAT 0x200000 -> 0x100000; EDITLBLTOP -232 -> 205; EDITLBLRIGHT 0 -> 29; EDITLBLBOTTOM -232 -> 220; LABELSIZETYPE 0 -> 2. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "le05-centered-top"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "8bb63e4ce16a69618e8f2318fb0faad0d5fe0e876fe37e5a66a2f55850b2004f"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:01.793Z",
+    "updatedAt": "2026-10-13T11:27:04.227Z",
+    "schemaVersion": 1
+  }
+}

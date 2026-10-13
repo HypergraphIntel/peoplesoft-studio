@@ -1,0 +1,217 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-f5591d5a054aa476ae80a09f",
+  "fingerprint": "f5591d5a054aa476ae80a09fbd82380bdd16aa9c159b0738e114dd35223d94bc",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDUSE",
+      "SECUREINVISIBLE"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "FIELDUSE",
+      "setting": "Invisible",
+      "bit": "0x2",
+      "alsoSets": "SECUREINVISIBLE=1"
+    }
+  },
+  "title": "Invisible on a page control is PSPNLFIELD.FIELDUSE 0x2 with SECUREINVISIBLE 1",
+  "statement": "Use tab Invisible sets PSPNLFIELD.FIELDUSE bit 0x2 and SECUREINVISIBLE 0 -> 1 in the same save. Observed on a check box and an edit box. A horizontal rule's Set to Level writes the same pair.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:48.813Z",
+      "method": "save-capture",
+      "experimentId": "cbx06-invisible",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture cbx06-invisible, control 3: FIELDUSE 0x0 -> 0x2; SECUREINVISIBLE 0 -> 1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "cbx06-invisible"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "7e2be2e6d1ab6b34db329755eb1ee048b9c4e45b83c4bca1df3ee601dfda620f"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:49.209Z",
+      "method": "save-capture",
+      "experimentId": "eb44-invisible",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb44-invisible, control 13: FIELDUSE 0x0 -> 0x2; SECUREINVISIBLE 0 -> 1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb44-invisible"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "0fb1ceb1f3344cde9769f25e3a9d5b71661561c419cd822a292efa12f699591e"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:49.626Z",
+      "method": "save-capture",
+      "experimentId": "hr04-set-level",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture hr04-set-level, control 17: FIELDUSE 0x20 -> 0x2; SECUREINVISIBLE 0 -> 1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "hr04-set-level"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "0b2368cd0cd80665ed373fe0f2347c15c47deb491ebd719abdbb9629f7026f6d"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:50.072Z",
+      "method": "save-capture",
+      "experimentId": "hr05-revert",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture hr05-revert, control 17: LBLTEXT 'ZZ Rule' -> ' '; FIELDUSE 0x2 -> 0x0; SECUREINVISIBLE 1 -> 0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "hr05-revert"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "2f832d6306fe3126c4eb7d7633f1702b4391ce979f80f1963ecb39fa071fbb14"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:48.820Z",
+    "updatedAt": "2026-10-13T11:27:50.079Z",
+    "schemaVersion": 1
+  }
+}

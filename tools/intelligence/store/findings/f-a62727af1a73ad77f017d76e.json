@@ -1,0 +1,299 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-a62727af1a73ad77f017d76e",
+  "fingerprint": "a62727af1a73ad77f017d76e416692986fe8d4bbe1115b6cdd03ab15fe89394e",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "GRDLBLMSGSET",
+      "GRDLBLMSGNUM"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "messageSet": "GRDLBLMSGSET",
+      "messageNumber": "GRDLBLMSGNUM"
+    }
+  },
+  "title": "A Message Catalog label's set and number are PSPNLFIELD.GRDLBLMSGSET and GRDLBLMSGNUM",
+  "statement": "A page control label of type Message Catalog stores its Message Set in PSPNLFIELD.GRDLBLMSGSET and its Message Number in GRDLBLMSGNUM. Observed on a static text, a static image, a group box and an HTML area.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:16.368Z",
+      "method": "save-capture",
+      "experimentId": "st02-static-msgset",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture st02-static-msgset, control 1: GRDLBLMSGSET 0 -> 1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "st02-static-msgset"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "1e93b26897fc8b0558c3bed9bbab4c9d06b317b94770a41e490bccef34fc5211"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:16.797Z",
+      "method": "save-capture",
+      "experimentId": "st03-static-msgnum",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture st03-static-msgnum, control 1: GRDLBLMSGNUM 0 -> 2. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "st03-static-msgnum"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a072a94377bdfcf60e52251e481ed064eb37ad7086541f7bf2626773634c796e"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:17.188Z",
+      "method": "save-capture",
+      "experimentId": "si05-image-msgset",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture si05-image-msgset, control 2: GRDLBLMSGSET 0 -> 3. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "si05-image-msgset"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "400b013430d2f0db4594e40559f54cb8d3c68eaad4bd4f0b11537e3c579a40c2"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:17.606Z",
+      "method": "save-capture",
+      "experimentId": "si06-image-msgno",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture si06-image-msgno, control 2: GRDLBLMSGNUM 0 -> 4. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "si06-image-msgno"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "d3cf04424f8bfcecbd8ad11103a6fdf9fcb03dfaa343e539b2cac6f3a91f4c31"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:18.014Z",
+      "method": "save-capture",
+      "experimentId": "gb14-type-msgcat",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gb14-type-msgcat, control 21: LBLTYPE 1 -> 7; LBLTEXT 'Group Box' -> ' '; GRDLBLMSGSET 0 -> 3; GRDLBLMSGNUM 0 -> 4. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gb14-type-msgcat"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "72efe46bae1fc3befb71e2eb304853e5b51403ab38cb83d3c84fe674a4df86ee"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:18.447Z",
+      "method": "save-capture",
+      "experimentId": "ha06-msgcat",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ha06-msgcat, control 15: LBLTYPE 0 -> 7; LABEL_ID ZZ_PCODE_LAB_L2 -> ' '; LBLTEXT 'Long 254' -> ' '; GRDLBLMSGSET 0 -> 3; GRDLBLMSGNUM 0 -> 4. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ha06-msgcat"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "f7f42ae1aec540eb4fb1a648504ef9330d31f60d900871d91b16a0727ab66893"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:16.384Z",
+    "updatedAt": "2026-10-13T11:27:18.454Z",
+    "schemaVersion": 1
+  }
+}

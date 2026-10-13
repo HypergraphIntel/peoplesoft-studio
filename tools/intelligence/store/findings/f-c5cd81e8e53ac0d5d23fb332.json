@@ -1,0 +1,348 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-c5cd81e8e53ac0d5d23fb332",
+  "fingerprint": "c5cd81e8e53ac0d5d23fb332e3de11db69d138d196fec508566d9bbae2a3fcb8",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDSTYLE"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "FIELDSTYLE",
+      "setting": "Style",
+      "value": "style class name",
+      "default": "blank"
+    }
+  },
+  "title": "A page control's Style is PSPNLFIELD.FIELDSTYLE, the style class name, ' ' for the default",
+  "statement": "The Style setting (a group box's Body Style) is stored as the style class name in PSPNLFIELD.FIELDSTYLE; the default style is ' '. Observed on a frame, a horizontal rule, a static text, a check box, a long edit box and a group box.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T22:37:31.000Z",
+      "method": "save-capture",
+      "experimentId": "fr02-frame-style",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fr02-frame-style, control 16: FIELDSTYLE ' ' -> EDGE. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 23,
+            "deleted": 23,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fr02-frame-style"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "dc6901a6ffc87d04149ed235f1be5e660ec23e919c509f492953e7a464be0246"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:06.190Z",
+      "method": "save-capture",
+      "experimentId": "hr02-text-style",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture hr02-text-style, control 17: LBLTEXT ' ' -> 'ZZ Rule'; FIELDSTYLE ' ' -> EDGE. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "hr02-text-style"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "c30fdc8828c64c13be5b9957a4d128ea14051f05476c9da490561d0290cc63bb"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:06.593Z",
+      "method": "save-capture",
+      "experimentId": "hr06-style-default",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture hr06-style-default, control 17: FIELDSTYLE EDGE -> ' '. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "hr06-style-default"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "266e717f34bac44c15b0dcad70192053e2cbfcf21f3dc22195bc40a1d5e4ad23"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:07.028Z",
+      "method": "save-capture",
+      "experimentId": "st05-static-style",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture st05-static-style, control 1: FIELDSTYLE ' ' -> EDGE. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "st05-static-style"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "b740a2bc2f726ee81e6dd6befe6250a610cfeab575efcb16dfd7784aed568c2e"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:07.421Z",
+      "method": "save-capture",
+      "experimentId": "cbx04-none-style",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture cbx04-none-style, control 3: LBLTYPE 1 -> 0; FIELDSTYLE ' ' -> EDGE. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "cbx04-none-style"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "14d5a96bb96aae97c783176a1875294deb0862a57f408a11eec9fb9ced9524a5"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:07.876Z",
+      "method": "save-capture",
+      "experimentId": "le04-style",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture le04-style, control 9: FIELDSTYLE ' ' -> EDGE. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "le04-style"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "59c398684d44e0267171b8f63eb8f511bfbcb1d70527a9f7ce4de2a61e4e8c64"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:08.282Z",
+      "method": "save-capture",
+      "experimentId": "gb11-styles",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gb11-styles, control 21: DSPLFORMAT 0x200001 -> 0x80001; FIELDSTYLE ' ' -> ACEFEVNROW; LABELSTYLE ' ' -> EDGE; PTADJHIDDENFIELDS 1 -> 0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gb11-styles"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "110f07a95d734efc5b48c273ae2fff992e0b7320bed449eaef6e3d45b504d1d5"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:05.811Z",
+    "updatedAt": "2026-10-13T11:27:08.290Z",
+    "schemaVersion": 1
+  }
+}

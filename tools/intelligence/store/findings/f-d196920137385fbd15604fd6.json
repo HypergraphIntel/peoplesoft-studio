@@ -1,0 +1,95 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-d196920137385fbd15604fd6",
+  "fingerprint": "d196920137385fbd15604fd6bec942be87acfc108966b83ffcfff547e2ffc656",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELDEXT"
+    ],
+    "properties": [
+      "FIELDUSETEMP2"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELDEXT",
+      "column": "FIELDUSETEMP2",
+      "setting": "Suppress On Form Factor: Medium",
+      "bit": "0x10"
+    }
+  },
+  "title": "Fluid Suppress On Form Factor: Medium is PSPNLFIELDEXT.FIELDUSETEMP2 0x10",
+  "statement": "Fluid tab Suppress On Form Factor: Medium sets PSPNLFIELDEXT.FIELDUSETEMP2 bit 0x10 (observed on a frame).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T22:57:02.000Z",
+      "method": "save-capture",
+      "experimentId": "fr15-frame-suppress-medium",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fr15-frame-suppress-medium, control 16: EXT.FIELDUSETEMP2 0x0 -> 0x10. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 23,
+            "deleted": 23,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fr15-frame-suppress-medium"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "42638fa99181494f8bc68934ad1b698edb4cac6936ec3d19c1398b27f71db187"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:28:14.377Z",
+    "updatedAt": "2026-10-13T11:28:14.377Z",
+    "schemaVersion": 1
+  }
+}

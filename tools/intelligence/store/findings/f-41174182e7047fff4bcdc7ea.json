@@ -1,0 +1,173 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-41174182e7047fff4bcdc7ea",
+  "fingerprint": "41174182e7047fff4bcdc7eaaf259fec22bd98d68201c9f7a6f40fa23357d019",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "DSPLFORMAT"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "DSPLFORMAT",
+      "setting": "First occurs only",
+      "bit": "0x400000"
+    }
+  },
+  "title": "First occurs only is PSPNLFIELD.DSPLFORMAT 0x400000",
+  "statement": "Label tab First occurs only sets PSPNLFIELD.DSPLFORMAT bit 0x400000. Observed on an edit box and a long edit box.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:28.969Z",
+      "method": "save-capture",
+      "experimentId": "eb33-first-occurs",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb33-first-occurs, control 13: DSPLFORMAT 0x200008 -> 0x600008. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb33-first-occurs"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "377da4bfbfcf040ad7787ec14396b7d04292e3759d50a9aa4c874352b003d783"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:29.409Z",
+      "method": "save-capture",
+      "experimentId": "le08-first-occurs",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture le08-first-occurs, control 9: DSPLFORMAT 0x100000 -> 0x500000. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "le08-first-occurs"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "919822eecd78c186ae3e6728e9101dd23c60981a4a9671e06875010ac10732e4"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:29.811Z",
+      "method": "save-capture",
+      "experimentId": "le09-colon",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture le09-colon, control 9: DSPLFORMAT 0x500000 -> 0x100000; LBLLOC 1 -> 0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "le09-colon"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "5b08279f6e2cd56be5038079260c6cfb3e575bdde3876a2cb6d0ede4214412d3"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:28.976Z",
+    "updatedAt": "2026-10-13T11:27:29.819Z",
+    "schemaVersion": 1
+  }
+}

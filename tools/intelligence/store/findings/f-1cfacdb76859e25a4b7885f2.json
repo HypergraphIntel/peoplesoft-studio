@@ -1,0 +1,217 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-1cfacdb76859e25a4b7885f2",
+  "fingerprint": "1cfacdb76859e25a4b7885f278ee4d0caf8de7cadf494fc2dfcf9f4de3f8eb21",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "LABELSIZETYPE"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "LABELSIZETYPE",
+      "left": 0,
+      "custom": 1,
+      "top": 2,
+      "alsoWrites": "EDITLBL rectangle"
+    }
+  },
+  "title": "A label's Position is PSPNLFIELD.LABELSIZETYPE: 0 Left, 1 Custom, 2 Top",
+  "statement": "Label tab Position is stored in PSPNLFIELD.LABELSIZETYPE: 0 Left, 1 Custom, 2 Top; App Designer also lays the label rectangle (EDITLBLLEFT / TOP / RIGHT / BOTTOM) out again. Observed on an edit box and a long edit box.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:30.197Z",
+      "method": "save-capture",
+      "experimentId": "eb34-pos-top",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb34-pos-top, control 13: EDITLBLLEFT 0 -> 572; EDITLBLTOP 0 -> 133; EDITLBLRIGHT 0 -> 638; EDITLBLBOTTOM 0 -> 148; LABELSIZETYPE 0 -> 2. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb34-pos-top"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "0efede3babb780e82f024ae0f7b8e2d89eb41859c283f9434ca9973101f94456"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:30.613Z",
+      "method": "save-capture",
+      "experimentId": "le05-centered-top",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture le05-centered-top, control 9: DSPLFORMAT 0x200000 -> 0x100000; EDITLBLTOP -232 -> 205; EDITLBLRIGHT 0 -> 29; EDITLBLBOTTOM -232 -> 220; LABELSIZETYPE 0 -> 2. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "le05-centered-top"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "8bb63e4ce16a69618e8f2318fb0faad0d5fe0e876fe37e5a66a2f55850b2004f"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:31.002Z",
+      "method": "save-capture",
+      "experimentId": "le06-custom",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture le06-custom, control 9: EDITLBLLEFT 0 -> 8; EDITLBLTOP 205 -> 180; EDITLBLRIGHT 29 -> 60; EDITLBLBOTTOM 220 -> 195; LABELSIZETYPE 2 -> 1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "le06-custom"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a82e51ec65ad6f3419c3b8ccbba4655eb6441ecbcef7d922c822bd52d8129763"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:31.419Z",
+      "method": "save-capture",
+      "experimentId": "le07-left",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture le07-left, control 9: EDITLBLLEFT 8 -> -18; EDITLBLRIGHT 60 -> 34; LABELSIZETYPE 1 -> 0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "le07-left"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a4ef09e5928672f09a0ed5bf2600d5461e079ae146026ee262a2a344dabb2a26"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:30.205Z",
+    "updatedAt": "2026-10-13T11:27:31.426Z",
+    "schemaVersion": 1
+  }
+}

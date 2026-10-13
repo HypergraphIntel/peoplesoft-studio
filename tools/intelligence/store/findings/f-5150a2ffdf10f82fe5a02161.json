@@ -1,0 +1,132 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-5150a2ffdf10f82fe5a02161",
+  "fingerprint": "5150a2ffdf10f82fe5a0216157cda621055c7c108184fac23a32117746b16905",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "DSPLFORMAT"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "DSPLFORMAT",
+      "setting": "Display Century",
+      "bit": "0x10000",
+      "control": "Edit Box"
+    }
+  },
+  "title": "An edit box's Display Century is PSPNLFIELD.DSPLFORMAT 0x10000",
+  "statement": "Record tab Display Century on an edit box sets PSPNLFIELD.DSPLFORMAT bit 0x10000; turning it off clears the bit and nothing else.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:40.097Z",
+      "method": "save-capture",
+      "experimentId": "eb07-century",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb07-century, control 13: DSPLFORMAT 0x20a08288 -> 0x20a18288. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb07-century"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "7cf4ba718d1706aa55c6615f82c31054efd2936728a2e4b0508cc54958d1bdfb"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:40.494Z",
+      "method": "save-capture",
+      "experimentId": "eb23-century-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb23-century-off, control 13: DSPLFORMAT 0x210438 -> 0x200438. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb23-century-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "0fb932cbe083d139687cdb79baa4db41ed952cbece67cf29d07f490f5f2cb16c"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:40.105Z",
+    "updatedAt": "2026-10-13T11:27:40.501Z",
+    "schemaVersion": 1
+  }
+}

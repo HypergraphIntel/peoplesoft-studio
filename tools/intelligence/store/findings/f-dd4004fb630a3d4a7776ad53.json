@@ -1,0 +1,137 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-dd4004fb630a3d4a7776ad53",
+  "fingerprint": "dd4004fb630a3d4a7776ad53fab06ffee57d8c00d385cb7fe51908ac77382f41",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDUSE"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "FIELDUSE",
+      "setting": "Display Only",
+      "bit": "0x1"
+    }
+  },
+  "title": "Display Only on a page control is PSPNLFIELD.FIELDUSE 0x1",
+  "statement": "Use tab Display Only sets PSPNLFIELD.FIELDUSE bit 0x1. Turning it off also clears a Mouse Over Popup (FIELDUSETMP 0x200 and its page).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:48.042Z",
+      "method": "save-capture",
+      "experimentId": "eb38-display-only",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb38-display-only, control 13: FIELDUSE 0x0 -> 0x1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb38-display-only"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "341bd7e9cf4a4c8e0ce26953058a3a8ff95a4ee2f1e4c61cbbb5a360bdbb2c22"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:48.408Z",
+      "method": "save-capture",
+      "experimentId": "eb43-do-off-with-popup",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb43-do-off-with-popup, control 13: FIELDUSE 0x1 -> 0x0; FIELDUSETMP 0x200 -> 0x0; EXT.PTPOPUPPNL FSFB_WHERE_POP -> ' '. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb43-do-off-with-popup"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "50d37ba5494b2456702ab45af8d3b530ea69cadcf76581df51ad0cfe75919767"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:48.049Z",
+    "updatedAt": "2026-10-13T11:27:48.415Z",
+    "schemaVersion": 1
+  }
+}

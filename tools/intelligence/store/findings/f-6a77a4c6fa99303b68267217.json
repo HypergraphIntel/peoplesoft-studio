@@ -1,0 +1,95 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-6a77a4c6fa99303b68267217",
+  "fingerprint": "6a77a4c6fa99303b6826721714ccd57b199c114cc7202caccc1a4cc7643d055b",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDUSETMP"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "FIELDUSETMP",
+      "setting": "Control Structure: Basic",
+      "bit": "0x4000000"
+    }
+  },
+  "title": "Fluid Control Structure: Basic is PSPNLFIELD.FIELDUSETMP 0x4000000",
+  "statement": "Fluid tab Control Structure: Basic sets PSPNLFIELD.FIELDUSETMP bit 0x4000000 (observed on a frame).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T22:57:44.000Z",
+      "method": "save-capture",
+      "experimentId": "fr20-frame-structure-basic",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fr20-frame-structure-basic, control 16: FIELDUSETMP 0x62400000 -> 0x66400000. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 23,
+            "deleted": 23,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fr20-frame-structure-basic"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "f743141df5c3494554626444db69b5a7237f5366e14b1c1500e1c04916b3fd03"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:28:16.394Z",
+    "updatedAt": "2026-10-13T11:28:16.394Z",
+    "schemaVersion": 1
+  }
+}

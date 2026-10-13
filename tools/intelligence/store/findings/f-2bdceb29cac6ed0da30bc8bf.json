@@ -1,0 +1,132 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-2bdceb29cac6ed0da30bc8bf",
+  "fingerprint": "2bdceb29cac6ed0da30bc8bfd20835ef65d8db4c5c782da1a92d66281f5fdf56",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "DSPLFORMAT"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "DSPLFORMAT",
+      "setting": "Show Prompt Button",
+      "bitWhenOff": "0x800000",
+      "control": "Edit Box"
+    }
+  },
+  "title": "An edit box's Show Prompt Button off is PSPNLFIELD.DSPLFORMAT 0x800000",
+  "statement": "Show Prompt Button is stored inverted: unchecking it sets PSPNLFIELD.DSPLFORMAT bit 0x800000, checking it clears the bit.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:43.337Z",
+      "method": "save-capture",
+      "experimentId": "eb03-prompt-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb03-prompt-off, control 13: DSPLFORMAT 0x208088 -> 0xa08088. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb03-prompt-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "545ae73b0bc28eb4113ac8896005382ab964449423940ff371ca165dca676dae"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:43.725Z",
+      "method": "save-capture",
+      "experimentId": "eb28-prompt-on",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb28-prompt-on, control 13: DSPLFORMAT 0xa00008 -> 0x200008. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb28-prompt-on"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "674001d7249c3dd0569ac02d3062b048d6c4480f045e62ee39d847521844ea41"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:43.344Z",
+    "updatedAt": "2026-10-13T11:27:43.731Z",
+    "schemaVersion": 1
+  }
+}

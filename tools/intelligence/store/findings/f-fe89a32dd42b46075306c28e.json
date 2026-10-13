@@ -1,0 +1,157 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-fe89a32dd42b46075306c28e",
+  "fingerprint": "fe89a32dd42b46075306c28eeb39c8b2282747eaacc92d48b70f476fb2f42a51",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLHTMLAREA",
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "RECNAME"
+    ]
+  },
+  "assertion": {
+    "kind": "row-lifecycle",
+    "facts": {
+      "table": "PSPNLHTMLAREA",
+      "constant": "row inserted",
+      "edit": "row replaced",
+      "field": "row deleted",
+      "control": "HTML Area"
+    }
+  },
+  "title": "An HTML Area's Constant value is a PSPNLHTMLAREA row; going back to Field deletes it",
+  "statement": "HTML tab Value: Constant inserts the control's PSPNLHTMLAREA row and blanks RECNAME / FIELDNAME; editing the text deletes and re-inserts the row; Value: Field again deletes it.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-11T14:02:22.094Z",
+      "method": "save-capture",
+      "experimentId": "ha03-constant",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ha03-constant, control 15: RECNAME ZZ_PCODE_LAB_R6 -> ' '; PSPNLHTMLAREA 1 inserted, 0 deleted. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 17,
+            "deleted": 17,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLHTMLAREA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ha03-constant"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "e5841786d61c001fd99d007a868d293f53bdbb25a20b8bce76becfbcfd2ae3f8"
+    },
+    {
+      "observedAt": "2026-10-11T14:05:21.422Z",
+      "method": "save-capture",
+      "experimentId": "ha05-back-to-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ha05-back-to-field, control 15: LABEL_ID ' ' -> ZZ_PCODE_LAB_L2; LBLTEXT ' ' -> 'Long 254'; RECNAME ' ' -> ZZ_PCODE_LAB_R6; FIELDNAME ' ' -> ZZ_PCODE_LAB_L2; EXT.FIELDUSETEMP2 0x1000 -> 0x0; PSPNLHTMLAREA 0 inserted, 1 deleted. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLHTMLAREA",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ha05-back-to-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a824c27ab2dcb88d6b479a8cbe9adea8fa69d4a0004464d06a0440438b875963"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:28:19.217Z",
+    "updatedAt": "2026-10-13T11:28:19.643Z",
+    "schemaVersion": 1
+  }
+}

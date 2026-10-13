@@ -1,0 +1,143 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-13f00023f4a3a533d8e2910b",
+  "fingerprint": "13f00023f4a3a533d8e2910ba47e6faacc8b0a9b5f6597c99e8e01a25fe51826",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDUSE"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "FIELDUSE",
+      "setting": "Hide Border",
+      "bit": "0x4000000"
+    }
+  },
+  "title": "Hide Border on a frame or group box is PSPNLFIELD.FIELDUSE 0x4000000",
+  "statement": "Label tab Hide Border sets PSPNLFIELD.FIELDUSE bit 0x4000000 on a frame and on a group box.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T22:37:43.000Z",
+      "method": "save-capture",
+      "experimentId": "fr03-frame-hide-border",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fr03-frame-hide-border, control 16: FIELDUSE 0x0 -> 0x4000000. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 23,
+            "deleted": 23,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fr03-frame-hide-border"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "cd0af2d443db5bd40bd171c2867d7b4e36d4a92f9a4c49d171013f76794cbcf2"
+    },
+    {
+      "observedAt": "2026-10-11T13:02:22.243Z",
+      "method": "save-capture",
+      "experimentId": "gb08-hide-border",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gb08-hide-border, control 21: FIELDUSE 0x0 -> 0x4000000. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 17,
+            "deleted": 17,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gb08-hide-border"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "d50f28bc72ddb6ce8d489920fd789ac04c3785fcca844c2118903d20e66e786d"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:01.016Z",
+    "updatedAt": "2026-10-13T11:27:01.385Z",
+    "schemaVersion": 1
+  }
+}

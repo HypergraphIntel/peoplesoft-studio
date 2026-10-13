@@ -661,7 +661,8 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
   }
   // Static Text's Label tab, laid out as App Designer's (st01-st10): Label Text -- Text (LBLTYPE 1) or Message
   // Catalog (LBLTYPE 7), the text with Insert Line Feed, Message Set/Number (GRDLBLMSGSET/GRDLBLMSGNUM) shown as
-  // its Text or Explanation (DSPLFORMAT 0x40000000), Style -- then Alignment Left / Centered (0x2) / Right (0x4).
+  // its Text or Explanation (DSPLFORMAT 0x40000000), Style -- then Alignment Left (0x1) / Centered (0x2) / Right (0x4),
+  // exactly one of them (st06: Centered replaced Left's 0x1).
   function staticTextLabelTab(ctx, p) {
     const { el, d, mk, group, radio } = ctx;
     const lt = group(p, 'Label Text');
@@ -685,7 +686,8 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
     const mx = lt.lastElementChild;
     ctx.styleSelect(lt);
     const al = group(p, 'Alignment');
-    for (const [v, label] of [['0', 'Left'], ['2', 'Centered'], ['4', 'Right']]) radio(al, 'stal' + d.id, [[v, label]], String(n(el, 'dspl') & 0x6), () => { setN(el, 'dspl', (n(el, 'dspl') & ~0x6) | Number(v)); markDirty(); });
+    const align = n(el, 'dspl') & 0x6 ? String(n(el, 'dspl') & 0x6) : '1';
+    for (const [v, label] of [['1', 'Left'], ['2', 'Centered'], ['4', 'Right']]) radio(al, 'stal' + d.id, [[v, label]], align, () => { setN(el, 'dspl', (n(el, 'dspl') & ~0x7) | Number(v)); markDirty(); });
     // Text or Message Catalog greys out the other's inputs, as App Designer does.
     function refresh() {
       const cat = d.lt === '7';

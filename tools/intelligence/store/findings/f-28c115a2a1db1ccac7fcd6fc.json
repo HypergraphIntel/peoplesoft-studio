@@ -1,0 +1,377 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-28c115a2a1db1ccac7fcd6fc",
+  "fingerprint": "28c115a2a1db1ccac7fcd6fcaec66a257a04d81e002822b2cb9f31f0c93382ec",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELDEXT"
+    ],
+    "properties": [
+      "FFSTYLELONG"
+    ]
+  },
+  "assertion": {
+    "kind": "dialog-default",
+    "facts": {
+      "table": "PSPNLFIELDEXT",
+      "column": "FFSTYLELONG",
+      "value": " | | | | ",
+      "when": "first dialog OK"
+    }
+  },
+  "title": "The first OK on a page control's Properties dialog writes PSPNLFIELDEXT.FFSTYLELONG ' | | | | '",
+  "statement": "The first OK on a frame's, horizontal rule's, group box's or HTML area's Properties dialog, on a classic or a Fluid page, and on an edit box's or static text's on a Fluid page, stores the blank FFSTYLELONG as the five empty Fluid slots ' | | | | '. On a classic page a static text's dialog did not (st01 wrote ' ' over NULL).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T22:37:19.000Z",
+      "method": "save-capture",
+      "experimentId": "fr01-frame-label",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fr01-frame-label, control 16: LBLTEXT Frame -> 'ZZ Frame'; EXT.FFSTYLELONG ' ' -> ' | | | | '. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fr01-frame-label"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "d2c9cfde598bb3b4a0414b7d03a127f7a601b00b8f5ef13ba277849bc634529f"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:34.314Z",
+      "method": "save-capture",
+      "experimentId": "hr01-first-ok",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture hr01-first-ok, control 17: EXT.FFSTYLELONG ' ' -> ' | | | | '. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "hr01-first-ok"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "6dcdef9fd8295786d25d29f8a342b6088d4e019af1b74bede798a2faa5f79d5d"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:34.752Z",
+      "method": "save-capture",
+      "experimentId": "gb06-first-ok",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gb06-first-ok, control 21: DSPLFORMAT 0x1 -> 0x80001; FIELDUSETMP 0x0 -> 0x6000000; EXT.PTGBRELTXTINFO 0 -> -1; EXT.PTGBRELACTINFO 0 -> -1; EXT.PTGBRELACTFLD 0 -> -1; EXT.FFSTYLELONG ' ' -> ' | | | | '. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gb06-first-ok"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "b38ae30fc6cffa54ab3db145be45afa6b2e1974140c6b91dfbf11d0ee95310ae"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:35.160Z",
+      "method": "save-capture",
+      "experimentId": "gb28-classic-first-ok",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gb28-classic-first-ok, control 9: DSPLFORMAT 0x1 -> 0x80001; FIELDUSETMP 0x0 -> 0x6000000; EXT.FFSTYLELONG ' ' -> ' | | | | '. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gb28-classic-first-ok"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "b4bf9a41e543d0fec6e22ff4eb54fe46e2abf70cf7145e21fac1b176c3c960a9"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:35.585Z",
+      "method": "save-capture",
+      "experimentId": "ha01-tags-only",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ha01-tags-only, control 15: DSPLFORMAT 0x2001 -> 0x82001; FIELDUSETMP 0x0 -> 0x100000; EXT.FFSTYLELONG ' ' -> ' | | | | '. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ha01-tags-only"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "b90fec76edbc7d138a4ce0d52ac228f40cded8c5e73e8f3051ef6f24466cb35c"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:35.967Z",
+      "method": "save-capture",
+      "experimentId": "cbx12-eb-dcf",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture cbx12-eb-dcf, control 13: FIELDUSE 0x0 -> 0x8; EXT.FFSTYLELONG ' ' -> ' | | | | '. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "cbx12-eb-dcf"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "2619cd4efac0e0c9a727a241e5abbc2556ca1cf56e013cc7c78d975ac9afbc32"
+    },
+    {
+      "observedAt": "2026-10-11T12:32:28.450Z",
+      "method": "save-capture",
+      "experimentId": "st11-static-linefeed",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture st11-static-linefeed, control 1: LBLTEXT 'Control mapping' -> (text); FIELDUSE 0x0 -> 0x20; EXT.FFSTYLELONG ' ' -> ' | | | | '. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "st11-static-linefeed"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "54540cb5b192df56e91b80765d46f1b2ea875dcfb373867226bc124ca8e1c6c6"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:33.914Z",
+    "updatedAt": "2026-10-13T11:27:36.400Z",
+    "schemaVersion": 1
+  }
+}

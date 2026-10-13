@@ -1,0 +1,180 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-71f9cb0003fcaa037980cd29",
+  "fingerprint": "71f9cb0003fcaa037980cd295d4e7e37676f70f15bb7f935107d8213cb688692",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "PTADJHIDDENFIELDS"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "PTADJHIDDENFIELDS",
+      "setting": "Adjust Layout for Hidden Fields",
+      "on": 1,
+      "off": 0
+    }
+  },
+  "title": "Adjust Layout for Hidden Fields is PSPNLFIELD.PTADJHIDDENFIELDS 1",
+  "statement": "Label tab Adjust Layout for Hidden Fields sets PSPNLFIELD.PTADJHIDDENFIELDS from 0 to 1 on a frame and on a group box.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T22:37:46.000Z",
+      "method": "save-capture",
+      "experimentId": "fr04-frame-adjust-layout",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fr04-frame-adjust-layout, control 16: PTADJHIDDENFIELDS 0 -> 1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 23,
+            "deleted": 23,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fr04-frame-adjust-layout"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "24ba89dee97ba69bb3a293eb6f2abedd9b38ac836e0e6637906399480159200d"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:05.014Z",
+      "method": "save-capture",
+      "experimentId": "gb10-adjust-right",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gb10-adjust-right, control 21: DSPLFORMAT 0x100001 -> 0x200001; FIELDUSE 0x2000 -> 0x0; PTADJHIDDENFIELDS 0 -> 1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gb10-adjust-right"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "6eae9ba24bdf48a2d79f8b56801a745594064b0acfb3b7386a412882c54cfec3"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:05.410Z",
+      "method": "save-capture",
+      "experimentId": "gb11-styles",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gb11-styles, control 21: DSPLFORMAT 0x200001 -> 0x80001; FIELDSTYLE ' ' -> ACEFEVNROW; LABELSTYLE ' ' -> EDGE; PTADJHIDDENFIELDS 1 -> 0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gb11-styles"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "110f07a95d734efc5b48c273ae2fff992e0b7320bed449eaef6e3d45b504d1d5"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:04.603Z",
+    "updatedAt": "2026-10-13T11:27:05.417Z",
+    "schemaVersion": 1
+  }
+}

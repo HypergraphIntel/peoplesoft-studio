@@ -1,0 +1,692 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-60f36939a246a479af94f7ba",
+  "fingerprint": "60f36939a246a479af94f7ba0b7d8c9173cec075f1838c8a33fd98950f377f30",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "LBLTYPE"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "LBLTYPE",
+      "none": 0,
+      "text": 1,
+      "rftShort": 2,
+      "rftLong": 3,
+      "messageCatalog": 7
+    }
+  },
+  "title": "A page control label's type is PSPNLFIELD.LBLTYPE: 0 None, 1 Text, 2 RFT Short, 3 RFT Long, 7 Message Catalog",
+  "statement": "The Label tab's Type is stored in PSPNLFIELD.LBLTYPE: 0 None, 1 Text, 2 RFT Short, 3 RFT Long, 7 Message Catalog. Observed on check boxes, group boxes, an edit box, a long edit box, a static text, a static image and an HTML area. A static image's alt-text type starts at 6 (shown as None) and was not set back to it in these captures.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:08.686Z",
+      "method": "save-capture",
+      "experimentId": "cbx03-text-right",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture cbx03-text-right, control 3: DSPLFORMAT 0x100001 -> 0x200001; LBLTYPE 3 -> 1; LBLLOC 0 -> 1; LBLTEXT ZZ_PCODE_LAB_C01 -> 'ZZ CB'. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "cbx03-text-right"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "b64248004d78b9b774b385faffca7fa22e91cc658ce82b8921d133d60ae65915"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:09.063Z",
+      "method": "save-capture",
+      "experimentId": "cbx04-none-style",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture cbx04-none-style, control 3: LBLTYPE 1 -> 0; FIELDSTYLE ' ' -> EDGE. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "cbx04-none-style"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "14d5a96bb96aae97c783176a1875294deb0862a57f408a11eec9fb9ced9524a5"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:09.473Z",
+      "method": "save-capture",
+      "experimentId": "cbx05-rft-short-labelid",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture cbx05-rft-short-labelid, control 3: LBLTYPE 0 -> 2; USEDEFAULTLABEL 1 -> 0; LBLTEXT 'ZZ CB' -> C01. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "cbx05-rft-short-labelid"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "76891ca3f122f16df2a7efc2c0ed7a3d98b45cd5fd3ddecfeda593ac45b6b188"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:09.890Z",
+      "method": "save-capture",
+      "experimentId": "gb14-type-msgcat",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gb14-type-msgcat, control 21: LBLTYPE 1 -> 7; LBLTEXT 'Group Box' -> ' '; GRDLBLMSGSET 0 -> 3; GRDLBLMSGNUM 0 -> 4. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gb14-type-msgcat"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "72efe46bae1fc3befb71e2eb304853e5b51403ab38cb83d3c84fe674a4df86ee"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:10.285Z",
+      "method": "save-capture",
+      "experimentId": "gb15-type-text",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gb15-type-text, control 21: LBLTYPE 7 -> 1; LBLTEXT ' ' -> 'Group Box'. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gb15-type-text"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "792897efcbda21781dd630d287a250bb00ca1c88e0f135cb4596477477f38852"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:10.689Z",
+      "method": "save-capture",
+      "experimentId": "gb17-labelid-short",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gb17-labelid-short, control 21: LBLTYPE 3 -> 2; USEDEFAULTLABEL 1 -> 0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gb17-labelid-short"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "f2ad15da5594f866da8392e3f124978ebf942c28bbcf67c469ef19f0bf297b14"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:11.084Z",
+      "method": "save-capture",
+      "experimentId": "eb36-type-text",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb36-type-text, control 13: LBLTYPE 3 -> 1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb36-type-text"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "d87da38c393fd44b423675c40e224d24cb03b028f4f26153fb35aa6528d0008a"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:11.523Z",
+      "method": "save-capture",
+      "experimentId": "le11-text-lf",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture le11-text-lf, control 9: LBLTYPE 3 -> 1; LBLTEXT 'Long 254' -> (text). Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "le11-text-lf"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "97a198582f1fce7e994a26f92202b665d6fa584e70ca95b856f8c3f07d1d635d"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:11.922Z",
+      "method": "save-capture",
+      "experimentId": "st01-static-msgcat",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture st01-static-msgcat, control 1: LBLTYPE 1 -> 7; LBLTEXT 'Control mapping' -> ' '; EXT.FFSTYLELONG NULL -> ' '; DEFN.LICENSE_CODE ' ' -> (text). Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "st01-static-msgcat"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "2e6018011a898d4ae0c9b7f74418fc8f488546320f40eb14a1d5154df37e1edf"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:12.332Z",
+      "method": "save-capture",
+      "experimentId": "si02-image-type-text",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture si02-image-type-text, control 2: LBLTYPE 6 -> 1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "si02-image-type-text"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "f2ef87f84dd4885a090581b2912c163dd971652adb38bc3609c98ad80aee023a"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:12.755Z",
+      "method": "save-capture",
+      "experimentId": "si04-image-type-msgcat",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture si04-image-type-msgcat, control 2: LBLTYPE 1 -> 7; LBLTEXT 'ZZ Alt' -> ' '. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "si04-image-type-msgcat"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "f3fdd36c7f897e16bebaee19f03211a5de2ccde70b5144066d2d5db618cfdb94"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:13.149Z",
+      "method": "save-capture",
+      "experimentId": "ha06-msgcat",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ha06-msgcat, control 15: LBLTYPE 0 -> 7; LABEL_ID ZZ_PCODE_LAB_L2 -> ' '; LBLTEXT 'Long 254' -> ' '; GRDLBLMSGSET 0 -> 3; GRDLBLMSGNUM 0 -> 4. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ha06-msgcat"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "f7f42ae1aec540eb4fb1a648504ef9330d31f60d900871d91b16a0727ab66893"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:13.552Z",
+      "method": "save-capture",
+      "experimentId": "ha07-rft-short",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ha07-rft-short, control 15: LBLTYPE 7 -> 2; LABEL_ID ' ' -> ZZ_PCODE_LAB_L2; LBLTEXT ' ' -> 'Long 254'. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ha07-rft-short"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "32f53e5a25bfb032510b3eae4657d2c5f99496711726c1aacab00108197fb748"
+    },
+    {
+      "observedAt": "2026-10-11T14:07:31.833Z",
+      "method": "save-capture",
+      "experimentId": "ha08-text-context",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ha08-text-context, control 15: LBLTYPE 2 -> 1; LBLTEXT 'Long 254' -> 'ZZ HA'. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 17,
+            "deleted": 17,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ha08-text-context"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "9938e702be3ab341fad6f186801e01eabc26aec6a2d8eb866a6804df0b7554f2"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:14.364Z",
+      "method": "save-capture",
+      "experimentId": "ha09-none",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ha09-none, control 15: LBLTYPE 1 -> 0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ha09-none"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a71ea8360ee435cab7d1e305cd718d4ce126dbbe169986d2bececd99e0da0ada"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:08.694Z",
+    "updatedAt": "2026-10-13T11:27:14.372Z",
+    "schemaVersion": 1
+  }
+}

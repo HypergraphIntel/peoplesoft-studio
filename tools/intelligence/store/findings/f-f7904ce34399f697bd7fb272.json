@@ -1,0 +1,95 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-f7904ce34399f697bd7fb272",
+  "fingerprint": "f7904ce34399f697bd7fb272bb68d975a6c5a3edfafa9001dc3e0428272a0915",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELDEXT"
+    ],
+    "properties": [
+      "FIELDUSETEMP2"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELDEXT",
+      "column": "FIELDUSETEMP2",
+      "setting": "Include Labels in Grid Cells",
+      "bit": "0x2"
+    }
+  },
+  "title": "Fluid Include Labels in Grid Cells is PSPNLFIELDEXT.FIELDUSETEMP2 0x2",
+  "statement": "Fluid tab Include Labels in Grid Cells sets PSPNLFIELDEXT.FIELDUSETEMP2 bit 0x2 (observed on a frame).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T22:57:38.000Z",
+      "method": "save-capture",
+      "experimentId": "fr19-frame-labels-in-grid",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fr19-frame-labels-in-grid, control 16: EXT.FIELDUSETEMP2 0x90 -> 0x92. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 23,
+            "deleted": 23,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fr19-frame-labels-in-grid"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "23d0f31ddd906ea6a884c394abc51cad2e2b15bd988384ecb9403d55f1819a99"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:28:16.026Z",
+    "updatedAt": "2026-10-13T11:28:16.026Z",
+    "schemaVersion": 1
+  }
+}

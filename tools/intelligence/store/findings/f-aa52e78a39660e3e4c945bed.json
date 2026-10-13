@@ -1,0 +1,94 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-aa52e78a39660e3e4c945bed",
+  "fingerprint": "aa52e78a39660e3e4c945bed6beb3eb512ed8a054f40e6b7618db81bc820ccb2",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "ENABLEASANCHOR"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "ENABLEASANCHOR",
+      "on": 1
+    }
+  },
+  "title": "A page control's Enable as Page Anchor is PSPNLFIELD.ENABLEASANCHOR 1",
+  "statement": "General tab Enable as Page Anchor sets PSPNLFIELD.ENABLEASANCHOR from 0 to 1.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T22:38:19.000Z",
+      "method": "save-capture",
+      "experimentId": "fr07-frame-anchor",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fr07-frame-anchor, control 16: ENABLEASANCHOR 0 -> 1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 23,
+            "deleted": 23,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fr07-frame-anchor"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a8eb3bd7ddd80b89ddba211eb5a1540520dd74934fb08140486c64af656055cc"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:28:17.198Z",
+    "updatedAt": "2026-10-13T11:28:17.198Z",
+    "schemaVersion": 1
+  }
+}

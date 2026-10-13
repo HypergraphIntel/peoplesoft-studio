@@ -1,0 +1,175 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-00050251f7aa77dedbda7a85",
+  "fingerprint": "00050251f7aa77dedbda7a858698c76af9c66ca1bafab18e1607793f1aa8993c",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDSIZETYPE"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "FIELDSIZETYPE",
+      "average": 0,
+      "maximum": 1,
+      "custom": 2,
+      "control": "Edit Box"
+    }
+  },
+  "title": "An edit box's Size Average / Maximum / Custom is PSPNLFIELD.FIELDSIZETYPE 0 / 1 / 2",
+  "statement": "Record tab Size is stored in PSPNLFIELD.FIELDSIZETYPE: 0 Average, 1 Maximum, 2 Custom; Custom also stores the drawn size in FIELDRIGHT / FIELDBOTTOM.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:27:46.104Z",
+      "method": "save-capture",
+      "experimentId": "eb13-size-max",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb13-size-max, control 13: FIELDSIZETYPE 0 -> 1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb13-size-max"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "95d4f65b1f44e3e6aac777cc15bc367ce4bcdbfc4366ab16b0e445cf2ce5f9f0"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:46.485Z",
+      "method": "save-capture",
+      "experimentId": "eb14-size-custom",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb14-size-custom, control 13: FIELDRIGHT 0 -> 869; FIELDBOTTOM 0 -> 146; FIELDSIZETYPE 1 -> 2. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb14-size-custom"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "5031db97a63a628b17d3e6ff63fcc00dd16024577606c4294a67d705cf1c47cf"
+    },
+    {
+      "observedAt": "2026-10-13T11:27:46.875Z",
+      "method": "save-capture",
+      "experimentId": "eb15-size-average",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb15-size-average, control 13: FIELDSIZETYPE 2 -> 0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb15-size-average"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "716e0dfb1ac919b4450067fb42c8b7d9bff084c4b2f69fe40da9e7659e75c510"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:27:46.111Z",
+    "updatedAt": "2026-10-13T11:27:46.882Z",
+    "schemaVersion": 1
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-d46df932804c56165de15984",
+  "fingerprint": "d46df932804c56165de15984fb2eda467e7be56d5428510eab7a08abe530b6db",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "DSPLFORMAT"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "DSPLFORMAT",
+      "left": "0x1",
+      "centered": "0x2",
+      "right": "0x4",
+      "control": "Static Text"
+    }
+  },
+  "title": "A static text's Alignment Left / Centered / Right is PSPNLFIELD.DSPLFORMAT 0x1 / 0x2 / 0x4",
+  "statement": "A static text's Label tab Alignment is stored as one of DSPLFORMAT 0x1 (Left), 0x2 (Centered), 0x4 (Right); choosing another replaces the bit. The control's first value, 0x4001, already held Left.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:28:04.265Z",
+      "method": "save-capture",
+      "experimentId": "st06-static-centered",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture st06-static-centered, control 1: DSPLFORMAT 0x40004001 -> 0x40004002. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "st06-static-centered"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "7fdf0dae21e4de5efd7e3b1dd9a825229e207517b3db7c8dc473255c051c7aeb"
+    },
+    {
+      "observedAt": "2026-10-13T11:28:04.673Z",
+      "method": "save-capture",
+      "experimentId": "st07-static-right",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture st07-static-right, control 1: DSPLFORMAT 0x40004002 -> 0x40004004. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "st07-static-right"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "136d46702d27e3d7c427823216a79cdf923f569e9a1d1aba213dc219fdb7f905"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:28:04.274Z",
+    "updatedAt": "2026-10-13T11:28:04.680Z",
+    "schemaVersion": 1
+  }
+}
