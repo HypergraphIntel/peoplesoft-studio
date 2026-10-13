@@ -1,0 +1,189 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-232ea6241450a52b85ba008e",
+  "fingerprint": "232ea6241450a52b85ba008e65d2e71ac4ae0cbd65ebc5732e63a88907204ccd",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "peoplecode",
+    "objectType": "Component PeopleCode",
+    "tables": [
+      "PSPCMPROG"
+    ]
+  },
+  "assertion": {
+    "kind": "program-key",
+    "facts": {
+      "component": "10/39/12",
+      "componentRecord": "10/39/1/12",
+      "componentRecordField": "10/39/1/2/12",
+      "ids": "OBJECTID1..5",
+      "unused": "OBJECTID 0, OBJECTVALUE blank"
+    }
+  },
+  "title": "Component PeopleCode keys are PSPCMPROG OBJECTIDs 10 / 39 / 12 (component), 10 / 39 / 1 / 12 (record), 10 / 39 / 1 / 2 / 12 (record field)",
+  "statement": "A component's PeopleCode is keyed in PSPCMPROG by component (OBJECTID 10), market (39), then record (1) and field (2) for record and record-field events, then the event (12); the unused OBJECTIDs are 0 with blank values.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T17:13:58.000Z",
+      "method": "save-capture",
+      "experimentId": "p01-component-prebuild",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture p01-component-prebuild: the new PSPCMPROG row's OBJECTIDs are 10/39/12, the rest 0 with blank values.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "p01-component-prebuild"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENTS.md"
+        }
+      ],
+      "digest": "8e13c2f2358f78cc12da1aca198a948732cb990becc46fb33e69cb4a81275c67"
+    },
+    {
+      "observedAt": "2026-10-10T17:14:07.000Z",
+      "method": "save-capture",
+      "experimentId": "p02-component-record-rowinit",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture p02-component-record-rowinit: the new PSPCMPROG row's OBJECTIDs are 10/39/1/12, the rest 0 with blank values.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "p02-component-record-rowinit"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENTS.md"
+        }
+      ],
+      "digest": "d8771ca2a54874847a19628dc50a1439836d7439f2c643742cb262e7c76ff7a0"
+    },
+    {
+      "observedAt": "2026-10-10T17:14:25.000Z",
+      "method": "save-capture",
+      "experimentId": "p03-component-field-fieldchange",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture p03-component-field-fieldchange: the new PSPCMPROG row's OBJECTIDs are 10/39/1/2/12, the rest 0 with blank values.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "p03-component-field-fieldchange"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENTS.md"
+        }
+      ],
+      "digest": "0932f470e27a1e25d038d81ed6287481c78975c31f36c6a55e31beef46e18a53"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:40:08.708Z",
+    "updatedAt": "2026-10-13T11:40:10.373Z",
+    "schemaVersion": 1
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-d20e461de84d3a5911bb529d",
+  "fingerprint": "d20e461de84d3a5911bb529d27a6b927f961d3ffb6d03661196c64b24fcecc97",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "html",
+    "objectType": "HTML definition",
+    "tables": [
+      "PSCONTDEFN",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "version-stamp",
+    "facts": {
+      "counter": "CRM",
+      "versionColumn": "PSCONTDEFN.VERSION",
+      "versionIsNewCounter": true,
+      "pslockMoves": true
+    }
+  },
+  "title": "An HTML definition save stamps PSCONTDEFN.VERSION with CRM, which moves in PSVERSION and PSLOCK with SYS",
+  "statement": "App Designer's saves of an HTML definition move PSVERSION and PSLOCK CRM and PSVERSION SYS, one each per save, and the definition's PSCONTDEFN row ends with VERSION = the new CRM. The captures are windows of three saves each (h01: create, edit, description; h04 also holds two writer saves of another definition), so the step per save is read from the count of saves, not seen one by one.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T13:50:07.079Z",
+      "method": "save-capture",
+      "experimentId": "h01-html-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture h01-html-create (create, an edit and a description save, net): PSCONTDEFN inserted with VERSION 5, the final CRM; CRM +3 in PSVERSION and PSLOCK, SYS +3.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCONTDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTENT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CRM": 3,
+          "SYS": 3
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "h01-html-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/HTML_SAVE.md"
+        }
+      ],
+      "digest": "64713e51a7df6b2fa7fd85109dc943d087d61afb863f1ada9d251252ea9e8ba6"
+    },
+    {
+      "observedAt": "2026-10-07T14:03:04.075Z",
+      "method": "save-capture",
+      "experimentId": "h04-html-long",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture h04-html-long (its own save and two writer saves of another HTML definition): the definition's PSCONTDEFN row deleted and re-inserted with VERSION 8, the final CRM; CRM +3 in PSVERSION and PSLOCK, SYS +3.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCONTDEFN",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTENT",
+            "inserted": 4,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CRM": 3,
+          "SYS": 3
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "h04-html-long"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/HTML_SAVE.md"
+        }
+      ],
+      "digest": "a523736afb9d89f3a47a66ef2a6fe9343ebba44c099300ee3c45d2c6725b28b7"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:39:07.244Z",
+    "updatedAt": "2026-10-13T11:39:07.629Z",
+    "schemaVersion": 1
+  }
+}

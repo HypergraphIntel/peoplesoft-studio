@@ -1,0 +1,921 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-1c4f8c2db2dd8406f9cce1b2",
+  "fingerprint": "1c4f8c2db2dd8406f9cce1b2706db211c8d5ae1ffdb84e8361f05728d1ae251b",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLDEFN"
+    ],
+    "properties": [
+      "PNLTYPE"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLDEFN",
+      "column": "PNLTYPE",
+      "standard": 0,
+      "subpage": 1,
+      "secondary": 2,
+      "popup": 3,
+      "header": 4,
+      "side1": 5,
+      "footer": 6,
+      "layout": 7,
+      "search": 8,
+      "prompt": 9,
+      "masterDetailTarget": 10,
+      "side2": 11
+    }
+  },
+  "title": "A page's type is PSPNLDEFN.PNLTYPE: 0 Standard, 1 Subpage, 2 Secondary, 3 Popup, 4 Header, 5 Side Page 1, 6 Footer, 7 Layout, 8 Search, 9 Prompt, 10 Master/Detail Target, 11 Side Page 2",
+  "statement": "Page Properties Use tab Page Type is stored in PSPNLDEFN.PNLTYPE with the codes listed, each set by choosing that type in App Designer (one save per change, from the previous type). A type change also rewrites PNLUSE's low byte and, for Subpage, Popup and Secondary, the page rectangle.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T20:56:00.000Z",
+      "method": "save-capture",
+      "experimentId": "t01-type-std-subpage",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture t01-type-std-subpage, the page row: DEFN.PNLTYPE 0 -> 1; DEFN.PANELTOP 0 -> 44; DEFN.PANELLEFT 0 -> 4; DEFN.PANELRIGHT 570 -> 105; DEFN.PANELBOTTOM 330 -> 70; DEFN.PNLUSE 0x23 -> 0x13. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "t01-type-std-subpage"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a27815c889885b63722bde039c4d1f6756c900de140adab41cf4b529b11c2740"
+    },
+    {
+      "observedAt": "2026-10-10T20:56:09.000Z",
+      "method": "save-capture",
+      "experimentId": "t02-type-subpage-popup",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture t02-type-subpage-popup, the page row: DEFN.PNLTYPE 1 -> 3. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "t02-type-subpage-popup"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "ffa72aa9b328c0763da35b3584efd935fb6488c3008e69623f85b83267f129a7"
+    },
+    {
+      "observedAt": "2026-10-10T20:57:18.000Z",
+      "method": "save-capture",
+      "experimentId": "t04-type-popup-header",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture t04-type-popup-header, the page row: DEFN.PNLTYPE 3 -> 4; DEFN.PANELTOP 44 -> 0; DEFN.PANELLEFT 4 -> 0; DEFN.PANELRIGHT 105 -> 570; DEFN.PANELBOTTOM 70 -> 330; DEFN.PNLUSE 0x13 -> 0x4023. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "t04-type-popup-header"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "72f1ca69bd92cfe71a35fddcd7038a6565f5867b041339f7faf6af24d52f611f"
+    },
+    {
+      "observedAt": "2026-10-10T20:57:36.000Z",
+      "method": "save-capture",
+      "experimentId": "t05-type-header-side1",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture t05-type-header-side1, the page row: DEFN.PNLTYPE 4 -> 5. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "t05-type-header-side1"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "06144c632a816c7482079c9c3c6d3ade03087ada4ce8d421c090b72fc72f840c"
+    },
+    {
+      "observedAt": "2026-10-10T20:57:51.000Z",
+      "method": "save-capture",
+      "experimentId": "t06-type-side1-footer",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture t06-type-side1-footer, the page row: DEFN.PNLTYPE 5 -> 6. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "t06-type-side1-footer"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "87e9e908c56bc8d023a23ae3414541b80e8f9466f8f3c42fefe1eac5290905a5"
+    },
+    {
+      "observedAt": "2026-10-10T20:58:09.000Z",
+      "method": "save-capture",
+      "experimentId": "t07-type-footer-layout",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture t07-type-footer-layout, the page row: DEFN.PNLTYPE 6 -> 7. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "t07-type-footer-layout"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "6e623cb43c5b8d58085f265805015e9b49101d29bcad0aeb7538b9bc4f08f6a5"
+    },
+    {
+      "observedAt": "2026-10-10T20:58:24.000Z",
+      "method": "save-capture",
+      "experimentId": "t08-type-layout-search",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture t08-type-layout-search, the page row: DEFN.PNLTYPE 7 -> 8. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "t08-type-layout-search"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "3df930f09aa90404b0e333b644a83819683e7d8997481a24fda8f5d8694cf96a"
+    },
+    {
+      "observedAt": "2026-10-10T20:58:42.000Z",
+      "method": "save-capture",
+      "experimentId": "t09-type-search-prompt",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture t09-type-search-prompt, the page row: DEFN.PNLTYPE 8 -> 9. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "t09-type-search-prompt"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "20c9ee3cd747f63fca335b4d2cb9ad4c5842f150c8076bca8d8ecc1d32b61eeb"
+    },
+    {
+      "observedAt": "2026-10-10T20:59:01.000Z",
+      "method": "save-capture",
+      "experimentId": "t10-type-prompt-mdtarget",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture t10-type-prompt-mdtarget, the page row: DEFN.PNLTYPE 9 -> 10. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "t10-type-prompt-mdtarget"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "871fe9e56949903294f64c0fe8b93640db678ba84805d12926deacfc73d4e146"
+    },
+    {
+      "observedAt": "2026-10-10T20:59:16.000Z",
+      "method": "save-capture",
+      "experimentId": "t11-type-mdtarget-side2",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture t11-type-mdtarget-side2, the page row: DEFN.PNLTYPE 10 -> 11. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "t11-type-mdtarget-side2"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "9c5198ba9962ec9717666873c291a12e0489fb987ef07ce5234a223a8580cf5f"
+    },
+    {
+      "observedAt": "2026-10-10T21:25:03.000Z",
+      "method": "save-capture",
+      "experimentId": "r01-type-side2-std",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r01-type-side2-std, the page row: DEFN.PNLTYPE 11 -> 0. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r01-type-side2-std"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a7af12c87d44b67a28037bf88cf0a86ab102536317055073b1455348bf31f4a0"
+    },
+    {
+      "observedAt": "2026-10-10T21:25:27.000Z",
+      "method": "save-capture",
+      "experimentId": "r02-type-std-header",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r02-type-std-header, the page row: DEFN.PNLTYPE 0 -> 4. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r02-type-std-header"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "8dae1e33a19edb9d413fac8c2eddee1ccec64e3fd6e512ba5786d9c2813556f8"
+    },
+    {
+      "observedAt": "2026-10-10T21:25:48.000Z",
+      "method": "save-capture",
+      "experimentId": "r03-type-header-subpage",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r03-type-header-subpage, the page row: DEFN.PNLTYPE 4 -> 1; DEFN.PANELTOP 0 -> 44; DEFN.PANELLEFT 0 -> 4; DEFN.PANELRIGHT 570 -> 105; DEFN.PANELBOTTOM 330 -> 70; DEFN.PNLUSE 0x4023 -> 0x4013. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r03-type-header-subpage"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "e94f9cdaefcc374c9cb2a9dbc5777bc992554867349fe5d75e9c2b7b5b2f9979"
+    },
+    {
+      "observedAt": "2026-10-10T21:26:15.000Z",
+      "method": "save-capture",
+      "experimentId": "r04-type-subpage-std",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r04-type-subpage-std, the page row: DEFN.PNLTYPE 1 -> 0; DEFN.PANELTOP 44 -> 0; DEFN.PANELLEFT 4 -> 0; DEFN.PANELRIGHT 105 -> 570; DEFN.PANELBOTTOM 70 -> 330; DEFN.PNLUSE 0x4013 -> 0x4023. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r04-type-subpage-std"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "86e3ccdde59300b4572004660294ba8ed681540b9f791bef5ff2a329928aea97"
+    },
+    {
+      "observedAt": "2026-10-10T21:26:39.000Z",
+      "method": "save-capture",
+      "experimentId": "r05-type-std-popup",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r05-type-std-popup, the page row: DEFN.PNLTYPE 0 -> 3; DEFN.PANELTOP 0 -> 44; DEFN.PANELLEFT 0 -> 4; DEFN.PANELRIGHT 570 -> 105; DEFN.PANELBOTTOM 330 -> 70; DEFN.PNLUSE 0x4023 -> 0x4013. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r05-type-std-popup"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "b2327a6080b3c3339c867b0f798593a120d81eee0c145132773105c3fd765dc2"
+    },
+    {
+      "observedAt": "2026-10-10T21:26:51.000Z",
+      "method": "save-capture",
+      "experimentId": "r06-type-popup-std",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r06-type-popup-std, the page row: DEFN.PNLTYPE 3 -> 0; DEFN.PANELTOP 44 -> 0; DEFN.PANELLEFT 4 -> 0; DEFN.PANELRIGHT 105 -> 570; DEFN.PANELBOTTOM 70 -> 330; DEFN.PNLUSE 0x4013 -> 0x4023. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r06-type-popup-std"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "965833d8f742ff241074189e76c92de777199f7b8d6fa66ac1303e579e780c5b"
+    },
+    {
+      "observedAt": "2026-10-10T19:59:18.000Z",
+      "method": "save-capture",
+      "experimentId": "u08-page-type-secondary",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture u08-page-type-secondary, the page row: DEFN.PNLTYPE 0 -> 2; DEFN.PANELTOP 0 -> 20; DEFN.PNLUSE 0xb -> 0x10. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "u08-page-type-secondary"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "cb33d7866834c33da81d79fb28f65e8e0e274ee91af069a856484dd355eb06ac"
+    },
+    {
+      "observedAt": "2026-10-10T20:00:52.000Z",
+      "method": "save-capture",
+      "experimentId": "u12-page-type-standard",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture u12-page-type-standard, the page row: DEFN.PNLTYPE 2 -> 0; DEFN.PANELTOP 20 -> 0; DEFN.PANELRIGHT 848 -> 570; DEFN.PANELBOTTOM 778 -> 330; DEFN.PNLUSE 0x2013 -> 0x2023. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "u12-page-type-standard"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "c63256f8b4e784911294f85771e10ac9cceb8e93a271d3b95818efc5170ed1ee"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:36:18.443Z",
+    "updatedAt": "2026-10-13T11:36:25.343Z",
+    "schemaVersion": 1
+  }
+}

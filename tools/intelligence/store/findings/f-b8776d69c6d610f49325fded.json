@@ -1,0 +1,131 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-b8776d69c6d610f49325fded",
+  "fingerprint": "b8776d69c6d610f49325fdeda54faf6bfb4f221bbc75a2349d3bd7a2b70f238b",
+  "type": "serialization",
+  "subject": {
+    "subsystem": "html",
+    "objectType": "HTML definition",
+    "tables": [
+      "PSCONTENT"
+    ]
+  },
+  "assertion": {
+    "kind": "text-encoding",
+    "facts": {
+      "column": "PSCONTENT.CONTDATA",
+      "encoding": "UTF-16LE",
+      "bom": false,
+      "chunkBytes": 32000,
+      "firstSeqnum": 0,
+      "lineEnd": "CRLF",
+      "terminator": "one NUL at the end of the last row"
+    }
+  },
+  "title": "An HTML definition's text is PSCONTENT.CONTDATA in UTF-16LE without BOM, 32,000-byte rows from SEQNUM 0, CRLF, one NUL terminator at the end",
+  "statement": "App Designer 8.62 stores an HTML definition's text in PSCONTENT.CONTDATA as UTF-16LE without a byte-order mark, split into rows of 32,000 bytes from SEQNUM 0 (the last shorter), with CRLF line ends and one NUL character terminating the text at the end of the last row, nowhere else.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T13:50:07.079Z",
+      "method": "save-capture",
+      "experimentId": "h01-html-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture h01-html-create: the definition's PSCONTENT rows SEQNUM 0-0 of 114 bytes; UTF-16LE, no BOM, 1 CRLF and no bare LF, one NUL, the last character.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCONTDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTENT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CRM": 3,
+          "SYS": 3
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "h01-html-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/HTML_SAVE.md"
+        }
+      ],
+      "digest": "6766e909ab2199ded02f98db1ac15b3b2af66fbd73f1ce6409d79881b05cbf49"
+    },
+    {
+      "observedAt": "2026-10-07T14:03:04.075Z",
+      "method": "save-capture",
+      "experimentId": "h04-html-long",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture h04-html-long: the definition's PSCONTENT rows SEQNUM 0-2 of 32000, 32000, 23912 bytes; UTF-16LE, no BOM, 1323 CRLF and no bare LF, one NUL, the last character.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCONTDEFN",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTENT",
+            "inserted": 4,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CRM": 3,
+          "SYS": 3
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "h04-html-long"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/HTML_SAVE.md"
+        }
+      ],
+      "digest": "0a63769896302c8a33419d017fdd6e85fc02e9fa42128f997c99a4b39089cb50"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:39:25.022Z",
+    "updatedAt": "2026-10-13T11:39:25.427Z",
+    "schemaVersion": 1
+  }
+}

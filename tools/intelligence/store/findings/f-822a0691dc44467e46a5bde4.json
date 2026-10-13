@@ -1,0 +1,293 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-822a0691dc44467e46a5bde4",
+  "fingerprint": "822a0691dc44467e46a5bde4da91706e6231b84304fcac35ded1bd9eeffaae0b",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLDEFN"
+    ],
+    "properties": [
+      "FFSTYLEDESKTOP",
+      "FFSTYLEPHONE",
+      "FFSTYLEMEDIUM",
+      "FFSTYLETABLET",
+      "FFSTYLEEXLARGE"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLDEFN",
+      "default": "FFSTYLEDESKTOP",
+      "small": "FFSTYLEPHONE",
+      "medium": "FFSTYLEMEDIUM",
+      "large": "FFSTYLETABLET",
+      "extraLarge": "FFSTYLEEXLARGE"
+    }
+  },
+  "title": "A page's Fluid style classes are PSPNLDEFN.FFSTYLEDESKTOP, FFSTYLEPHONE (Small), FFSTYLEMEDIUM, FFSTYLETABLET (Large) and FFSTYLEEXLARGE",
+  "statement": "Page Properties Fluid tab Style Classes is stored in PSPNLDEFN.FFSTYLEDESKTOP; the Small, Medium, Large and Extra Large classes in FFSTYLEPHONE, FFSTYLEMEDIUM, FFSTYLETABLET and FFSTYLEEXLARGE (Small is PHONE, Large is TABLET).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T20:10:39.000Z",
+      "method": "save-capture",
+      "experimentId": "f01-page-style-classes",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f01-page-style-classes, the page row: DEFN.FFSTYLEDESKTOP ' ' -> zz-sc. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f01-page-style-classes"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "c3df351305acd7c758672de445d9dacfb4157d16b9b8a12e99770c07353e6923"
+    },
+    {
+      "observedAt": "2026-10-10T20:10:48.000Z",
+      "method": "save-capture",
+      "experimentId": "f02-page-style-small",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f02-page-style-small, the page row: DEFN.FFSTYLEPHONE ' ' -> zz-s. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f02-page-style-small"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "8f91098813f17223f93995375822b17ed0070b7282da0dc28d63a9a3d52864a7"
+    },
+    {
+      "observedAt": "2026-10-10T20:10:54.000Z",
+      "method": "save-capture",
+      "experimentId": "f03-page-style-medium",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f03-page-style-medium, the page row: DEFN.FFSTYLEMEDIUM ' ' -> zz-m. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f03-page-style-medium"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "6d673b091f39cb58eabc90244372b5f8632155e94a5bd45a84b2ac245f976364"
+    },
+    {
+      "observedAt": "2026-10-10T20:11:03.000Z",
+      "method": "save-capture",
+      "experimentId": "f04-page-style-large",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f04-page-style-large, the page row: DEFN.FFSTYLETABLET ' ' -> zz-l. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f04-page-style-large"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "180c821ce8bcbbd9ae8f8b33ceef649715caa6c339469aed4714a54e1e17a535"
+    },
+    {
+      "observedAt": "2026-10-10T20:11:12.000Z",
+      "method": "save-capture",
+      "experimentId": "f05-page-style-xlarge",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f05-page-style-xlarge, the page row: DEFN.FFSTYLEEXLARGE ' ' -> zz-xl. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f05-page-style-xlarge"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "225091c9f2481d20bd68d772dff07b82f2c3c4dea92b8febe6027a84407fc593"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:37:19.356Z",
+    "updatedAt": "2026-10-13T11:37:20.980Z",
+    "schemaVersion": 1
+  }
+}

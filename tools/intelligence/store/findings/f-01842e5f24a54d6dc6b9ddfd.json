@@ -1,0 +1,193 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-01842e5f24a54d6dc6b9ddfd",
+  "fingerprint": "01842e5f24a54d6dc6b9ddfd04d6d77e6b7366bea41833d995acf97cd7183e25",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLDEFN"
+    ],
+    "properties": [
+      "PNLUSE"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLDEFN",
+      "column": "PNLUSE",
+      "noOkCancel": "0x1",
+      "noCloseBox": "0x2",
+      "disableModal": "0x2000",
+      "pageType": "Secondary"
+    }
+  },
+  "title": "A secondary page's OK & Cancel off, Close Box off and Disable Display in Modal Window are PSPNLDEFN.PNLUSE 0x1, 0x2 and 0x2000",
+  "statement": "On a secondary page, turning OK & Cancel buttons off sets PSPNLDEFN.PNLUSE bit 0x1, Close Box off sets 0x2, and Disable Display in Modal Window sets 0x2000.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T19:59:36.000Z",
+      "method": "save-capture",
+      "experimentId": "u09-page-okcancel-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture u09-page-okcancel-off, the page row: DEFN.PNLUSE 0x10 -> 0x11. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "u09-page-okcancel-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "8fd48cd9cd045235899138be1ce2fadd8e0c4f555bd37e76e71667cfc2af743f"
+    },
+    {
+      "observedAt": "2026-10-10T19:59:45.000Z",
+      "method": "save-capture",
+      "experimentId": "u10-page-closebox-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture u10-page-closebox-off, the page row: DEFN.PNLUSE 0x11 -> 0x13. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "u10-page-closebox-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "543d2dd34b722d4e42e0962c27539ceffb4843c47690c047ccbbfe6a5d923256"
+    },
+    {
+      "observedAt": "2026-10-10T20:00:36.000Z",
+      "method": "save-capture",
+      "experimentId": "u11-page-modal-on",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture u11-page-modal-on, the page row: DEFN.PNLUSE 0x13 -> 0x2013. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "u11-page-modal-on"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "0b1debe2e2d3ad851c7b50661a8097ecce445f795637a952815a6fce3c81abca"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:36:27.422Z",
+    "updatedAt": "2026-10-13T11:36:28.262Z",
+    "schemaVersion": 1
+  }
+}

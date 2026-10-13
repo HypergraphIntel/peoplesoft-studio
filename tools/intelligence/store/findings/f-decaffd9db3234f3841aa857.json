@@ -1,0 +1,95 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-decaffd9db3234f3841aa857",
+  "fingerprint": "decaffd9db3234f3841aa85780353115f874a4bed29a3586f468172f5e139dbd",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLDEFN"
+    ],
+    "properties": [
+      "PNLUSETEMP"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLDEFN",
+      "column": "PNLUSETEMP",
+      "setting": "Suppress System-Supplied Style Classes",
+      "bit": "0x1"
+    }
+  },
+  "title": "A page's Suppress System-Supplied Style Classes is PSPNLDEFN.PNLUSETEMP 0x1",
+  "statement": "Page Properties Fluid tab Suppress System-Supplied Style Classes sets PSPNLDEFN.PNLUSETEMP bit 0x1.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T20:11:21.000Z",
+      "method": "save-capture",
+      "experimentId": "f06-page-suppress-classes",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture f06-page-suppress-classes, the page row: DEFN.PNLUSETEMP 0x0 -> 0x1. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "f06-page-suppress-classes"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "d0d57b129cbbbc107ef6dfecf6df5bc71071e7a1bf6a1e2b4513586e25b0c931"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:37:21.406Z",
+    "updatedAt": "2026-10-13T11:37:21.406Z",
+    "schemaVersion": 1
+  }
+}

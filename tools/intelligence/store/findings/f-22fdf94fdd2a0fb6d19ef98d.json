@@ -1,0 +1,93 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-22fdf94fdd2a0fb6d19ef98d",
+  "fingerprint": "22fdf94fdd2a0fb6d19ef98d171ac97799143541f38c60655b27effae26c1f72",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLDEFN"
+    ],
+    "properties": [
+      "PNLSTYLE"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLDEFN",
+      "column": "PNLSTYLE"
+    }
+  },
+  "title": "A page's Background is PSPNLDEFN.PNLSTYLE",
+  "statement": "Page Properties Use tab Page Background is stored in PSPNLDEFN.PNLSTYLE; none is ' '.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T19:47:15.000Z",
+      "method": "save-capture",
+      "experimentId": "u02-page-background",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture u02-page-background, the page row: DEFN.PNLSTYLE ' ' -> PSIMAGE. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "u02-page-background"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "de48e6b226ecad2757c39f1edeaf424da0caa883d70018e5034b522ff50f70f6"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:37:22.605Z",
+    "updatedAt": "2026-10-13T11:37:22.605Z",
+    "schemaVersion": 1
+  }
+}

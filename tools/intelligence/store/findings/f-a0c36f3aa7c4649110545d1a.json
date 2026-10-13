@@ -1,0 +1,94 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-a0c36f3aa7c4649110545d1a",
+  "fingerprint": "a0c36f3aa7c4649110545d1a7e8fc50e5166fbd5741253ff5fd99a1f1594420f",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDNUM"
+    ]
+  },
+  "assertion": {
+    "kind": "reorder",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "FIELDNUM",
+      "operation": "Order tab drag"
+    }
+  },
+  "title": "Dragging a control to a new tab position swaps PSPNLFIELD.FIELDNUM; nothing else changes",
+  "statement": "Reordering a control in App Designer's Order tab rewrites the controls' PSPNLFIELD.FIELDNUM values to the new order, and nothing else on them.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T20:25:06.000Z",
+      "method": "save-capture",
+      "experimentId": "o01-page-order-drag",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture o01-page-order-drag, control 10: FIELDNUM 5 -> 6; control 14 FIELDNUM 6 -> 5, its only change. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "o01-page-order-drag"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "bd5a42550ffe14d809c7e98427f0efd63e4251fdb3edbde4a47216844c77f189"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:37:23.816Z",
+    "updatedAt": "2026-10-13T11:37:23.816Z",
+    "schemaVersion": 1
+  }
+}

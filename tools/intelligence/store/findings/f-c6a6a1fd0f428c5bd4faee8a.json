@@ -1,0 +1,93 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-c6a6a1fd0f428c5bd4faee8a",
+  "fingerprint": "c6a6a1fd0f428c5bd4faee8ac0b7d9f86c68c3a6b855bf6c0fa4adf65d74950a",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLDEFN"
+    ],
+    "properties": [
+      "STYLESHEETNAME"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLDEFN",
+      "column": "STYLESHEETNAME"
+    }
+  },
+  "title": "A page's Style Sheet is PSPNLDEFN.STYLESHEETNAME",
+  "statement": "Page Properties Use tab Page Style Sheet is stored in PSPNLDEFN.STYLESHEETNAME; none is ' '.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T19:46:39.000Z",
+      "method": "save-capture",
+      "experimentId": "u01-page-stylesheet",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture u01-page-stylesheet, the page row: DEFN.STYLESHEETNAME ' ' -> PSSTYLEDEF. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "u01-page-stylesheet"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "1ca83c8ea8762192d8311890a4beb1aa67c7fed052108020e893b346d581ae0a"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:37:22.183Z",
+    "updatedAt": "2026-10-13T11:37:22.183Z",
+    "schemaVersion": 1
+  }
+}

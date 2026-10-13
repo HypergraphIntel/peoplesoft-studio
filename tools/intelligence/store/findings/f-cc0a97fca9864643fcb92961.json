@@ -1,0 +1,95 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-cc0a97fca9864643fcb92961",
+  "fingerprint": "cc0a97fca9864643fcb929618641082a5058d0ef3be0a9d955a8d27985e79dae",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLDEFN"
+    ],
+    "properties": [
+      "PNLUSE"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLDEFN",
+      "column": "PNLUSE",
+      "setting": "Adjust Layout for Hidden Fields",
+      "bit": "0x100"
+    }
+  },
+  "title": "A page's Adjust Layout for Hidden Fields is PSPNLDEFN.PNLUSE 0x100",
+  "statement": "Page Properties Use tab Adjust Layout for Hidden Fields sets PSPNLDEFN.PNLUSE bit 0x100.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T19:47:39.000Z",
+      "method": "save-capture",
+      "experimentId": "u04-page-adjust-layout",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture u04-page-adjust-layout, the page row: DEFN.PNLUSE 0xb -> 0x10b. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "u04-page-adjust-layout"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "e433874e966065ee6695fe6a6b8afd2b092a1838e5ccd61349c77001948e8a85"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:36:27.030Z",
+    "updatedAt": "2026-10-13T11:36:27.030Z",
+    "schemaVersion": 1
+  }
+}

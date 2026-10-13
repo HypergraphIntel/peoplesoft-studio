@@ -31,7 +31,7 @@ blank (s03).
 | s01 | ZZ_PCODE_LAB_CSS created, freeform | `PSSTYLSHEETDEFN` inserted (type 2, VERSION = new SSM 55, blanks); `PSCONTDEFN` inserted (CONTTYPE 9, the HTML defaults, VERSION 11 = CRM + 1); `PSCONTENT` one row; PSVERSION SSM, SYS + 1, PSLOCK SSM + 1. **CRM did not move** |
 | s02 | a value changed | all three deleted and reinserted: `PSSTYLSHEETDEFN` VERSION = new SSM (56), `PSCONTDEFN` VERSION 11 -> 12 (its own + 1), text replaced; the same counters |
 | s03 | description "ZZ Lab Stylesheet" | as s02, `PSSTYLSHEETDEFN.DESCR` set; `PSCONTDEFN` 12 -> 13 |
-| s04 | ZZ_PCODE_LAB_CSS2 created, after CRM was moved to 11 by an HTML save | as s01: SSM 59; `PSCONTDEFN` VERSION **14**, not CRM + 1 (12) |
+| s04 | ZZ_PCODE_LAB_CSS2 created, after CRM was moved to 11 by an HTML save | as s01: SSM 59; `PSCONTDEFN` VERSION **14**, not CRM + 1 (12). The window also holds the writer's x10 edit of ZZ_PCODE_LAB_CSS (09:25, in place: `PSCONTDEFN` 13 -> 14, SSM 58), so SSM moved by 2 |
 
 `PSCONTDEFN.VERSION` follows a counter App Designer keeps for the session:
 it read CRM (10) once and used 11, 12, 13, 14 for its four content saves,

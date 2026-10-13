@@ -1,0 +1,93 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-0325b4465014e9c7e16a802d",
+  "fingerprint": "0325b4465014e9c7e16a802de0ab9eba0ebe2ddb8f9f8acb83cbdd602b44ea02",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLDEFN"
+    ],
+    "properties": [
+      "POPUPMENU"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLDEFN",
+      "column": "POPUPMENU"
+    }
+  },
+  "title": "A page's Popup Menu is PSPNLDEFN.POPUPMENU",
+  "statement": "Page Properties Use tab Popup Menu is stored as the menu name in PSPNLDEFN.POPUPMENU; none is ' '.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T19:47:54.000Z",
+      "method": "save-capture",
+      "experimentId": "u05-page-popup",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture u05-page-popup, the page row: DEFN.POPUPMENU ' ' -> PT_ADS_POP. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "u05-page-popup"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "4c224eeb720a8ffbaec4575ff8a6d159a1da4f0af7bfc1387073241d94ba24bd"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:37:23.409Z",
+    "updatedAt": "2026-10-13T11:37:23.409Z",
+    "schemaVersion": 1
+  }
+}

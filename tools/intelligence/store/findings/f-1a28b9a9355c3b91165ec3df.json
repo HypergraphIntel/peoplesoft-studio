@@ -1,0 +1,191 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-1a28b9a9355c3b91165ec3df",
+  "fingerprint": "1a28b9a9355c3b91165ec3df27be31d3b21c9a822a9d5bb77734124805b64f75",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLDEFN"
+    ],
+    "properties": [
+      "PNLUSE"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLDEFN",
+      "column": "PNLUSE",
+      "setting": "Fluid Page",
+      "bit": "0x4000"
+    }
+  },
+  "title": "A page's Fluid Page setting is PSPNLDEFN.PNLUSE 0x4000",
+  "statement": "Page Properties Fluid Page sets PSPNLDEFN.PNLUSE bit 0x4000; turning it off clears the bit and nothing else.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T20:10:27.000Z",
+      "method": "save-capture",
+      "experimentId": "u13-page-fluid-on",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture u13-page-fluid-on, the page row: DEFN.PNLUSE 0xb -> 0x400b. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "u13-page-fluid-on"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "3f53bdbb9f2d0414bb779bf77819f45ea53a3de38d62dc5b5c9600c69b9f5a9f"
+    },
+    {
+      "observedAt": "2026-10-10T20:11:30.000Z",
+      "method": "save-capture",
+      "experimentId": "u14-page-fluid-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture u14-page-fluid-off, the page row: DEFN.PNLUSE 0x400b -> 0xb. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 19,
+            "deleted": 19,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "u14-page-fluid-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "26eee308b12bec80e3f633d32fec480f7db158366b06bc457113b37db66b3c08"
+    },
+    {
+      "observedAt": "2026-10-11T12:25:00.000Z",
+      "method": "save-capture",
+      "experimentId": "ct-fluid-on",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ct-fluid-on, the page row: DEFN.PNLUSE 0xb -> 0x400b. Nothing else on the page row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 15,
+            "deleted": 15,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 15,
+            "deleted": 15,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ct-fluid-on"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a9d5eca574aa26e4ea4a762de329e2b79dfe8002513b38a990dd1702b75379c5"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:36:25.749Z",
+    "updatedAt": "2026-10-13T11:36:26.575Z",
+    "schemaVersion": 1
+  }
+}

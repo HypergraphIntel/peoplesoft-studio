@@ -1,0 +1,295 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-c25d40474b82a4b3d5f39a89",
+  "fingerprint": "c25d40474b82a4b3d5f39a89fa9a8d229361d7f295cbc35c7e6902c9c2be7076",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "peoplecode",
+    "objectType": "Component PeopleCode",
+    "tables": [
+      "PSPCMPROG",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "PCM": 1,
+      "SYS": 1,
+      "PGM": 0,
+      "MDM": 0,
+      "pslockCounters": "PCM",
+      "versionColumn": "PSPCMPROG.VERSION",
+      "versionIsNewCounter": "PCM"
+    }
+  },
+  "title": "Creating, editing or deleting a component PeopleCode program moves PCM and SYS by 1; the component's PGM and MDM do not move",
+  "statement": "App Designer's save of component, component record or component record field PeopleCode (a new program, an edit, or a deletion) bumps PSVERSION and PSLOCK PCM and PSVERSION SYS by one, writes PSPCMPROG.VERSION as the new PCM, and leaves the component definition and its counters alone.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T17:13:58.000Z",
+      "method": "save-capture",
+      "experimentId": "p01-component-prebuild",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture p01-component-prebuild: component PreBuild created; PSPCMPROG written with VERSION 111 (the new PCM); PCM +1 in PSVERSION and PSLOCK, SYS +1; no component row or counter moved.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "p01-component-prebuild"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENTS.md"
+        }
+      ],
+      "digest": "b7a370c6695999fa50e8836b33f81b639986f4b4d715bdd592f672cbc1643709"
+    },
+    {
+      "observedAt": "2026-10-10T17:14:07.000Z",
+      "method": "save-capture",
+      "experimentId": "p02-component-record-rowinit",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture p02-component-record-rowinit: component record RowInit created; PSPCMPROG written with VERSION 112 (the new PCM); PCM +1 in PSVERSION and PSLOCK, SYS +1; no component row or counter moved.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "p02-component-record-rowinit"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENTS.md"
+        }
+      ],
+      "digest": "659b1ee2407a667ce1ea30585e12c584e8bc04ca9e1ccbf637247650049205b5"
+    },
+    {
+      "observedAt": "2026-10-10T17:14:25.000Z",
+      "method": "save-capture",
+      "experimentId": "p03-component-field-fieldchange",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture p03-component-field-fieldchange: component record field FieldChange created; PSPCMPROG written with VERSION 113 (the new PCM); PCM +1 in PSVERSION and PSLOCK, SYS +1; no component row or counter moved.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "p03-component-field-fieldchange"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENTS.md"
+        }
+      ],
+      "digest": "3df01d24100cf2badeb5bc4a4cd954c1561408685e1a033aa6472fb8542ae64e"
+    },
+    {
+      "observedAt": "2026-10-10T17:14:43.000Z",
+      "method": "save-capture",
+      "experimentId": "p04-component-prebuild-edit",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture p04-component-prebuild-edit: component PreBuild edited; PSPCMPROG written with VERSION 114 (the new PCM); PCM +1 in PSVERSION and PSLOCK, SYS +1; no component row or counter moved.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "p04-component-prebuild-edit"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENTS.md"
+        }
+      ],
+      "digest": "1b3af29921f9594a35a1fb1d0166b2ba3f507251bdf0c620e9f206855363026d"
+    },
+    {
+      "observedAt": "2026-10-10T17:14:52.000Z",
+      "method": "save-capture",
+      "experimentId": "p05-component-field-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture p05-component-field-delete: component record field FieldChange deleted; PSPCMPROG row deleted; PCM +1 in PSVERSION and PSLOCK, SYS +1; no component row or counter moved.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "p05-component-field-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENTS.md"
+        }
+      ],
+      "digest": "ef31eb202428d5d7ef4329cf23184844844bbacf930c4db9b860d95fad4c05bd"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:40:08.322Z",
+    "updatedAt": "2026-10-13T11:40:11.183Z",
+    "schemaVersion": 1
+  }
+}

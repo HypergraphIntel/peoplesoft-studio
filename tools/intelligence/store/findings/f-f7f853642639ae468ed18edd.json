@@ -1,0 +1,139 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-f7f853642639ae468ed18edd",
+  "fingerprint": "f7f853642639ae468ed18edd451713d8564e4d6ed692883d7c077eb42a3a6805",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "style-sheet",
+    "objectType": "Style sheet",
+    "tables": [
+      "PSCONTDEFN"
+    ]
+  },
+  "assertion": {
+    "kind": "version-rule",
+    "facts": {
+      "column": "PSCONTDEFN.VERSION",
+      "onSave": "previous+1",
+      "counterMoved": false
+    }
+  },
+  "title": "Saving a freeform style sheet writes its PSCONTDEFN.VERSION as the row's previous VERSION + 1, without moving CRM",
+  "statement": "On an existing freeform style sheet's save, App Designer deletes and re-inserts its PSCONTDEFN row with VERSION one more than before, and no PSVERSION counter but SSM and SYS moves. Where a new style sheet's PSCONTDEFN.VERSION comes from is not established from the rows (s01 wrote 11; docs/STYLESHEET_SAVE.md has the session-counter reading).",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T14:18:33.493Z",
+      "method": "save-capture",
+      "experimentId": "s02-stylesheet-edit",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s02-stylesheet-edit: PSCONTDEFN deleted with VERSION 11 and re-inserted with VERSION 12; no PSVERSION counter but SSM and SYS moved.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCONTDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTENT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSTYLSHEETDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SSM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s02-stylesheet-edit"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/STYLESHEET_SAVE.md"
+        }
+      ],
+      "digest": "5c16b1af0a9a3fc95d27d4545802e62455ee160c8e571a7b0b9b848181c903a5"
+    },
+    {
+      "observedAt": "2026-10-07T14:20:17.710Z",
+      "method": "save-capture",
+      "experimentId": "s03-stylesheet-descr",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s03-stylesheet-descr: PSCONTDEFN deleted with VERSION 12 and re-inserted with VERSION 13; no PSVERSION counter but SSM and SYS moved.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCONTDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTENT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSTYLSHEETDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SSM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s03-stylesheet-descr"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/STYLESHEET_SAVE.md"
+        }
+      ],
+      "digest": "579ddb0fc66085c30bf1a2e7c232ac9746fc39d668dc8d82693e79e1a6bf8956"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:39:05.672Z",
+    "updatedAt": "2026-10-13T11:39:06.464Z",
+    "schemaVersion": 1
+  }
+}

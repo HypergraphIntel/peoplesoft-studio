@@ -1,0 +1,143 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-309a9baa82e662b5c857f400",
+  "fingerprint": "309a9baa82e662b5c857f400ea4734274adfc29f7a7db9b2b3640fb78f7093ae",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "style-sheet",
+    "objectType": "Style sheet",
+    "tables": [
+      "PSSTYLSHEETDEFN",
+      "PSCONTDEFN",
+      "PSCONTENT"
+    ]
+  },
+  "assertion": {
+    "kind": "storage",
+    "facts": {
+      "definition": "PSSTYLSHEETDEFN",
+      "freeformType": 2,
+      "text": "PSCONTDEFN CONTTYPE 9 + PSCONTENT",
+      "description": "PSSTYLSHEETDEFN.DESCR",
+      "contdefnDescr": "blank"
+    }
+  },
+  "title": "A freeform style sheet is a PSSTYLSHEETDEFN row of STYLESHEETTYPE 2 with its text as a PSCONTDEFN (CONTTYPE 9) / PSCONTENT definition; its description is PSSTYLSHEETDEFN.DESCR",
+  "statement": "App Designer stores a new freeform style sheet as a PSSTYLSHEETDEFN row with STYLESHEETTYPE 2 and its text as a PSCONTDEFN row of CONTTYPE 9 with PSCONTENT rows, under the same name. The description is stored in PSSTYLSHEETDEFN.DESCR; the PSCONTDEFN row's DESCR stays blank.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T14:16:32.288Z",
+      "method": "save-capture",
+      "experimentId": "s01-stylesheet-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s01-stylesheet-create: PSSTYLSHEETDEFN inserted with STYLESHEETTYPE 2, PSCONTDEFN inserted with CONTTYPE 9, one PSCONTENT row, under the same name; both DESCR blank.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCONTDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTENT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSTYLSHEETDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SSM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s01-stylesheet-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/STYLESHEET_SAVE.md"
+        }
+      ],
+      "digest": "b7fd5397b53e6fba276804426921a07b185c68f7312280c1561e20f5312d5ff3"
+    },
+    {
+      "observedAt": "2026-10-07T14:20:17.710Z",
+      "method": "save-capture",
+      "experimentId": "s03-stylesheet-descr",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s03-stylesheet-descr: a description set; PSSTYLSHEETDEFN.DESCR holds it, the re-inserted PSCONTDEFN row's DESCR is blank.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCONTDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTENT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSTYLSHEETDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SSM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s03-stylesheet-descr"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/STYLESHEET_SAVE.md"
+        }
+      ],
+      "digest": "950aa9daf3f4cbbc23f8eb83ca30709454be1574bde2366940fee14d3f6f1502"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:39:04.873Z",
+    "updatedAt": "2026-10-13T11:39:06.856Z",
+    "schemaVersion": 1
+  }
+}

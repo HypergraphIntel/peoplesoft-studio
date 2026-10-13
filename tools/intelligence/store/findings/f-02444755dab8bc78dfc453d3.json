@@ -1,0 +1,192 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-02444755dab8bc78dfc453d3",
+  "fingerprint": "02444755dab8bc78dfc453d3c491e3362f07977447e4b6088e5e59ad07809612",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "style-sheet",
+    "objectType": "Style sheet",
+    "tables": [
+      "PSSTYLSHEETDEFN",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "SSM": 1,
+      "SYS": 1,
+      "CRM": 0,
+      "pslockCounters": "SSM",
+      "versionColumn": "PSSTYLSHEETDEFN.VERSION",
+      "versionIsNewCounter": "SSM"
+    }
+  },
+  "title": "A style sheet save moves SSM by 1 (PSVERSION and PSLOCK) and SYS by 1, not CRM; PSSTYLSHEETDEFN.VERSION is the new SSM",
+  "statement": "App Designer's save of a freeform style sheet, new or changed, bumps PSVERSION and PSLOCK SSM and PSVERSION SYS by one and writes PSSTYLSHEETDEFN.VERSION as the new SSM. CRM does not move, although the text is a PSCONTDEFN / PSCONTENT definition as an HTML definition's is.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T14:16:32.288Z",
+      "method": "save-capture",
+      "experimentId": "s01-stylesheet-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s01-stylesheet-create: PSSTYLSHEETDEFN written with VERSION 55 (the new SSM); SSM +1 in PSVERSION and PSLOCK, SYS +1; CRM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCONTDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTENT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSTYLSHEETDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SSM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s01-stylesheet-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/STYLESHEET_SAVE.md"
+        }
+      ],
+      "digest": "c097254903595f21efd2282a78ebacc1bda0532ec4fba96cd3734c6b4fb29090"
+    },
+    {
+      "observedAt": "2026-10-07T14:18:33.493Z",
+      "method": "save-capture",
+      "experimentId": "s02-stylesheet-edit",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s02-stylesheet-edit: PSSTYLSHEETDEFN written with VERSION 56 (the new SSM); SSM +1 in PSVERSION and PSLOCK, SYS +1; CRM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCONTDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTENT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSTYLSHEETDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SSM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s02-stylesheet-edit"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/STYLESHEET_SAVE.md"
+        }
+      ],
+      "digest": "dbe2b757ff7e60a5762a00e545ec2e6b1a42507bd2aa487a7c822e17553bb10d"
+    },
+    {
+      "observedAt": "2026-10-07T14:20:17.710Z",
+      "method": "save-capture",
+      "experimentId": "s03-stylesheet-descr",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture s03-stylesheet-descr: PSSTYLSHEETDEFN written with VERSION 57 (the new SSM); SSM +1 in PSVERSION and PSLOCK, SYS +1; CRM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCONTDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTENT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSTYLSHEETDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SSM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "s03-stylesheet-descr"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/STYLESHEET_SAVE.md"
+        }
+      ],
+      "digest": "12bde07f908aa22b5a7594c237882d1aaf40d91e9c357318caee2ae2f220729c"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:39:04.426Z",
+    "updatedAt": "2026-10-13T11:39:06.061Z",
+    "schemaVersion": 1
+  }
+}

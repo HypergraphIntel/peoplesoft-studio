@@ -1,0 +1,98 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-59da48c7debdd679ee3e231e",
+  "fingerprint": "59da48c7debdd679ee3e231ec15214501d931b093832cbd3ce0780e019d6265b",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "peoplecode",
+    "objectType": "Component PeopleCode",
+    "tables": [
+      "PSPCMPROGDEL",
+      "PSPCMPROG"
+    ]
+  },
+  "assertion": {
+    "kind": "tombstone",
+    "facts": {
+      "table": "PSPCMPROGDEL",
+      "writtenWhen": "program deleted",
+      "versionIsNewCounter": "PCM"
+    }
+  },
+  "title": "Deleting a component PeopleCode program writes a PSPCMPROGDEL row at the new PCM",
+  "statement": "When App Designer deletes a component PeopleCode program (its text cleared and saved), the PSPCMPROG, PSPCMTXT and PSPCMNAME rows go and a PSPCMPROGDEL row for the key remains with VERSION = the new PCM.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-10T17:14:52.000Z",
+      "method": "save-capture",
+      "experimentId": "p05-component-field-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture p05-component-field-delete: PSPCMPROG, PSPCMTXT and PSPCMNAME rows deleted; PSPCMPROGDEL inserted with VERSION 115 (the new PCM).",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "p05-component-field-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENTS.md"
+        }
+      ],
+      "digest": "dd16441eba5be4c108326f51ce53cb951b2258f5289da4aeedd74f41a6116342"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:40:11.592Z",
+    "updatedAt": "2026-10-13T11:40:11.592Z",
+    "schemaVersion": 1
+  }
+}
