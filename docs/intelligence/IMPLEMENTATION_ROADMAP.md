@@ -89,7 +89,7 @@ local findings; bundles are declarative and cannot change gates.
 - [x] Capability answers VERIFIED / UNVERIFIED / UNSUPPORTED / UNKNOWN / CONFLICTING with provenance and the connection's release (`src/intelligence/capability.ts`, D18); no permission in any answer (tested).
 - [x] Verified by calling the registered handlers with the extension's stores (list, get, capability, compatibility, evidence; record refused with writes off, refused on decline, created on approval, refused by the privacy scan).
 - [x] Customization planning consults it: the Strategy view's Event Mapping row and `psft_customization_discover` (`knowledgeFor()`; live on HRDMO).
-- [ ] Page Designer and App Engine planning consult it.
+- [x] Page Designer, App Engine and the other designers consult it: the Customization Strategy view's *Studio Knowledge* section follows the active designer or editor and shows the answer for its subsystem on the connection's release, with the findings (bundle-driven check: a page tab settles on UNVERIFIED with 6 page findings).
 - [ ] Exercised from a real MCP client (the installed extension's server).
 
 Acceptance: `psft_discovery_*` and `psft_knowledge_*` tools

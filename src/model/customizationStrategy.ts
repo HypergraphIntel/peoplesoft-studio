@@ -212,7 +212,41 @@ function capabilityRow(f: Framework, caps: CapabilitiesState | undefined, connec
   };
 }
 
-export function strategySections(ctx: CustomizationContext | undefined, policy: CustomizationPolicy, pinned: boolean, owner?: OwnershipState, caps?: CapabilitiesState): StrategyRow[] {
+/** The discovery subsystem whose findings inform writing a definition of this type (docs/intelligence). */
+export function knowledgeSubsystem(type: DefinitionType): string | undefined {
+  switch (type) {
+    case DefinitionType.Page: case DefinitionType.PagePeopleCode: return 'page-designer';
+    case DefinitionType.Component: case DefinitionType.ComponentPeopleCode: case DefinitionType.ComponentRecordPeopleCode:
+    case DefinitionType.ComponentRecordFieldPeopleCode: return 'component';
+    case DefinitionType.Record: case DefinitionType.RecordPeopleCode: return 'record';
+    case DefinitionType.Field: return 'field';
+    case DefinitionType.Menu: return 'menu';
+    case DefinitionType.AppEngineProgram: case DefinitionType.AppEngineSection: case DefinitionType.AppEnginePeopleCode: return 'app-engine';
+    case DefinitionType.ApplicationClassPeopleCode: return 'application-class';
+    case DefinitionType.ComponentInterface: return 'component-interface';
+    case DefinitionType.MessageChannel: return 'message-channel';
+    default: return undefined;
+  }
+}
+
+/** The Studio Knowledge section: what recorded findings say about writing this kind of definition on the connection's release. */
+function knowledgeRows(k: KnowledgeSummary | 'pending' | undefined, subsystem: string): StrategyRow[] {
+  if (k === 'pending') return [{ id: 'knowledge.pending', label: 'Reading findings…', icon: 'loading~spin', muted: true }];
+  if (!k || k.answer === 'UNKNOWN') {
+    return [{ id: 'knowledge.none', label: 'No recorded findings', description: subsystem, icon: 'circle-large-outline', muted: true,
+      tooltip: `No discovery finding concerns ${subsystem} yet. Findings are evidence about PeopleSoft's own behavior (docs/intelligence).`, command: { id: 'psft.intelligence.showDiscoveries' } }];
+  }
+  return [
+    { id: 'knowledge.answer', label: `${k.answer}${k.release ? ` on PeopleTools ${k.release}` : ''}`, description: `${k.findings.length} finding${k.findings.length === 1 ? '' : 's'} · ${subsystem}`,
+      icon: k.answer === 'VERIFIED' ? 'verified' : k.answer === 'UNSUPPORTED' || k.answer === 'CONFLICTING' ? 'warning' : 'beaker',
+      tooltip: 'What PeopleSoft Studio has recorded about how PeopleSoft saves this kind of definition. Information, never permission: writes still pass every gate.' },
+    ...k.findings.slice(0, 12).map((f, i) => ({ id: `knowledge.finding.${i}`, label: f.title, description: `${f.source} · ${f.status}`, icon: f.source === 'published' ? 'verified' : 'note',
+      tooltip: `${f.title}\n${f.id} (${f.source}, ${f.status})`, command: { id: 'psft.intelligence.openDiscovery', args: [f.source === 'published' ? 'installation' : 'any', f.id] } }))
+  ];
+}
+
+export function strategySections(ctx: CustomizationContext | undefined, policy: CustomizationPolicy, pinned: boolean, owner?: OwnershipState, caps?: CapabilitiesState,
+  knowledge?: KnowledgeSummary | 'pending'): StrategyRow[] {
   if (!ctx) {
     return [{ id: 'none', label: 'No PeopleSoft definition', description: 'open one to see its strategy', icon: 'info', muted: true,
       tooltip: 'The view follows the PeopleSoft definition in the active editor.' }];
@@ -236,6 +270,7 @@ export function strategySections(ctx: CustomizationContext | undefined, policy: 
     { id: 'capabilities', label: 'Configuration Capabilities', icon: 'extensions', children: frameworks.length
       ? frameworks.map((f) => capabilityRow(f, caps, ctx.connectionId))
       : [{ id: 'capability.none', label: 'None documented for this type', icon: 'circle-slash', muted: true }] },
+    ...(knowledgeSubsystem(ctx.type) ? [{ id: 'knowledge', label: 'Studio Knowledge', icon: 'beaker', children: knowledgeRows(knowledge, knowledgeSubsystem(ctx.type)!) }] : []),
     { id: 'impact', label: 'Dependencies & Upgrade Impact', icon: 'references', children: [
       { id: 'impact.none', label: 'Not analyzed', icon: 'circle-large-outline', muted: true, tooltip: `No customization registry yet. ${PREVIEW}` }
     ] },

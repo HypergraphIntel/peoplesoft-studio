@@ -4,7 +4,7 @@ import type { EventMappingConfigRow } from '../model/eventMapping.js';
 import { EventMappingPanel, setEventMappingExtensionUri } from '../editors/eventMappingPanel.js';
 import { SERVICE_NAME_MAX, validateServiceRequest } from '../providers/rcServiceWriter.js';
 import {
-  DESIGNER_TYPES, nameFromTitle, strategySections, type CapabilitiesState, type CustomizationContext, type KnowledgeSummary, type CustomizationPolicy, type OwnershipState, type StrategyRow
+  DESIGNER_TYPES, knowledgeSubsystem, nameFromTitle, strategySections, type CapabilitiesState, type CustomizationContext, type KnowledgeSummary, type CustomizationPolicy, type OwnershipState, type StrategyRow
 } from '../model/customizationStrategy.js';
 import { DatabaseProvider } from '../providers/database.js';
 import { knowledgeFor } from '../intelligenceCommands.js';
@@ -53,6 +53,7 @@ export class CustomizationStrategyView implements vscode.TreeDataProvider<Strate
   private pinned: CustomizationContext | undefined;
   private readonly owners = new Map<string, OwnershipState>();
   private readonly capabilities = new Map<string, CapabilitiesState>();
+  private readonly knowledge = new Map<string, KnowledgeSummary | 'pending'>();
 
   constructor(private readonly workspace: Workspace) {}
 
@@ -86,13 +87,15 @@ export class CustomizationStrategyView implements vscode.TreeDataProvider<Strate
   refresh(): void {
     this.owners.clear();
     this.capabilities.clear();
+    this.knowledge.clear();
     this.changed.fire();
   }
 
   getChildren(row?: StrategyRow): StrategyRow[] {
     if (row) return row.children ?? [];
     const ctx = this.context;
-    return strategySections(ctx, readCustomizationPolicy(), !!this.pinned, ctx ? this.ownerOf(ctx) : undefined, ctx ? this.capabilitiesOf(ctx) : undefined);
+    return strategySections(ctx, readCustomizationPolicy(), !!this.pinned, ctx ? this.ownerOf(ctx) : undefined, ctx ? this.capabilitiesOf(ctx) : undefined,
+      ctx ? this.knowledgeOf(ctx) : undefined);
   }
 
   /** What discovery finds for the definition (Event Mapping so far): read once per definition. */
@@ -113,6 +116,22 @@ export class CustomizationStrategyView implements vscode.TreeDataProvider<Strate
       .catch((error) => this.capabilities.set(id, { state: 'unavailable', message: `Discovery failed: ${error instanceof Error ? error.message : String(error)}` }))
       .finally(() => { if (this.capabilities.get(id) !== pending) this.changed.fire(); });
     return pending;
+  }
+
+  /** What recorded findings say about writing the definition's kind, on its connection's release: read once per definition. */
+  private knowledgeOf(ctx: CustomizationContext): KnowledgeSummary | 'pending' | undefined {
+    const subsystem = knowledgeSubsystem(ctx.type);
+    if (!subsystem) return undefined;
+    const id = `${ctx.connectionId ?? ''}\u0000${subsystem}`;
+    if (this.knowledge.has(id)) return this.knowledge.get(id);
+    this.knowledge.set(id, 'pending');
+    const provider = ctx.connectionId ? this.workspace.activeProviders.find((p) => p.id === ctx.connectionId) : undefined;
+    knowledgeFor({ subsystem }, provider instanceof DatabaseProvider && provider.isConnected ? provider : undefined)
+      // Nothing to read (not activated) or a failure: remembered as unknown, so the view does not ask again until refreshed.
+      .then((k) => { this.knowledge.set(id, k ?? { answer: 'UNKNOWN', findings: [] }); })
+      .catch(() => { this.knowledge.set(id, { answer: 'UNKNOWN', findings: [] }); })
+      .finally(() => this.changed.fire());
+    return 'pending';
   }
 
   /** The definition's ownership: read once per definition, the view refreshed when it arrives. */

@@ -6,7 +6,7 @@ import {
 } from '../model/customizationStrategy.js';
 
 /*
- * The Customization Strategy view's model (a preview): its five sections,
+ * The Customization Strategy view's model (a preview): its sections,
  * and -- the rule the design rests on -- nothing shown as known that no
  * environment has established.
  */
@@ -14,9 +14,9 @@ import {
 const POLICY: CustomizationPolicy = { prefixes: [{ prefix: 'ZZ_', owner: 'organization' }], defaultStrategy: 'configurationFirst', deliveredObjectPolicy: 'allowWithAudit', agentDeliveredObjectPolicy: 'requireApproval' };
 const all = (rows: StrategyRow[]): StrategyRow[] => rows.flatMap((r) => [r, ...all(r.children ?? [])]);
 
-test('the five sections, in the panel design\'s order', () => {
+test('the sections, in the panel design\'s order (Studio Knowledge where findings can apply)', () => {
   const rows = strategySections({ type: DefinitionType.Component, name: 'JOB_DATA', connection: 'HRDMO' }, POLICY, false);
-  assert.deepEqual(rows.map((r) => r.label), ['Object Identity', 'Preferred Strategy', 'Configuration Capabilities', 'Dependencies & Upgrade Impact', 'Actions']);
+  assert.deepEqual(rows.map((r) => r.label), ['Object Identity', 'Preferred Strategy', 'Configuration Capabilities', 'Studio Knowledge', 'Dependencies & Upgrade Impact', 'Actions']);
   assert.deepEqual(rows[2].children!.map((r) => r.label), ['Event Mapping', 'Drop Zones', 'Page and Field Configurator', 'Configurable Search']);
 });
 
@@ -54,7 +54,7 @@ test('frameworks by definition type: documented applicability only', () => {
 
 test('no definition: one hint row; pinned: Unpin offered', () => {
   assert.equal(strategySections(undefined, POLICY, false).length, 1);
-  const actions = strategySections({ type: DefinitionType.Page, name: 'JOB_DATA1' }, POLICY, true)[4].children!;
+  const actions = strategySections({ type: DefinitionType.Page, name: 'JOB_DATA1' }, POLICY, true).find((r) => r.id === 'actions')!.children!;
   assert.ok(actions.some((r) => r.id === 'action.unpin'));
   assert.ok(!actions.some((r) => r.id === 'action.pin'));
 });

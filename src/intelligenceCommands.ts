@@ -74,7 +74,9 @@ export function registerIntelligenceCommands(context: vscode.ExtensionContext): 
     vscode.commands.registerCommand('psft.intelligence.refreshDiscoveries', () => tree.refresh()),
     vscode.commands.registerCommand('psft.intelligence.openDiscovery', async (sourceId?: string, id?: string) => {
       try {
-        const source = (await sources()).find((s) => s.id === sourceId);
+        // 'any': the first store holding the finding (the Customization Strategy view's knowledge rows).
+        let source = (await sources()).find((s) => s.id === sourceId);
+        if (sourceId === 'any' && id) for (const s of await sources()) if (await s.store.get(id)) { source = s; break; }
         if (source && id) await DiscoveryPanel.show(context, source, id, () => tree.refresh());
       } catch (error) { fail('Discovery', error); }
     }),

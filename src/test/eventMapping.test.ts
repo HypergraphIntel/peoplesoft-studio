@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DefinitionType } from '../model/definitions.js';
 import { describeMapping, discoveryFor, EVENT_LEVEL_LABELS, eventLabel, type EventMappingRow } from '../model/eventMapping.js';
-import { strategySections, type CustomizationPolicy, type StrategyRow } from '../model/customizationStrategy.js';
+import { knowledgeSubsystem, strategySections, type CustomizationPolicy, type StrategyRow } from '../model/customizationStrategy.js';
 
 /*
  * Event Mapping discovery's model (docs/CUSTOMIZATION.md): the levels as the
@@ -79,4 +79,20 @@ test('the Event Mapping row shows what recorded knowledge says on the release --
   assert.match(row.tooltip!, /never permission[\s\S]*Every row re-saved \(local, reproduced\)/);
   const none = all(strategySections(ctx, policy, false, undefined, { state: 'done', eventMapping: em, knowledge: { answer: 'UNKNOWN', findings: [] } }));
   assert.equal(none.find((r) => r.id === 'capability.EVENT_MAPPING.knowledge'), undefined, 'nothing known: no row');
+});
+
+test('Studio Knowledge: each designer\'s definition shows what recorded findings say about writing it', () => {
+  const policy: CustomizationPolicy = { prefixes: [], defaultStrategy: 'configurationFirst', deliveredObjectPolicy: 'allowWithAudit', agentDeliveredObjectPolicy: 'requireApproval' };
+  const page = { type: DefinitionType.Page, name: 'ZZ_PCODE_LAB_PG', connection: 'HRDMO', connectionId: 'c1' };
+  const k = { answer: 'UNVERIFIED' as const, release: '8.62', findings: [{ id: 'f-6bbfd2ebcb24e3aa8d8a3bee', title: 'A page save moves PDM by 1', source: 'local' as const, status: 'reproduced' }] };
+  const section = strategySections(page, policy, false, undefined, undefined, k).find((r) => r.id === 'knowledge')!;
+  assert.equal(section.label, 'Studio Knowledge');
+  assert.equal(section.children![0].label, 'UNVERIFIED on PeopleTools 8.62');
+  assert.equal(section.children![0].description, '1 finding · page-designer');
+  assert.deepEqual(section.children![1].command, { id: 'psft.intelligence.openDiscovery', args: ['any', 'f-6bbfd2ebcb24e3aa8d8a3bee'] });
+  assert.equal(strategySections(page, policy, false, undefined, undefined, 'pending').find((r) => r.id === 'knowledge')!.children![0].id, 'knowledge.pending');
+  assert.equal(strategySections(page, policy, false, undefined, undefined, { answer: 'UNKNOWN', findings: [] }).find((r) => r.id === 'knowledge')!.children![0].label, 'No recorded findings');
+  assert.equal(knowledgeSubsystem(DefinitionType.AppEngineProgram), 'app-engine');
+  assert.equal(knowledgeSubsystem(DefinitionType.MessageChannel), 'message-channel');
+  assert.equal(strategySections({ type: DefinitionType.SqlDefinition, name: 'X' }, policy, false).find((r) => r.id === 'knowledge'), undefined, 'no section where no subsystem applies');
 });

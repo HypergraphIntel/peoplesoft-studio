@@ -13,10 +13,9 @@ Last updated 2026-10-13 (phase 5). The founding directive: `CUSTOMIZATION_INTEL_
   window. Evidence below.
 - **Phase 4 (verification, distribution): done** but for a production
   signing key (none is trusted: every bundle is refused). Evidence below.
-- **Phase 5 (MCP): done** — six tools; the Customization Strategy view's
-  Event Mapping row and `psft_customization_discover` show the knowledge
-  answer for the connection's release (live on HRDMO: UNVERIFIED on 8.62,
-  three local findings). Page Designer and App Engine planning: not yet.
+- **Phase 5 (MCP and planning): done** — six tools; the Customization
+  Strategy view shows *Studio Knowledge* for the active designer's subsystem
+  and the Event Mapping answer; `psft_customization_discover` includes it.
 - **Phase 6 (development automation): started, dry run only** —
   `tools/intelligence/engineering-task.mts` writes an issue body and a
   regression fixture from a finding and prints the `gh` command; it files
@@ -150,11 +149,11 @@ fingerprint; server: see `server/intelligence/README.md`.
 1. **Open the Discovery Center in a real VS Code window** (install the
    built VSIX): the view, a panel, the review; with the local server, one
    submission.
-2. **Page Designer and App Engine planning consult knowledge** (as the
-   customization view does): the findings are recorded (page save: 6, App
-   Engine: 3, message channels: 4); the page and App Engine designers do not
-   show them yet. More App Engine and record-save findings need their
-   def-capture cases (not sweep format) read by an adapter first.
+2. **A def-capture adapter**: the App Engine (ap*, as*, at*, ax*, aa*),
+   record-save and most channel cases are def-capture snapshots, not
+   sweeps; an adapter for that format would let their rules be recorded
+   with evidence. (The Customization Strategy view's *Studio Knowledge*
+   section already shows whatever is recorded, for every designer.)
 3. Adapters for the controlled compile lab and writer replay tests.
 4. Filing issues / preparing pull requests from CI: the owner's decision
    and a least-privilege token.
