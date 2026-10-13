@@ -1,0 +1,336 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-40babbc79f39efd83f68859c",
+  "fingerprint": "40babbc79f39efd83f68859ce160e64a46a8c5c86997779afb9567cb9b4d17b9",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "app-engine",
+    "objectType": "App Engine program",
+    "tables": [
+      "PSSQLHASH",
+      "PSSQLTEXTDEFN"
+    ],
+    "properties": [
+      "MARKET"
+    ]
+  },
+  "assertion": {
+    "kind": "stale-column",
+    "facts": {
+      "table": "PSSQLHASH",
+      "column": "MARKET",
+      "staleAfterSectionMarketRekey": true,
+      "correctedAtLaterSave": true
+    }
+  },
+  "title": "After an App Engine section's market is re-keyed, App Designer leaves PSSQLHASH.MARKET unchanged until a later save",
+  "statement": "Changing a section's market re-keys its SQL text (PSSQLTEXTDEFN, PSAESTMTDEFN) to the new market, but App Designer does not update the SQL's PSSQLHASH row; a later save touching the program's SQL updates its MARKET. A writer that keeps PSSQLHASH in step differs from App Designer only in that column.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:02:44.541Z",
+      "method": "save-capture",
+      "experimentId": "ae18-market-with-actions",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Re-keying the section's market from GBL to GBR deleted and re-inserted its PSSQLTEXTDEFN and PSAESTMTDEFN rows under GBR; the watched PSSQLHASH row did not change (its MARKET stayed GBL).",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAESECTDTLDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTEPDEFN",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTEPMSGDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTMTDEFN",
+            "inserted": 9,
+            "deleted": 9,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLDESCR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "AES": 2,
+          "PCM": 1,
+          "SRM": 1,
+          "SYS": 2
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ae18-market-with-actions"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "tools/corpus/save-protocol/results/ae-replay-report.txt"
+        }
+      ],
+      "digest": "72a9493b0640ce864ae517c71dead7495fe77e2618aed1dde84bb4b102bfa694"
+    },
+    {
+      "observedAt": "2026-10-13T11:02:44.956Z",
+      "method": "save-capture",
+      "experimentId": "ae19-market-back",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Re-keying the market back from GBR to GBL re-inserted the text under GBL; the watched PSSQLHASH row did not change.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAESECTDTLDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTEPDEFN",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTEPMSGDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTMTDEFN",
+            "inserted": 9,
+            "deleted": 9,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLDESCR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "AES": 2,
+          "PCM": 1,
+          "SRM": 1,
+          "SYS": 2
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ae19-market-back"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "tools/corpus/save-protocol/results/ae-replay-report.txt"
+        }
+      ],
+      "digest": "c2d4015b5dfeb12a9ea08813527695a951c21f28be03b9d097ca8beee6a6a1b9"
+    },
+    {
+      "observedAt": "2026-10-13T11:02:45.358Z",
+      "method": "save-capture",
+      "experimentId": "ax43-xslt-text",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "A later save (adding XSLT text) also updated Step01's SQL PSSQLHASH row: MARKET GBL to GBR.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDESCR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ax43-xslt-text"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "tools/corpus/save-protocol/results/ae-replay-report.txt"
+        }
+      ],
+      "digest": "d0b7c1bbc9d3023ea538cc04f9417a05e4dcf3b6be0a43459641332b2f82d859"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:02:44.549Z",
+    "updatedAt": "2026-10-13T11:02:45.371Z",
+    "schemaVersion": 1
+  }
+}

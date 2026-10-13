@@ -24,25 +24,47 @@ interface DeltaFile {
   };
 }
 
+/** The capture formats this adapter reads: the full sweep, and the definition captures (watch tables only, no release). */
+export const CAPTURE_FORMATS = ['save-protocol-delta/1', 'def-capture/1', 'ae-capture/1'] as const;
+
+interface WatchTable { inserted?: unknown[]; deleted?: unknown[]; updated?: Array<{ key: Record<string, string>; changes: Record<string, { before: unknown; after: unknown }> }> }
+
 /** The sanitized delta of a capture: tables (background ones left out unless asked) and counter moves. */
 export function sanitizedDeltaOf(delta: unknown, options: { keepBackground?: boolean } = {}): SanitizedDelta {
-  const d = delta as DeltaFile;
-  if (d?.format !== 'save-protocol-delta/1') throw new Error(`Not a save-protocol delta (format ${String(d?.format)}).`);
-  const s = d.summary ?? {};
-  const tables = Object.entries({ ...(s.otherTablesChanged ?? {}), ...(s.watchTablesChanged ?? {}) })
+  const d = delta as DeltaFile & { watch?: Record<string, WatchTable> };
+  if (!CAPTURE_FORMATS.includes(d?.format as never)) throw new Error(`Not a capture this adapter reads (format ${String(d?.format)}).`);
+  let changed: Record<string, { inserted?: number; deleted?: number; updated?: number }>;
+  let counters: Record<string, number>;
+  if (d.format === 'save-protocol-delta/1') {
+    const s = d.summary ?? {};
+    changed = { ...(s.otherTablesChanged ?? {}), ...(s.watchTablesChanged ?? {}) };
+    counters = Object.fromEntries(Object.entries(s.psversion ?? {}).map(([k, v]) => [k, Number(v.delta ?? 0)]));
+  } else {
+    // A definition capture: its watch tables, by key; counters from PSVERSION's rows.
+    changed = Object.fromEntries(Object.entries(d.watch ?? {}).map(([t, o]) => [t, { inserted: o.inserted?.length ?? 0, deleted: o.deleted?.length ?? 0, updated: o.updated?.length ?? 0 }])
+      .filter(([, c]) => (c as { inserted: number }).inserted + (c as { deleted: number }).deleted + (c as { updated: number }).updated > 0));
+    counters = Object.fromEntries((d.watch?.PSVERSION?.updated ?? []).map((u) => [u.key.OBJECTTYPENAME, Number(u.changes.VERSION?.after) - Number(u.changes.VERSION?.before)]));
+  }
+  const tables = Object.entries(changed)
     .filter(([t]) => options.keepBackground || !BACKGROUND_TABLES.includes(t))
     .filter(([t]) => t !== 'PSVERSION' && t !== 'PSLOCK')
     .map(([table, c]) => ({ table, inserted: c.inserted ?? 0, deleted: c.deleted ?? 0, updated: c.updated ?? 0 }))
     .sort((a, b) => (a.table < b.table ? -1 : a.table > b.table ? 1 : 0)); // code-point order: deterministic whatever the locale
-  const counters = Object.fromEntries(Object.entries(s.psversion ?? {}).map(([k, v]) => [k, Number(v.delta ?? 0)]).filter(([, v]) => v !== 0));
-  return { tables, ...(Object.keys(counters).length ? { counters } : {}) };
+  const moved = Object.fromEntries(Object.entries(counters).filter(([, v]) => Number.isFinite(v) && v !== 0));
+  return { tables, ...(Object.keys(moved).length ? { counters: moved } : {}) };
 }
 
 /** A capture as an observation; the caller adds what was observed, in words. */
-export function observationFromCapture(delta: unknown, words: { observation: string; expected?: string; actual?: string; tool?: string; runId?: string; reproduction?: string[] }): Observation {
+export function observationFromCapture(delta: unknown, words: {
+  observation: string; expected?: string; actual?: string; tool?: string; runId?: string; reproduction?: string[];
+  /** Required for definition captures, which do not record it; must agree with a sweep's own. */
+  peopleToolsRelease?: string;
+}): Observation {
   const d = delta as DeltaFile;
-  const release = String(d.peopleToolsRelease ?? '').trim();
-  if (!/^\d\.\d{2}(\.\d{2})?$/.test(release)) throw new Error(`The capture does not say its PeopleTools release (${release || 'missing'}).`);
+  const recorded = String(d.peopleToolsRelease ?? '').trim();
+  if (recorded && words.peopleToolsRelease && words.peopleToolsRelease !== recorded) throw new Error(`The capture says PeopleTools ${recorded}, not ${words.peopleToolsRelease}.`);
+  const release = recorded || String(words.peopleToolsRelease ?? '').trim();
+  if (!/^\d\.\d{2}(\.\d{2})?$/.test(release)) throw new Error(`The capture does not say its PeopleTools release (${release || 'missing'}): give it.`);
   const at = d.markers?.after?.timestamp;
   const observedAt = at && !Number.isNaN(Date.parse(at)) ? new Date(Date.parse(at)).toISOString() : new Date().toISOString();
   return {

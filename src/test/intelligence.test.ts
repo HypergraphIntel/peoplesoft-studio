@@ -384,9 +384,42 @@ test('the research store\'s findings still match their captures: every capture-b
       } else {
         assert.deepEqual(o.delta, sanitizedDeltaOf(delta), `${f.id}: capture ${capture} no longer shows what was recorded`);
       }
-      assert.equal(o.environment.peopleToolsRelease, delta.peopleToolsRelease, `${f.id}: ${capture}'s release`);
+      if (delta.peopleToolsRelease) assert.equal(o.environment.peopleToolsRelease, delta.peopleToolsRelease, `${f.id}: ${capture}'s release`);
       checked++;
     }
   }
   assert.ok(checked >= 30, `${checked} capture-backed observations checked`);
+});
+
+test('definition captures (def-capture, ae-capture): watch counts and PSVERSION steps; the release must be given', { skip: !existsSync('tools/corpus/save-protocol/results/ae10-insert-section/delta.json') && 'captures' }, () => {
+  const ae = JSON.parse(readFileSync('tools/corpus/save-protocol/results/ae10-insert-section/delta.json', 'utf8'));
+  assert.deepEqual(sanitizedDeltaOf(ae), { tables: [{ table: 'PSAEAPPLDEFN', inserted: 0, deleted: 0, updated: 1 }, { table: 'PSAESECTDEFN', inserted: 1, deleted: 0, updated: 0 },
+    { table: 'PSAESECTDTLDEFN', inserted: 1, deleted: 0, updated: 0 }], counters: { AEM: 1, AES: 1, SYS: 1 } });
+  assert.throws(() => observationFromCapture(ae, { observation: 'x' }), /give it/);
+  assert.equal(observationFromCapture(ae, { observation: 'x', peopleToolsRelease: '8.62.09' }).experimentId, 'ae10-insert-section');
+  const sweep = JSON.parse(readFileSync('tools/corpus/save-protocol/results/em04-fluid-add-record/delta.json', 'utf8'));
+  assert.throws(() => observationFromCapture(sweep, { observation: 'x', peopleToolsRelease: '8.61' }), /says PeopleTools 8.62.09/);
+  const chn = JSON.parse(readFileSync('tools/corpus/save-protocol/results/chn02-props/delta.json', 'utf8'));
+  assert.equal(sanitizedDeltaOf(chn).counters?.CHDM, 1);
+  assert.ok(!JSON.stringify(sanitizedDeltaOf(chn)).includes('Lab channel'), 'counts only');
+});
+
+test('counter-step findings: every observation shows exactly the counter steps its claim states', async () => {
+  const store = await new DiscoveryStore(path.join('tools', 'intelligence', 'store')).open();
+  let checked = 0;
+  for (const summary of await store.list()) {
+    const f = (await store.get(summary.id))!;
+    if (f.assertion.kind !== 'counter-step') continue;
+    const facts = f.assertion.facts;
+    // Two shapes: { counter, psversionStep | newProgramStep, sysStep } or counters as upper-case facts (0 = must not move).
+    const expect: Record<string, number> = typeof facts.counter === 'string'
+      ? { [facts.counter]: Number(facts.psversionStep ?? facts.newProgramStep), SYS: Number(facts.sysStep) }
+      : Object.fromEntries(Object.entries(facts).filter(([k, v]) => /^[A-Z]+$/.test(k) && typeof v === 'number') as Array<[string, number]>);
+    for (const o of f.observations) {
+      const got = o.delta?.counters ?? {};
+      for (const [k, v] of Object.entries(expect)) assert.equal(got[k] ?? 0, v, `${f.id} ${o.experimentId}: ${k}`);
+      checked++;
+    }
+  }
+  assert.ok(checked >= 80, `${checked} counter-step observations checked`);
 });

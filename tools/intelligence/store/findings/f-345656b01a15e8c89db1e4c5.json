@@ -1,0 +1,427 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-345656b01a15e8c89db1e4c5",
+  "fingerprint": "345656b01a15e8c89db1e4c5221803e507b9ad070c4088e6fd3e5e4fc5038572",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "app-engine",
+    "objectType": "App Engine program",
+    "tables": [
+      "PSAEAPPLDEFN",
+      "PSAESECTDEFN",
+      "PSAESTEPDEFN",
+      "PSAESTMTDEFN",
+      "PSSQLTEXTDEFN",
+      "PSSQLHASH"
+    ]
+  },
+  "assertion": {
+    "kind": "writer-matches-native",
+    "facts": {
+      "writer": "appEngineWriter",
+      "native": "App Designer",
+      "identicalCaptures": 85,
+      "captures": 88,
+      "onlyDifference": "PSSQLHASH.MARKET after a market re-key"
+    }
+  },
+  "title": "PeopleSoft Studio's App Engine writer reproduces App Designer's rows for 85 of 88 captured saves; the 3 others differ only in PSSQLHASH.MARKET",
+  "statement": "tools/lab/ae-replay.mts applies each captured App Designer edit through the writer on HRDMO and compares rows: 85 identical; ae18, ae19 and ax43 differ only in PSSQLHASH.MARKET, which App Designer leaves stale after a market re-key and the writer keeps in step.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-11T21:17:53.000Z",
+      "method": "live-e2e",
+      "experimentId": "ae-replay",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PeopleSoft Studio"
+      },
+      "observation": "Replay report: 85 of 88 captures identical row for row.",
+      "actual": "85 identical, 3 different",
+      "testResults": [
+        {
+          "name": "aa01-insert-step",
+          "outcome": "pass"
+        },
+        {
+          "name": "aa02-sql-text",
+          "outcome": "pass"
+        },
+        {
+          "name": "aa04-sql-newlines",
+          "outcome": "pass"
+        },
+        {
+          "name": "aa05-sql-indent",
+          "outcome": "pass"
+        },
+        {
+          "name": "aa06-sql-ws",
+          "outcome": "pass"
+        },
+        {
+          "name": "aa07-sql-ws2",
+          "outcome": "pass"
+        },
+        {
+          "name": "aa08-sql-literals",
+          "outcome": "pass"
+        },
+        {
+          "name": "aa09-sql-quote-nl",
+          "outcome": "pass"
+        },
+        {
+          "name": "aa10-sql-edges",
+          "outcome": "pass"
+        },
+        {
+          "name": "ad01-delete-pc",
+          "outcome": "pass"
+        },
+        {
+          "name": "ad02-delete-sql",
+          "outcome": "pass"
+        },
+        {
+          "name": "ae10-insert-section",
+          "outcome": "pass"
+        },
+        {
+          "name": "ae11-rename-section",
+          "outcome": "pass"
+        },
+        {
+          "name": "ae16-delete-section",
+          "outcome": "pass"
+        },
+        {
+          "name": "ae18-market-with-actions",
+          "outcome": "fail"
+        },
+        {
+          "name": "ae19-market-back",
+          "outcome": "fail"
+        },
+        {
+          "name": "ao01-insert-middle",
+          "outcome": "pass"
+        },
+        {
+          "name": "ao02-cut-paste",
+          "outcome": "pass"
+        },
+        {
+          "name": "ao03-copy-paste",
+          "outcome": "pass"
+        },
+        {
+          "name": "ao04-delete-step",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap-pc01-create",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap-pc02-update",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap01-descr",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap02-comments",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap03-owner",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap04-disable-restart",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap05-app-library",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap06-batch-only",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap07-share-online",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap08-use-delete",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap09-runtime-abort",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap10-instances",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap11-state-add",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap12-state-add2",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap13-state-default",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap14-state-remove",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap15-temp-add",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap16-msgset",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap17-progtype",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap18-progtype-transform",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap19-app-library-off",
+          "outcome": "pass"
+        },
+        {
+          "name": "ap20-progtype-std",
+          "outcome": "pass"
+        },
+        {
+          "name": "ar01-rename-step",
+          "outcome": "pass"
+        },
+        {
+          "name": "as01-descr",
+          "outcome": "pass"
+        },
+        {
+          "name": "as02-market",
+          "outcome": "pass"
+        },
+        {
+          "name": "as03-platform",
+          "outcome": "pass"
+        },
+        {
+          "name": "as04-effdt",
+          "outcome": "pass"
+        },
+        {
+          "name": "as05-status",
+          "outcome": "pass"
+        },
+        {
+          "name": "as06-secttype",
+          "outcome": "pass"
+        },
+        {
+          "name": "as07-autocommit",
+          "outcome": "pass"
+        },
+        {
+          "name": "as08-access",
+          "outcome": "pass"
+        },
+        {
+          "name": "as09-comment",
+          "outcome": "pass"
+        },
+        {
+          "name": "at01-descr",
+          "outcome": "pass"
+        },
+        {
+          "name": "at02-commit-after",
+          "outcome": "pass"
+        },
+        {
+          "name": "at03-commit-later",
+          "outcome": "pass"
+        },
+        {
+          "name": "at04-onerror-ignore",
+          "outcome": "pass"
+        },
+        {
+          "name": "at05-onerror-suppress",
+          "outcome": "pass"
+        },
+        {
+          "name": "at06-inactive",
+          "outcome": "pass"
+        },
+        {
+          "name": "at07-comment",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax01-reuse-yes",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax02-reuse-bulk",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax03-norows-break",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax04-norows-abort",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax05-norows-skip",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax06-descr",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax07-comment",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax08-insert-action",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax09-insert-2",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax13-insert-3",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax14-insert-4",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax15-insert-5",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax16-insert-6",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax17-insert-7",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax20-dst-reselect",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax21-dst-restart",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax22-onreturn-break",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax23-onreturn-skip",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax24-frequency",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax25-logmsg",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax26-insert-step2",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax27-type-to-call",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax28-call-section",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax29-call-external",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax30-call-dynamic",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax31-type-to-pc",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax40-xslt-mapper-no",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax41-xslt-mapper-yes",
+          "outcome": "pass"
+        },
+        {
+          "name": "ax43-xslt-text",
+          "outcome": "fail"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "tools/corpus/save-protocol/results/ae-replay-report.txt"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "tools/lab/ae-replay.mts"
+        }
+      ],
+      "digest": "923536121947610559aea93c0ab34a00f4e9eafcf02a6694bf6a1057ba103923"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:02:20.241Z",
+    "updatedAt": "2026-10-13T11:02:20.241Z",
+    "schemaVersion": 1
+  }
+}

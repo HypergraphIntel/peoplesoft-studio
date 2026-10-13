@@ -74,12 +74,26 @@ it supports. `--store DIR` or `PSFT_DISCOVERY_STORE` points elsewhere.
    the claim in PeopleTools terms (tables, columns, counters, codes).
 6. **Historical findings** are recorded only with their evidence in hand —
    a capture case, a test, delivered source — not from memory.
+7. **Read values from the capture, not from the docs.** Before recording,
+   check the claim against the capture's rows (keyed changes, PSVERSION),
+   and write any value in an observation's text from what the capture
+   shows. A doc's summary can be wrong: `docs/PAGE_SAVE.md` called 06-types
+   one save, the capture shows three.
+8. **Select cases by what they did, not by their name.** A case family can
+   hold a case of another kind (`aa01-insert-step` among the SQL-text
+   cases). The `w`-prefixed App Engine cases (`wap01`…) are
+   `tools/lab/ae-replay.mts` runs of Studio's own writer — never evidence of
+   App Designer's behavior.
+9. **Counter-evidence narrows the claim.** When one capture contradicts a
+   fact (aa02 did not move AES), drop the fact from the assertion and say in
+   the statement what is not established; never record the contradicting
+   observation under the broader claim.
 
 ## Adapters
 
 | Source | Status | Observation it gives |
 |---|---|---|
-| Save captures (`tools/corpus/save-protocol`) | Implemented (`adapters/saveCapture.ts`) | Changed tables (counts), counter moves, release, case ID |
+| Save captures (`tools/corpus/save-protocol`): sweeps (`save-protocol-delta/1`) and definition captures (`def-capture/1`, `ae-capture/1`) | Implemented (`adapters/saveCapture.ts`) | Changed tables (counts), counter moves, case ID; the release from a sweep, or given (`--release`) for a definition capture, which does not record it |
 | Lab end-to-end proofs (`tools/lab/*-e2e.mts`) | Implemented (`adapters/labRun.ts`, CLI `lab-run --script --output --release [--tests REGEX]`) | Check names and outcomes only (failure details never leave), `live-e2e`; a Studio writer's proof is a `roundtrip-comparison` |
 | Controlled compile lab | Proposed | `compile-difference` observations |
 | PeopleCode corpus harness | Proposed | `bytecode-pattern` observations — derived facts only; the corpus is institutional |

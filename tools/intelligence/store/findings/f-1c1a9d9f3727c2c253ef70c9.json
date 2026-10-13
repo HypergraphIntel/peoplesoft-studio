@@ -1,0 +1,722 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-1c1a9d9f3727c2c253ef70c9",
+  "fingerprint": "1c1a9d9f3727c2c253ef70c9fc6da69d263ec964b6604df33290a8cab3a60911",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "app-engine",
+    "objectType": "App Engine program",
+    "tables": [
+      "PSAEAPPLDEFN"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "change": "program-properties",
+      "AEM": 1,
+      "AES": 0,
+      "SYS": 1
+    }
+  },
+  "title": "Changing only an App Engine program's properties moves AEM and SYS by 1, not AES",
+  "statement": "A save that changes only Program Properties (description, comments, owner, restart, batch only, share online and the like) moves AEM and SYS by one; no section is restamped, so AES does not move.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T02:36:12.031Z",
+      "method": "save-capture",
+      "experimentId": "ap01-descr",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap01-descr (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION AEM +1 and SYS +1 only.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap01-descr"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "a2b56402acf2779d090ad8784cb0d1ee38a2815bb1f6e248756cd934b94569c6"
+    },
+    {
+      "observedAt": "2026-10-13T02:36:12.314Z",
+      "method": "save-capture",
+      "experimentId": "ap02-comments",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap02-comments (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION AEM +1 and SYS +1 only.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap02-comments"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "d768ac22effe41786e1316d9521540ada06217a61626e558697479bdf27c1941"
+    },
+    {
+      "observedAt": "2026-10-13T02:36:12.595Z",
+      "method": "save-capture",
+      "experimentId": "ap03-owner",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap03-owner (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION AEM +1 and SYS +1 only.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap03-owner"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "7a6fb207f3f95f47d4950163f9bd4d1e2a0f50c9fed53c38166ea73e3e3c2587"
+    },
+    {
+      "observedAt": "2026-10-13T02:36:12.881Z",
+      "method": "save-capture",
+      "experimentId": "ap04-disable-restart",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap04-disable-restart (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION AEM +1 and SYS +1 only.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap04-disable-restart"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "631ffcebf00c75ec54874bca0cb1ab58a9e25ab1ddc12ba38f64c2486488c587"
+    },
+    {
+      "observedAt": "2026-10-13T02:36:13.163Z",
+      "method": "save-capture",
+      "experimentId": "ap06-batch-only",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap06-batch-only (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION AEM +1 and SYS +1 only.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap06-batch-only"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "235eee333c371533a22185ae87fc3fa5bc3e6ab227ffb93fcdc10fd9026b91c1"
+    },
+    {
+      "observedAt": "2026-10-13T02:36:13.430Z",
+      "method": "save-capture",
+      "experimentId": "ap07-share-online",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap07-share-online (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION AEM +1 and SYS +1 only.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap07-share-online"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "2e9ae3d2cc5955e3a8f632faabd11625a99bfc3166e45ad28e90e8a2d1d203d2"
+    },
+    {
+      "observedAt": "2026-10-13T02:36:13.705Z",
+      "method": "save-capture",
+      "experimentId": "ap08-use-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap08-use-delete (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION AEM +1 and SYS +1 only.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap08-use-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "5c58f9a21bbbd2817cac8d5f0d10e8a96063ea61775edb36854831b732e7e17f"
+    },
+    {
+      "observedAt": "2026-10-13T02:36:13.990Z",
+      "method": "save-capture",
+      "experimentId": "ap09-runtime-abort",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap09-runtime-abort (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION AEM +1 and SYS +1 only.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap09-runtime-abort"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "cbef2c3e366425d216aea9217064cf75f52b614b196bf31a6d0157f968a9dffd"
+    },
+    {
+      "observedAt": "2026-10-13T02:36:14.263Z",
+      "method": "save-capture",
+      "experimentId": "ap10-instances",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap10-instances (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION AEM +1 and SYS +1 only.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap10-instances"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "0cf3a1fe9134529da444790335d6ffd4631523eacf25f2960062f8d702e1e7c1"
+    },
+    {
+      "observedAt": "2026-10-13T02:36:14.540Z",
+      "method": "save-capture",
+      "experimentId": "ap11-state-add",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap11-state-add (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION AEM +1 and SYS +1 only.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAEAPPLSTATE",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap11-state-add"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "e40cd0e2154395338ecc83d942e352f3f3786ab4f4bc71bc531558fc159d09e9"
+    },
+    {
+      "observedAt": "2026-10-13T02:36:14.834Z",
+      "method": "save-capture",
+      "experimentId": "ap12-state-add2",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap12-state-add2 (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION AEM +1 and SYS +1 only.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAEAPPLSTATE",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap12-state-add2"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "d71b4fd01b75ff09602f2398606cc349588ee71bdeedfa7119acf6a74262d35e"
+    },
+    {
+      "observedAt": "2026-10-13T02:36:15.127Z",
+      "method": "save-capture",
+      "experimentId": "ap13-state-default",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap13-state-default (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION AEM +1 and SYS +1 only.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAEAPPLSTATE",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap13-state-default"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "330137a5a7e0e5cc7e46a0a9e3b38caddd6e603ab13c558beb57cc6948e7360c"
+    },
+    {
+      "observedAt": "2026-10-13T02:36:15.405Z",
+      "method": "save-capture",
+      "experimentId": "ap14-state-remove",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap14-state-remove (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION AEM +1 and SYS +1 only.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAEAPPLSTATE",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap14-state-remove"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "d5350223abfe881c416f2e9c68245392446927925819e7b6150039d1cfaf85db"
+    },
+    {
+      "observedAt": "2026-10-13T02:36:15.682Z",
+      "method": "save-capture",
+      "experimentId": "ap15-temp-add",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap15-temp-add (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION AEM +1 and SYS +1 only.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAEAPPLTEMPTBL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap15-temp-add"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "0dd77fa7193c1dec051f6bed04595bd11829590cb19ed4e57399414abfdd1e53"
+    },
+    {
+      "observedAt": "2026-10-13T02:36:15.964Z",
+      "method": "save-capture",
+      "experimentId": "ap16-msgset",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap16-msgset (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION AEM +1 and SYS +1 only.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap16-msgset"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "ce6bd66cd8708553521a81eb581f4d01501095e51efee36d513531f3e6b4da2d"
+    },
+    {
+      "observedAt": "2026-10-13T02:36:16.231Z",
+      "method": "save-capture",
+      "experimentId": "ap17-progtype",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap17-progtype (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION AEM +1 and SYS +1 only.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap17-progtype"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "0a2c3996844b6ca5189aa1f4ad45812f28bf63107d7973e33f6a498bc99c3de9"
+    },
+    {
+      "observedAt": "2026-10-13T02:36:16.508Z",
+      "method": "save-capture",
+      "experimentId": "ap18-progtype-transform",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap18-progtype-transform (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION AEM +1 and SYS +1 only.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap18-progtype-transform"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "f6ec8699d3346be69ff6861be20518aaa11eda4510bb3252186c80c3a730f767"
+    },
+    {
+      "observedAt": "2026-10-13T02:36:16.793Z",
+      "method": "save-capture",
+      "experimentId": "ap20-progtype-std",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap20-progtype-std (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION AEM +1 and SYS +1 only.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap20-progtype-std"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "b9e3e60a5d8fa63103a1c723fc3a209b0218d497c8c5578cac4fa6d165d947bf"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T02:36:12.038Z",
+    "updatedAt": "2026-10-13T02:36:16.800Z",
+    "schemaVersion": 1
+  }
+}

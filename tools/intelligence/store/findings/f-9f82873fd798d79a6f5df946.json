@@ -1,0 +1,87 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-9f82873fd798d79a6f5df946",
+  "fingerprint": "9f82873fd798d79a6f5df9466a2c1e76ee816b4b1505ba39fe8db4183023b6a3",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "app-engine",
+    "objectType": "App Engine program",
+    "tables": [
+      "PSPCMPROG"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "change": "action-peoplecode",
+      "PCM": 1,
+      "SYS": 1,
+      "AEM": 0,
+      "AES": 0
+    }
+  },
+  "title": "Editing only an App Engine action's PeopleCode moves PCM and SYS by 1",
+  "statement": "A save that changes only a PeopleCode action's program moves PCM and SYS by one; AEM and AES do not move.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T02:36:33.275Z",
+      "method": "save-capture",
+      "experimentId": "ap-pc02-update",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture ap-pc02-update (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): PSVERSION PCM +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap-pc02-update"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "2241c6b28713d7429151edfe57931b958aafb9b2e7d55cee71626d9f0b84ebb5"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T02:36:33.280Z",
+    "updatedAt": "2026-10-13T02:36:33.280Z",
+    "schemaVersion": 1
+  }
+}

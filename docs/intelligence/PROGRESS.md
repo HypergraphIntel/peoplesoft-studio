@@ -121,11 +121,17 @@ fingerprint; server: see `server/intelligence/README.md`.
 
 ## Recorded findings (tools/intelligence/store)
 
-18 findings, each checked against its capture rows before recording (2026-10-13); `src/test/intelligence.test.ts` re-derives every capture-backed observation.
+24 findings, each checked against its capture rows before recording (2026-10-13). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
 
 | Subsystem | ID | Claim | Status | Obs. |
 |---|---|---|---|---|
+| app-engine | f-1c1a9d9f3727c2c253ef70c9 | Changing only an App Engine program's properties moves AEM and SYS by 1, not AES | reproduced | 18 |
+| app-engine | f-1df2296199d258b85b90f32f | Editing only an App Engine action's SQL text moves SRM and SYS by 1, not AEM | reproduced | 9 |
+| app-engine | f-345656b01a15e8c89db1e4c5 | PeopleSoft Studio's App Engine writer reproduces App Designer's rows for 85 of 88 captured saves; the 3 others differ only in PSSQLHASH.MARKET | observed | 1 |
+| app-engine | f-40babbc79f39efd83f68859c | After an App Engine section's market is re-keyed, App Designer leaves PSSQLHASH.MARKET unchanged until a later save | reproduced | 3 |
 | app-engine | f-7813ad82caab6c1204716fa1 | Renaming an App Engine program tombstones the old name in PSAEAPPLDEL at the new AEM | observed | 1 |
+| app-engine | f-9f82873fd798d79a6f5df946 | Editing only an App Engine action's PeopleCode moves PCM and SYS by 1 | observed | 1 |
+| app-engine | f-aca484c980b5bbc3045596c1 | Changing an App Engine section, step or action moves AEM, AES and SYS by 1 | reproduced | 48 |
 | app-engine | f-d3a388ee70c25792a50ca764 | Deleting an App Engine program moves AEM, AES, SRM and PCM by 2 and SYS by 1, and leaves tombstones at the final counters | observed | 1 |
 | app-engine | f-d477c0ab70e48a7736224355 | Saving a new App Engine program moves AEM by 1 and stamps PSAEAPPLDEFN.VERSION with it | reproduced | 2 |
 | event-mapping | f-5731b0851774a312b6aa05af | PTCS_ISCOMPSERVICE level codes: C Component, R Page, P Record, F Record Field (PSXLATITEM's labels mislead) | observed | 1 |
@@ -149,11 +155,12 @@ fingerprint; server: see `server/intelligence/README.md`.
 1. **Open the Discovery Center in a real VS Code window** (install the
    built VSIX): the view, a panel, the review; with the local server, one
    submission.
-2. **A def-capture adapter**: the App Engine (ap*, as*, at*, ax*, aa*),
-   record-save and most channel cases are def-capture snapshots, not
-   sweeps; an adapter for that format would let their rules be recorded
-   with evidence. (The Customization Strategy view's *Studio Knowledge*
-   section already shows whatever is recorded, for every designer.)
+2. **More findings from definition captures** (the adapter reads them now):
+   the menu (mn*, mi*, mb*, mp*), Component Interface (ci*) and channel
+   property (chn02-chn15) cases, against MENUS.md, COMPONENT_INTERFACES.md
+   and MESSAGE_CHANNELS.md -- each claim checked against its rows first
+   (DISCOVERY_PROTOCOL.md rules 7-9). Record-save cases (r*) need their
+   format checked first.
 3. Adapters for the controlled compile lab and writer replay tests.
 4. Filing issues / preparing pull requests from CI: the owner's decision
    and a least-privilege token.

@@ -1,0 +1,538 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-1df2296199d258b85b90f32f",
+  "fingerprint": "1df2296199d258b85b90f32f228c54072c21d467e9f36acd933bf734e153ffcf",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "app-engine",
+    "objectType": "App Engine program",
+    "tables": [
+      "PSSQLTEXTDEFN"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "change": "action-sql-text",
+      "AEM": 0,
+      "SRM": 1,
+      "SYS": 1
+    }
+  },
+  "title": "Editing only an App Engine action's SQL text moves SRM and SYS by 1, not AEM",
+  "statement": "A save that changes only the SQL text of an SQL action moves SRM (the SQL definition) and SYS by one and leaves AEM. Whether AES moves is not established: it moved in eight of nine captures (the newline, indentation, whitespace, literal and re-save variants) but not in aa02-sql-text.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-11T17:44:54.606Z",
+      "method": "save-capture",
+      "experimentId": "aa02-sql-text",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture aa02-sql-text (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): SRM +1 and SYS +1, AEM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDESCR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "aa02-sql-text"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "46a362b7131b5ef904b61e374f905b3ab64a8bb897143660dbf0e03810da6663"
+    },
+    {
+      "observedAt": "2026-10-13T02:37:04.284Z",
+      "method": "save-capture",
+      "experimentId": "aa03-sql-resave",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture aa03-sql-resave (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): SRM +1 and SYS +1, AEM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AES": 1,
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "aa03-sql-resave"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "5a5f60fb7f9f9e38e908bdcac8cae5304c5185cee44a03ba7ed4cf8daa4e7cbe"
+    },
+    {
+      "observedAt": "2026-10-13T02:37:04.571Z",
+      "method": "save-capture",
+      "experimentId": "aa04-sql-newlines",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture aa04-sql-newlines (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): SRM +1 and SYS +1, AEM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AES": 1,
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "aa04-sql-newlines"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "2df2ee1033b02bd00f8ee1b8ded4bae7b75ef896d3be27ca2672028c582b28f7"
+    },
+    {
+      "observedAt": "2026-10-13T02:37:04.848Z",
+      "method": "save-capture",
+      "experimentId": "aa05-sql-indent",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture aa05-sql-indent (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): SRM +1 and SYS +1, AEM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AES": 1,
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "aa05-sql-indent"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "40cf595756ab34f63d135d46572fa881453b0c4849ef4a9d3aac2d29ab0af2c9"
+    },
+    {
+      "observedAt": "2026-10-13T02:37:05.133Z",
+      "method": "save-capture",
+      "experimentId": "aa06-sql-ws",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture aa06-sql-ws (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): SRM +1 and SYS +1, AEM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AES": 1,
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "aa06-sql-ws"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "e973d9e3e9f8bd1ff3f56fe386aa42532c894242d2023dc864967ac045cbfdf3"
+    },
+    {
+      "observedAt": "2026-10-13T02:37:05.413Z",
+      "method": "save-capture",
+      "experimentId": "aa07-sql-ws2",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture aa07-sql-ws2 (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): SRM +1 and SYS +1, AEM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AES": 1,
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "aa07-sql-ws2"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "6aabfb4842173aa7e93327f1267ba8ff91e76111ffec32b26e4f1c6263aa0783"
+    },
+    {
+      "observedAt": "2026-10-13T02:37:05.688Z",
+      "method": "save-capture",
+      "experimentId": "aa08-sql-literals",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture aa08-sql-literals (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): SRM +1 and SYS +1, AEM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AES": 1,
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "aa08-sql-literals"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "e673c00918774384ae05eef8b036425eb1b2f53b8f4857ed385153444e5ede5c"
+    },
+    {
+      "observedAt": "2026-10-13T02:37:05.966Z",
+      "method": "save-capture",
+      "experimentId": "aa09-sql-quote-nl",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture aa09-sql-quote-nl (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): SRM +1 and SYS +1, AEM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AES": 1,
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "aa09-sql-quote-nl"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "d9ea72cbd325b99e0a8af3f9ff47d40778e558abab8b53aba56e27dd680170f3"
+    },
+    {
+      "observedAt": "2026-10-13T02:37:06.249Z",
+      "method": "save-capture",
+      "experimentId": "aa10-sql-edges",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture aa10-sql-edges (HRDMO lab, PeopleTools 8.62.09 as its sweeps record): SRM +1 and SYS +1, AEM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "AES": 1,
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "aa10-sql-edges"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "1ae31b872e81030d14ff4a3c5b76e2daeb8c9423a0889616ca54b36041806cbc"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T02:37:04.018Z",
+    "updatedAt": "2026-10-13T02:37:06.255Z",
+    "schemaVersion": 1
+  }
+}
