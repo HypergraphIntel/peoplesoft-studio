@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DefinitionType } from '../model/definitions.js';
-import { matchStoredKey, resolveReference } from '../peoplecode/definition.js';
+import { definitionKeywordType, definitionReferencePrefix, matchStoredKey, resolveReference } from '../peoplecode/definition.js';
 
 test('a qualified application class path resolves from any segment', () => {
   const line = '   Local ZZ_PCODE_LAB:ORDERING:PARENT &x;';
@@ -81,4 +81,26 @@ test('matchStoredKey picks the key with the same parts, case-insensitively, and 
 test('matchStoredKey returns undefined when nothing matches', () => {
   const ref = resolveReference('&r = CreateRecord(Record.NOPE);', 26)!;
   assert.equal(matchStoredKey(ref, [{ type: DefinitionType.Record, parts: ['JOB'] }]), undefined);
+});
+
+test('definitionKeywordType maps the definition keywords and nothing else', () => {
+  assert.equal(definitionKeywordType('Record'), DefinitionType.Record);
+  assert.equal(definitionKeywordType('scroll'), DefinitionType.Record);
+  assert.equal(definitionKeywordType('PAGE'), DefinitionType.Page);
+  assert.equal(definitionKeywordType('SQL'), DefinitionType.SqlDefinition);
+  assert.equal(definitionKeywordType('Rowset'), undefined);
+  assert.equal(definitionKeywordType('&rec'), undefined);
+});
+
+test('definitionReferencePrefix reads a definition name being typed after a bareword keyword', () => {
+  assert.deepEqual(definitionReferencePrefix('&r = CreateRecord(Record.'), { keyword: 'Record', partial: '' });
+  assert.deepEqual(definitionReferencePrefix('   &p = Page.JOB_D'), { keyword: 'Page', partial: 'JOB_D' });
+  assert.deepEqual(definitionReferencePrefix('Record . '), { keyword: 'Record', partial: '' });
+});
+
+test('definitionReferencePrefix ignores a &variable or %system receiver (those take members, not names)', () => {
+  assert.equal(definitionReferencePrefix('&rec.'), undefined);
+  assert.equal(definitionReferencePrefix('&rec.Field'), undefined);
+  assert.equal(definitionReferencePrefix('%Request.'), undefined);
+  assert.equal(definitionReferencePrefix('no dot here'), undefined);
 });

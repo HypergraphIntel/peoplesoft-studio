@@ -12,6 +12,11 @@
   confirmed to exist in the connection first -- the stored definition, with
   its real casing -- so a jump never lands on nothing. Resolution is textual,
   so it works whether or not the program compiles.
+- **Definition-name completion** in PeopleCode: after a definition keyword and
+  a dot (`Record.`, `Page.`, `Component.`, `Menu.`, `SQL.`, `Image.`, `HTML.`,
+  `Field.`, `Scroll.`), the matching definitions in the connection are offered
+  by name with their description, refined as you type. A `&variable.` or
+  `%System.` still offers its members, not names.
 
 ## 0.8.6 — 2026-10-13
 

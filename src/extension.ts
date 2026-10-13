@@ -337,7 +337,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(fileSystem);
   context.subscriptions.push(FieldEditorProvider.register(workspace, () => void vscode.commands.executeCommand('psft.refresh')));
 
-  registerPeopleCodeCompletion(context);
+  registerPeopleCodeCompletion(context, workspace);
   registerPeopleCodeHover(context);
   registerPeopleCodeSymbols(context);
   registerPeopleCodeDefinition(context, workspace);

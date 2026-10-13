@@ -1,4 +1,8 @@
 import * as vscode from 'vscode';
+import { definitionKeywordType, definitionReferencePrefix } from './definition.js';
+import { displayName } from '../model/definitions.js';
+import { parseUri } from '../util/uri.js';
+import type { Workspace } from '../workspace.js';
 
 const KEYWORDS: string[] = [
   'If', 'Then', 'Else', 'End-If',
@@ -388,10 +392,39 @@ function receiverBeforeDot(prefix: string): string | undefined {
   return m?.[1];
 }
 
-export function registerPeopleCodeCompletion(context: vscode.ExtensionContext): void {
+/** The definitions of `type` whose name starts with `partial`, as completion items, from the document's connection. */
+async function completeDefinitionNames(document: vscode.TextDocument, workspace: Workspace,
+  type: import('../model/definitions.js').DefinitionType, partial: string): Promise<vscode.CompletionItem[]> {
+  let handle: string;
+  try { handle = parseUri(document.uri).handle; } catch { return []; }
+  const provider = workspace.getProviderByHandle(handle);
+  if (!provider) return [];
+  let summaries;
+  try { summaries = await provider.search({ type, namePattern: partial ? `${partial}%` : '%', limit: 100 }); }
+  catch { return []; }
+  return summaries.map((s) => {
+    const name = s.key.parts[0];
+    const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Reference);
+    item.detail = s.description ?? displayName(s.key);
+    item.sortText = `0_${name}`;
+    return item;
+  });
+}
+
+export function registerPeopleCodeCompletion(context: vscode.ExtensionContext, workspace: Workspace): void {
   const provider: vscode.CompletionItemProvider = {
-    provideCompletionItems(document, position, _token, completionContext) {
+    async provideCompletionItems(document, position, _token, completionContext) {
       const prefix = linePrefix(document, position);
+
+      // `Record.`, `Page.`, `SQL.` ... (a bareword definition keyword, not a &variable): the
+      // definitions of that type in the connection, queried live and refined as the name is typed.
+      const defRef = definitionReferencePrefix(prefix);
+      const defType = defRef ? definitionKeywordType(defRef.keyword) : undefined;
+      if (defRef && defType !== undefined && document.uri.scheme === 'psft') {
+        const names = await completeDefinitionNames(document, workspace, defType, defRef.partial);
+        return new vscode.CompletionList(names, true); // incomplete: re-query as more of the name is typed
+      }
+
       const afterDot =
         completionContext.triggerCharacter === '.' || /\.\s*$/.test(prefix);
 

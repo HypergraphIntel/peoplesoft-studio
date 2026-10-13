@@ -43,6 +43,21 @@ const CLASS_PATH = /[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)+/g;
 // Keyword.NAME, tolerating spaces around the dot as PeopleCode does.
 const KEYWORD_REF = /\b([A-Za-z]+)\s*\.\s*([A-Za-z0-9_#$@]+)/g;
 
+/** The definition type a `Keyword.NAME` keyword names (Record, Page, SQL, ...), or undefined if it is not one. */
+export function definitionKeywordType(keyword: string): DefinitionType | undefined {
+  return KEYWORD_TYPE.get(keyword.toLowerCase());
+}
+
+/**
+ * A definition-reference being typed at the end of `prefix` (the text before the cursor):
+ * the bareword keyword and the partial name after the dot, e.g. "Record.PAR" -> {keyword:"Record",
+ * partial:"PAR"}. A `&variable.` or `%System.` receiver is not one (those take members, not names).
+ */
+export function definitionReferencePrefix(prefix: string): { keyword: string; partial: string } | undefined {
+  const m = /(?:^|[^%&A-Za-z0-9_])([A-Za-z]+)\s*\.\s*([A-Za-z0-9_#$@]*)$/.exec(prefix);
+  return m ? { keyword: m[1], partial: m[2] } : undefined;
+}
+
 const within = (character: number, start: number, end: number) => character >= start && character <= end;
 
 /** Resolve the reference under `character` on `line`, or undefined if there is none there. */
