@@ -1,0 +1,156 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-c3cf5c2bdb40d259ddf76597",
+  "fingerprint": "c3cf5c2bdb40d259ddf7659713e48c3ec2c68b72d5038cb2a33dfef6c6036b9f",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "sql",
+    "objectType": "SQL definition",
+    "tables": [
+      "PSSQLDEFN",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "counter": "SRM",
+      "psversionStep": 1,
+      "pslockStep": 1,
+      "sysStep": 1,
+      "versionColumn": "PSSQLDEFN.VERSION",
+      "versionIsNewCounter": true
+    }
+  },
+  "title": "An App Designer SQL definition save moves SRM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSSQLDEFN.VERSION is the new SRM",
+  "statement": "Saving a SQL definition, new or changed, bumps PSVERSION and PSLOCK SRM and PSVERSION SYS by one and writes PSSQLDEFN with VERSION = the new SRM. A new definition inserts PSSQLDEFN, PSSQLDESCR, PSSQLTEXTDEFN and PSSQLHASH; a changed one deletes and re-inserts the first three and updates PSSQLHASH in place.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T03:14:38.000Z",
+      "method": "save-capture",
+      "experimentId": "r33-sql-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r33-sql-create: PSSQLDEFN written with VERSION 4 (the new SRM); PSSQLHASH inserted; SRM +1 in PSVERSION and PSLOCK, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDESCR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r33-sql-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "419bbdb5d6eb17ee1d1fe790757c950105ff2a76af1599dec53e09b25e400482"
+    },
+    {
+      "observedAt": "2026-10-07T03:15:00.000Z",
+      "method": "save-capture",
+      "experimentId": "r34-sql-update",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r34-sql-update: PSSQLDEFN written with VERSION 5 (the new SRM); PSSQLHASH updated in place; SRM +1 in PSVERSION and PSLOCK, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDESCR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r34-sql-update"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "9bedd7d0de3e325361a32d6e17d70ad6fc56611652f3025ed24f52f4478a22ee"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:12:43.229Z",
+    "updatedAt": "2026-10-13T11:12:43.621Z",
+    "schemaVersion": 1
+  }
+}

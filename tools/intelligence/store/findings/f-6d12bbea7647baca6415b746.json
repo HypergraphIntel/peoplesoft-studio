@@ -1,0 +1,145 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-6d12bbea7647baca6415b746",
+  "fingerprint": "6d12bbea7647baca6415b746da89d6bd04b182334d0fcd1c92ac406007814eae",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "record",
+    "objectType": "Record",
+    "tables": [
+      "PSRECDEFN",
+      "PSRECDEL",
+      "PSOBJCHNG",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "rename",
+    "facts": {
+      "rowsReKeyedInPlace": true,
+      "tombstone": "PSRECDEL",
+      "tombstoneVersionIsNewCounter": "RDM",
+      "objchngEntType": "R",
+      "countersMoved": "ACM,ADSM,AEM,BCM,BMM,MDM,MSDM,PBM,PCM,PDM,PGM,PJM,QDM,RDM,SRM,SYS,TDM,TSM,TSTM",
+      "eachStep": 1
+    }
+  },
+  "title": "Renaming a record re-keys its rows in place, writes PSRECDEL and PSOBJCHNG, and moves 19 counters by 1 each",
+  "statement": "App Designer's record rename updates the record's PSRECDEFN, PSRECFIELD, PSRECFIELDDB, PSINDEXDEFN, PSKEYDEFN and PSRECTBLSPC rows in place to the new name (PSRECDEFN VERSION = the new RDM), inserts PSRECDEL for the old name at the new RDM and a PSOBJCHNG row (ENTTYPE R, old and new names), and bumps every counter listed by one in PSVERSION (and all but SYS in PSLOCK), whether or not anything refers to the record. One capture; references to the record were not checked.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T03:16:20.000Z",
+      "method": "save-capture",
+      "experimentId": "r36-rename-record",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r36-rename-record: PSRECDEFN, PSINDEXDEFN, PSKEYDEFN, PSRECTBLSPC 1 and PSRECFIELD, PSRECFIELDDB 10 rows updated in place (RECNAME); PSRECDEL inserted for the old name with VERSION 53; PSOBJCHNG ENTTYPE R inserted; PSVERSION 19 counters +1, PSLOCK 18.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSOBJCHNG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSRECDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 10
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 10
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "ADSM": 1,
+          "TSTM": 1,
+          "MSDM": 1,
+          "ACM": 1,
+          "AEM": 1,
+          "BCM": 1,
+          "BMM": 1,
+          "MDM": 1,
+          "PBM": 1,
+          "PCM": 1,
+          "PDM": 1,
+          "PGM": 1,
+          "PJM": 1,
+          "QDM": 1,
+          "RDM": 1,
+          "SRM": 1,
+          "SYS": 1,
+          "TDM": 1,
+          "TSM": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r36-rename-record"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "c37e8d14192d85e06a4a2db0c435e04766bbf6548c95b13a5f4de6647573191c"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:12:48.725Z",
+    "updatedAt": "2026-10-13T11:12:48.725Z",
+    "schemaVersion": 1
+  }
+}

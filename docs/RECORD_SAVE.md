@@ -117,9 +117,12 @@ Made in a row in App Designer, bracketed afterwards (`before` / `after
 | r06 | C02 deleted (R1, SQL Table) | C02's rows gone, KEY unchanged | RDM, **PGM**, SYS |
 | r07 | C05 deleted (`ZZ_PCODE_LAB_T`, Derived/Work) | C05's rows gone, the rest unchanged | RDM, **PGM**, SYS |
 
-So: a row is restamped exactly when its values change; `PGM` moves exactly
+So: a row is restamped when its values change; `PGM` moves exactly
 when a field is removed (also r03; never for r01, r02, r04, r05); `SYS` once
-per save. HRDMO's delivered records add: Derived/Work records never carry
+per save. (Later cases narrow the stamp rule: bits App Designer sets itself
+from a record setting -- Auto-Update for a Timestamp Field, r19 / r51;
+In-Memory `USEEDIT2`, r67 / r70 -- change a row without restamping it, and
+a field touched and put back is restamped unchanged, r17.) HRDMO's delivered records add: Derived/Work records never carry
 an index, even with keys (1,231 of them); every SQL Table with keys has `_`
 (19,912); `INDEXCOUNT` is the record's index-row count (21,344 of 21,345);
 `KEYCOUNT` its `_` key rows (all 19,970).
@@ -503,7 +506,9 @@ Retroactive captures (Oracle flashback) of App Designer saves on HRDMO:
 | r51 | R4's Timestamp Field LASTUPDDTTM | `TIMESTAMPFIELDNAME`; the field's `USEEDIT` + Auto-Update (0x4000000), **not restamped** |
 | r53 | subrecord ABS_HIST_BELSBR inserted into R5 (and Use changes) | one `PSRECFIELD` row (`SUBRECORD` 'Y', `USEEDIT` 0); `PSRECFIELDDB` gains the subrecord's fields, `RECNAME_PARENT` the subrecord, numbered on |
 
-All moved RDM, SYS and PSLOCK RDM by one. The writer now does r45, r46,
+All moved RDM, SYS and PSLOCK RDM by one, except r53, whose window moved
+them by two; r52's window, just before it, moved nothing. Which saves
+r53's window holds is not isolated. The writer now does r45, r46,
 r47, r49 and r51 (Record Properties' Use tab edits the audit record and
 options and the Timestamp Field); direct cases x26-x30 (ZZ_PCODE_LAB_R2
 re-created, audited, timestamped, keyless, Derived/Work) wrote the same

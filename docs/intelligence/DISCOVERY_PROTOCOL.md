@@ -79,11 +79,18 @@ it supports. `--store DIR` or `PSFT_DISCOVERY_STORE` points elsewhere.
    and write any value in an observation's text from what the capture
    shows. A doc's summary can be wrong: `docs/PAGE_SAVE.md` called 06-types
    one save, the capture shows three.
+   A sweep's `otherTables` diff is by ROWID: Oracle can reuse a deleted
+   row's ROWID for a new row, which then shows as an update of another
+   key (r65 "removed" two fields it kept). Compare keyed sets — deleted
+   plus updated-before against inserted plus updated-after — before
+   claiming that rows were added or removed.
 8. **Select cases by what they did, not by their name.** A case family can
    hold a case of another kind (`aa01-insert-step` among the SQL-text
-   cases). The `w`-prefixed App Engine cases (`wap01`…) are
+   cases; the `r01-type-*`…`r06-type-*` cases are page-type saves, PDM). The `w`-prefixed App Engine cases (`wap01`…) are
    `tools/lab/ae-replay.mts` runs of Studio's own writer — never evidence of
-   App Designer's behavior.
+   App Designer's behavior. So are the record family's `rd` cases
+   (`rd1-native-reorder`…): saves by Studio's record writer, which updates
+   `PSRECDEFN` in place where App Designer deletes and re-inserts it.
 9. **Counter-evidence narrows the claim.** When one capture contradicts a
    fact (aa02 did not move AES), drop the fact from the assertion and say in
    the statement what is not established; never record the contradicting

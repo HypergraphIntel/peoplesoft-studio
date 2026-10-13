@@ -1,0 +1,279 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-13f37132ac91664fbbd38a05",
+  "fingerprint": "13f37132ac91664fbbd38a052eb1092575fd43c16404e6252431e3dcb46219b1",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "record",
+    "objectType": "Record",
+    "tables": [
+      "PSRECFIELD",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "PGM": 1,
+      "RDM": 1,
+      "SYS": 1,
+      "pslockCounters": "PGM,RDM",
+      "trigger": "record field or subrecord removed"
+    }
+  },
+  "title": "Removing a field or subrecord from a record moves PGM by 1 as well as RDM",
+  "statement": "A record save that leaves out a field or subrecord the record had bumps PSVERSION and PSLOCK PGM by one, besides RDM and SYS, though no component row changes. In the record-save captures PGM moved in exactly the four saves that removed a field (by the record's field set before and after, not the ROWID diff) and in none of the 40 others, inserts included. A record rename moves PGM among many counters; a record delete does not move it.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-06T22:52:48.949Z",
+      "method": "save-capture",
+      "experimentId": "r03-delete-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r03-sqltable-key-and-fields: field ZZ_PCODE_LAB_C05 removed, ZZ_PCODE_LAB_KEY and ZZ_PCODE_LAB_C02 added; PGM +1 and RDM +1 in PSVERSION and PSLOCK, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PGM": 1,
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r03-delete-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "817cc34b53be365cf39e5314fa207d0ac8432a89b2da3f8ca6abb476c411aef3"
+    },
+    {
+      "observedAt": "2026-10-07T01:04:30.000Z",
+      "method": "save-capture",
+      "experimentId": "r06-delete-field-sqltable",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r06-delete-field-sqltable: field ZZ_PCODE_LAB_C02 removed (SQL Table); PGM +1 and RDM +1 in PSVERSION and PSLOCK, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 1,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 1,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PGM": 1,
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r06-delete-field-sqltable"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "c0b05c22b1282f0c4c096727332bc7006d0261004e5e0dda8ea855f54f011ba1"
+    },
+    {
+      "observedAt": "2026-10-07T01:04:55.000Z",
+      "method": "save-capture",
+      "experimentId": "r07-delete-field-derived",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r07-delete-field-derived: field ZZ_PCODE_LAB_C05 removed (Derived/Work); PGM +1 and RDM +1 in PSVERSION and PSLOCK, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 3,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PGM": 1,
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r07-delete-field-derived"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "096c2cf6d3cc149844e0bb6887e2f3a85de02b083d9e1c5d330f423e53a67773"
+    },
+    {
+      "observedAt": "2026-10-07T18:59:25.000Z",
+      "method": "save-capture",
+      "experimentId": "r56-remove-subrecord",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r56-remove-subrecord: subrecord ABS_HIST_BELSBR removed; PGM +1 and RDM +1 in PSVERSION and PSLOCK, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 3,
+            "deleted": 4,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 3,
+            "deleted": 8,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PGM": 1,
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r56-remove-subrecord"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "fedcac7bb5569cbbaad6a3b3fb59b9806a7cc12a65467c654795912ac8550cb0"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:14:38.497Z",
+    "updatedAt": "2026-10-13T11:14:39.640Z",
+    "schemaVersion": 1
+  }
+}

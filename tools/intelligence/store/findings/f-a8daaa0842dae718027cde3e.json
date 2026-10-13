@@ -1,0 +1,369 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-a8daaa0842dae718027cde3e",
+  "fingerprint": "a8daaa0842dae718027cde3e43bf43aa6c890ce9a9d4d59636a657433875f97a",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "record",
+    "objectType": "Record",
+    "tables": [
+      "PSRECDEFN"
+    ]
+  },
+  "assertion": {
+    "kind": "referrer-version",
+    "facts": {
+      "reference": "PSRECDEFN.RELLANGRECNAME",
+      "referrerVersionIsNewCounter": true,
+      "referrerRestamped": false
+    }
+  },
+  "title": "Saving a record sets VERSION on each record that names it as Related Language record to the new RDM, without restamping",
+  "statement": "When App Designer saves a record, a record whose RELLANGRECNAME is the saved record has its PSRECDEFN.VERSION updated in place to the new RDM; no other column of it changes. An Analytic Delete (OPTDELRECNAME) reference alone does not do it (r41). Parent, query security and audit references are not observed.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T02:50:05.000Z",
+      "method": "save-capture",
+      "experimentId": "r26-derived-to-table",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r26-derived-to-table: besides the saved record, one other PSRECDEFN row updated in place, VERSION 43 -> 44 (the new RDM), no other column changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 1
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r26-derived-to-table"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "dfd2a9ad02ce202d5eef10de9f9723efe40fec11a111a6bccb538081dd3fc0d3"
+    },
+    {
+      "observedAt": "2026-10-07T02:50:18.000Z",
+      "method": "save-capture",
+      "experimentId": "r27-nonstandard-name",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r27-nonstandard-name: besides the saved record, one other PSRECDEFN row updated in place, VERSION 44 -> 45 (the new RDM), no other column changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 1
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r27-nonstandard-name"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "63f25e975a12790062d017eb1751a0cddc343586f2f41ec4ed3a35a37364e1d1"
+    },
+    {
+      "observedAt": "2026-10-07T02:50:36.000Z",
+      "method": "save-capture",
+      "experimentId": "r28-to-view",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r28-to-view: besides the saved record, one other PSRECDEFN row updated in place, VERSION 45 -> 46 (the new RDM), no other column changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 1
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDESCR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r28-to-view"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "43e6b3278c52b813e1b301a177a5320c1962b1de6e52aabf8c159424eaf6f178"
+    },
+    {
+      "observedAt": "2026-10-07T02:50:52.000Z",
+      "method": "save-capture",
+      "experimentId": "r29-materialized",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r29-materialized: besides the saved record, one other PSRECDEFN row updated in place, VERSION 46 -> 47 (the new RDM), no other column changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPTMATVWDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 1
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDESCR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r29-materialized"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "5a515378937c4d86fa42b40fa48bdc1e39677a444b56b2394979fb9d014ce677"
+    },
+    {
+      "observedAt": "2026-10-07T03:14:10.000Z",
+      "method": "save-capture",
+      "experimentId": "r32-rellang-referrer-bump",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r32-rellang-referrer-bump: besides the saved record, one other PSRECDEFN row updated in place, VERSION 50 -> 51 (the new RDM), no other column changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPTMATVWDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 1
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r32-rellang-referrer-bump"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "6c0f4b868c0307398536656c39530bc89059cbff3420388fc14eb9fea842dff8"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:12:38.461Z",
+    "updatedAt": "2026-10-13T11:12:40.092Z",
+    "schemaVersion": 1
+  }
+}

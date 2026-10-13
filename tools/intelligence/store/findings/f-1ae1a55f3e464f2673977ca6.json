@@ -1,0 +1,2562 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-1ae1a55f3e464f2673977ca6",
+  "fingerprint": "1ae1a55f3e464f2673977ca66f35aa0e0265308ed1af75308cb985b7ed3e69b4",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "record",
+    "objectType": "Record",
+    "tables": [
+      "PSRECDEFN",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "counter": "RDM",
+      "psversionStep": 1,
+      "pslockStep": 1,
+      "sysStep": 1,
+      "versionColumn": "PSRECDEFN.VERSION",
+      "versionIsNewCounter": true
+    }
+  },
+  "title": "An App Designer record save moves RDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSRECDEFN.VERSION is the new RDM",
+  "statement": "Saving a record definition in Application Designer, new (Save As) or changed, bumps PSVERSION and PSLOCK OBJECTTYPENAME RDM by one and PSVERSION SYS by one, and writes PSRECDEFN.VERSION as the new RDM value. Observed for field reorder, key, search, edit, default, label, Record Properties, audit, timestamp, record type, In-Memory and Save As saves. A save can move other counters as well: PGM when a field is removed, SRM when the record's SQL rows are written. Rename and delete are separate findings; windows that held two saves (RDM +2) are not covered.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-06T22:34:19.629Z",
+      "method": "save-capture",
+      "experimentId": "r01-reorder-fields",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r01-reorder-fields: RDM +1 in PSVERSION and PSLOCK (to 7), SYS +1; the saved record's PSRECDEFN row written with VERSION 7.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r01-reorder-fields"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "daac309773573925fbd473d29325efc7ac2df62b10b46dce6af90dd8fcda13cc"
+    },
+    {
+      "observedAt": "2026-10-07T01:03:58.000Z",
+      "method": "save-capture",
+      "experimentId": "r04-listbox-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r04-listbox-off: RDM +1 in PSVERSION and PSLOCK (to 11), SYS +1; the saved record's PSRECDEFN row written with VERSION 11.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r04-listbox-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "9f621ad5e19ed90879dd1d9aa5468032803d0c68f52f44c5db65bba7f690abb6"
+    },
+    {
+      "observedAt": "2026-10-07T01:04:12.000Z",
+      "method": "save-capture",
+      "experimentId": "r05-key-ascending",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r05-key-ascending: RDM +1 in PSVERSION and PSLOCK (to 12), SYS +1; the saved record's PSRECDEFN row written with VERSION 12.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r05-key-ascending"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "ee16c51a0934320113fbe9e85ca6e563462dd617010c1a1edd04789cac9c5a99"
+    },
+    {
+      "observedAt": "2026-10-07T01:39:00.000Z",
+      "method": "save-capture",
+      "experimentId": "r08-search-key-dup-order",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r08-search-key-dup-order: RDM +1 in PSVERSION and PSLOCK (to 21), SYS +1; the saved record's PSRECDEFN row written with VERSION 21.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 8,
+            "deleted": 8,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 8,
+            "deleted": 8,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r08-search-key-dup-order"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "040abfb3eebbe99618d42ac705494eeae49d49d8a82b7f0a8b1bf7fff3a65e16"
+    },
+    {
+      "observedAt": "2026-10-07T01:39:35.000Z",
+      "method": "save-capture",
+      "experimentId": "r09-search-audit-system",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r09-search-audit-system: RDM +1 in PSVERSION and PSLOCK (to 22), SYS +1; the saved record's PSRECDEFN row written with VERSION 22.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 8,
+            "deleted": 8,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 8,
+            "deleted": 8,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r09-search-audit-system"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "bde5f50b3ed44b367700a53ec44803bcc130455cdabb294ed9e1078b20e246a6"
+    },
+    {
+      "observedAt": "2026-10-07T01:52:30.000Z",
+      "method": "save-capture",
+      "experimentId": "r10-do-not-trace-auto-update",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r10-do-not-trace-auto-update: RDM +1 in PSVERSION and PSLOCK (to 29), SYS +1; the saved record's PSRECDEFN row written with VERSION 29.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r10-do-not-trace-auto-update"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "7679a6c65689058b4594bd03710b4a6cc1b6f702d64bde87808f1b8f9d40fa47"
+    },
+    {
+      "observedAt": "2026-10-07T01:50:12.000Z",
+      "method": "save-capture",
+      "experimentId": "r11-default-search-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r11-default-search-field: RDM +1 in PSVERSION and PSLOCK (to 26), SYS +1; the saved record's PSRECDEFN row written with VERSION 26.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r11-default-search-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "354759b9009402da82b023fa87e4e7680e130bd10ffee92950f597fe194d36ad"
+    },
+    {
+      "observedAt": "2026-10-07T01:49:58.000Z",
+      "method": "save-capture",
+      "experimentId": "r12-search-edit",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r12-search-edit: RDM +1 in PSVERSION and PSLOCK (to 25), SYS +1; the saved record's PSRECDEFN row written with VERSION 25.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r12-search-edit"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "3dcaf74b137406b14e64f650f81bf7e358dfc4c64a1da5aca1e284ff52e8cf16"
+    },
+    {
+      "observedAt": "2026-10-07T01:50:23.000Z",
+      "method": "save-capture",
+      "experimentId": "r13-disable-advanced-search",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r13-disable-advanced-search: RDM +1 in PSVERSION and PSLOCK (to 27), SYS +1; the saved record's PSRECDEFN row written with VERSION 27.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r13-disable-advanced-search"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "bbd1891eeca105122af2d304ba183a1202f5dc708f8875d60c296baaa1a0ba0d"
+    },
+    {
+      "observedAt": "2026-10-07T01:50:45.000Z",
+      "method": "save-capture",
+      "experimentId": "r14-allow-search-events",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r14-allow-search-events: RDM +1 in PSVERSION and PSLOCK (to 28), SYS +1; the saved record's PSRECDEFN row written with VERSION 28.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r14-allow-search-events"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "fee3c5b7862882d0222a95ffca721b34e6ad9a3660b77a2ee38174fd117bfa2b"
+    },
+    {
+      "observedAt": "2026-10-07T02:07:22.000Z",
+      "method": "save-capture",
+      "experimentId": "r15-edits-defaults-label",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r15-edits-defaults-label: RDM +1 in PSVERSION and PSLOCK (to 31), SYS +1; the saved record's PSRECDEFN row written with VERSION 31.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r15-edits-defaults-label"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "edc27b5d819269ce08ae34d48e833c680bee131e297891b0e0afa7e44fb808e5"
+    },
+    {
+      "observedAt": "2026-10-07T02:07:40.000Z",
+      "method": "save-capture",
+      "experimentId": "r16-yes-no-smart",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r16-yes-no-smart: RDM +1 in PSVERSION and PSLOCK (to 32), SYS +1; the saved record's PSRECDEFN row written with VERSION 32.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r16-yes-no-smart"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "b4b594d165b0ca01b3ca6118012e8e7db0fdf1c13cd5009638cd8471efabb0fe"
+    },
+    {
+      "observedAt": "2026-10-07T02:33:25.000Z",
+      "method": "save-capture",
+      "experimentId": "r17-appdesigner-resave",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r17-appdesigner-resave: RDM +1 in PSVERSION and PSLOCK (to 34), SYS +1; the saved record's PSRECDEFN row written with VERSION 34.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r17-appdesigner-resave"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "768468ccba4aed1369ba789a15066666a959fdc3dfee7ff075b8fe6c3acdf5e2"
+    },
+    {
+      "observedAt": "2026-10-07T02:34:00.000Z",
+      "method": "save-capture",
+      "experimentId": "r18-record-general",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r18-record-general: RDM +1 in PSVERSION and PSLOCK (to 35), SYS +1; the saved record's PSRECDEFN row written with VERSION 35.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r18-record-general"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "2ec6e6f784d8ab043cc4cd785004a9e87cd051a878bc6283e42c75fe2cc48c60"
+    },
+    {
+      "observedAt": "2026-10-07T02:35:50.000Z",
+      "method": "save-capture",
+      "experimentId": "r19-record-use-columns",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r19-record-use-columns: RDM +1 in PSVERSION and PSLOCK (to 36), SYS +1; the saved record's PSRECDEFN row written with VERSION 36.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r19-record-use-columns"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "df97278e97bedcfd3b0865c3350bd3143f1b80d3ce07f0afbb5b581e0dc42bff"
+    },
+    {
+      "observedAt": "2026-10-07T02:50:05.000Z",
+      "method": "save-capture",
+      "experimentId": "r26-derived-to-table",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r26-derived-to-table: RDM +1 in PSVERSION and PSLOCK (to 44), SYS +1; the saved record's PSRECDEFN row written with VERSION 44.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 1
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r26-derived-to-table"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "4ef230c9e7671dad94fc67be7b1312336b37b1e8877bac5c35ceb1c3a628cb65"
+    },
+    {
+      "observedAt": "2026-10-07T02:50:18.000Z",
+      "method": "save-capture",
+      "experimentId": "r27-nonstandard-name",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r27-nonstandard-name: RDM +1 in PSVERSION and PSLOCK (to 45), SYS +1; the saved record's PSRECDEFN row written with VERSION 45.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 1
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r27-nonstandard-name"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "a60c43c36d90d5db7ffb2b468fc49bd5a5f74a5396cb7294295ba8290645e0e0"
+    },
+    {
+      "observedAt": "2026-10-07T02:52:20.000Z",
+      "method": "save-capture",
+      "experimentId": "r30-saveas-temp",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r30-saveas-temp: RDM +1 in PSVERSION and PSLOCK (to 48), SYS +1; the saved record's PSRECDEFN row written with VERSION 48.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r30-saveas-temp"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "a1b20c4223b9b928f126c2b6e087c16aef6eb7e3efd709caaef06e44432881e3"
+    },
+    {
+      "observedAt": "2026-10-07T02:52:50.000Z",
+      "method": "save-capture",
+      "experimentId": "r31-saveas-gtt",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r31-saveas-gtt: RDM +1 in PSVERSION and PSLOCK (to 49), SYS +1; the saved record's PSRECDEFN row written with VERSION 49.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r31-saveas-gtt"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "e7ff88c3acf51eb3313d623c98a094419706c4199667a1a3cb0b9c5a6d3a11eb"
+    },
+    {
+      "observedAt": "2026-10-07T03:14:10.000Z",
+      "method": "save-capture",
+      "experimentId": "r32-rellang-referrer-bump",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r32-rellang-referrer-bump: RDM +1 in PSVERSION and PSLOCK (to 51), SYS +1; the saved record's PSRECDEFN row written with VERSION 51.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPTMATVWDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 1
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r32-rellang-referrer-bump"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "51d772f82e3c6acb9d823a7ed6d365b240e54e6ba251a341d80ab12891296359"
+    },
+    {
+      "observedAt": "2026-10-07T03:15:30.000Z",
+      "method": "save-capture",
+      "experimentId": "r35-saveas-record",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r35-saveas-record: RDM +1 in PSVERSION and PSLOCK (to 52), SYS +1; the saved record's PSRECDEFN row written with VERSION 52.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r35-saveas-record"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "1bbd069cb2592faac0cc38ecde21230738589429f6804cd56aaf13a08526e234"
+    },
+    {
+      "observedAt": "2026-10-07T03:29:30.000Z",
+      "method": "save-capture",
+      "experimentId": "r41-optdel-referrer",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r41-optdel-referrer: RDM +1 in PSVERSION and PSLOCK (to 58), SYS +1; the saved record's PSRECDEFN row written with VERSION 58.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPTMATVWDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r41-optdel-referrer"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "2fcf697ba4b998ddac440b620a141a61ae7c5f2cbbb421b8863650dd21c2fdc9"
+    },
+    {
+      "observedAt": "2026-10-07T16:51:20.000Z",
+      "method": "save-capture",
+      "experimentId": "r45-remove-last-key",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r45-remove-last-key: RDM +1 in PSVERSION and PSLOCK (to 90), SYS +1; the saved record's PSRECDEFN row written with VERSION 90.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r45-remove-last-key"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "eee568d76de7a45395616eed6f86d8b8d759e006b5f6f135bf1d0d4406f8177c"
+    },
+    {
+      "observedAt": "2026-10-07T16:51:45.000Z",
+      "method": "save-capture",
+      "experimentId": "r46-table-to-derived",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r46-table-to-derived: RDM +1 in PSVERSION and PSLOCK (to 91), SYS +1; the saved record's PSRECDEFN row written with VERSION 91.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r46-table-to-derived"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "07a6448e4ae2292474f4264e7e3743306d27dbe618079ce98675e53151ccd9ff"
+    },
+    {
+      "observedAt": "2026-10-07T16:52:20.000Z",
+      "method": "save-capture",
+      "experimentId": "r47-recreate-deleted",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r47-recreate-deleted: RDM +1 in PSVERSION and PSLOCK (to 92), SYS +1; the saved record's PSRECDEFN row written with VERSION 92.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r47-recreate-deleted"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "2470d01aca9dff77a0bf0a25f115433359f3d73b1389d2092528b3d5466ce815"
+    },
+    {
+      "observedAt": "2026-10-07T16:53:15.000Z",
+      "method": "save-capture",
+      "experimentId": "r48-t-save",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r48-t-save: RDM +1 in PSVERSION and PSLOCK (to 93), SYS +1; the saved record's PSRECDEFN row written with VERSION 93.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPTMATVWDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r48-t-save"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "c12c065ccdedf8c52e2a77bd0f0ad8a9a1ef5aed2b0b86bb732f39e20d11bde4"
+    },
+    {
+      "observedAt": "2026-10-07T16:53:45.000Z",
+      "method": "save-capture",
+      "experimentId": "r49-audit-record",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r49-audit-record: RDM +1 in PSVERSION and PSLOCK (to 94), SYS +1; the saved record's PSRECDEFN row written with VERSION 94.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r49-audit-record"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "7b17ada251aee51ab7a87c0d9de1041958d1d6ab481d92aae3efb12ec5c1cc69"
+    },
+    {
+      "observedAt": "2026-10-07T16:54:05.000Z",
+      "method": "save-capture",
+      "experimentId": "r50-r4-add-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r50-r4-add-field: RDM +1 in PSVERSION and PSLOCK (to 95), SYS +1; the saved record's PSRECDEFN row written with VERSION 95.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r50-r4-add-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "a869c6c141aeca6c10f82a5c7afffa46174cd1297ff65951dc51c58cf583fc97"
+    },
+    {
+      "observedAt": "2026-10-07T16:54:20.000Z",
+      "method": "save-capture",
+      "experimentId": "r51-timestamp-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r51-timestamp-field: RDM +1 in PSVERSION and PSLOCK (to 96), SYS +1; the saved record's PSRECDEFN row written with VERSION 96.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r51-timestamp-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "4a24878794ee2c0c14b9e7166234fe0c1048cb14258a7de5c02be7516ca7ff10"
+    },
+    {
+      "observedAt": "2026-10-07T18:58:20.000Z",
+      "method": "save-capture",
+      "experimentId": "r54-system-id-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r54-system-id-field: RDM +1 in PSVERSION and PSLOCK (to 113), SYS +1; the saved record's PSRECDEFN row written with VERSION 113.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 4,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 4,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r54-system-id-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "116ad9aa41f4c0fbdf02d418169f05ec75c71f8dbd44ec03c5d7cbd90b3426a3"
+    },
+    {
+      "observedAt": "2026-10-07T18:59:00.000Z",
+      "method": "save-capture",
+      "experimentId": "r55-alt-search-key",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r55-alt-search-key: RDM +1 in PSVERSION and PSLOCK (to 114), SYS +1; the saved record's PSRECDEFN row written with VERSION 114.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 6,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 13,
+            "deleted": 13,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 13,
+            "deleted": 13,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r55-alt-search-key"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "31776eb2989bf15df450996874467397a365fd6202f18a5774d6a5edda37604e"
+    },
+    {
+      "observedAt": "2026-10-07T19:24:27.000Z",
+      "method": "save-capture",
+      "experimentId": "r61-table-to-derived",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r61-table-to-derived: RDM +1 in PSVERSION and PSLOCK (to 127), SYS +1; the saved record's PSRECDEFN row written with VERSION 127.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 4,
+            "deleted": 4,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 4,
+            "deleted": 4,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r61-table-to-derived"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "04792e391243b478d6bacfb9470127c8dd86d260fc579a32681f14233ed3c233"
+    },
+    {
+      "observedAt": "2026-10-07T19:24:40.000Z",
+      "method": "save-capture",
+      "experimentId": "r62-derived-to-dynamic",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r62-derived-to-dynamic: RDM +1 in PSVERSION and PSLOCK (to 128), SYS +1; the saved record's PSRECDEFN row written with VERSION 128.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 4,
+            "deleted": 4,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 4,
+            "deleted": 4,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r62-derived-to-dynamic"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "453134d8ce0a20abec32a0673f1b05827ca12018985822807244e26a0fd46b2e"
+    },
+    {
+      "observedAt": "2026-10-07T19:27:15.000Z",
+      "method": "save-capture",
+      "experimentId": "r63-temp-to-table-inmemory",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r63-temp-to-table-inmemory: RDM +1 in PSVERSION and PSLOCK (to 129), SYS +1; the saved record's PSRECDEFN row written with VERSION 129.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r63-temp-to-table-inmemory"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "62ea7bd534921aa0f66cda3b0aeb490f0a72e2a4e560a807a187b264b5fb8da5"
+    },
+    {
+      "observedAt": "2026-10-07T19:42:20.000Z",
+      "method": "save-capture",
+      "experimentId": "r66-inmemory-3",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r66-inmemory-3: RDM +1 in PSVERSION and PSLOCK (to 136), SYS +1; the saved record's PSRECDEFN row written with VERSION 136.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 9,
+            "deleted": 9,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 13,
+            "deleted": 13,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 13,
+            "deleted": 13,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r66-inmemory-3"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "0e701051f24eff9c7ce2fe21630952f0aa4f5b7aadc2102876db4981508c28c6"
+    },
+    {
+      "observedAt": "2026-10-07T19:48:40.000Z",
+      "method": "save-capture",
+      "experimentId": "r67-inmemory-all",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r67-inmemory-all: RDM +1 in PSVERSION and PSLOCK (to 137), SYS +1; the saved record's PSRECDEFN row written with VERSION 137.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r67-inmemory-all"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "3c1609b64093346315b7eccfefe5231385e891ba4241507b58ac250ec0031c92"
+    },
+    {
+      "observedAt": "2026-10-07T19:54:40.000Z",
+      "method": "save-capture",
+      "experimentId": "r68-inmemory-dnt",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r68-inmemory-dnt: RDM +1 in PSVERSION and PSLOCK (to 138), SYS +1; the saved record's PSRECDEFN row written with VERSION 138.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r68-inmemory-dnt"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "9646aaf6b646579b6f1df27eb896db90c7cf2f541844168130f058af093ca0d5"
+    },
+    {
+      "observedAt": "2026-10-07T19:55:25.000Z",
+      "method": "save-capture",
+      "experimentId": "r69-inmemory-reopen",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r69-inmemory-reopen: RDM +1 in PSVERSION and PSLOCK (to 139), SYS +1; the saved record's PSRECDEFN row written with VERSION 139.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r69-inmemory-reopen"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "52ad43491ab77d1f0a71bdfcdedeb5d62ffa571e19d2b94ab8d4a809ad82e2df"
+    },
+    {
+      "observedAt": "2026-10-07T19:55:46.000Z",
+      "method": "save-capture",
+      "experimentId": "r70-inmemory-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r70-inmemory-off: RDM +1 in PSVERSION and PSLOCK (to 140), SYS +1; the saved record's PSRECDEFN row written with VERSION 140.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r70-inmemory-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "d514f49c329b6054ab61b85f83ca812ae97e42c3471a48a77a4158335a2cc8c5"
+    },
+    {
+      "observedAt": "2026-10-07T19:56:05.000Z",
+      "method": "save-capture",
+      "experimentId": "r71-inmemory-selective",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r71-inmemory-selective: RDM +1 in PSVERSION and PSLOCK (to 141), SYS +1; the saved record's PSRECDEFN row written with VERSION 141.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r71-inmemory-selective"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "886bc1f1e3dc28ef1e450fe679e4d4b0ab2fb2c7ca604db696125af73c4e701c"
+    },
+    {
+      "observedAt": "2026-10-07T19:56:50.000Z",
+      "method": "save-capture",
+      "experimentId": "r72-inmemory-fields",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r72-inmemory-fields: RDM +1 in PSVERSION and PSLOCK (to 142), SYS +1; the saved record's PSRECDEFN row written with VERSION 142.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r72-inmemory-fields"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "28afb4c624a665c411b43dd157bdc1bad13bf56bb24b785db4d1535d6c4cae33"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:11:18.875Z",
+    "updatedAt": "2026-10-13T11:11:34.613Z",
+    "schemaVersion": 1
+  }
+}

@@ -1,0 +1,477 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-641fe0bd360226a91e455c39",
+  "fingerprint": "641fe0bd360226a91e455c3920e8a4e6d0351b5555c83dd43500a785940f9c3f",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "record",
+    "objectType": "Record",
+    "tables": [
+      "PSRECDEFN",
+      "PSRECFIELD",
+      "PSRECFIELDDB"
+    ]
+  },
+  "assertion": {
+    "kind": "physical-rewrite",
+    "facts": {
+      "tables": "PSRECDEFN,PSRECFIELD,PSRECFIELDDB",
+      "everyRowDeletedAndReinsertedOnSave": true,
+      "evidence": "ROWID diff"
+    }
+  },
+  "title": "An App Designer record save deletes and re-inserts the PSRECDEFN row and every PSRECFIELD and PSRECFIELDDB row of the record",
+  "statement": "On Save, App Designer physically rewrites the record: the PSRECDEFN row and every PSRECFIELD and PSRECFIELDDB row get new ROWIDs, changed or not. Inferred from flashback ROWID diffs. Stamps are not part of this claim: across the single-save record captures most unchanged rows kept LASTUPDDTTM (202 of 204), but rows whose USEEDIT / USEEDIT2 bits App Designer set itself from a record-level setting (Timestamp Field Auto-Update, In-Memory) also kept it, so \"restamped exactly when changed\" does not hold.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-06T22:34:19.629Z",
+      "method": "save-capture",
+      "experimentId": "r01-reorder-fields",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r01-reorder-fields: PSRECDEFN 1 deleted / 1 inserted, PSRECFIELD 2/2, PSRECFIELDDB 2/2 (deleted / inserted by ROWID), no in-place updates; the record had 2 fields and kept them.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r01-reorder-fields"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "b94e494b635e46d4f2eaf9f1e6a9cb64b2cc7181c7a4d11e8987b40096fb77ec"
+    },
+    {
+      "observedAt": "2026-10-07T01:03:58.000Z",
+      "method": "save-capture",
+      "experimentId": "r04-listbox-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r04-listbox-off: PSRECDEFN 1 deleted / 1 inserted, PSRECFIELD 2/2, PSRECFIELDDB 2/2 (deleted / inserted by ROWID), no in-place updates; the record had 2 fields and kept them.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r04-listbox-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "baa09106cd16429bada6b47dfb79855b5d16bed2e0e529ce6687a1fa800cda66"
+    },
+    {
+      "observedAt": "2026-10-07T02:33:25.000Z",
+      "method": "save-capture",
+      "experimentId": "r17-appdesigner-resave",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r17-appdesigner-resave: PSRECDEFN 1 deleted / 1 inserted, PSRECFIELD 10/10, PSRECFIELDDB 10/10 (deleted / inserted by ROWID), no in-place updates; the record had 10 fields and kept them.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r17-appdesigner-resave"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "1b58838e5dda51f2cf51212e7aea7ccf50fdf4700d0e392b81a7c9f2bbf050eb"
+    },
+    {
+      "observedAt": "2026-10-07T02:34:00.000Z",
+      "method": "save-capture",
+      "experimentId": "r18-record-general",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r18-record-general: PSRECDEFN 1 deleted / 1 inserted, PSRECFIELD 10/10, PSRECFIELDDB 10/10 (deleted / inserted by ROWID), no in-place updates; the record had 10 fields and kept them.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r18-record-general"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "ae2cc997de5a26c65d996f43a4db87bb651f5a9aec2232f043e88883f0ec1c87"
+    },
+    {
+      "observedAt": "2026-10-07T02:35:50.000Z",
+      "method": "save-capture",
+      "experimentId": "r19-record-use-columns",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r19-record-use-columns: PSRECDEFN 1 deleted / 1 inserted, PSRECFIELD 10/10, PSRECFIELDDB 10/10 (deleted / inserted by ROWID), no in-place updates; the record had 10 fields and kept them.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r19-record-use-columns"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "2d2d093578a9e7c1c150255d09850ff82408a9805542c7def015bdaa24680faa"
+    },
+    {
+      "observedAt": "2026-10-07T16:53:45.000Z",
+      "method": "save-capture",
+      "experimentId": "r49-audit-record",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r49-audit-record: PSRECDEFN 1 deleted / 1 inserted, PSRECFIELD 2/2, PSRECFIELDDB 2/2 (deleted / inserted by ROWID), no in-place updates; the record had 2 fields and kept them.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r49-audit-record"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "be6202fc06b9b6ebb913d5e0e191882effa1e958220635e05d56bcc34b02dbe5"
+    },
+    {
+      "observedAt": "2026-10-07T19:48:40.000Z",
+      "method": "save-capture",
+      "experimentId": "r67-inmemory-all",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r67-inmemory-all: PSRECDEFN 1 deleted / 1 inserted, PSRECFIELD 10/10, PSRECFIELDDB 10/10 (deleted / inserted by ROWID), no in-place updates; the record had 10 fields and kept them.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 10,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r67-inmemory-all"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "c7e4a686fbb8d4777148fa02b9b2bb6c6c6068e97e31f3b341dc9a706d40767b"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:12:34.170Z",
+    "updatedAt": "2026-10-13T11:12:36.514Z",
+    "schemaVersion": 1
+  }
+}

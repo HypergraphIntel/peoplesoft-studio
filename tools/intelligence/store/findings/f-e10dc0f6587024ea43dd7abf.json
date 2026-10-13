@@ -1,0 +1,282 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-e10dc0f6587024ea43dd7abf",
+  "fingerprint": "e10dc0f6587024ea43dd7abfd6727bb023c3663406d83d29fe582073e7aca13a",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "field",
+    "objectType": "Translate values",
+    "tables": [
+      "PSXLATDEFN",
+      "PSXLATITEM",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "XTM": 1,
+      "PDM": 1,
+      "SYS": 1,
+      "pslockCounters": "PDM,XTM",
+      "versionColumn": "PSXLATDEFN.VERSION",
+      "versionIsNewCounter": "XTM"
+    }
+  },
+  "title": "A translate value save moves XTM and PDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSXLATDEFN.VERSION is the new XTM",
+  "statement": "Saving a field's translate values in App Designer (add, change, delete one) bumps PSVERSION and PSLOCK XTM and PDM by one and PSVERSION SYS by one, and rewrites the field's PSXLATDEFN row with VERSION = the new XTM. Why PDM moves is not established.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T03:17:00.000Z",
+      "method": "save-capture",
+      "experimentId": "r37-translate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r37-translate: XTM +1 (to 2) and PDM +1 in PSVERSION and PSLOCK, SYS +1; PSXLATDEFN written with VERSION 2.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSSYSTEMID",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSXLATDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSXLATITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1,
+          "XTM": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r37-translate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "da16480980731f3386123ea2aa6ad7e988551c0bdbe64a6e4072a03da0c76138"
+    },
+    {
+      "observedAt": "2026-10-07T03:27:55.000Z",
+      "method": "save-capture",
+      "experimentId": "r38-translate-change",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r38-translate-change: XTM +1 (to 3) and PDM +1 in PSVERSION and PSLOCK, SYS +1; PSXLATDEFN written with VERSION 3.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSXLATDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1,
+          "XTM": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r38-translate-change"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "46a1fc9f96d09c9356294cc43c60e201c246dd76da766f596c2603650a368ee5"
+    },
+    {
+      "observedAt": "2026-10-07T03:56:08.000Z",
+      "method": "save-capture",
+      "experimentId": "r42-translate-readd",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r42-translate-readd: XTM +1 (to 11) and PDM +1 in PSVERSION and PSLOCK, SYS +1; PSXLATDEFN written with VERSION 11.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSSYSTEMID",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSXLATDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSXLATDEFNDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSXLATITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1,
+          "XTM": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r42-translate-readd"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "8d1159d3cc3f58385259e1504aa6e756c050c130f71207b4deb3b02dd8a25ecf"
+    },
+    {
+      "observedAt": "2026-10-07T03:56:25.000Z",
+      "method": "save-capture",
+      "experimentId": "r43-translate-second",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r43-translate-second: XTM +1 (to 12) and PDM +1 in PSVERSION and PSLOCK, SYS +1; PSXLATDEFN written with VERSION 12.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSSYSTEMID",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSXLATDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSXLATITEM",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1,
+          "XTM": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r43-translate-second"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "75decab92d70c8c07779008d2d8aeb9a7804ba3cfc86d892336b9bef24319b03"
+    },
+    {
+      "observedAt": "2026-10-07T03:56:45.000Z",
+      "method": "save-capture",
+      "experimentId": "r44-translate-delete-one",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r44-translate-delete-one: XTM +1 (to 13) and PDM +1 in PSVERSION and PSLOCK, SYS +1; PSXLATDEFN written with VERSION 13.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSXLATDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSXLATITEM",
+            "inserted": 1,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1,
+          "XTM": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r44-translate-delete-one"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "73bcc8bb858c7cd2bafe9187136a1bba3dbb9ed47f3ecbd6c9f0744d647e200f"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:14:45.490Z",
+    "updatedAt": "2026-10-13T11:14:47.017Z",
+    "schemaVersion": 1
+  }
+}

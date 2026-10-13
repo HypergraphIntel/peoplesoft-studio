@@ -1,0 +1,199 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-633064c7628c8b8f0fd8dd36",
+  "fingerprint": "633064c7628c8b8f0fd8dd360e8781d5276c8f25e145081ef975d1630d2220b5",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "field",
+    "objectType": "Translate values",
+    "tables": [
+      "PSXLATITEM",
+      "PSSYSTEMID"
+    ]
+  },
+  "assertion": {
+    "kind": "id-allocation",
+    "facts": {
+      "column": "PSXLATITEM.SYNCID",
+      "source": "PSSYSTEMID.PTNEXTSYSTEMID",
+      "step": 1,
+      "syncIdIsNewValue": true,
+      "keptOnRewrite": true
+    }
+  },
+  "title": "A new translate value takes SYNCID from PSSYSTEMID.PTNEXTSYSTEMID, advanced by 1; rewritten values keep theirs",
+  "statement": "When App Designer saves a new translate value, PSSYSTEMID.PTNEXTSYSTEMID is advanced by one and the new PSXLATITEM row takes the advanced value as SYNCID. Values re-written by the same save keep their SYNCID and stamp.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T03:17:00.000Z",
+      "method": "save-capture",
+      "experimentId": "r37-translate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r37-translate: PTNEXTSYSTEMID 63598 -> 63599; the new PSXLATITEM row has SYNCID 63599.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSSYSTEMID",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSXLATDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSXLATITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1,
+          "XTM": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r37-translate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "a7d6e9c245a9fa9e9fca681ba2d96fd4bc7a27a982c94119866c4b66bbe1f38a"
+    },
+    {
+      "observedAt": "2026-10-07T03:56:08.000Z",
+      "method": "save-capture",
+      "experimentId": "r42-translate-readd",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r42-translate-readd: PTNEXTSYSTEMID 63601 -> 63602; the new PSXLATITEM row has SYNCID 63602.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSSYSTEMID",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSXLATDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSXLATDEFNDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSXLATITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1,
+          "XTM": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r42-translate-readd"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "7fd1e1acb5f10df68377fbbdbe7ea6a230de1455007a3f5da743a3e26a3966b2"
+    },
+    {
+      "observedAt": "2026-10-07T03:56:25.000Z",
+      "method": "save-capture",
+      "experimentId": "r43-translate-second",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r43-translate-second: PTNEXTSYSTEMID 63602 -> 63603; the new PSXLATITEM row has SYNCID 63603; 1 rewritten value(s) kept SYNCID and stamp.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSSYSTEMID",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSXLATDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSXLATITEM",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1,
+          "XTM": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r43-translate-second"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "c9c9b12992b47c91cab873b90180aecb5ef89695a60ea6c9de7732c58c56b4c4"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:12:45.983Z",
+    "updatedAt": "2026-10-13T11:12:46.794Z",
+    "schemaVersion": 1
+  }
+}

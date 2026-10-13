@@ -1,0 +1,103 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-df985b98ec0473885077bd9b",
+  "fingerprint": "df985b98ec0473885077bd9b536160dac29b3b41accfa44b8b97cc8e866370b0",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "record",
+    "objectType": "Record",
+    "tables": [
+      "PSRECDEL",
+      "PSRECDEFN"
+    ]
+  },
+  "assertion": {
+    "kind": "tombstone",
+    "facts": {
+      "table": "PSRECDEL",
+      "deletedWhenNameReused": true
+    }
+  },
+  "title": "Saving a new record under a deleted record's name deletes that name's PSRECDEL row",
+  "statement": "When App Designer saves a new record whose name has a PSRECDEL row, the PSRECDEL row is deleted in the same save and the record is written as a new one (RDM +1).",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T16:52:20.000Z",
+      "method": "save-capture",
+      "experimentId": "r47-recreate-deleted",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r47-recreate-deleted: the name's PSRECDEL row (VERSION 60) deleted; PSRECDEFN, PSRECFIELD 2/0, PSRECFIELDDB 2/0, PSRECTBLSPC inserted; RDM +1 to 92.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r47-recreate-deleted"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "266c2c708686af41f8d154f25fd43b06628f707799ef09f93fe7c54c09a2894c"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:12:48.338Z",
+    "updatedAt": "2026-10-13T11:12:48.338Z",
+    "schemaVersion": 1
+  }
+}

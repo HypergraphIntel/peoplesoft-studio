@@ -1,0 +1,123 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-a4f8562daa47bf2f893a75a5",
+  "fingerprint": "a4f8562daa47bf2f893a75a5cdc1c86112b899d07a10f529a7f4865ccc50661c",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "record",
+    "objectType": "Record",
+    "tables": [
+      "PSRECDEL",
+      "PSRECDEFN",
+      "PSVERSION",
+      "PSLOCK"
+    ]
+  },
+  "assertion": {
+    "kind": "delete",
+    "facts": {
+      "counters": "RDM,AEM",
+      "psversionStep": 1,
+      "pslockStep": 1,
+      "sysStep": 1,
+      "tombstone": "PSRECDEL",
+      "tombstoneVersionIsNewCounter": "RDM",
+      "tableDropped": false
+    }
+  },
+  "title": "Deleting a record moves RDM and AEM by 1 and SYS by 1, and writes PSRECDEL at the new RDM",
+  "statement": "App Designer's record delete removes every PSRECDEFN, PSRECFIELD, PSRECFIELDDB, PSINDEXDEFN, PSKEYDEFN and PSRECTBLSPC row of the record, inserts PSRECDEL with VERSION = the new RDM, and bumps PSVERSION and PSLOCK RDM and AEM by one and PSVERSION SYS by one. Why AEM moves is not established. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T03:28:40.000Z",
+      "method": "save-capture",
+      "experimentId": "r40-record-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r40-record-delete: PSRECDEFN 0/1, PSRECFIELD 0/10, PSRECFIELDDB 0/10, PSINDEXDEFN, PSKEYDEFN, PSRECTBLSPC 0/1 (inserted / deleted); PSRECDEL inserted with VERSION 56; RDM +1 and AEM +1 in PSVERSION and PSLOCK, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSINDEXDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSKEYDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 0,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 0,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r40-record-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "3c88ef5e3f48592659676122ee6f3f1fb3e47d71360bc6fb2c5125f6aa76e8e2"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:12:47.956Z",
+    "updatedAt": "2026-10-13T11:12:47.956Z",
+    "schemaVersion": 1
+  }
+}

@@ -121,7 +121,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 
 ## Recorded findings (tools/intelligence/store)
 
-35 findings, 207 observations, each checked against its capture rows before recording (2026-10-13; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
+48 findings, 286 observations, each checked against its capture rows before recording (2026-10-13; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
 
 | Subsystem | ID | Claim | Status | Obs. |
 |---|---|---|---|---|
@@ -143,6 +143,9 @@ fingerprint; server: see `server/intelligence/README.md`.
 | event-mapping | f-7e8ece79e395dbb863bc93e5 | Defining a related content service moves RCSDM by 1 in PSVERSION but by 2 in PSLOCK | observed | 1 |
 | event-mapping | f-ad18a114ff35fcdc4d8920ef | PeopleSoft Studio's Event Mapping writer writes what the Configure Event Mapping page writes | observed | 1 |
 | event-mapping | f-e3a3f17f095c20582322485d | The fluid Configure Event Mapping page re-saves every row on Save | reproduced | 3 |
+| field | f-1d79752a8a48303988b8c2ab | Deleting a field's last translate value leaves a PSXLATDEFNDEL row at that save's XTM; adding a value again deletes it | reproduced | 2 |
+| field | f-633064c7628c8b8f0fd8dd36 | A new translate value takes SYNCID from PSSYSTEMID.PTNEXTSYSTEMID, advanced by 1; rewritten values keep theirs | reproduced | 3 |
+| field | f-e10dc0f6587024ea43dd7abf | A translate value save moves XTM and PDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSXLATDEFN.VERSION is the new XTM | reproduced | 5 |
 | menu | f-2485f61a61fab9e7ed10364d | File > Delete of a menu moves CLM, MDM and SYS by 1 | observed | 1 |
 | menu | f-6be47b7e2ae3c56a70dc07c4 | File > Rename of a menu moves TSTM, ACM, CLM, MDM, PCM, PJM, SYS and TSM by 1 each | reproduced | 2 |
 | menu | f-747bf896569263b485e2c14c | Deleting or cutting a menu item (not a separator) or bar moves CLM by 1, with MDM and SYS | reproduced | 4 |
@@ -160,14 +163,26 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-bb18f22a884a893c5c6a9e15 | A new page control takes PNLFLDID = MAXPNLFLDID + 1; MAXPNLFLDID never goes down, deleted ids are not reused | reproduced | 4 |
 | page-designer | f-cd81a5c55bdbf553224e0f62 | An App Designer page save deletes and re-inserts every row of the page, changed or not | reproduced | 6 |
 | project | f-74c70228d2ea52f7a76b0219 | A message channel in a project is PSPROJECTITEM OBJECTTYPE 36, OBJECTID1 61 (CHNLNAME) | observed | 1 |
+| record | f-02b34d989d83e3631d9abc1c | An Analytic Delete reference does not move the referring record when the referenced record is saved | observed | 1 |
+| record | f-13f37132ac91664fbbd38a05 | Removing a field or subrecord from a record moves PGM by 1 as well as RDM | reproduced | 4 |
+| record | f-1ae1a55f3e464f2673977ca6 | An App Designer record save moves RDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSRECDEFN.VERSION is the new RDM | reproduced | 41 |
+| record | f-641fe0bd360226a91e455c39 | An App Designer record save deletes and re-inserts the PSRECDEFN row and every PSRECFIELD and PSRECFIELDDB row of the record | reproduced | 7 |
+| record | f-6d12bbea7647baca6415b746 | Renaming a record re-keys its rows in place, writes PSRECDEL and PSOBJCHNG, and moves 19 counters by 1 each | observed | 1 |
+| record | f-a4f8562daa47bf2f893a75a5 | Deleting a record moves RDM and AEM by 1 and SYS by 1, and writes PSRECDEL at the new RDM | observed | 1 |
+| record | f-a8daaa0842dae718027cde3e | Saving a record sets VERSION on each record that names it as Related Language record to the new RDM, without restamping | reproduced | 5 |
+| record | f-dcf2998165b40fdf33d49b52 | A record save that writes or removes the record's view SQL moves SRM by 1 as well as RDM | reproduced | 6 |
+| record | f-df985b98ec0473885077bd9b | Saving a new record under a deleted record's name deletes that name's PSRECDEL row | observed | 1 |
+| sql | f-c3cf5c2bdb40d259ddf76597 | An App Designer SQL definition save moves SRM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSSQLDEFN.VERSION is the new SRM | reproduced | 2 |
 
 ## Resume: next tasks, in order
 
 1. **Open the Discovery Center in a real VS Code window** (install the
    built VSIX): the view, a panel, the review; with the local server, one
    submission.
-2. **More findings**: menus, Component Interfaces and channel properties are
-   recorded. Remaining capture families: records (r*), fields, components
+2. **More findings**: menus, Component Interfaces, channel properties and
+   records (r*: not r02, r25, r53, r65, whose windows held two saves; the
+   rd* writer runs; the r0N-type-* page cases) are recorded. Remaining
+   capture families: fields, components
    (c*), page controls (eb*, cbx*, gb*, fr*, f*...) -- check each family's
    format with the adapter, select cases by operation, record with
    `--expect-counters` (DISCOVERY_PROTOCOL.md rules 7-9).

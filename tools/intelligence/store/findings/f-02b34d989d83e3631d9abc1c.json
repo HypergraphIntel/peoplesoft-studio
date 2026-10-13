@@ -1,0 +1,102 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-02b34d989d83e3631d9abc1c",
+  "fingerprint": "02b34d989d83e3631d9abc1ce839ba05ed6a53cc79081d45871f175deee72f2b",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "record",
+    "objectType": "Record",
+    "tables": [
+      "PSRECDEFN"
+    ]
+  },
+  "assertion": {
+    "kind": "referrer-version",
+    "facts": {
+      "reference": "PSRECDEFN.OPTDELRECNAME",
+      "referrerVersionChanged": false
+    }
+  },
+  "title": "An Analytic Delete reference does not move the referring record when the referenced record is saved",
+  "statement": "A record whose OPTDELRECNAME (Analytic Delete Record) names the saved record, and that does not refer to it as Related Language record, is not touched by the save.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-07T03:29:30.000Z",
+      "method": "save-capture",
+      "experimentId": "r41-optdel-referrer",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture r41-optdel-referrer: only the saved record's PSRECDEFN row rewritten (1 deleted / 1 inserted, VERSION 58); no other PSRECDEFN row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPTMATVWDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "r41-optdel-referrer"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "7a9178f50b461655ba7a1d8bd2dd74e8b0fd0859a2f0466af05afe8c1cfc4f07"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:12:40.501Z",
+    "updatedAt": "2026-10-13T11:12:40.501Z",
+    "schemaVersion": 1
+  }
+}
