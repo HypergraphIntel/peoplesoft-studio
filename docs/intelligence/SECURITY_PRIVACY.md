@@ -58,7 +58,7 @@ finding before it can be approved.
 - VS Code's telemetry setting (`telemetry.telemetryLevel` = `off`) disables
   submission regardless of other settings.
 
-## Server and distribution (phases 2, 4, proposed)
+## Server and distribution (phases 2 and 4, implemented locally)
 
 - Server input is untrusted: schema and privacy checks re-run server-side.
 - Admin and reviewer endpoints use separate credentials from contributors.

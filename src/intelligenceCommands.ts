@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { DiscoveryInputError, DiscoveryStore, PrivacyRejectedError } from './intelligence/index.js';
+import { readFile } from 'node:fs/promises';
+import { DiscoveryInputError, DiscoveryStore, KnowledgeStore, PrivacyRejectedError, TRUSTED_KNOWLEDGE_KEYS } from './intelligence/index.js';
 import { DiscoveryPanel, DiscoveryTree, discoverySources, TOKEN_KEY } from './views/discoveryView.js';
 
 /*
@@ -13,6 +14,14 @@ import { DiscoveryPanel, DiscoveryTree, discoverySources, TOKEN_KEY } from './vi
 
 let store: Promise<DiscoveryStore> | undefined;
 
+let knowledge: Promise<KnowledgeStore> | undefined;
+
+/** The installation's verified knowledge (bundles), apart from its findings. */
+export function knowledgeStore(context: vscode.ExtensionContext): Promise<KnowledgeStore> {
+  knowledge ??= Promise.resolve(new KnowledgeStore(vscode.Uri.joinPath(context.globalStorageUri, 'intelligence').fsPath, () => TRUSTED_KNOWLEDGE_KEYS));
+  return knowledge;
+}
+
 /** The installation's discovery store (created on first use). */
 export function discoveryStore(context: vscode.ExtensionContext): Promise<DiscoveryStore> {
   store ??= new DiscoveryStore(vscode.Uri.joinPath(context.globalStorageUri, 'intelligence').fsPath).open();
@@ -21,7 +30,12 @@ export function discoveryStore(context: vscode.ExtensionContext): Promise<Discov
 
 export function registerIntelligenceCommands(context: vscode.ExtensionContext): void {
   const sources = discoverySources(() => discoveryStore(context));
-  const tree = new DiscoveryTree(sources);
+  const tree = new DiscoveryTree(sources, () => knowledgeStore(context));
+  const report = async (r: { ok: boolean; reasons: string[]; bundle?: { version: number; findings: unknown[] } }, from: string) => {
+    tree.refresh();
+    if (r.ok && r.bundle) void vscode.window.showInformationMessage(`Knowledge bundle ${r.bundle.version} installed from ${from}: ${r.bundle.findings.length} published finding(s).`);
+    else void vscode.window.showWarningMessage(`Knowledge bundle refused (${from}): ${r.reasons.join(' ')}`);
+  };
   const fail = (what: string, error: unknown) => void vscode.window.showErrorMessage(`${what}: ${error instanceof Error ? error.message : String(error)}`);
   context.subscriptions.push(
     vscode.window.createTreeView('psft.discoveries', { treeDataProvider: tree }),
@@ -60,6 +74,25 @@ export function registerIntelligenceCommands(context: vscode.ExtensionContext): 
         else if (error instanceof DiscoveryInputError || error instanceof PrivacyRejectedError) fail('Record Discovery', error);
         else fail('Record Discovery', error);
       }
+    }),
+    vscode.commands.registerCommand('psft.intelligence.installKnowledgeFromFile', async () => {
+      const [file] = await vscode.window.showOpenDialog({ title: 'Install Knowledge Bundle', filters: { 'Knowledge bundle': ['json'] }, canSelectMany: false }) ?? [];
+      if (!file) return;
+      try { await report(await (await knowledgeStore(context)).install(JSON.parse(await readFile(file.fsPath, 'utf8'))), 'file'); } catch (error) { fail('Install Knowledge Bundle', error); }
+    }),
+    vscode.commands.registerCommand('psft.intelligence.checkKnowledgeUpdates', async () => {
+      // Download only, and only when chosen: knowledgeSync "manual", an HTTPS server (plain HTTP only to this machine).
+      const c = vscode.workspace.getConfiguration('peoplesoft.intelligence');
+      if (c.get<string>('knowledgeSync', 'off') !== 'manual') { void vscode.window.showInformationMessage('Knowledge updates are off (peoplesoft.intelligence.knowledgeSync).'); return; }
+      let url: URL;
+      try { url = new URL(`${c.get<string>('serverUrl', '').replace(/\/+$/, '')}/api/v1/knowledge/latest`); } catch { void vscode.window.showWarningMessage('No valid discovery server is set (peoplesoft.intelligence.serverUrl).'); return; }
+      if (url.protocol !== 'https:' && !(url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname))) { void vscode.window.showWarningMessage('The discovery server must use HTTPS.'); return; }
+      try {
+        const res = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(15000) });
+        if (res.status === 404) { void vscode.window.showInformationMessage('The server has published no knowledge bundle yet.'); return; }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        await report(await (await knowledgeStore(context)).install(await res.json()), url.origin);
+      } catch (error) { fail('Check for Knowledge Updates', error); }
     }),
     vscode.commands.registerCommand('psft.intelligence.setServerToken', async () => {
       const token = await vscode.window.showInputBox({ title: 'Discovery Server Token', prompt: 'The contributor token your discovery server issued. Kept in VS Code\'s secret storage; never written to settings or logs.', password: true, ignoreFocusOut: true });

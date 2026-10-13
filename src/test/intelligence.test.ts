@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import {
-  decideUpload, DiscoveryInputError, DiscoveryStore, policyFileLocations, findingFingerprint, observationDigest, observationFromCapture, previewSubmission, PrivacyRejectedError,
+  decideUpload, DiscoveryInputError, DiscoveryStore, keyIdOf, KnowledgeStore, policyFileLocations, TRUSTED_KNOWLEDGE_KEYS, verifyEnvelope, findingFingerprint, observationDigest, observationFromCapture, previewSubmission, PrivacyRejectedError,
   sanitizedDeltaOf, scanFinding, type FindingInput
 } from '../intelligence/index.js';
 import { contractVectors, findingInputJsonSchema } from '../intelligence/contract.js';
@@ -257,4 +257,36 @@ test('submissions are off unless every gate opens; the machine policy and teleme
   assert.equal(decideUpload({ uploadMode: 'off', serverUrl: '', telemetryLevel: 'off' }).reasons.length, 3, 'every reason, not the first');
   assert.deepEqual(policyFileLocations('linux', {}), ['/etc/peoplesoft-studio/policy.json']);
   assert.deepEqual(policyFileLocations('win32', { ProgramData: 'D:\\PD' }), ['D:\\PD\\PeopleSoftStudio\\policy.json']);
+});
+
+test('a bundle signed by the server verifies here; tampering, untrusted keys, expiry and rollback are refused', async () => {
+  const vector = JSON.parse(readFileSync('server/intelligence/contract/bundle-vector.json', 'utf8'));
+  const trusted = [{ keyId: vector.keyId, publicKey: vector.publicKey }];
+  assert.equal(keyIdOf(vector.publicKey), vector.keyId, 'the key id is computed as the server computes it');
+  const now = new Date('2026-10-14T00:00:00Z');
+  const ok = verifyEnvelope(vector.envelope, trusted, { now });
+  assert.deepEqual(ok.reasons, []);
+  assert.equal(ok.bundle?.findings[0].verifiedReleases[0], '8.62.09');
+  const tampered = JSON.parse(JSON.stringify(vector.envelope));
+  tampered.bundle.findings[0].verifiedReleases = ['8.62.09', '8.61'];
+  assert.match(verifyEnvelope(tampered, trusted, { now }).reasons.join(), /signature does not verify/);
+  assert.match(verifyEnvelope(vector.envelope, [], { now }).reasons.join(), /does not trust/);
+  assert.match(verifyEnvelope(vector.envelope, TRUSTED_KNOWLEDGE_KEYS, { now }).reasons.join(), /does not trust/, 'this build trusts no key yet');
+  assert.match(verifyEnvelope(vector.envelope, trusted, { now: new Date('2040-01-01T00:00:00Z') }).reasons.join(), /expired/);
+  assert.match(verifyEnvelope(vector.envelope, trusted, { now, installedVersion: 3 }).reasons.join(), /rollback refused/);
+  const extra = JSON.parse(JSON.stringify(vector.envelope));
+  extra.bundle.findings[0].script = 'rm -rf /';
+  assert.match(verifyEnvelope(extra, trusted, { now }).reasons.join(), /does not match psft-knowledge\/1/, 'a bundle is data: unknown fields are refused');
+  // Installed apart from the discovery store; a refused bundle writes nothing; re-verified on read.
+  const root = temp();
+  try {
+    const k = new KnowledgeStore(root, () => trusted);
+    assert.equal(await k.current(now), undefined);
+    assert.equal((await k.install(tampered, now)).ok, false);
+    assert.ok(!existsSync(path.join(root, 'knowledge', 'bundle.json')));
+    assert.equal((await k.install(vector.envelope, now)).ok, true);
+    assert.equal((await k.current(now))?.bundle?.version, 3);
+    assert.match((await k.install(vector.envelope, now)).reasons.join(), /rollback refused/);
+    assert.equal((await new KnowledgeStore(root, () => []).current(now))?.ok, false, 'a key no longer trusted invalidates what was installed');
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

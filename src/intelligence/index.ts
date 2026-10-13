@@ -12,3 +12,5 @@ export { DiscoveryInputError, DiscoveryStore, STORE_FORMAT, type FindingSummary,
 export { BACKGROUND_TABLES, observationFromCapture, sanitizedDeltaOf } from './adapters/saveCapture.js';
 export { previewSubmission, type ProjectionOptions, type Removal, type SubmissionPreview } from './submission.js';
 export { decideUpload, policyFileLocations, type MachinePolicy, type UploadDecision, type UploadInputs, type UploadMode } from './policy.js';
+export { BUNDLE_FORMAT, ENVELOPE_FORMAT, keyIdOf, KnowledgeStore, verifyEnvelope, type KnowledgeBundle, type KnowledgeFinding, type TrustedKey, type VerifyResult } from './knowledge.js';
+export { TRUSTED_KNOWLEDGE_KEYS } from './trustedKeys.js';

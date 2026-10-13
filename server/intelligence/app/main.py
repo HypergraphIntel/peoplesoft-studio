@@ -5,12 +5,18 @@ Local development only: no public deployment without the review in DEPLOYMENT.md
   POST /api/v1/findings            contributor  submit one finding + one observation: created | merged | duplicate
   GET  /api/v1/findings/{id}       contributor  a finding; others' evidence summarized, the caller's in full
   GET  /api/v1/discoveries/pending reviewer     findings awaiting review (observed, reproduced), keyset-paginated
+  POST /api/v1/reviews             reviewer     a status change (app/review.py): criteria, rationale, releases; admin to publish or revoke
+  DELETE /api/v1/contributors/me   contributor  withdrawal: the caller's observations deleted, their tokens revoked
+  GET  /api/v1/knowledge/latest    public       the newest signed bundle envelope
+  GET  /api/v1/knowledge/versions  public       bundle versions
+  GET  /api/v1/knowledge/compatibility?release=8.62  public  published findings verified on a release
   GET  /api/v1/health              public
 """
 
 from __future__ import annotations
 
 import os
+import re
 import threading
 import time
 from collections import defaultdict, deque
@@ -24,9 +30,9 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from . import auth, contract
+from . import auth, contract, review
 from .canonical import finding_fingerprint, finding_id, observation_digest
-from .db import Audit, Finding, Observation, create_schema, make_engine, make_sessionmaker, utcnow
+from .db import ApiToken, Audit, Bundle, Finding, Observation, Review, create_schema, make_engine, make_sessionmaker, utcnow
 from .privacy import classify, scan_finding
 
 API = "/api/v1"
@@ -84,6 +90,8 @@ def finding_view(session: Session, f: Finding, viewer: auth.ApiToken) -> dict:
     return {
         "schema": contract.SCHEMA_ID, "id": f.id, "fingerprint": f.fingerprint, "type": f.type, "subject": f.subject, "assertion": f.assertion,
         "title": f.title, "statement": f.statement, "confidence": f.confidence, "status": f.status,
+        "verifiedReleases": sorted(f.verified_releases or []), **({"supersededBy": f.superseded_by} if f.superseded_by else {}),
+        **({"publishedAt": _iso(f.published_at)} if f.published_at else {}),
         "compatibility": {"observedReleases": sorted({o.release for o in observations}), "knownIncompatible": f.known_incompatible},
         "privacy": {"classification": classify([o.payload for o in observations])},
         "observations": views, "createdAt": _iso(f.created_at), "updatedAt": _iso(f.updated_at),
@@ -238,6 +246,103 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             audit(session, token.contributor, "list-pending", None, "ok", f"{len(page)} finding(s)")
             return {"items": [{"id": f.id, "type": f.type, "subsystem": f.subsystem, "title": f.title, "status": f.status, "confidence": f.confidence,
                                "updatedAt": _iso(f.updated_at)} for f in page], "next": nxt}
+
+    @app.post(f"{API}/reviews")
+    async def post_review(request: Request):
+        with Sessions() as session:
+            token, refusal = authorize(request, session, "reviewer")
+            if refusal:
+                return refusal
+            try:
+                body = await request.json()
+            except Exception:
+                return problem(400, "Malformed JSON")
+            if not isinstance(body, dict) or not isinstance(body.get("findingId"), str) or not isinstance(body.get("to"), str):
+                return problem(422, "A review names findingId and to")
+            to = body["to"]
+            if to not in review.STATUSES:
+                return problem(422, f"Unknown status {to[:20]}")
+            f = session.execute(select(Finding).where(Finding.id == body["findingId"]).with_for_update()).scalar_one_or_none()
+            if f is None:
+                return problem(404, "Not found")
+            obs = session.execute(select(Observation).where(Observation.finding_id == f.id)).scalars().all()
+            releases = body.get("releases") if isinstance(body.get("releases"), list) else None
+            superseded_by = body.get("supersededBy") if isinstance(body.get("supersededBy"), str) else None
+            if superseded_by and (superseded_by == f.id or session.get(Finding, superseded_by) is None):
+                return problem(422, "supersededBy names another stored finding")
+            d = review.decide(f.status, to, review.Evidence([o.method for o in obs], [o.contributor for o in obs], [o.release for o in obs]),
+                              criteria=str(body.get("criteria", ""))[:4000], rationale=str(body.get("rationale", ""))[:4000], releases=releases, superseded_by=superseded_by)
+            if d.role and not auth.allows(token, d.role):
+                audit(session, token.contributor, "review", f.id, "forbidden", f"{f.status}->{to}")
+                return problem(403, "Forbidden", f"Making a finding {to} needs the {d.role} role.")
+            if not d.allowed:
+                session.rollback()
+                audit(session, token.contributor, "review", f.id, "refused", f"{f.status}->{to}")
+                return problem(409, "The review was refused", reasons=d.reasons)
+            session.add(Review(finding_id=f.id, reviewer=token.contributor, from_status=f.status, to_status=to, criteria=str(body.get("criteria", ""))[:4000],
+                               rationale=str(body["rationale"])[:4000], releases=releases or []))
+            frm = f.status
+            f.status = to
+            if to == "verified":
+                f.verified_releases = sorted(set(releases or []))
+            if to == "published":
+                f.published_at = utcnow()
+            if to == "superseded":
+                f.superseded_by = superseded_by
+            f.updated_at = utcnow()
+            session.commit()
+            audit(session, token.contributor, "review", f.id, "ok", f"{frm}->{to}")
+            return finding_view(session, f, token)
+
+    @app.delete(f"{API}/contributors/me")
+    def withdraw(request: Request):
+        with Sessions() as session:
+            token, refusal = authorize(request, session, "contributor")
+            if refusal:
+                return refusal
+            me = token.contributor
+            mine = session.execute(select(Observation).where(Observation.contributor == me)).scalars().all()
+            touched = {o.finding_id for o in mine}
+            for o in mine:
+                session.delete(o)
+            session.flush()
+            withdrawn = 0
+            for fid in touched:
+                f = session.get(Finding, fid)
+                left = session.execute(select(Observation).where(Observation.finding_id == fid)).scalars().all()
+                if not left:
+                    f.status, withdrawn = "withdrawn", withdrawn + 1
+                elif f.status in COMPUTED_STATUSES:
+                    f.status = "reproduced" if len({o.run_key for o in left}) >= 2 else "observed"
+                # A reviewed finding keeps its status; its review is revisited (audited below).
+                f.updated_at = utcnow()
+            for t in session.execute(select(ApiToken).where(ApiToken.contributor == me, ApiToken.revoked_at.is_(None))).scalars():
+                t.revoked_at = utcnow()
+            session.commit()
+            audit(session, me, "withdraw", None, "ok", f"{len(mine)} observation(s), {len(touched)} finding(s), {withdrawn} withdrawn")
+            return {"withdrawn": True, "observations": len(mine), "findings": len(touched), "findingsWithdrawn": withdrawn}
+
+    @app.get(f"{API}/knowledge/latest")
+    def knowledge_latest():
+        with Sessions() as session:
+            b = session.execute(select(Bundle).order_by(Bundle.version.desc()).limit(1)).scalar_one_or_none()
+            return b.envelope if b else problem(404, "No knowledge bundle published yet")
+
+    @app.get(f"{API}/knowledge/versions")
+    def knowledge_versions():
+        with Sessions() as session:
+            rows = session.execute(select(Bundle).order_by(Bundle.version.desc()).limit(100)).scalars().all()
+            return {"versions": [{"version": b.version, "issuedAt": _iso(b.issued_at), "expiresAt": _iso(b.expires_at), "keyId": b.key_id, "findings": b.findings} for b in rows]}
+
+    @app.get(f"{API}/knowledge/compatibility")
+    def knowledge_compatibility(release: str):
+        if not re.fullmatch(r"\d\.\d{2}(\.\d{2})?", release):
+            return problem(422, "release is a PeopleTools release such as 8.62 or 8.62.09")
+        with Sessions() as session:
+            rows = session.execute(select(Finding).where(Finding.status == "published").order_by(Finding.id)).scalars().all()
+            hits = [f for f in rows if any(r == release or r.startswith(release + ".") or release.startswith(r + ".") for r in f.verified_releases or [])]
+            return {"release": release, "findings": [{"id": f.id, "type": f.type, "subsystem": f.subsystem, "title": f.title, "verifiedReleases": f.verified_releases,
+                                                      "knownIncompatible": f.known_incompatible} for f in hits]}
 
     return app
 

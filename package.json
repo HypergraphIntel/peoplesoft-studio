@@ -489,6 +489,16 @@
         "command": "psft.intelligence.clearServerToken",
         "title": "Clear Discovery Server Token",
         "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.intelligence.installKnowledgeFromFile",
+        "title": "Install Knowledge Bundle from File…",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.intelligence.checkKnowledgeUpdates",
+        "title": "Check for Knowledge Updates",
+        "category": "PeopleSoft"
       }
     ],
     "snippets": [
@@ -1136,6 +1146,20 @@
           "default": "",
           "scope": "application",
           "markdownDescription": "The discovery server submissions go to (HTTPS; plain HTTP only to this machine). The token is set with *PeopleSoft: Set Discovery Server Token…* and kept in VS Code's secret storage."
+        },
+        "peoplesoft.intelligence.knowledgeSync": {
+          "type": "string",
+          "enum": [
+            "off",
+            "manual"
+          ],
+          "default": "off",
+          "scope": "application",
+          "enumDescriptions": [
+            "Never download knowledge (default).",
+            "*PeopleSoft: Check for Knowledge Updates* downloads the server's latest bundle; it is installed only if its signature, key, expiry and version verify."
+          ],
+          "markdownDescription": "Downloading signed knowledge bundles from the discovery server (`peoplesoft.intelligence.serverUrl`). Bundles are data only: they never change what PeopleSoft Studio or an agent may write."
         }
       }
     }

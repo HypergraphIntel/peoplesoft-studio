@@ -9,6 +9,7 @@ dependencies = [
   "sqlalchemy>=2.0.30",
   "psycopg[binary]>=3.2",
   "jsonschema>=4.23",
+  "cryptography>=43",
 ]
 
 [project.optional-dependencies]

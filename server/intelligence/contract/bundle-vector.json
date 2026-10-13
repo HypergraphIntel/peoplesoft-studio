@@ -1,0 +1,52 @@
+{
+  "format": "psft-bundle-vector/1",
+  "note": "Signed once by the Python server code with a throwaway test key (private half discarded). The extension must verify it.",
+  "publicKey": "+JkOl+R3CWuTRgbqRwNg3q18tGZ6MEIDVwL50NQTOc0=",
+  "keyId": "3bffc2d52e566b2c",
+  "envelope": {
+    "format": "psft-knowledge-envelope/1",
+    "keyId": "3bffc2d52e566b2c",
+    "signature": "NZ/7XKWHPmj9lC2kguYtCH6EQlBTHOBMKY13P/e87UOcYcpFu1Y4arqmosC6oDwaG8dKei4uLA1OPfPVP4KGBg==",
+    "bundle": {
+      "format": "psft-knowledge/1",
+      "version": 3,
+      "issuedAt": "2026-10-13T00:00:00Z",
+      "expiresAt": "2036-10-10T00:00:00Z",
+      "findings": [
+        {
+          "id": "f-e3a3f17f095c20582322485d",
+          "fingerprint": "e3a3f17f095c20582322485d0000000000000000000000000000000000000000",
+          "type": "save-protocol",
+          "subject": {
+            "subsystem": "event-mapping",
+            "objectType": "Event Mapping configuration",
+            "tables": [
+              "PSPTCSSRVCONF"
+            ]
+          },
+          "assertion": {
+            "kind": "row-resave",
+            "facts": {
+              "table": "PSPTCSSRVCONF",
+              "everyRowOnSave": true,
+              "versionCounter": "SCNFM",
+              "ratio": 0.1,
+              "big": 1e+21,
+              "small": 1.5e-07
+            }
+          },
+          "title": "The fluid page re-saves every row — “quoted” ✓",
+          "statement": "Each row is deleted and re-inserted.\tTabs and \"quotes\".",
+          "verifiedReleases": [
+            "8.62.09"
+          ],
+          "knownIncompatible": [],
+          "publishedAt": "2026-10-13T00:00:00Z"
+        }
+      ],
+      "revoked": [
+        "f-000000000000000000000001"
+      ]
+    }
+  }
+}

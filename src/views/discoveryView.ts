@@ -3,7 +3,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import {
-  decideUpload, DiscoveryStore, policyFileLocations, previewSubmission, type Finding, type FindingSummary, type MachinePolicy, type UploadDecision, type UploadMode
+  decideUpload, DiscoveryStore, policyFileLocations, previewSubmission, type Finding, type FindingSummary, type KnowledgeStore, type MachinePolicy,
+  type UploadDecision, type UploadMode
 } from '../intelligence/index.js';
 import { escapeHtml as esc } from '../editors/propertiesHtml.js';
 import { submitFinding } from '../intelligenceClient.js';
@@ -30,6 +31,7 @@ export interface DiscoverySource {
 
 type Node =
   | { kind: 'status'; decision: UploadDecision }
+  | { kind: 'knowledge'; label: string; detail: string; tooltip: string; ok: boolean }
   | { kind: 'source'; source: DiscoverySource; count: number }
   | { kind: 'finding'; source: DiscoverySource; summary: FindingSummary }
   | { kind: 'empty'; text: string };
@@ -54,13 +56,21 @@ export class DiscoveryTree implements vscode.TreeDataProvider<Node> {
   private readonly changed = new vscode.EventEmitter<void>();
   readonly onDidChangeTreeData = this.changed.event;
 
-  constructor(private readonly sources: () => Promise<DiscoverySource[]>) {}
+  constructor(private readonly sources: () => Promise<DiscoverySource[]>, private readonly knowledge?: () => Promise<KnowledgeStore>) {}
 
   refresh(): void { this.changed.fire(); }
 
   async getChildren(node?: Node): Promise<Node[]> {
     if (!node) {
       const out: Node[] = [{ kind: 'status', decision: currentUploadDecision() }];
+      if (this.knowledge) {
+        const k = await (await this.knowledge()).current().catch((e: Error) => ({ ok: false, reasons: [e.message] }));
+        out.push(!k
+          ? { kind: 'knowledge', label: 'Installed Knowledge: none', detail: 'no verified bundle installed', tooltip: 'Knowledge bundles are signed, verified before use, and data only. This build trusts no signing key yet.', ok: false }
+          : k.ok && 'bundle' in k && k.bundle
+            ? { kind: 'knowledge', label: `Installed Knowledge: v${k.bundle.version}`, detail: `${k.bundle.findings.length} published · expires ${k.bundle.expiresAt.slice(0, 10)}`, tooltip: `Verified bundle ${k.bundle.version}: ${k.bundle.findings.length} published finding(s), ${k.bundle.revoked.length} revoked.`, ok: true }
+            : { kind: 'knowledge', label: 'Installed Knowledge: not trusted', detail: k.reasons[0] ?? '', tooltip: `The installed bundle is not used:\n${k.reasons.map((r) => `• ${r}`).join('\n')}`, ok: false });
+      }
       for (const source of await this.sources()) out.push({ kind: 'source', source, count: (await source.store.list()).length });
       return out;
     }
@@ -82,6 +92,13 @@ export class DiscoveryTree implements vscode.TreeDataProvider<Node> {
           : `Nothing is sent from this machine:\n${node.decision.reasons.map((r) => `• ${r}`).join('\n')}`;
         item.iconPath = new vscode.ThemeIcon(node.decision.allowed ? 'cloud-upload' : 'shield');
         item.command = { command: 'workbench.action.openSettings', title: 'Settings', arguments: ['peoplesoft.intelligence'] };
+        return item;
+      }
+      case 'knowledge': {
+        const item = new vscode.TreeItem(node.label);
+        item.description = node.detail;
+        item.tooltip = node.tooltip;
+        item.iconPath = new vscode.ThemeIcon(node.ok ? 'verified' : 'unverified');
         return item;
       }
       case 'source': {

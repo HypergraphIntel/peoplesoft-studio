@@ -66,7 +66,17 @@ default and impossible without review (or an administrator policy);
 token in SecretStorage; offline and failed uploads never block Studio;
 VS Code telemetry off disables submission.
 
-## Phase 4 — Verification and knowledge distribution
+## Phase 4 — Verification and knowledge distribution — DONE (2026-10-13), but for a production signing key
+
+- [x] Reviews (`POST /api/v1/reviews`, `app/review.py`, D15): status machine, independence for corroboration, criteria and observed releases for verification, admin publication and revocation, review rows, audit.
+- [x] Contributor withdrawal (`DELETE /api/v1/contributors/me`): observations deleted, findings re-statused or withdrawn, tokens revoked.
+- [x] Knowledge endpoints: `/knowledge/latest`, `/versions`, `/compatibility?release=`.
+- [x] Signed bundles (D16): offline key (`generate-key`, 0600), `build-bundle`, Ed25519 over canonical JSON; cross-language vector.
+- [x] Client verification and install (`src/intelligence/knowledge.ts`): schema, trusted key, signature, expiry, rollback; stored apart from findings; re-verified on read.
+- [x] Controlled sync (D17): `knowledgeSync` off | manual; *Check for Knowledge Updates*; *Install Knowledge Bundle from File…*; Discoveries view shows the installed knowledge.
+- [x] Verified: server lifecycle on a real finding (corroborated → verified → published → bundle 1); the bundled extension downloaded it and refused it (untrusted key), installing nothing.
+- [ ] A production signing key (the owner's decision, generated offline) and its release.
+- Deferred: `POST /validation-results` (submissions to `POST /findings` carry test results already).
 
 Acceptance: registry review workflow (statuses, criteria, rationale,
 audit); signed Ed25519 bundles with expiry, rollback protection and

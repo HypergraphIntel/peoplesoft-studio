@@ -27,13 +27,18 @@ def _database_url(tmp_path) -> str:
 def server(tmp_path):
     url = _database_url(tmp_path)
     app = create_app(Settings(database_url=url, rate_per_minute=1000))
-    if url.startswith("postgresql"):
-        with app.state.engine.begin() as c:  # each test starts empty
-            c.execute(text("TRUNCATE audit, observation, finding, api_token RESTART IDENTITY CASCADE"))
+    if url.startswith("postgresql"):  # each test starts from an empty schema of the current shape
+        from app.db import Base, create_schema
+        Base.metadata.drop_all(app.state.engine)
+        with app.state.engine.begin() as c:
+            for t in ("finding", "observation", "api_token", "audit", "review", "bundle"):
+                c.execute(text(f"DROP TABLE IF EXISTS {t} CASCADE"))
+        create_schema(app.state.engine)
     with app.state.sessions() as s:
-        tokens = {role: auth.issue_token(s, role) for role in ("contributor", "reviewer")}
+        tokens = {role: auth.issue_token(s, role) for role in ("contributor", "reviewer", "admin")}
         tokens["contributor2"] = auth.issue_token(s, "contributor")
     client = TestClient(app)
+    client.database_url = url
     client.tokens = tokens
     client.headers_for = lambda who: {"Authorization": f"Bearer {tokens[who]}"}
     yield client

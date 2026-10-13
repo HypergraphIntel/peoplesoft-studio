@@ -5,13 +5,16 @@ The central server of the Discovery & Intelligence Network
 reachable from the Internet without the review in
 `docs/intelligence/DEPLOYMENT.md`.
 
-## What it does (phase 2 MVP)
+## What it does (phases 2 and 4, local only)
 
 | Endpoint | Role | |
 |---|---|---|
 | `POST /api/v1/findings` | contributor | One finding + one observation → `created` (201) / `merged` / `duplicate` (200), exactly as the local store decides |
 | `GET /api/v1/findings/{id}` | contributor | The finding; another contributor's evidence summarized (method, release, digest), the caller's in full; reviewers see all |
 | `GET /api/v1/discoveries/pending` | reviewer | Observed / reproduced findings, keyset-paginated (`limit` ≤ 100, `cursor`) |
+| `POST /api/v1/reviews` | reviewer (admin to publish / revoke) | A status change with rationale (and criteria, releases, supersededBy); rules in `app/review.py` |
+| `DELETE /api/v1/contributors/me` | contributor | Withdrawal: the caller's observations deleted, findings re-statused or withdrawn, tokens revoked |
+| `GET /api/v1/knowledge/latest` · `/versions` · `/compatibility?release=` | public | The newest signed bundle envelope; versions; published findings verified on a release |
 | `GET /api/v1/health` | public | |
 | `/docs` | public | OpenAPI |
 
@@ -39,7 +42,9 @@ export PSFT_INTEL_DATABASE_URL=postgresql+psycopg://psft_intel:psft_intel_dev@12
 PSFT_INTEL_AUTOSTART=1 .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Admin: `python -m app.admin init-db | issue-token --role R | revoke-token --contributor C | audit`.
+Admin: `python -m app.admin init-db | issue-token --role R | revoke-token --contributor C | audit`;
+bundles: `generate-key --out key.pem` (once, offline; prints the public key
+for `src/intelligence/trustedKeys.ts`), `build-bundle --key key.pem [--days N]`.
 
 ## Test
 
@@ -51,6 +56,5 @@ PSFT_INTEL_TEST_DATABASE_URL=postgresql+psycopg://psft_intel:psft_intel_dev@127.
 
 ## Not yet
 
-Reviews and status changes beyond observed/reproduced, validation-results,
-knowledge publication and bundles, contributor withdrawal, Alembic
-migrations, a shared rate limiter, a container image for deployment.
+`POST /validation-results`, Alembic migrations, a shared rate limiter, a
+container image, any deployment.

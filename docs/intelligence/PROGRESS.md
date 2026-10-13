@@ -1,7 +1,7 @@
 # Progress and handoff
 
 **Read this first when resuming the Discovery & Intelligence Network.**
-Last updated 2026-10-13 (phase 3). The founding directive: `CUSTOMIZATION_INTEL_SERVER.md`
+Last updated 2026-10-13 (phase 4). The founding directive: `CUSTOMIZATION_INTEL_SERVER.md`
 (repository root).
 
 ## Current state
@@ -11,8 +11,10 @@ Last updated 2026-10-13 (phase 3). The founding directive: `CUSTOMIZATION_INTEL_
 - **Phase 2 (server MVP): done, local only.** Evidence below.
 - **Phase 3 (Discovery Center): done** but for a run in a real VS Code
   window. Evidence below.
-- **Phases 4–6: not started.** Verification workflow, signed bundles, MCP
-  tools, GitHub automation are design only.
+- **Phase 4 (verification, distribution): done** but for a production
+  signing key (none is trusted: every bundle is refused). Evidence below.
+- **Phases 5–6: not started.** MCP knowledge tools, GitHub automation are
+  design only.
 - **Nothing leaves by default.** Submissions need four gates (D13) and the
   user's approval of the exact payloads. The server has run only on localhost.
 
@@ -58,6 +60,21 @@ Last updated 2026-10-13 (phase 3). The founding directive: `CUSTOMIZATION_INTEL_
 | Graceful offline / failures | Failures reported and recorded, never thrown out of the panel; nothing retries silently |
 | Secrets | Token in SecretStorage; history and audit never contain it (checked) |
 
+## Phase 4 evidence
+
+| Criterion | Evidence |
+|---|---|
+| Verification workflow | `app/review.py` (pure tests: independence, criteria, releases, roles, illegal moves); `POST /reviews` (workflow test) |
+| Evidence provenance | Reviews stored with reviewer, criteria, rationale, releases; audit |
+| Version-specific compatibility | `verifiedReleases` ⊆ observed releases; `GET /knowledge/compatibility?release=` |
+| Reviewed publication | admin-only publish / revoke (403 for a reviewer, tested) |
+| Signed bundles | `app/bundle.py`, `generate-key` (0600), `build-bundle`; tampered bundle fails (Python and TS tests) |
+| Client verification | `src/intelligence/knowledge.ts`: verifies the Python-signed `contract/bundle-vector.json`; refuses tampering, untrusted keys, expiry, rollback, unknown fields |
+| Controlled synchronization | `knowledgeSync` off/manual; live: server published bundle 1 for a real finding, the bundled extension downloaded and refused it (untrusted key), nothing installed |
+| Revocation and rollback | Revoked ids carried in the next bundle (test); versions must increase |
+| Withdrawal | `DELETE /contributors/me` (test: observations gone, finding withdrawn, token revoked) |
+| Tests | pytest 44 on PostgreSQL, 43 + 1 skipped on SQLite; `npm test` intelligence 12 |
+
 **Not verified:** the Discovery Center and *Show Discoveries* in a real VS Code window; the
 CI workflow has not run on GitHub (nothing pushed); concurrent writers on
 one *local* store across processes (documented limit, D1); the server under
@@ -72,6 +89,9 @@ load or behind TLS.
 | `src/views/discoveryView.ts` | *Discoveries* tree, finding panel, submission review, `currentUploadDecision()` |
 | `src/intelligenceClient.ts` | Upload client (fetch; no tokens in errors) |
 | `src/intelligence/{submission,policy}.ts` | `previewSubmission()`, `decideUpload()` (pure) |
+| `src/intelligence/{knowledge,trustedKeys}.ts` | Bundle verification, `KnowledgeStore`; trusted keys (none yet) |
+| `server/intelligence/app/{review,bundle}.py` | Review rules; bundle build, sign, verify |
+| `server/intelligence/contract/bundle-vector.json` | A server-signed bundle the extension must verify (test key, private half discarded) |
 | `tools/intelligence/discovery.mts` | CLI: record, capture, list, get |
 | `tools/intelligence/export-contract.mts` | Writes `server/intelligence/contract/` |
 | `tools/intelligence/store/` | The repository's research findings (commit them) |
@@ -97,16 +117,18 @@ fingerprint; server: see `server/intelligence/README.md`.
 1. **Open the Discovery Center in a real VS Code window** (install the
    built VSIX): the view, a panel, the review; with the local server, one
    submission.
-2. **Phase 4 start — reviews on the server**: `POST /reviews` (reviewer):
-   status changes with criteria and rationale, independence check for
-   *corroborated* (different method, experiment or contributor — never a
-   re-run), audit; `POST /validation-results`; contributor withdrawal.
-3. **Signed bundles** (Ed25519): bundle format, offline signing tool,
-   client verification (signature, expiry, rollback), stored apart from
-   local findings.
-4. A lab-e2e adapter (`testResults` from `tools/lab/*-e2e.mts`).
-5. Settle the retention policy (SECURITY_PRIVACY.md) with the owner before
-   uploads are used by anyone outside this project.
+2. **Phase 5 start — MCP knowledge tools** (MCP_INTEGRATION.md):
+   `psft_discovery_list` / `_get` over the installation's and the
+   workspace's stores; `psft_knowledge_capability` / `_compatibility` /
+   `_evidence` over installed verified knowledge plus local findings,
+   answering VERIFIED / UNVERIFIED / UNSUPPORTED / UNKNOWN / CONFLICTING with
+   provenance and the connection's release (`readRelease`); a test proving no
+   answer opens a write gate. `psft_discovery_record` (agent-recorded,
+   approved like any MCP write).
+3. A lab-e2e adapter (`testResults` from `tools/lab/*-e2e.mts`).
+4. Owner decisions: the production signing key (generate offline, add to
+   `trustedKeys.ts` in a release); the retention policy (SECURITY_PRIVACY.md)
+   before uploads are used outside this project.
 
 **Do not repeat:** reconnaissance; recording the 4 findings; the contract
 export (regenerate only after a schema change); the phase 3 bundle-driven

@@ -212,3 +212,44 @@ so the server counts it as its own evidence.
 
 **Why.** A lab's experiment names and paths are its business; the claim and
 the technical evidence are what others can use.
+
+## D15 — Reviews: independence, named releases, admins publish (2026-10-13)
+
+**Decided.** `server/intelligence/app/review.py` allows these moves:
+observed / reproduced → corroborated, rejected, conflicting, superseded;
+corroborated → verified, rejected, conflicting, superseded; conflicting →
+corroborated, rejected, superseded; verified → published (**admin**),
+rejected, conflicting, superseded; published → revoked, superseded
+(**admin**). Every review states a rationale. *Corroborated* needs evidence
+from at least two research methods or two contributors — never more runs
+of one experiment. *Verified* names its acceptance criteria and the
+releases it holds on, which must be observed releases. Each review is a
+`review` row and an audit entry.
+
+**Why.** The directive: verification is not a count of submissions; a
+verified claim is scoped to releases; publication is an administrative act.
+
+## D16 — Bundles are signed over canonical JSON; keys ship in releases (2026-10-13)
+
+**Decided.** A bundle (`psft-knowledge/1`: version, issued, expires,
+published findings — claim, scope, no evidence payloads — and revoked ids)
+is signed with Ed25519 over its canonical JSON, the same canonical form the
+fingerprints use, so both sides sign and verify the same bytes (proven by
+`contract/bundle-vector.json`, signed by the server code and verified by the
+extension's tests). The signing key is generated and kept offline
+(`python -m app.admin generate-key`); `build-bundle` reads it from a file
+and the server stores only envelopes. The extension trusts the keys in
+`src/intelligence/trustedKeys.ts` — changed only in a release. **No key is
+trusted yet**: no production key exists, so every bundle is refused.
+
+The client refuses a bundle on a schema mismatch (strict: unknown fields
+refused), an untrusted key, a bad signature, expiry, a future issue time, or
+a version not newer than the installed one; the installed bundle is
+re-verified whenever it is read.
+
+## D17 — Knowledge download has its own switch (2026-10-13)
+
+**Decided.** `peoplesoft.intelligence.knowledgeSync` (`off` default |
+`manual`) gates *Check for Knowledge Updates*, separately from submissions.
+A download sends nothing but the request; it needs an HTTPS server (plain
+HTTP only to this machine) and installs only what verifies.

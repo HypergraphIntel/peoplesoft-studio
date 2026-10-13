@@ -17,9 +17,9 @@ root. These pages are the design and the record of what exists.
 | Discovery Center (extension): *Discoveries* view, finding panel, submission review, gated upload, token in SecretStorage, *Record Discovery from JSON* | **Implemented** (phase 3); driven end to end through the bundled extension (stub `vscode`) against the local server; not yet in a VS Code window |
 | Client/server contract (JSON Schema + fingerprint vectors) | **Implemented**; drift-tested on both sides |
 | Central server MVP (`server/intelligence/`): submit, get, pending, tokens, audit, limits | **Implemented** (phase 2), tested on SQLite and PostgreSQL; run locally with this repository's findings. Local only |
-| Verification workflow, reviews, publication | Proposed (phase 4) |
+| Verification workflow: reviews, publication, revocation, withdrawal | **Implemented** (phase 4, server) |
 | Uploads | **Off by default**; only after four gates (D13) and the user's approval of the exact payloads |
-| Signed knowledge bundles, sync | Proposed (phase 4) |
+| Signed knowledge bundles, verification, controlled download | **Implemented** (phase 4); **no signing key is trusted yet**, so every bundle is refused |
 | MCP knowledge tools | Proposed (phase 5) |
 | GitHub / development automation | Proposed (phase 6) |
 

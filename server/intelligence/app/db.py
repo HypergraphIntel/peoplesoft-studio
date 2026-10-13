@@ -52,6 +52,9 @@ class Finding(Base):
     known_incompatible: Mapped[list] = mapped_column(JSONType, nullable=False, default=list)
     # observed | reproduced (computed); corroborated | verified | published | rejected | superseded | conflicting | withdrawn | revoked (review, later)
     status: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    verified_releases: Mapped[list] = mapped_column(JSONType, nullable=False, default=list)
+    superseded_by: Mapped[str | None] = mapped_column(String(26))
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 
@@ -69,6 +72,33 @@ class Observation(Base):
     source: Mapped[str] = mapped_column(String(32), nullable=False)
     contributor: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class Review(Base):
+    """A status change, with who made it, against which criteria, and why."""
+
+    __tablename__ = "review"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    finding_id: Mapped[str] = mapped_column(ForeignKey("finding.id"), nullable=False, index=True)
+    reviewer: Mapped[str] = mapped_column(String(40), nullable=False)
+    from_status: Mapped[str] = mapped_column(String(16), nullable=False)
+    to_status: Mapped[str] = mapped_column(String(16), nullable=False)
+    criteria: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    rationale: Mapped[str] = mapped_column(Text, nullable=False)
+    releases: Mapped[list] = mapped_column(JSONType, nullable=False, default=list)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class Bundle(Base):
+    """A signed knowledge bundle as published: the envelope, signed offline (app/bundle.py)."""
+
+    __tablename__ = "bundle"
+    version: Mapped[int] = mapped_column(Integer, primary_key=True)
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    key_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    findings: Mapped[int] = mapped_column(Integer, nullable=False)
+    envelope: Mapped[dict] = mapped_column(JSONType, nullable=False)
 
 
 class Audit(Base):

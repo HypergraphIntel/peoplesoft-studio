@@ -1,9 +1,12 @@
-# Knowledge registry and server API — proposed
+# Knowledge registry and server API
 
-Design for phases 2 and 4. **Built (phase 2 MVP, local only):** the server
-skeleton, `POST /findings`, `GET /findings/{id}`, `GET /discoveries/pending`,
-`GET /health`, tokens with roles, the audit table, size and rate limits —
-see `server/intelligence/README.md`. Everything else here is design.
+**Built (local only):** `POST /findings`, `GET /findings/{id}`,
+`GET /discoveries/pending`, `POST /reviews`, `DELETE /contributors/me`,
+`GET /knowledge/latest | versions | compatibility`, `GET /health`; tokens
+with roles, audit, size and rate limits; signed bundles (D15–D16) — see
+`server/intelligence/README.md`. **Not built:** `POST /validation-results`,
+`Idempotency-Key` (submissions are idempotent by fingerprint and digest),
+Alembic migrations, a shared rate limiter, deployment.
 
 ## Server (phase 2)
 

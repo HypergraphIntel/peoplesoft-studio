@@ -73,7 +73,14 @@ See docs/CUSTOMIZATION.md.
 - **Discovery server MVP** (`server/intelligence/`, local development only):
   FastAPI and PostgreSQL; submissions validated and privacy-checked again,
   the same identities and outcomes as the extension, tokens and roles,
-  an audit log.
+  an audit log; reviews (corroboration needs independent evidence,
+  verification names its releases, admins publish and revoke), contributor
+  withdrawal, and signed knowledge bundles.
+- **Knowledge bundles in the extension**: signed (Ed25519), verified before
+  use (trusted key, signature, expiry, no rollback), data only, kept apart
+  from findings. *Check for Knowledge Updates* (`peoplesoft.intelligence.knowledgeSync`,
+  off by default), *Install Knowledge Bundle from File…*. No signing key is
+  trusted yet, so no bundle is installed.
 
 ## 0.8.4
 
