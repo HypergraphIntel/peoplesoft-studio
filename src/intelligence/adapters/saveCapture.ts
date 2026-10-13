@@ -24,8 +24,13 @@ interface DeltaFile {
   };
 }
 
-/** The capture formats this adapter reads: the full sweep, and the definition captures (watch tables only, no release). */
-export const CAPTURE_FORMATS = ['save-protocol-delta/1', 'def-capture/1', 'ae-capture/1'] as const;
+/**
+ * The capture formats this adapter reads: the full sweep, and the definition
+ * captures (watch tables only, no release). A page capture
+ * (tools/lab/page-capture.mts) watches one page's rows and only the PDM, RDM
+ * and SYS counters: another counter's move cannot show in it.
+ */
+export const CAPTURE_FORMATS = ['save-protocol-delta/1', 'def-capture/1', 'ae-capture/1', 'page-capture/1'] as const;
 
 interface WatchTable { inserted?: unknown[]; deleted?: unknown[]; updated?: Array<{ key: Record<string, string>; changes: Record<string, { before: unknown; after: unknown }> }> }
 
@@ -59,8 +64,11 @@ export function observationFromCapture(delta: unknown, words: {
   observation: string; expected?: string; actual?: string; tool?: string; runId?: string; reproduction?: string[];
   /** Required for definition captures, which do not record it; must agree with a sweep's own. */
   peopleToolsRelease?: string;
+  /** The capture's directory under results/: its ID, over the file's own `case` (a renamed case keeps its old one). */
+  caseName?: string;
 }): Observation {
   const d = delta as DeltaFile;
+  const caseId = words.caseName ?? d.case;
   const recorded = String(d.peopleToolsRelease ?? '').trim();
   if (recorded && words.peopleToolsRelease && words.peopleToolsRelease !== recorded) throw new Error(`The capture says PeopleTools ${recorded}, not ${words.peopleToolsRelease}.`);
   const release = recorded || String(words.peopleToolsRelease ?? '').trim();
@@ -68,12 +76,12 @@ export function observationFromCapture(delta: unknown, words: {
   const at = d.markers?.after?.timestamp;
   const observedAt = at && !Number.isNaN(Date.parse(at)) ? new Date(Date.parse(at)).toISOString() : new Date().toISOString();
   return {
-    observedAt, method: 'save-capture', ...(d.case ? { experimentId: d.case } : {}), ...(words.runId ? { runId: words.runId } : {}),
+    observedAt, method: 'save-capture', ...(caseId ? { experimentId: caseId } : {}), ...(words.runId ? { runId: words.runId } : {}),
     environment: { peopleToolsRelease: release, platform: 'oracle', ...(words.tool ? { tool: words.tool } : {}) },
     observation: words.observation,
     ...(words.expected ? { expected: words.expected } : {}), ...(words.actual ? { actual: words.actual } : {}),
     ...(words.reproduction ? { reproduction: words.reproduction } : {}),
     delta: sanitizedDeltaOf(delta),
-    ...(d.case ? { evidence: [{ kind: 'capture-case' as const, ref: d.case }] } : {})
+    ...(caseId ? { evidence: [{ kind: 'capture-case' as const, ref: caseId }] } : {})
   };
 }

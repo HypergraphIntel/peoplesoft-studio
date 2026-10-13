@@ -374,7 +374,8 @@ test('the research store\'s findings still match their captures: every capture-b
       const { digest, ...content } = o;
       assert.equal(digest, observationDigest(content), `${f.id}: an observation's digest is its content's`);
       const capture = o.evidence?.find((e) => e.kind === 'capture-case')?.ref;
-      if (o.method !== 'save-capture' || !o.delta || !capture || !existsSync(path.join(results, capture, 'delta.json'))) continue;
+      if (o.method !== 'save-capture' || !o.delta || !capture || !existsSync(results)) continue;
+      assert.ok(existsSync(path.join(results, capture, 'delta.json')), `${f.id}: capture ${capture} is not in the corpus`);
       const delta = JSON.parse(readFileSync(path.join(results, capture, 'delta.json'), 'utf8'));
       if (f.assertion.kind === 'physical-rewrite') {
         // The claim: in the ROWID (physical) diff, no table it names was updated in place.
@@ -398,7 +399,7 @@ test('the research store\'s findings still match their captures: every capture-b
   assert.ok(checked >= 30, `${checked} capture-backed observations checked`);
 });
 
-test('definition captures (def-capture, ae-capture): watch counts and PSVERSION steps; the release must be given', { skip: !existsSync('tools/corpus/save-protocol/results/ae10-insert-section/delta.json') && 'captures' }, () => {
+test('definition and page captures (def-capture, ae-capture, page-capture): watch counts and PSVERSION steps; the release must be given', { skip: !existsSync('tools/corpus/save-protocol/results/ae10-insert-section/delta.json') && 'captures' }, () => {
   const ae = JSON.parse(readFileSync('tools/corpus/save-protocol/results/ae10-insert-section/delta.json', 'utf8'));
   assert.deepEqual(sanitizedDeltaOf(ae), { tables: [{ table: 'PSAEAPPLDEFN', inserted: 0, deleted: 0, updated: 1 }, { table: 'PSAESECTDEFN', inserted: 1, deleted: 0, updated: 0 },
     { table: 'PSAESECTDTLDEFN', inserted: 1, deleted: 0, updated: 0 }], counters: { AEM: 1, AES: 1, SYS: 1 } });
@@ -409,6 +410,14 @@ test('definition captures (def-capture, ae-capture): watch counts and PSVERSION 
   const chn = JSON.parse(readFileSync('tools/corpus/save-protocol/results/chn02-props/delta.json', 'utf8'));
   assert.equal(sanitizedDeltaOf(chn).counters?.CHDM, 1);
   assert.ok(!JSON.stringify(sanitizedDeltaOf(chn)).includes('Lab channel'), 'counts only');
+  const page = JSON.parse(readFileSync('tools/corpus/save-protocol/results/eb01-display-zero/delta.json', 'utf8'));
+  assert.deepEqual(sanitizedDeltaOf(page), { tables: [{ table: 'PSPNLDEFN', inserted: 0, deleted: 0, updated: 1 }, { table: 'PSPNLFIELD', inserted: 0, deleted: 0, updated: 1 }], counters: { PDM: 1, SYS: 1 } });
+  assert.throws(() => observationFromCapture(page, { observation: 'x' }), /give it/);
+  // A renamed case keeps its old name in the file: the directory read is the ID.
+  const renamed = JSON.parse(readFileSync('tools/corpus/save-protocol/results/r03-sqltable-key-and-fields/delta.json', 'utf8'));
+  const o = observationFromCapture(renamed, { observation: 'x', caseName: 'r03-sqltable-key-and-fields' });
+  assert.equal(o.experimentId, 'r03-sqltable-key-and-fields');
+  assert.deepEqual(o.evidence, [{ kind: 'capture-case', ref: 'r03-sqltable-key-and-fields' }]);
 });
 
 test('counter-step findings: every observation shows exactly the counter steps its claim states', async () => {

@@ -36,7 +36,7 @@
     {
       "observedAt": "2026-10-06T22:52:48.949Z",
       "method": "save-capture",
-      "experimentId": "r03-delete-field",
+      "experimentId": "r03-sqltable-key-and-fields",
       "environment": {
         "peopleToolsRelease": "8.62.09",
         "platform": "oracle",
@@ -91,14 +91,14 @@
       "evidence": [
         {
           "kind": "capture-case",
-          "ref": "r03-delete-field"
+          "ref": "r03-sqltable-key-and-fields"
         },
         {
           "kind": "repo-path",
           "ref": "docs/RECORD_SAVE.md"
         }
       ],
-      "digest": "817cc34b53be365cf39e5314fa207d0ac8432a89b2da3f8ca6abb476c411aef3"
+      "digest": "c38f690cc366edceaec2aa1a9111d375d0b9306a91f476629517d6c9e50e1ef9"
     },
     {
       "observedAt": "2026-10-07T01:04:30.000Z",
@@ -272,8 +272,8 @@
   },
   "provenance": {
     "source": "research-harness",
-    "createdAt": "2026-10-13T11:14:38.497Z",
-    "updatedAt": "2026-10-13T11:14:39.640Z",
+    "createdAt": "2026-10-13T11:20:31.351Z",
+    "updatedAt": "2026-10-13T11:20:32.508Z",
     "schemaVersion": 1
   }
 }

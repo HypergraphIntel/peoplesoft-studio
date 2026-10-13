@@ -100,7 +100,7 @@ it supports. `--store DIR` or `PSFT_DISCOVERY_STORE` points elsewhere.
 
 | Source | Status | Observation it gives |
 |---|---|---|
-| Save captures (`tools/corpus/save-protocol`): sweeps (`save-protocol-delta/1`) and definition captures (`def-capture/1`, `ae-capture/1`) | Implemented (`adapters/saveCapture.ts`) | Changed tables (counts), counter moves, case ID; the release from a sweep, or given (`--release`) for a definition capture, which does not record it |
+| Save captures (`tools/corpus/save-protocol`): sweeps (`save-protocol-delta/1`), definition captures (`def-capture/1`, `ae-capture/1`) and page captures (`page-capture/1`, one page's rows; PDM, RDM and SYS only) | Implemented (`adapters/saveCapture.ts`) | Changed tables (counts), counter moves, case ID (the directory read: a renamed case keeps its old name inside); the release from a sweep, or given (`--release`) for the others, which do not record it |
 | Lab end-to-end proofs (`tools/lab/*-e2e.mts`) | Implemented (`adapters/labRun.ts`, CLI `lab-run --script --output --release [--tests REGEX]`) | Check names and outcomes only (failure details never leave), `live-e2e`; a Studio writer's proof is a `roundtrip-comparison` |
 | Controlled compile lab | Proposed | `compile-difference` observations |
 | PeopleCode corpus harness | Proposed | `bytecode-pattern` observations — derived facts only; the corpus is institutional |

@@ -6,7 +6,7 @@
  *   npx tsx tools/intelligence/discovery.mts capture <case> --type save-protocol --subsystem event-mapping \
  *       --object-type "Event Mapping configuration" --kind row-resave --fact table=PSPTCSSRVCONF --fact everyRowOnSave=true \
  *       --title "..." --statement "..." --observation "..." [--confidence medium] [--tool PIA] [--run-id ID] [--evidence repo-path:docs/X.md]
- *       [--release 8.62.09]   (required for def-capture / ae-capture cases, which do not record it)
+ *       [--release 8.62.09]   (required for def-capture / ae-capture / page-capture cases, which do not record it)
  *       [--expect-counters MDM=1,SYS=1]   (refused unless the capture's counter steps are exactly these)
  *   npx tsx tools/intelligence/discovery.mts lab-run --script tools/lab/X-e2e.mts --output run.log --release 8.62 [--tests REGEX] \
  *       --type roundtrip-comparison --subsystem ... --object-type ... --kind ... --fact k=v --title ... --statement ... --observation ...
@@ -61,7 +61,7 @@ try {
         observation = observationFromCapture(delta, {
           observation: need('observation'), ...(one('tool') ? { tool: one('tool')! } : {}), ...(one('run-id') ? { runId: one('run-id')! } : {}),
           ...(one('expected') ? { expected: one('expected')! } : {}), ...(one('actual') ? { actual: one('actual')! } : {}),
-          ...(one('release') ? { peopleToolsRelease: one('release')! } : {})
+          ...(one('release') ? { peopleToolsRelease: one('release')! } : {}), caseName
         });
       } else {
         observation = observationFromLabRun(readFileSync(need('output'), 'utf8'), {
