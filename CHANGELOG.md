@@ -17,6 +17,12 @@
   `Field.`, `Scroll.`), the matching definitions in the connection are offered
   by name with their description, refined as you type. A `&variable.` or
   `%System.` still offers its members, not names.
+- **Live hover** in PeopleCode: hovering a field (`Field.EMPLID`, or a record
+  field reference like `JOB_DATA.EMPLID`) shows its type, length and label from
+  the database (`EMPLID — Character, length 11 · Employee ID`); hovering any
+  other definition reference (`Record.JOB`, `Page.X`, an application class, ...)
+  shows its type, description and when it was last changed. Built-in functions,
+  keywords and system variables still show their static help.
 
 ## 0.8.6 — 2026-10-13
 

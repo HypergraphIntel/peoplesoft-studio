@@ -1,4 +1,9 @@
 import * as vscode from 'vscode';
+import { DefinitionType } from '../model/definitions.js';
+import { parseUri } from '../util/uri.js';
+import type { Workspace } from '../workspace.js';
+import { matchStoredKey, resolveReference } from './definition.js';
+import { definitionHoverMarkdown, fieldHoverMarkdown } from './hoverText.js';
 
 /** Keyword / statement docs. Keys are matched case-insensitively. */
 const KEYWORDS: Record<string, string> = {
@@ -208,20 +213,70 @@ function lookup(word: string): string | undefined {
   return undefined;
 }
 
-export function registerPeopleCodeHover(context: vscode.ExtensionContext): void {
+/** Live hover for a reference that resolves to a definition in the editor's connection, or undefined. */
+async function liveHover(document: vscode.TextDocument, position: vscode.Position, workspace: Workspace): Promise<vscode.Hover | undefined> {
+  if (document.uri.scheme !== 'psft') return undefined;
+  let handle: string;
+  try { handle = parseUri(document.uri).handle; } catch { return undefined; }
+  const provider = workspace.getProviderByHandle(handle);
+  if (!provider) return undefined;
+
+  const lineText = document.lineAt(position.line).text;
+  const ref = resolveReference(lineText, position.character);
+
+  // A record field reference REC.FIELD (not a Keyword.NAME): hover the field's own metadata.
+  const wordRange = wordRangeAt(document, position);
+  const word = wordRange ? document.getText(wordRange) : '';
+  const fieldName = ref?.type === DefinitionType.Field ? ref.parts[0]
+    : (!ref && RECORD_FIELD_RE.test(word) ? word.split('.')[1] : undefined);
+
+  if (fieldName && provider.readField) {
+    try {
+      const field = await provider.readField({ type: DefinitionType.Field, parts: [fieldName] });
+      if (field) return hover(fieldHoverMarkdown(field), wordRange ?? rangeOf(ref, position));
+    } catch { /* fall through */ }
+  }
+
+  if (ref) {
+    try {
+      const summaries = await provider.search({ type: ref.type, namePattern: ref.parts[0], limit: 500 });
+      const key = matchStoredKey(ref, summaries.map((s) => s.key));
+      const summary = key ? summaries.find((s) => s.key === key) : undefined;
+      if (key && summary) {
+        return hover(definitionHoverMarkdown({
+          displayName: summary.key.parts.join(':'),
+          type: key.type,
+          description: summary.description,
+          lastUpdated: summary.lastUpdated ? summary.lastUpdated.toISOString().slice(0, 10) : undefined,
+          lastUpdatedBy: summary.lastUpdatedBy
+        }), rangeOf(ref, position));
+      }
+    } catch { /* fall through */ }
+  }
+  return undefined;
+}
+
+const rangeOf = (ref: ReturnType<typeof resolveReference>, position: vscode.Position): vscode.Range =>
+  ref ? new vscode.Range(position.line, ref.start, position.line, ref.end) : new vscode.Range(position, position);
+
+function hover(md: string, range: vscode.Range): vscode.Hover {
+  const contents = new vscode.MarkdownString(md);
+  contents.isTrusted = false;
+  return new vscode.Hover(contents, range);
+}
+
+export function registerPeopleCodeHover(context: vscode.ExtensionContext, workspace: Workspace): void {
   const provider: vscode.HoverProvider = {
-    provideHover(document, position) {
+    async provideHover(document, position) {
+      const live = await liveHover(document, position, workspace);
+      if (live) return live;
+
+      // Static fallback: keywords, built-in functions, system variables.
       const range = wordRangeAt(document, position);
       if (!range) return undefined;
-
-      const word = document.getText(range);
-      const md = lookup(word);
+      const md = lookup(document.getText(range));
       if (!md) return undefined;
-
-      const contents = new vscode.MarkdownString(md);
-      contents.isTrusted = false;
-      //contents.supportFencedCodeBlocks = true;
-      return new vscode.Hover(contents, range);
+      return hover(md, range);
     },
   };
 
