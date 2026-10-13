@@ -32,6 +32,8 @@ import { registerPeopleCodeSymbols } from './peoplecode/symbols.js';
 import { parseUri, SCHEME } from './util/uri.js';
 import { findPeopleCodeReferences } from './peoplecode/findReferences.js';
 import { htmlPreviewPage } from './editors/htmlPreview.js';
+import { ddlRecordFromLayout, planProjectCreateTables, unbuildableReason, type ProjectBuildRecord, type TableOption } from './model/recordBuild.js';
+import { tableName } from './model/recordDdl.js';
 import { lineAndColumn, validatePeopleCode } from './peoplecode/validate.js';
 import type { DefinitionProvider } from './providers/provider.js';
 import { StatusBar } from './views/statusBar.js';
@@ -541,10 +543,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         RecordEditorProvider.refreshActive(workspace));
     }),
 
-    vscode.commands.registerCommand('psft.project.build', () => {
-      vscode.window.showInformationMessage(
-        'Project build (DDL) is not implemented yet. See docs/ROADMAP.md.');
-    }),
+    vscode.commands.registerCommand('psft.project.build', (node?: unknown) => vscode.commands.executeCommand('psft.buildProject', node)),
 
     vscode.commands.registerCommand('psft.project.compare', async (node?: unknown) => {
       await withError('Compare Project', async () => {
@@ -942,9 +941,51 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       });
     }),
 
-    vscode.commands.registerCommand('psft.buildProject', () => {
-      vscode.window.showInformationMessage(
-        'Project build (DDL generation) is not implemented yet. See docs/ROADMAP.md.');
+    vscode.commands.registerCommand('psft.buildProject', async (node?: unknown) => {
+      await withError('Build Project', async () => {
+        const n = node as { kind?: string; provider?: DefinitionProvider; project?: { name: string } } | undefined;
+        const provider = n?.kind === 'project' && n.provider ? n.provider : workspace.activeProviders.find((p) => p.isConnected);
+        if (!(provider instanceof DatabaseProvider)) {
+          vscode.window.showInformationMessage('Build Project writes its script from a database\'s DDL model: connect a database first (a project export carries none).');
+          return;
+        }
+        let project = n?.kind === 'project' ? n.project?.name : undefined;
+        if (!project) {
+          const projectsList = await provider.listProjects();
+          project = (await vscode.window.showQuickPick(projectsList.map((p) => ({ label: p.name, description: p.description ?? '' })),
+            { title: `Build which project of ${provider.displayName}?`, matchOnDescription: true }))?.label;
+        }
+        if (!project) return;
+        const projectName = project;
+        const option: TableOption = vscode.workspace.getConfiguration('peoplesoft').get<TableOption>('build.create.table') === 'skip' ? 'skip' : 'recreate';
+        const plan = await vscode.window.withProgress(
+          { location: vscode.ProgressLocation.Notification, title: `Building ${projectName}: Create Tables` },
+          async (progress) => {
+            const records = (await provider.listProjectItems(projectName)).filter((i) => i.key.type === DefinitionType.Record);
+            const inputs: ProjectBuildRecord[] = [];
+            const missing: string[] = [];
+            for (const [i, item] of records.entries()) {
+              progress.report({ message: `${i + 1} of ${records.length}` });
+              const layout = await provider.readRecordLayout(item.key);
+              if (!layout) { missing.push(item.key.parts[0]); continue; }
+              const model = await provider.readDdlModel(layout.name);
+              if (!model) throw new Error(`${provider.displayName} has no DDL model for its platform (PSDDLMODEL).`);
+              const exists = unbuildableReason(layout) ? false : (await provider.tableState(tableName(ddlRecordFromLayout(layout)))).exists;
+              inputs.push({ layout, model, tableExists: exists });
+            }
+            const p = planProjectCreateTables(inputs, option);
+            return { ...p, notes: [...p.notes, ...missing.map((m) => `${m}: in the project, but not in the database.`)], records: records.length };
+          });
+        if (!plan.script) {
+          vscode.window.showInformationMessage(`${projectName}: nothing to build (${plan.records} record${plan.records === 1 ? '' : 's'}).${plan.notes.length ? ` ${plan.notes.join(' ')}` : ''}`);
+          return;
+        }
+        const doc = await vscode.workspace.openTextDocument({ content: plan.script, language: 'psft-sql' });
+        await vscode.window.showTextDocument(doc, { preview: false });
+        vscode.window.showInformationMessage(
+          `${projectName}: Create Tables script for ${plan.statements.filter((st) => /^CREATE TABLE/i.test(st)).length} table(s)${plan.drops ? `, dropping ${plan.drops} first (Build Settings: recreate)` : ''}. ` +
+          `Nothing was run.${plan.notes.length ? ` Left out: ${plan.notes.join(' ')}` : ''}`);
+      });
     }),
 
     vscode.commands.registerCommand('psft.openFieldPeopleCode', async (target?: unknown) => {

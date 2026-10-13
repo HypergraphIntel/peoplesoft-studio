@@ -148,7 +148,7 @@ Goal long-term: replace Application Designer. **Today it reads every definition 
 | **HTML definitions** as text | Yes | Create and save on Writable connections — see [docs/HTML_SAVE.md](docs/HTML_SAVE.md) |
 | **Style sheets** | Yes | Freeform: read as CSS, create and save on Writable connections — see [docs/STYLESHEET_SAVE.md](docs/STYLESHEET_SAVE.md). Classic / sub: a read-only class list |
 | Record editor (App Designer's Field / Use / Edits displays, Record Type) | Yes | Read-only, editable on Writable connections — see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md) |
-| **Build...** (SQL Tables) | Experimental | Create Tables as a script, or build and execute on Writable connections. Alter Tables, Create Indexes alone and views not yet |
+| **Build...** (SQL Tables) | Experimental | Create Tables as a script, or build and execute on Writable connections. Alter Tables, Create Indexes alone and views not yet. **Build Project**: one Create Tables script for a project's SQL Tables (script only; views, Derived/Work and records with subrecords are listed as left out) |
 | Field editor (App Designer's Field dialog) | Yes | Read-only; length, labels and description editable on Writable connections |
 | **New Definition...** (Projects / Definition Browser) | Yes | Records (SQL Table, Derived/Work), fields, components, projects, Application Packages and classes, SQL, HTML, freeform style sheets, on Writable connections — see [docs/CREATE_DEFINITIONS.md](docs/CREATE_DEFINITIONS.md) |
 | Insert a definition into a project | Yes | Writable connections — see [docs/PROJECT_INSERT.md](docs/PROJECT_INSERT.md) |

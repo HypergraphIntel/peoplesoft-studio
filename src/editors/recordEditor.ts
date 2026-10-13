@@ -14,7 +14,7 @@ import {
 } from '../model/recordEdit.js';
 import { renderRecordHtml } from './recordHtml.js';
 import { lobColumn, tableName } from '../model/recordDdl.js';
-import { planCreateTables, type TableOption } from '../model/recordBuild.js';
+import { ddlRecordFromLayout, planCreateTables, type TableOption } from '../model/recordBuild.js';
 import {
   FIELD_TYPE_LABELS, RecordDefinition, RecordField, RecordType, UseEdit, UseEdit2, hasFlag
 } from '../model/record.js';
@@ -276,14 +276,7 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
       return;
     }
 
-    const record = {
-      name: shown.name, recordType: shown.recordType, sqlTableName: shown.sqlTableName,
-      ...(shown.tablespace ? { tablespace: shown.tablespace } : {}),
-      fields: shown.fields.map((f) => ({
-        name: f.name, type: f.type!, length: f.length ?? 0, decimalPositions: f.decimalPositions ?? 0,
-        ...(f.format !== undefined ? { format: f.format } : {}), useEdit: f.useEdit
-      }))
-    };
+    const record = ddlRecordFromLayout(shown);
     const table = tableName(record);
     const state = await provider.tableState(table);
     const option = vscode.workspace.getConfiguration('peoplesoft').get<TableOption>('build.create.table') === 'skip' ? 'skip' : 'recreate';
