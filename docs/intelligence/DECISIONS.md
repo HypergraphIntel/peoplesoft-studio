@@ -1,0 +1,141 @@
+# Decisions
+
+Architecture decisions for the Discovery & Intelligence Network, newest last.
+Each records what was decided, why, and what was not chosen. A decision is
+changed by adding a new one that supersedes it, not by editing history.
+
+## D1 — The local engine is files, not a database (2026-10-12)
+
+**Decided.** The local discovery store is a directory of JSON files, one per
+finding (`findings/<id>.json`), plus a `STORE.json` marker. Writes go to a
+temporary file and are renamed. The extension's store lives in its global
+storage (`<globalStorage>/intelligence`); the research store used by
+`tools/` scripts is `tools/intelligence/store`, committed to the repository.
+
+**Why.** The directive forbids a mandatory new database dependency in the
+extension; the extension already keeps local state as files in global storage
+(the customization audit log, delivered baselines). Thousands of findings
+are well within a directory listing. One file per finding diffs cleanly in
+git, so the repository's own research findings are reviewable in pull
+requests and survive any machine.
+
+**Not chosen.** SQLite (a native dependency the extension does not carry;
+the corpus harness's SQLite is a tool-side artifact), a single JSON file
+(every write rewrites everything; merge conflicts), VS Code `globalState`
+(not inspectable, not usable from `tools/`).
+
+**Limit.** One writer per store: two processes recording into the same
+finding at the same moment can lose an observation. The extension and the
+research tools use different stores.
+
+## D2 — The engine is in `src/intelligence/`, free of `vscode` and the network (2026-10-12)
+
+**Decided.** Schema, fingerprints, privacy scan, store and adapters are
+plain TypeScript under `src/intelligence/` with no `vscode` import and no
+network module (a test enforces both). The extension wires it in
+`src/intelligenceCommands.ts`; the MCP (phase 5) and `tools/` import it
+directly.
+
+**Why.** The same pattern as `src/model/` and the providers: testable with
+`node:test`, usable from the MCP and command-line tools, and offline by
+construction.
+
+**Name.** `tools/corpus/discovery.ts` already exists (corpus definition
+capture). The subsystem is called *intelligence* in code and settings; a
+*discovery* is a finding.
+
+## D3 — A finding's identity is its structured assertion (2026-10-12)
+
+**Decided.** A finding is one claim. Its fingerprint is SHA-256 over the
+canonical JSON of its type, subsystem, object type and *assertion* (`kind` +
+`facts`). Title, statement, release and evidence are not part of it. Its ID
+is `f-` and the first 24 hex digits.
+
+**Why.** Prose gets reworded; a fingerprint over text would split one claim
+into many. The release is not identity either: the same claim observed on
+8.61 and 8.62 is one finding whose compatibility lists both. A claim that
+*is* release-specific says so in its assertion (`version-difference`
+findings).
+
+**Not chosen.** Hashing the whole submission (every observation a new
+finding — no deduplication); server-assigned IDs (the engine must work
+offline, and two installations must agree on identity without talking).
+
+## D4 — Evidence is a list of observations; duplicates are identical evidence (2026-10-12)
+
+**Decided.** Each record carries one observation. Its digest is SHA-256 over
+its canonical content except the time it was recorded. Recording a finding
+whose fingerprint exists adds the observation (`merged`) — unless an
+observation with the same digest is already there (`duplicate`, nothing
+written). The first record's title and statement stand; confidence never
+drops.
+
+**Why.** The directive's "ten reports from the same faulty test must not
+establish a fact": re-running a recorder over the same capture adds nothing.
+A different run (`runId`) or a different experiment is new evidence.
+
+## D5 — Locally a finding is only *observed* or *reproduced* (2026-10-12)
+
+**Decided.** The local engine assigns `observed`, or `reproduced` once two
+distinct runs support it. *Corroborated*, *verified* and *published* are
+registry decisions (VERIFICATION_MODEL.md) and are never assigned locally.
+
+**Why.** Verification needs independence and review that one installation
+cannot give itself. Keeping the local states few prevents a local claim from
+looking authoritative.
+
+## D6 — Deny by default: an allowlisted schema plus a text scan (2026-10-12)
+
+**Decided.** Every schema object is strict (unknown keys refused), text is
+bounded, deltas are counts only, and there is no field for definitions,
+source, SQL, rows, connections, hosts or credentials. A privacy scan refuses
+findings whose text carries URLs, e-mail addresses, absolute paths, IP
+addresses, connect strings, host names, credentials or long opaque tokens;
+it reports the field and rule, never the value. Findings carrying lab
+provenance (experiment and run IDs, capture cases, repository paths, the
+application release) are classified `internal`, others `public-technical`.
+`approvedForSubmission` is always `false` in phase 1.
+
+**Not chosen.** Redacting and keeping (a redaction that misses leaks;
+refusing makes the author rewrite the claim technically).
+
+## D7 — The server: a separate deployable in this repository, later (2026-10-12)
+
+**Decided (for phase 2, not built).** The Central Intelligence Server will
+be a Python/FastAPI/PostgreSQL service in its own top-level directory
+(`server/intelligence/`), with its own `pyproject.toml`, container image,
+tests and CI job, sharing only the finding schema (exported from
+`src/intelligence/schema.ts` as JSON Schema). It may move to its own
+repository once it has users other than this project.
+
+**Why.** The schema is the contract; keeping client and server in one
+repository keeps them in step while both change weekly. An independent
+directory, image and deployment keep its lifecycle and security boundary
+separate from the extension. It is not part of any other application
+(the "PeopleSoft Hypergraph Intelligence" application is not in this
+workspace and is not a dependency).
+
+**Not chosen.** A separate repository now (schema drift while the protocol
+is young); embedding the server in the extension (wrong trust boundary).
+
+## D8 — Knowledge is data; software ships as releases (2026-10-12)
+
+**Decided.** Knowledge bundles (phase 4) carry declarative records only:
+mappings, compatibility, verified statements, constraints. They are signed,
+versioned and can be revoked; a client verifies before use. Nothing in a
+bundle is executed, and no bundle changes a write gate, an approval policy
+or a writer. Code changes — writers, parsers, the MCP — go through source
+control, tests and an extension release.
+
+**Why.** The directive: no remote code execution disguised as knowledge
+sync. Remote findings are untrusted data, never instructions to an agent.
+
+## D9 — Phase 1 adds one command, no settings (2026-10-12)
+
+**Decided.** Phase 1 registers *PeopleSoft: Show Local Discoveries* and
+adds no settings. The proposed `peoplesoft.intelligence.*` settings
+(enabled, serverUrl, uploadMode, knowledgeSync, captureLocalDiscoveries)
+arrive with the features they control (phases 2–4), named under the
+existing `peoplesoft.*` namespace.
+
+**Why.** A setting with nothing behind it misdescribes the product.

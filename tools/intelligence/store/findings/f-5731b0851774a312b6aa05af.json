@@ -1,0 +1,72 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-5731b0851774a312b6aa05af",
+  "fingerprint": "5731b0851774a312b6aa05afc0ada15d78cb4de53e2e3338a611305dd7cf1119",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "event-mapping",
+    "objectType": "Event Mapping configuration",
+    "tables": [
+      "PSPTCSSRVCONF",
+      "PSXLATITEM"
+    ],
+    "properties": [
+      "PTCS_ISCOMPSERVICE"
+    ]
+  },
+  "assertion": {
+    "kind": "code-labels",
+    "facts": {
+      "field": "PTCS_ISCOMPSERVICE",
+      "C": "Component",
+      "R": "Page",
+      "P": "Record",
+      "F": "Record Field",
+      "xlatLabelsMislead": true
+    }
+  },
+  "title": "PTCS_ISCOMPSERVICE level codes: C Component, R Page, P Record, F Record Field (PSXLATITEM's labels mislead)",
+  "statement": "The Configure Event Mapping pages show level C as Component, R as Page, P as Record and F as Record Field. PSXLATITEM labels P 'Services at Page level' and R 'Event Mapping at Comp Rec': P rows carry a record and record events (RowInit...), R rows a page and Activate.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-12T19:40:00Z",
+      "method": "pia-capture",
+      "experimentId": "em05-fluid-page-record-edit",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "The fluid page's Event Level list holds C=Component, R=Page, F=Rec Field, P=Record; a Page row saved PTCS_ISCOMPSERVICE R with PNLNAME and PACT, a Record row P with RECNAME and RINI.",
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "em05-fluid-page-record-edit"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "src/model/eventMapping.ts"
+        }
+      ],
+      "digest": "af1855b445d6ff4e5841d0e60212cd08148a73983719208b707af3ee584bb932"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T00:21:09.199Z",
+    "updatedAt": "2026-10-13T00:21:09.199Z",
+    "schemaVersion": 1
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-7e8ece79e395dbb863bc93e5",
+  "fingerprint": "7e8ece79e395dbb863bc93e5d1c4353fb37f376f247d7a015d3165a1714483d4",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "event-mapping",
+    "objectType": "Related content service",
+    "tables": [
+      "PSPTCSSRVDEFN"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "table": "PSPTCSSRVDEFN",
+      "counter": "RCSDM",
+      "psversionStep": 1,
+      "pslockStep": 2,
+      "sysStep": 1
+    }
+  },
+  "title": "Defining a related content service moves RCSDM by 1 in PSVERSION but by 2 in PSLOCK",
+  "statement": "A save of a new service on Define Related Content Service (PTCSSERVICES) stores VERSION the next RCSDM; PSVERSION RCSDM and SYS move by one, PSLOCK RCSDM by two.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-12T19:28:19.545Z",
+      "method": "save-capture",
+      "experimentId": "em01-service-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "PSVERSION RCSDM 5 to 6 and SYS +1; PSLOCK RCSDM 5 to 7; one PSPTCSSRVDEFN row with VERSION 6.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSADSTRACKING",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCSSRVDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RCSDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "em01-service-create"
+        }
+      ],
+      "digest": "b0b2e40bb1c905b1dd558b5af636f0989ca591305529ff6843006b7eeb9dd879"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T00:21:09.472Z",
+    "updatedAt": "2026-10-13T00:21:09.472Z",
+    "schemaVersion": 1
+  }
+}

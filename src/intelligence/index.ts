@@ -1,0 +1,12 @@
+/*
+ * The Discovery & Intelligence Network's local engine (docs/intelligence):
+ * the finding schema, deterministic fingerprints, the privacy scan, the
+ * local store, and adapters that turn research evidence into observations.
+ * No `vscode`, no network: the extension, the MCP and the tools/ scripts all
+ * use it.
+ */
+export * from './schema.js';
+export { canonicalJson, findingFingerprint, findingId, observationDigest } from './fingerprint.js';
+export { classify, PrivacyRejectedError, scanFinding, type PrivacyViolation } from './privacy.js';
+export { DiscoveryInputError, DiscoveryStore, STORE_FORMAT, type FindingSummary, type ListFilter, type RecordOutcome, type RecordResult } from './store.js';
+export { BACKGROUND_TABLES, observationFromCapture, sanitizedDeltaOf } from './adapters/saveCapture.js';

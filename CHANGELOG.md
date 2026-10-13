@@ -55,6 +55,14 @@
 
 See docs/CUSTOMIZATION.md.
 
+- **Discovery & Intelligence Network, phase 1: local discoveries.** Research
+  findings about PeopleSoft recorded as structured, versioned records
+  (`psft-finding/1`): a claim with its evidence, a deterministic fingerprint,
+  duplicates and reproductions told apart, the PeopleTools releases it was
+  seen on. Deny by default: an allowlisted schema and a privacy scan refuse
+  hosts, paths, addresses, credentials and data. Offline; nothing is
+  uploaded. *PeopleSoft: Show Local Discoveries*. See docs/intelligence.
+
 ## 0.8.4
 
 ### Added

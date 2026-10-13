@@ -92,3 +92,13 @@ If the active definition cannot be advanced after exhausting available evidence:
 Return to locally blocked definitions later if subsequent calibration reveals relevant evidence.
 
 Only report a global blocker if all remaining actionable work is exhausted.
+
+## Other initiative: Discovery & Intelligence Network
+
+Separate from corpus calibration. Recording research findings about
+PeopleSoft as structured, evidence-backed records, and later sharing verified
+knowledge between installations. Resume from `docs/intelligence/PROGRESS.md`
+(state, next task, blockers); the design is in `docs/intelligence/`, the
+directive in `CUSTOMIZATION_INTEL_SERVER.md`. Record new research findings
+with `npx tsx tools/intelligence/discovery.mts` (rules of evidence:
+`docs/intelligence/DISCOVERY_PROTOCOL.md`).

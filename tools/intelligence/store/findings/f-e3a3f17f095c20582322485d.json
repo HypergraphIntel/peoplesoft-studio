@@ -1,0 +1,208 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-e3a3f17f095c20582322485d",
+  "fingerprint": "e3a3f17f095c20582322485ddca1d64c6580ba2cd4251104692fa5b0c71904de",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "event-mapping",
+    "objectType": "Event Mapping configuration",
+    "tables": [
+      "PSPTCSSRVCONF",
+      "PSPTCS_MAPFLDS"
+    ]
+  },
+  "assertion": {
+    "kind": "row-resave",
+    "facts": {
+      "table": "PSPTCSSRVCONF",
+      "everyRowOnSave": true,
+      "versionCounter": "SCNFM",
+      "stamped": true,
+      "sysCounterMoves": true
+    }
+  },
+  "title": "The fluid Configure Event Mapping page re-saves every row on Save",
+  "statement": "On Save, PTCSSERVICES.PT_EVMAPPING_FL deletes and re-inserts every configuration row of the content reference in grid order, changed or not: VERSION the next SCNFM, LASTUPDOPRID and LASTUPDDTTM stamped; SCNFM and SYS move by one per row. Oracle-delivered rows on the same content reference are restamped too.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-12T19:50:40.369Z",
+      "method": "save-capture",
+      "experimentId": "em04-fluid-add-record",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Two rows on the grid, one added: both deleted and re-inserted, VERSION 3 and 4 (SCNFM 2 to 4), the unchanged row restamped.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSADSTRACKING",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPTCSSRVCONF",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_MAPFLDS",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SCNFM": 2,
+          "SYS": 2
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "em04-fluid-add-record"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "src/providers/eventMappingWriter.ts"
+        }
+      ],
+      "digest": "ed671e26aa8285aebbcfd31c65db753ee7b09a82fd005623f181228b87383cd0"
+    },
+    {
+      "observedAt": "2026-10-12T19:53:36.244Z",
+      "method": "save-capture",
+      "experimentId": "em05-fluid-page-record-edit",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Four rows (two added, one sequence changed, one unchanged): all four re-saved at SCNFM 5..8, SYS +4.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSADSTRACKING",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 3
+          },
+          {
+            "table": "PSPTCSSRVCONF",
+            "inserted": 3,
+            "deleted": 1,
+            "updated": 1
+          },
+          {
+            "table": "PSPTCS_MAPFLDS",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SCNFM": 4,
+          "SYS": 4
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "em05-fluid-page-record-edit"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "src/providers/eventMappingWriter.ts"
+        }
+      ],
+      "digest": "74b5947f435214ffa9f0dfa6adda2f16def945c0fca045ac29e5bcbef1b1ef15"
+    },
+    {
+      "observedAt": "2026-10-12T19:54:58.725Z",
+      "method": "save-capture",
+      "experimentId": "em06-fluid-delete-row",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "One row deleted: the three kept rows re-saved at SCNFM 9..11, the deleted row's tombstone at 12.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSADSTRACKING",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 5
+          },
+          {
+            "table": "PSPTCSSRVCNFDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCSSRVCONF",
+            "inserted": 2,
+            "deleted": 3,
+            "updated": 1
+          },
+          {
+            "table": "PSPTCS_MAPFLDS",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SCNFM": 4,
+          "SYS": 4
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "em06-fluid-delete-row"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "src/providers/eventMappingWriter.ts"
+        }
+      ],
+      "digest": "dc82b5c037a6d74f4b6cb511dd1392bea9dd200f1dad8dbdebd70688a9f577b2"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T00:20:48.664Z",
+    "updatedAt": "2026-10-13T00:20:49.204Z",
+    "schemaVersion": 1
+  }
+}

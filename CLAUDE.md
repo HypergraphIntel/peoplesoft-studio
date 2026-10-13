@@ -233,3 +233,13 @@ After context recovery, read `.claude/corpus-progress.md` and resume
 automatically.
 
 A local blocker is not a global blocker.
+
+## Other initiative: Discovery & Intelligence Network
+
+Separate from corpus calibration. Recording research findings about
+PeopleSoft as structured, evidence-backed records, and later sharing verified
+knowledge between installations. Resume from `docs/intelligence/PROGRESS.md`
+(state, next task, blockers); the design is in `docs/intelligence/`, the
+directive in `CUSTOMIZATION_INTEL_SERVER.md`. Record new research findings
+with `npx tsx tools/intelligence/discovery.mts` (rules of evidence:
+`docs/intelligence/DISCOVERY_PROTOCOL.md`).

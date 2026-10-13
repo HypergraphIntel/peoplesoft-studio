@@ -1,0 +1,86 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-76b320392022a312cd7d7562",
+  "fingerprint": "76b320392022a312cd7d75622026af401909e53728fa9146b84f68f4eaafa773",
+  "type": "serialization",
+  "subject": {
+    "subsystem": "other",
+    "objectType": "Data Migration Workbench change tracking",
+    "tables": [
+      "PSADSTRACKING"
+    ],
+    "properties": [
+      "PTKEYHASH"
+    ]
+  },
+  "assertion": {
+    "kind": "hash-algorithm",
+    "facts": {
+      "table": "PSADSTRACKING",
+      "column": "PTKEYHASH",
+      "digest": "SHA-1",
+      "textEncoding": "UTF-16LE",
+      "output": "base64",
+      "keyFormat": "( NAME = value ) per key, concatenated",
+      "keyOrder": "sorted by field name"
+    }
+  },
+  "title": "PSADSTRACKING.PTKEYHASH is SHA-1 over UTF-16LE '( NAME = value )' text, keys sorted by name, base64",
+  "statement": "The Data Migration Workbench key hash: each key field as '( NAME = value )' (a blank value as '( NAME =  )'), the pairs sorted by field name and concatenated, hashed with PeopleCode Hash() -- SHA-1 over the UTF-16LE text, base64. PTKEYCOLn/PTKEYVALUEn keep the record's key order. PIA hashes the stored values as written, quirks included.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-12T19:30:00Z",
+      "method": "source-inspection",
+      "experimentId": "UPGPTADSTRK.MAIN.Tracking",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "UPGPTADSTRK's CalcKeyHash builds the text and calls Hash(); recomputing it reproduces the hashes PIA wrote for a 1-key row (em01), a 2-key row and a 4-key row (em03, em04), and a delivered 4-key row.",
+      "testResults": [
+        {
+          "name": "the key hash is PIA's: SHA-1 over UTF-16LE \"( NAME = value )\" sorted by name [em01, em03, em04]",
+          "outcome": "pass"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/providers/adsTracking.ts"
+        },
+        {
+          "kind": "capture-case",
+          "ref": "em01-service-create"
+        },
+        {
+          "kind": "capture-case",
+          "ref": "em03-config-add"
+        },
+        {
+          "kind": "test",
+          "ref": "src/test/eventMappingWriter.test.ts"
+        }
+      ],
+      "digest": "f851e2bdda0971f6e0ea495c77ba699791e92ce83da00f1dfab97b8199e311a3"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T00:21:08.915Z",
+    "updatedAt": "2026-10-13T00:21:08.915Z",
+    "schemaVersion": 1
+  }
+}

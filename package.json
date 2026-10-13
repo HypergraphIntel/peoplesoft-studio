@@ -218,6 +218,11 @@
         "category": "PeopleSoft"
       },
       {
+        "command": "psft.intelligence.showDiscoveries",
+        "title": "Show Local Discoveries",
+        "category": "PeopleSoft"
+      },
+      {
         "command": "psft.customization.openSettings",
         "title": "Customization Settings",
         "category": "PeopleSoft",
