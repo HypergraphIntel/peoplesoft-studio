@@ -403,6 +403,9 @@ export function createStub() {
       registerReferenceProvider(_selector, _provider) {
         return new Disposable(() => {});
       },
+      registerSignatureHelpProvider(_selector, _provider, ..._triggers) {
+        return new Disposable(() => {});
+      },
       registerDocumentSymbolProvider(_selector, _provider) {
         return new Disposable(() => {});
       }

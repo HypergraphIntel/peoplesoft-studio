@@ -30,6 +30,9 @@
   identifier under the cursor, the same engine as the *Find References* command
   (one PSPCMTXT search on a database, a bounded scan on a project export), now
   without the input box.
+- **Signature help** for common built-in functions: typing `(` or `,` in a call
+  to a known built-in (CreateRecord, SQLExec, MsgGet, GetRowset, Substring, …)
+  shows its parameters with the current one highlighted.
 
 ## 0.8.6 — 2026-10-13
 
