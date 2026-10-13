@@ -10,6 +10,13 @@
   diff editor. The other side is read once through a temporary connection,
   as *Test Connection* reads, so the active connection stays as it is (one
   connection is still active at a time).
+- **Run SQL** (a SQL editor's title bar): the query in the editor -- or the
+  selected one -- run on the connected database and shown as rows beside
+  it. Read only: one SELECT (or WITH ... SELECT), no INTO or FOR UPDATE,
+  checked before anything is sent; run in a transaction that is always
+  rolled back, on Oracle also READ ONLY; at most `peoplesoft.sql.maxRows`
+  rows (500). `%Table(record)` becomes the record's table; other meta-SQL
+  and bind variables are refused by name. Not offered to AI agents.
 - **Build Project** (Projects view): one Create Tables script for every
   SQL Table record of a project, from the database's DDL model and Build
   Settings (recreate drops an existing table first), opened for review;

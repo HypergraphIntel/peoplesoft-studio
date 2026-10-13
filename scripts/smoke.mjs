@@ -383,6 +383,19 @@ try {
       'Compare Project activated the other connection');
   }
 
+  // Run SQL refuses anything but one query before it touches a database, and needs a database to run one.
+  {
+    const editorBefore = vscode.window.activeTextEditor;
+    const sqlEditor = (text) => ({ document: { uri: vscode.Uri.parse('untitled:q.pssql'), languageId: 'psft-sql', getText: () => text } });
+    vscode.window.activeTextEditor = sqlEditor('DELETE FROM PSOPRDEFN');
+    await vscode.commands.executeCommand('psft.sql.run');
+    check(/^Not run: Run SQL runs queries only/.test(vscode._messages.at(-1)?.[1] ?? ''), `Run SQL did not refuse a DELETE (${JSON.stringify(vscode._messages.at(-1))})`);
+    vscode.window.activeTextEditor = sqlEditor('SELECT OPRID FROM PSOPRDEFN');
+    await vscode.commands.executeCommand('psft.sql.run');
+    check(/runs against a connected database/.test(vscode._messages.at(-1)?.[1] ?? ''), `Run SQL ran without a database (${JSON.stringify(vscode._messages.at(-1))})`);
+    vscode.window.activeTextEditor = editorBefore;
+  }
+
   // Validate PeopleCode compiles the active editor's text and reports where it stopped, in Problems.
   {
     const programUri = vscode._diffs.at(-1)?.left;

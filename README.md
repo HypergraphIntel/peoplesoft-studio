@@ -144,7 +144,7 @@ Goal long-term: replace Application Designer. **Today it reads every definition 
 | **Saving PeopleCode** | Experimental | Writable connections: compile and save, create an event or class that has no program yet, clear a program to delete it — see [Saving PeopleCode](#saving-peoplecode-experimental) |
 | Settings panel | Yes | *PeopleSoft: Open Settings* — connections, compiler profile, MCP server, Build Settings (Build and Alter tabs) |
 | Record → field → PeopleCode event navigation | Yes | |
-| **SQL definitions** as text | Yes | Create and save on Writable connections, as App Designer saves them |
+| **SQL definitions** as text | Yes | Create and save on Writable connections, as App Designer saves them. **Run SQL** runs a query (the selection, or the whole editor) read only and rolled back, and shows the rows beside it: one SELECT, no `INTO` or `FOR UPDATE`, `%Table(record)` expanded, other meta-SQL and binds refused, at most `peoplesoft.sql.maxRows` rows |
 | **HTML definitions** as text | Yes | Create and save on Writable connections — see [docs/HTML_SAVE.md](docs/HTML_SAVE.md) |
 | **Style sheets** | Yes | Freeform: read as CSS, create and save on Writable connections — see [docs/STYLESHEET_SAVE.md](docs/STYLESHEET_SAVE.md). Classic / sub: a read-only class list |
 | Record editor (App Designer's Field / Use / Edits displays, Record Type) | Yes | Read-only, editable on Writable connections — see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md) |

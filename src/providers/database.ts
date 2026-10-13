@@ -11,7 +11,8 @@ import type { RecordLayout, TranslateValue } from '../model/recordLayout.js';
 import type { DefinitionReference } from './provider.js';
 import { createProject as createProjectRow, saveProject, verifyProjectSave, type ProjectSaveRequest, type ProjectSaveResult } from './projectWriter.js';
 import { deleteRecord, saveRecord, verifyRecordSave, type RecordSaveRequest, type RecordSaveResult } from './recordWriter.js';
-import { ddlPlatformFor, type DdlModel } from '../model/recordDdl.js';
+import { ddlPlatformFor, tableName, type DdlModel } from '../model/recordDdl.js';
+import { maskSql, prepareReadOnlyQuery } from '../sql/readOnlyQuery.js';
 import { saveTranslate as saveTranslateRows, type TranslateChange } from './translateWriter.js';
 import { createField as createFieldRows, saveField as saveFieldRows, type FieldCreateRequest, type FieldSaveRequest } from './fieldWriter.js';
 import { createPackage as createPackageRow } from './packageWriter.js';
@@ -2565,6 +2566,46 @@ export class DatabaseProvider implements DefinitionProvider {
         out.push({ group: 'PeopleCode', label, description: `references ${[...e.recs].map((r) => `${r}.${field}`).join(', ')}`, ...(e.key ? { key: e.key } : {}) });
       }
       return out;
+    });
+  }
+
+  /**
+   * Run SQL (psft.sql.run): one query, read only. prepareReadOnlyQuery checks it (a single SELECT, no INTO
+   * or FOR UPDATE) and expands %Table(REC) to the record's table (PSRECDEFN.SQLTABLENAME, else PS_REC).
+   * It runs in a transaction that is always rolled back -- on Oracle also SET TRANSACTION READ ONLY, so a
+   * function that writes fails -- and at most `maxRows` rows come back (Oracle: the driver's maxRows, the
+   * query untouched; elsewhere the query wrapped in FETCH FIRST).
+   */
+  async runReadOnlyQuery(text: string, maxRows = 500): Promise<{ sql: string; rows: Array<Record<string, unknown>>; truncated: boolean; ms: number }> {
+    const types = this.types;
+    return this.withConnection(async (c) => {
+      const tables = new Map<string, string>();
+      for (const m of maskSql(text).matchAll(/%table\s*\(\s*([A-Za-z0-9_#$@]+)\s*\)/gi)) {
+        const rec = m[1].toUpperCase();
+        if (tables.has(rec)) continue;
+        const r = await c.execute<{ T: string }>('SELECT SQLTABLENAME AS T FROM PSRECDEFN WHERE RECNAME = :r', { r: rec });
+        if (!r.rows?.length) throw new ProviderError(`%Table(${rec}): there is no record ${rec}.`);
+        tables.set(rec, tableName({ name: rec, sqlTableName: String(r.rows[0].T ?? ' ') }));
+      }
+      const prepared = prepareReadOnlyQuery(text, (rec) => tables.get(rec) ?? `PS_${rec}`);
+      if (!prepared.ok) throw new ProviderError(prepared.reason);
+      const started = Date.now();
+      try {
+        let rows: Array<Record<string, unknown>>;
+        if (this.platform === 'oracle') {
+          await c.execute('SET TRANSACTION READ ONLY');
+          rows = (await c.execute<Record<string, unknown>>(prepared.sql, {}, {
+            outFormat: types.OUT_FORMAT_OBJECT, maxRows: maxRows + 1,
+            fetchTypeHandler: (meta: { dbType?: unknown }) =>
+              meta.dbType === types.DB_TYPE_CLOB || meta.dbType === types.DB_TYPE_NCLOB ? { type: types.STRING } : undefined
+          })).rows ?? [];
+        } else {
+          rows = (await c.execute<Record<string, unknown>>(`SELECT * FROM (${prepared.sql}) Q FETCH FIRST ${maxRows + 1} ROWS ONLY`)).rows ?? [];
+        }
+        return { sql: prepared.sql, rows: rows.slice(0, maxRows), truncated: rows.length > maxRows, ms: Date.now() - started };
+      } finally {
+        await c.rollback().catch(() => { /* the connection closes either way */ });
+      }
     });
   }
 

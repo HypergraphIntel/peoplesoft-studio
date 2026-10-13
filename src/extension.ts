@@ -24,6 +24,8 @@ import { compareProjectItems, type ProjectItemComparison, type ProjectItemOutcom
 
 /** Compare With Environment's snapshots, shared with Compare Project (set on activation). */
 let compareContentForProjects: CompareContent | undefined;
+/** Run SQL's results panel, reused for each query. */
+let queryResultsPanel: vscode.WebviewPanel | undefined;
 import type { McpWriteMode } from './mcp/writeTools.js';
 import type { PeopleCodeSaveResult } from './providers/peopleCodeWriter.js';
 import { registerPeopleCodeCompletion } from './peoplecode/completion.js';
@@ -32,6 +34,8 @@ import { registerPeopleCodeSymbols } from './peoplecode/symbols.js';
 import { parseUri, SCHEME } from './util/uri.js';
 import { findPeopleCodeReferences } from './peoplecode/findReferences.js';
 import { htmlPreviewPage } from './editors/htmlPreview.js';
+import { renderQueryResults } from './editors/queryResults.js';
+import { prepareReadOnlyQuery } from './sql/readOnlyQuery.js';
 import { ddlRecordFromLayout, planProjectCreateTables, unbuildableReason, type ProjectBuildRecord, type TableOption } from './model/recordBuild.js';
 import { tableName } from './model/recordDdl.js';
 import { lineAndColumn, validatePeopleCode } from './peoplecode/validate.js';
@@ -519,9 +523,42 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       });
     }),
 
-    vscode.commands.registerCommand('psft.sql.run', () => {
-      vscode.window.showInformationMessage(
-        'Run SQL is not implemented yet.');
+    vscode.commands.registerCommand('psft.sql.run', async () => {
+      await withError('Run SQL', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor || editor.document.languageId !== 'psft-sql') {
+          vscode.window.showInformationMessage('Run SQL runs the query in the active SQL editor: open a SQL definition or SQL document first.');
+          return;
+        }
+        const doc = editor.document;
+        const sel = editor.selection;
+        const text = sel && !sel.isEmpty ? doc.getText(sel) : doc.getText();
+        // Checked before anything touches the database (%Table is named there); a refusal says why.
+        const checked = prepareReadOnlyQuery(text, (rec) => rec);
+        if (!checked.ok) { vscode.window.showWarningMessage(`Not run: ${checked.reason}`); return; }
+        const provider = doc.uri.scheme === SCHEME ? await workspace.requireByHandle(parseUri(doc.uri).handle) : workspace.activeProviders.find((p) => p.isConnected);
+        if (!(provider instanceof DatabaseProvider)) {
+          vscode.window.showInformationMessage('Run SQL runs against a connected database: connect one first (a project export has no tables).');
+          return;
+        }
+        const maxRows = vscode.workspace.getConfiguration('peoplesoft').get<number>('sql.maxRows', 500);
+        let r: Awaited<ReturnType<DatabaseProvider['runReadOnlyQuery']>>;
+        try {
+          r = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Running the query on ${provider.displayName} (read only)…` },
+            () => provider.runReadOnlyQuery(text, maxRows));
+        } catch (err) {
+          vscode.window.showWarningMessage(`Not run: ${(err as Error).message}`);
+          return;
+        }
+        if (!queryResultsPanel) {
+          queryResultsPanel = vscode.window.createWebviewPanel('psft.queryResults', 'Query Results', { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
+            { enableScripts: false, localResourceRoots: [] });
+          queryResultsPanel.onDidDispose(() => { queryResultsPanel = undefined; });
+        }
+        queryResultsPanel.title = `Results: ${provider.displayName}`;
+        queryResultsPanel.webview.html = renderQueryResults({ connection: provider.displayName, sql: r.sql, rows: r.rows, truncated: r.truncated, maxRows, ms: r.ms });
+        queryResultsPanel.reveal(vscode.ViewColumn.Beside, true);
+      });
     }),
 
     vscode.commands.registerCommand('psft.html.preview', async () => {

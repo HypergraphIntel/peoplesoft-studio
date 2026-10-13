@@ -910,6 +910,13 @@
           "default": "confirm",
           "description": "Whether AI clients may save PeopleSoft definitions through the MCP server (PeopleCode, SQL, HTML, style sheets, pages, records, fields, translates, projects, packages)."
         },
+        "peoplesoft.sql.maxRows": {
+          "type": "integer",
+          "default": 500,
+          "minimum": 1,
+          "maximum": 10000,
+          "markdownDescription": "The most rows *Run SQL* shows. A query runs read only and is always rolled back: one SELECT, no `INTO` or `FOR UPDATE`; `%Table(record)` is the only meta-SQL expanded."
+        },
         "peoplesoft.build.create.table": {
           "type": "string",
           "enum": [
