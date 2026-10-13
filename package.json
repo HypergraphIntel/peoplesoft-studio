@@ -696,7 +696,7 @@
         },
         {
           "command": "psft.html.preview",
-          "when": "resourceScheme == psft && resourceLangId == psft-html",
+          "when": "resourceScheme == psft && resourceExtname == .html",
           "group": "navigation@1"
         },
         {

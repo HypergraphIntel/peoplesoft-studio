@@ -10,6 +10,11 @@
   diff editor. The other side is read once through a temporary connection,
   as *Test Connection* reads, so the active connection stays as it is (one
   connection is still active at a time).
+- **Preview HTML** (an HTML definition's editor title bar): the definition
+  as a page beside it, with no script run and nothing fetched (inline
+  styles and data: images only); meta-HTML such as `%Bind(:1)` shows as
+  written. Its button had never appeared (it waited for a language no HTML
+  definition opens in).
 - **Compare Project** (Projects view, a project's inline button or the
   view's title bar): each definition of a project read from the active
   connection and from another -- a database or a project export, read

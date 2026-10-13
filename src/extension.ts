@@ -31,6 +31,7 @@ import { registerPeopleCodeHover } from './peoplecode/hover.js';
 import { registerPeopleCodeSymbols } from './peoplecode/symbols.js';
 import { parseUri, SCHEME } from './util/uri.js';
 import { findPeopleCodeReferences } from './peoplecode/findReferences.js';
+import { htmlPreviewPage } from './editors/htmlPreview.js';
 import { lineAndColumn, validatePeopleCode } from './peoplecode/validate.js';
 import type { DefinitionProvider } from './providers/provider.js';
 import { StatusBar } from './views/statusBar.js';
@@ -521,9 +522,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         'Run SQL is not implemented yet.');
     }),
 
-    vscode.commands.registerCommand('psft.html.preview', () => {
-      vscode.window.showInformationMessage(
-        'HTML preview is not implemented yet.');
+    vscode.commands.registerCommand('psft.html.preview', async () => {
+      await withError('Preview HTML', async () => {
+        const doc = vscode.window.activeTextEditor?.document;
+        if (!doc || doc.uri.scheme !== SCHEME || !doc.uri.path.toLowerCase().endsWith('.html')) {
+          vscode.window.showInformationMessage('Preview HTML shows the HTML definition in the active editor: open one first.');
+          return;
+        }
+        const { key } = parseUri(doc.uri);
+        const panel = vscode.window.createWebviewPanel('psft.htmlPreview', `Preview: ${displayName(key)}`, vscode.ViewColumn.Beside,
+          { enableScripts: false, localResourceRoots: [] });
+        panel.webview.html = htmlPreviewPage(doc.getText());
+      });
     }),
 
     vscode.commands.registerCommand('psft.record.refresh', async () => {

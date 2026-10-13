@@ -279,7 +279,7 @@ compile the program in Application Designer as well (see the Disclaimer). See
 - **Compare Project** (Projects view) — every definition of a project read from this connection and from another (a database or a project export), listed as different, missing there, same, or not compared (no text form); choosing a difference opens it side by side
 - **Compare With Environment** — a definition side by side with the same one in another connection (a database or a project export), in VS Code's diff editor. The other side is read once, without making that connection the active one
 
-SQL documents use language id `psft-sql` (basic highlighting).
+SQL documents use language id `psft-sql` (basic highlighting). HTML definitions open as HTML; *Preview HTML* shows one as a page, with no script run and nothing fetched.
 
 ## Setup
 
