@@ -1,0 +1,1042 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-fedefefdb30a40a90ea77a36",
+  "fingerprint": "fedefefdb30a40a90ea77a36102e6002664b7d3e2f8b75ef47061752406fd679",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "component-interface",
+    "objectType": "Component Interface",
+    "tables": [
+      "PSBCDEFN",
+      "PSBCITEM"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "change": "ci-definition",
+      "BCM": 1,
+      "SYS": 1,
+      "CLM": 0,
+      "PCM": 0
+    }
+  },
+  "title": "Creating a Component Interface or changing its properties, items or synchronization moves BCM and SYS by 1",
+  "statement": "App Designer's create of a Component Interface, and saves changing its properties, keys, properties list, collections or synchronization, move BCM and SYS by one each; CLM and PCM do not move.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-12T01:51:24.977Z",
+      "method": "save-capture",
+      "experimentId": "ci01-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci01-create (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 9,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSYSTEMID",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci01-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "b3a35fd890190d6a5a6b7a01562ee364ce9e93b7522878922b78283fec915bca"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:40.042Z",
+      "method": "save-capture",
+      "experimentId": "ci02-create-keys",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci02-create-keys (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 21,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSYSTEMID",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci02-create-keys"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "98acb567eb948bfe789f42e3d306f0b73dfd60b8f0aea7c48346000a3b7d2618"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:40.432Z",
+      "method": "save-capture",
+      "experimentId": "ci03-create-names",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci03-create-names (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 14,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSYSTEMID",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci03-create-names"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "97f5eb27ad8025ed52561ecf28c1f9a4673be30438c4fe12bcbbeb58d63a09c9"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:40.826Z",
+      "method": "save-capture",
+      "experimentId": "ci04-create-work",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci04-create-work (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 123,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSYSTEMID",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci04-create-work"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "e842a05083e39cf46c0b8236664e4f3eefadd261a590bd3f252a1cbfa91185c2"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:41.212Z",
+      "method": "save-capture",
+      "experimentId": "ci28-create-no",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci28-create-no (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSBCDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSYSTEMID",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci28-create-no"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "8856a48b207408df6830f897325f3285e05eb41ba4273fbe53d79578afb916d9"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:41.616Z",
+      "method": "save-capture",
+      "experimentId": "ci05-props",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci05-props (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci05-props"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "455f74f3847b394645d0f1a6a08f7f8a214f01a7b11a174bffce7c23232760a3"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:41.991Z",
+      "method": "save-capture",
+      "experimentId": "ci07-sync",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci07-sync (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSCISYNCDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci07-sync"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "75e5c5919c5a8f8bf8687317141a4738465b4e17c08f9b4c00fbe5cb27dc61fa"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:42.382Z",
+      "method": "save-capture",
+      "experimentId": "ci08-sync-custom",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci08-sync-custom (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSCISYNCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci08-sync-custom"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "ffed5916b12ac269ef340be41c6a0d02724b17e5615af35df2b8c865aa1a31ce"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:42.764Z",
+      "method": "save-capture",
+      "experimentId": "ci09-sync-retain",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci09-sync-retain (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSCISYNCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci09-sync-retain"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "8ff8121083d983f764330e76bb896e508abc3eb3b1046455a1a5d8d8e3ddb564"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:43.145Z",
+      "method": "save-capture",
+      "experimentId": "ci10-sync-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci10-sync-off (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSCISYNCDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci10-sync-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "59a821898b2971b9e758c60ba1bfc6d8b1d913ae3c69316a4206d3f4c1275860"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:43.521Z",
+      "method": "save-capture",
+      "experimentId": "ci11-edit-prop",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci11-edit-prop (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci11-edit-prop"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "54101f7dfc4dbee9fd88a7cfd0c7ee57580557b19f3a194877690ba86fa241e9"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:43.918Z",
+      "method": "save-capture",
+      "experimentId": "ci12-prop-comment-ro",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci12-prop-comment-ro (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci12-prop-comment-ro"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "7181d2c7872fc0577c7fffa2072dfd7351580e9ab2e046d9c04e5a59f147c3c1"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:44.303Z",
+      "method": "save-capture",
+      "experimentId": "ci13-delete-prop",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci13-delete-prop (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci13-delete-prop"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "e2db7c1b455f71f2651b76616bfa0db1ca05d80bac734986aafd8eb5dcfba193"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:44.724Z",
+      "method": "save-capture",
+      "experimentId": "ci14-add-prop",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci14-add-prop (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSYSTEMID",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci14-add-prop"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "14325fbe862c6b2e90c98fa39d9febc9846ada5cdf3c14dc600810eac9e2bfee"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:45.117Z",
+      "method": "save-capture",
+      "experimentId": "ci15-add-long",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci15-add-long (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSYSTEMID",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci15-add-long"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "85ee473290d697aa0296fdab062e18b1e72c4a0c6dbb4bee6b8517f86b2a6fd9"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:45.492Z",
+      "method": "save-capture",
+      "experimentId": "ci16-delete-key",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci16-delete-key (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci16-delete-key"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "5e32aa937ea5c96271b069b3dedf1362a58c08da1323b68490bfbdfa9c7c70ad"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:45.880Z",
+      "method": "save-capture",
+      "experimentId": "ci17-add-key",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci17-add-key (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSYSTEMID",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci17-add-key"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "55ee24fba08e4971b60bea2526ec8f7139aa19c74b15a63c07658ff803fdea88"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:46.273Z",
+      "method": "save-capture",
+      "experimentId": "ci19-delete-coll",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci19-delete-coll (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 0,
+            "deleted": 15,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci19-delete-coll"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "ad8bce1d7c03f0fdb5307085310d2cc877e4891de53105f71968df168d343ff5"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:46.663Z",
+      "method": "save-capture",
+      "experimentId": "ci20-add-coll",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci20-add-coll (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 15,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSYSTEMID",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci20-add-coll"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "d51b8be1927b50d953c7c587ed02fc45ebc68e0bc64c542f401fda95ad82c119"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:47.033Z",
+      "method": "save-capture",
+      "experimentId": "ci21-add-coll-ctl",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci21-add-coll-ctl (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSYSTEMID",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci21-add-coll-ctl"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "33a72c0ee70d88ca4b71b46d114590545f70a3a22841d0bdd6b5cbd423777d1e"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:47.472Z",
+      "method": "save-capture",
+      "experimentId": "ci22-add-coll-mixed",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci22-add-coll-mixed (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 6,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSYSTEMID",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci22-add-coll-mixed"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "41baeb08d0e4077444d4f0b8a74699fd801ec91f45979e9a140cb7f8e9c037ba"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:47.857Z",
+      "method": "save-capture",
+      "experimentId": "ci23-add-coll-invis",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci23-add-coll-invis (HRDMO lab, PeopleTools 8.62.09): BCM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSYSTEMID",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci23-add-coll-invis"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "e418d7975869da84b32bf730efe62f1a58804fb12b8666072572fa454071a63a"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:05:39.659Z",
+    "updatedAt": "2026-10-13T11:05:47.875Z",
+    "schemaVersion": 1
+  }
+}

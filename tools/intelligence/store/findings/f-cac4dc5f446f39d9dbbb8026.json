@@ -1,0 +1,81 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-cac4dc5f446f39d9dbbb8026",
+  "fingerprint": "cac4dc5f446f39d9dbbb8026d49be567d4f4928689ad97f3bda6410ca895b938",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "component-interface",
+    "objectType": "Component Interface",
+    "tables": [
+      "BCSTDMETHODS"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "change": "standard-method-removed",
+      "BCM": 1,
+      "CLM": 1,
+      "SYS": 1
+    }
+  },
+  "title": "Taking a standard method away from a Component Interface also moves CLM",
+  "statement": "A save that takes a standard method away moves CLM (the permission-list cache, whose grants of the method go) besides BCM and SYS.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:05:48.263Z",
+      "method": "save-capture",
+      "experimentId": "ci06-methods",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci06-methods (HRDMO lab, PeopleTools 8.62.09): BCM +1, CLM +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "CLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci06-methods"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "2185c5c41613b23d67a1e0eabf7a6ca4ba8955286fe001f74ca1db44945c5faf"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:05:48.270Z",
+    "updatedAt": "2026-10-13T11:05:48.270Z",
+    "schemaVersion": 1
+  }
+}

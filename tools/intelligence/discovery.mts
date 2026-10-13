@@ -7,6 +7,7 @@
  *       --object-type "Event Mapping configuration" --kind row-resave --fact table=PSPTCSSRVCONF --fact everyRowOnSave=true \
  *       --title "..." --statement "..." --observation "..." [--confidence medium] [--tool PIA] [--run-id ID] [--evidence repo-path:docs/X.md]
  *       [--release 8.62.09]   (required for def-capture / ae-capture cases, which do not record it)
+ *       [--expect-counters MDM=1,SYS=1]   (refused unless the capture's counter steps are exactly these)
  *   npx tsx tools/intelligence/discovery.mts lab-run --script tools/lab/X-e2e.mts --output run.log --release 8.62 [--tests REGEX] \
  *       --type roundtrip-comparison --subsystem ... --object-type ... --kind ... --fact k=v --title ... --statement ... --observation ...
  *   npx tsx tools/intelligence/discovery.mts list [--subsystem S] [--type T] [--release 8.62] [--text words]
@@ -67,6 +68,14 @@ try {
           script: need('script'), peopleToolsRelease: need('release'), observation: need('observation'),
           ...(one('tool') ? { tool: one('tool')! } : {}), ...(one('run-id') ? { runId: one('run-id')! } : {}), ...(one('tests') ? { only: new RegExp(one('tests')!) } : {})
         });
+      }
+      // --expect-counters "MDM=1,SYS=1": refuse unless the capture's counter steps are exactly these (DISCOVERY_PROTOCOL.md rule 7).
+      if (one('expect-counters')) {
+        const want = Object.fromEntries(one('expect-counters')!.split(',').map((p) => p.split('=')).map(([k, v]) => [k.trim(), Number(v)]));
+        const got = observation.delta?.counters ?? {};
+        const keys = [...new Set([...Object.keys(want), ...Object.keys(got)])].sort();
+        const differ = keys.filter((k) => (got[k] ?? 0) !== (want[k] ?? 0));
+        if (differ.length) throw new Error(`${positional[0] ?? 'the capture'}: counters ${keys.map((k) => `${k} ${got[k] ?? 0}`).join(', ')} -- expected ${one('expect-counters')}; not recorded.`);
       }
       const extra = (opts.get('evidence') ?? []).map((e) => { const [kind, ...ref] = e.split(':'); return { kind, ref: ref.join(':') }; });
       if (extra.length) observation.evidence = [...(observation.evidence ?? []), ...extra] as typeof observation.evidence;

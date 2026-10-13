@@ -121,7 +121,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 
 ## Recorded findings (tools/intelligence/store)
 
-24 findings, each checked against its capture rows before recording (2026-10-13). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
+35 findings, 207 observations, each checked against its capture rows before recording (2026-10-13; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
 
 | Subsystem | ID | Claim | Status | Obs. |
 |---|---|---|---|---|
@@ -134,11 +134,22 @@ fingerprint; server: see `server/intelligence/README.md`.
 | app-engine | f-aca484c980b5bbc3045596c1 | Changing an App Engine section, step or action moves AEM, AES and SYS by 1 | reproduced | 48 |
 | app-engine | f-d3a388ee70c25792a50ca764 | Deleting an App Engine program moves AEM, AES, SRM and PCM by 2 and SYS by 1, and leaves tombstones at the final counters | observed | 1 |
 | app-engine | f-d477c0ab70e48a7736224355 | Saving a new App Engine program moves AEM by 1 and stamps PSAEAPPLDEFN.VERSION with it | reproduced | 2 |
+| component-interface | f-05f121f074b6a7576e29a858 | File > Rename of a Component Interface moves BCM, CLM, MPM, PCM, PJM and SYS by 1 each | observed | 1 |
+| component-interface | f-7ad3b8980b1c7ae6b464ca59 | File > Delete of a Component Interface moves BCM, CLM and SYS by 1 (PCM too with PeopleCode) | observed | 1 |
+| component-interface | f-cac4dc5f446f39d9dbbb8026 | Taking a standard method away from a Component Interface also moves CLM | observed | 1 |
+| component-interface | f-e914dad1753456f91f7828a2 | Editing only a Component Interface's methods PeopleCode moves PCM and SYS by 1 | observed | 1 |
+| component-interface | f-fedefefdb30a40a90ea77a36 | Creating a Component Interface or changing its properties, items or synchronization moves BCM and SYS by 1 | reproduced | 22 |
 | event-mapping | f-5731b0851774a312b6aa05af | PTCS_ISCOMPSERVICE level codes: C Component, R Page, P Record, F Record Field (PSXLATITEM's labels mislead) | observed | 1 |
 | event-mapping | f-7e8ece79e395dbb863bc93e5 | Defining a related content service moves RCSDM by 1 in PSVERSION but by 2 in PSLOCK | observed | 1 |
 | event-mapping | f-ad18a114ff35fcdc4d8920ef | PeopleSoft Studio's Event Mapping writer writes what the Configure Event Mapping page writes | observed | 1 |
 | event-mapping | f-e3a3f17f095c20582322485d | The fluid Configure Event Mapping page re-saves every row on Save | reproduced | 3 |
-| message-channel | f-13baaf5f7d94524fb24f7c28 | A message channel save moves CHDM by 1 and SYS by 1; PSCHNLDEFN.VERSION is the new CHDM | reproduced | 2 |
+| menu | f-2485f61a61fab9e7ed10364d | File > Delete of a menu moves CLM, MDM and SYS by 1 | observed | 1 |
+| menu | f-6be47b7e2ae3c56a70dc07c4 | File > Rename of a menu moves TSTM, ACM, CLM, MDM, PCM, PJM, SYS and TSM by 1 each | reproduced | 2 |
+| menu | f-747bf896569263b485e2c14c | Deleting or cutting a menu item (not a separator) or bar moves CLM by 1, with MDM and SYS | reproduced | 4 |
+| menu | f-e67b210fbd5513c963df1387 | A menu definition save moves MDM and SYS by 1 | reproduced | 32 |
+| menu | f-ee56e64b0456e64d337abd06 | Renaming a menu item or bar moves CLM and MDM by 2, PCM by 1, SYS by 2 | reproduced | 3 |
+| menu | f-fafae98d016ada8a134677e2 | Editing only a menu item's ItemSelected PeopleCode moves PCM and SYS by 1; the menu row is not touched | reproduced | 3 |
+| message-channel | f-13baaf5f7d94524fb24f7c28 | A message channel save moves CHDM by 1 and SYS by 1; PSCHNLDEFN.VERSION is the new CHDM | reproduced | 14 |
 | message-channel | f-63084706f407d6e694a0b917 | Deleting a message channel writes PSCHNLDEL at the new CHDM and removes its partition rows | observed | 1 |
 | message-channel | f-e652e5d38577cf3f511c6456 | Renaming a message channel re-keys its rows in place and moves CHDM, MSDM, PJM and SYS by 1, references or not | reproduced | 2 |
 | other | f-76b320392022a312cd7d7562 | PSADSTRACKING.PTKEYHASH is SHA-1 over UTF-16LE '( NAME = value )' text, keys sorted by name, base64 | observed | 1 |
@@ -155,12 +166,11 @@ fingerprint; server: see `server/intelligence/README.md`.
 1. **Open the Discovery Center in a real VS Code window** (install the
    built VSIX): the view, a panel, the review; with the local server, one
    submission.
-2. **More findings from definition captures** (the adapter reads them now):
-   the menu (mn*, mi*, mb*, mp*), Component Interface (ci*) and channel
-   property (chn02-chn15) cases, against MENUS.md, COMPONENT_INTERFACES.md
-   and MESSAGE_CHANNELS.md -- each claim checked against its rows first
-   (DISCOVERY_PROTOCOL.md rules 7-9). Record-save cases (r*) need their
-   format checked first.
+2. **More findings**: menus, Component Interfaces and channel properties are
+   recorded. Remaining capture families: records (r*), fields, components
+   (c*), page controls (eb*, cbx*, gb*, fr*, f*...) -- check each family's
+   format with the adapter, select cases by operation, record with
+   `--expect-counters` (DISCOVERY_PROTOCOL.md rules 7-9).
 3. Adapters for the controlled compile lab and writer replay tests.
 4. Filing issues / preparing pull requests from CI: the owner's decision
    and a least-privilege token.

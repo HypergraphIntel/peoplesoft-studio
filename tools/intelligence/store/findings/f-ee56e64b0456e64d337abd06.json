@@ -1,0 +1,263 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-ee56e64b0456e64d337abd06",
+  "fingerprint": "ee56e64b0456e64d337abd060e0cf1ef9daa9d607ac4ab25d7805c57c5db0897",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "menu",
+    "objectType": "Menu",
+    "tables": [
+      "PSMENUITEM",
+      "PSPCMPROG",
+      "PSPCMPROGDEL"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "change": "item-or-bar-rename",
+      "CLM": 2,
+      "MDM": 2,
+      "PCM": 1,
+      "SYS": 2
+    }
+  },
+  "title": "Renaming a menu item or bar moves CLM and MDM by 2, PCM by 1, SYS by 2",
+  "statement": "Renaming an item or a bar re-keys its rows and moves its PeopleCode; App Designer moves CLM (the permission-list cache) and MDM by two, PCM by one and SYS by two.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:04:44.776Z",
+      "method": "save-capture",
+      "experimentId": "mi08-item-rename",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mi08-item-rename (HRDMO lab, PeopleTools 8.62.09): CLM +2, MDM +2, PCM +1, SYS +2.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CLM": 2,
+          "MDM": 2,
+          "PCM": 1,
+          "SYS": 2
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mi08-item-rename"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "42b2ac0c72fd80826a84d1d0481e0bc791f90b197c39d60c2b423bffa7ed83fa"
+    },
+    {
+      "observedAt": "2026-10-11T21:52:36.354Z",
+      "method": "save-capture",
+      "experimentId": "mi09-item-rename-full",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mi09-item-rename-full (HRDMO lab, PeopleTools 8.62.09): CLM +2, MDM +2, PCM +1, SYS +2.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSMENUORIGIN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CLM": 2,
+          "MDM": 2,
+          "PCM": 1,
+          "SYS": 2
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mi09-item-rename-full"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "455f49f42ac884f67628cfef2f3331446e8dce93fb94172fa00b11a9d155a437"
+    },
+    {
+      "observedAt": "2026-10-11T22:00:30.277Z",
+      "method": "save-capture",
+      "experimentId": "mb05-bar-rename-full",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mb05-bar-rename-full (HRDMO lab, PeopleTools 8.62.09): CLM +2, MDM +2, PCM +1, SYS +2.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSMENUORIGIN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CLM": 2,
+          "MDM": 2,
+          "PCM": 1,
+          "SYS": 2
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mb05-bar-rename-full"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "8b1d34a88b81e2536e6e1eaefb692e7f4bd7cfd1b1161a7e4c19a7e665ed8e68"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:04:44.784Z",
+    "updatedAt": "2026-10-13T11:04:45.623Z",
+    "schemaVersion": 1
+  }
+}

@@ -1,0 +1,266 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-747bf896569263b485e2c14c",
+  "fingerprint": "747bf896569263b485e2c14cefb882d5dfbf9b2227f2cbd10299ddad758ca486",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "menu",
+    "objectType": "Menu",
+    "tables": [
+      "PSMENUITEM"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "change": "item-or-bar-removed",
+      "CLM": 1,
+      "MDM": 1,
+      "SYS": 1
+    }
+  },
+  "title": "Deleting or cutting a menu item (not a separator) or bar moves CLM by 1, with MDM and SYS",
+  "statement": "When an item other than a separator, or a bar, leaves a menu -- deleted, or cut to paste elsewhere -- App Designer moves CLM (the permission-list cache) by one besides MDM and SYS; PCM also moves when the item had PeopleCode. A separator's delete does not move CLM (mi11).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:04:46.100Z",
+      "method": "save-capture",
+      "experimentId": "mi10-item-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mi10-item-delete (HRDMO lab, PeopleTools 8.62.09): counters CLM=1,MDM=1,PCM=1,SYS=1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 2
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CLM": 1,
+          "MDM": 1,
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mi10-item-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "dd7900e335f9ca5340f79ccf7d35ac4d2d0b113c05effdd515b82d23f6199078"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:46.605Z",
+      "method": "save-capture",
+      "experimentId": "mb07-bar-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mb07-bar-delete (HRDMO lab, PeopleTools 8.62.09): counters CLM=1,MDM=1,PCM=1,SYS=1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 1
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CLM": 1,
+          "MDM": 1,
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mb07-bar-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "d6b3be4c2832ef154d6698b178c2cf089dc783c43834d2b30b15a5aec5edb260"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:47.139Z",
+      "method": "save-capture",
+      "experimentId": "mi12-item-delete-cmp",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mi12-item-delete-cmp (HRDMO lab, PeopleTools 8.62.09): counters CLM=1,MDM=1,SYS=1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CLM": 1,
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mi12-item-delete-cmp"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "70a9da260479388576d1e329fd2bca8589a721053e8d1cf2bc66d70904143e50"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:47.616Z",
+      "method": "save-capture",
+      "experimentId": "mi14-item-move-bar",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mi14-item-move-bar (HRDMO lab, PeopleTools 8.62.09): counters CLM=1,MDM=1,SYS=1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "CLM": 1,
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mi14-item-move-bar"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "eb516cbfd34f50d9621608bafa2136d6290eae6ed9032487fcadf4a9b745f72c"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:04:46.115Z",
+    "updatedAt": "2026-10-13T11:04:47.624Z",
+    "schemaVersion": 1
+  }
+}

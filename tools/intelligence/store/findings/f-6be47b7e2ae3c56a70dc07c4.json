@@ -1,0 +1,207 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-6be47b7e2ae3c56a70dc07c4",
+  "fingerprint": "6be47b7e2ae3c56a70dc07c48adc5bc346a368dff152b15477118f0851e0b847",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "menu",
+    "objectType": "Menu",
+    "tables": [
+      "PSMENUDEFN",
+      "PSMENUDEL",
+      "PSXFERITEM"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "change": "file-rename",
+      "ACM": 1,
+      "CLM": 1,
+      "MDM": 1,
+      "PCM": 1,
+      "PJM": 1,
+      "SYS": 1,
+      "TSM": 1,
+      "TSTM": 1
+    }
+  },
+  "title": "File > Rename of a menu moves TSTM, ACM, CLM, MDM, PCM, PJM, SYS and TSM by 1 each",
+  "statement": "Renaming a menu re-keys its rows in place, repoints transfers naming it in every menu, moves its PeopleCode, writes PSMENUDEL for the old name, and moves eight counters by one each.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-11T22:14:35.181Z",
+      "method": "save-capture",
+      "experimentId": "mn16-menu-rename",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn16-menu-rename (HRDMO lab, PeopleTools 8.62.09): ACM, CLM, MDM, PCM, PJM, SYS, TSM and TSTM each +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSMENUDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSMENUORIGIN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSXFERITEM",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "TSTM": 1,
+          "ACM": 1,
+          "CLM": 1,
+          "MDM": 1,
+          "PCM": 1,
+          "PJM": 1,
+          "SYS": 1,
+          "TSM": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn16-menu-rename"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "e299ac0a70d62b5d92e579d7632eeb32384bb2def0405fa576e99b6c8c012c43"
+    },
+    {
+      "observedAt": "2026-10-11T22:17:41.726Z",
+      "method": "save-capture",
+      "experimentId": "mn17-menu-rename-refs",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn17-menu-rename-refs (HRDMO lab, PeopleTools 8.62.09): ACM, CLM, MDM, PCM, PJM, SYS, TSM and TSTM each +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSMENUDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSMENUORIGIN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSXFERITEM",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "TSTM": 1,
+          "ACM": 1,
+          "CLM": 1,
+          "MDM": 1,
+          "PCM": 1,
+          "PJM": 1,
+          "SYS": 1,
+          "TSM": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn17-menu-rename-refs"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "21ebab79572abeb26e3e6ce884d5f41a2e0860c51b15db7b266b7f764c85a1dd"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:04:48.067Z",
+    "updatedAt": "2026-10-13T11:04:48.523Z",
+    "schemaVersion": 1
+  }
+}

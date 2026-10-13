@@ -1,0 +1,119 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-7ad3b8980b1c7ae6b464ca59",
+  "fingerprint": "7ad3b8980b1c7ae6b464ca593f8563ebe8c9a1dd67a9c8a4a0bfb2bdbf973789",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "component-interface",
+    "objectType": "Component Interface",
+    "tables": [
+      "PSBCDEFN",
+      "PSBCDEL"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "change": "file-delete",
+      "BCM": 1,
+      "CLM": 1,
+      "SYS": 1
+    }
+  },
+  "title": "File > Delete of a Component Interface moves BCM, CLM and SYS by 1 (PCM too with PeopleCode)",
+  "statement": "Deleting a Component Interface deletes its rows, its PeopleCode with a marker, records PSBCDEL at the new BCM, and moves BCM, CLM and SYS by one each, PCM too when it had PeopleCode.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-12T02:54:37.606Z",
+      "method": "save-capture",
+      "experimentId": "ci27-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci27-delete (HRDMO lab, PeopleTools 8.62.09; the interface had PeopleCode): BCM, CLM, PCM, SYS each +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSBCDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 0,
+            "deleted": 22,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "CLM": 1,
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci27-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "eace82db401cde1a642244f19bc0a50a003e120da4fefef129004a519fe4c15f"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:05:49.436Z",
+    "updatedAt": "2026-10-13T11:05:49.436Z",
+    "schemaVersion": 1
+  }
+}

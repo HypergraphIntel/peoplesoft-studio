@@ -1,0 +1,100 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-2485f61a61fab9e7ed10364d",
+  "fingerprint": "2485f61a61fab9e7ed10364d2a46f9ab3c9099aad9fe8e1b22352a570028689f",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "menu",
+    "objectType": "Menu",
+    "tables": [
+      "PSMENUDEFN",
+      "PSMENUDEL"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "change": "file-delete",
+      "CLM": 1,
+      "MDM": 1,
+      "SYS": 1
+    }
+  },
+  "title": "File > Delete of a menu moves CLM, MDM and SYS by 1",
+  "statement": "Deleting a menu deletes its rows and PeopleCode, records the name in PSMENUDEL, and moves CLM, MDM and SYS by one each.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-11T22:19:02.722Z",
+      "method": "save-capture",
+      "experimentId": "mn18-menu-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn18-menu-delete (HRDMO lab, PeopleTools 8.62.09): CLM +1, MDM +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSMENUDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSMENUORIGIN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CLM": 1,
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn18-menu-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "4cb52c40db134fe1b6dccab7481edee38796aee4425a10e10f3693c6b6b17822"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:04:48.944Z",
+    "updatedAt": "2026-10-13T11:04:48.944Z",
+    "schemaVersion": 1
+  }
+}

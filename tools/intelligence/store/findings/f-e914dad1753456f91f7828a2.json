@@ -1,0 +1,92 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-e914dad1753456f91f7828a2",
+  "fingerprint": "e914dad1753456f91f7828a27dee8c5ef7f4ee5f28d3c25f69d2269e0e45573f",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "component-interface",
+    "objectType": "Component Interface",
+    "tables": [
+      "PSPCMPROG"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "change": "methods-peoplecode",
+      "PCM": 1,
+      "SYS": 1,
+      "BCM": 0
+    }
+  },
+  "title": "Editing only a Component Interface's methods PeopleCode moves PCM and SYS by 1",
+  "statement": "A save that changes only the interface's methods PeopleCode moves PCM and SYS by one; the interface rows are not touched (BCM does not move).",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:05:48.652Z",
+      "method": "save-capture",
+      "experimentId": "ci24-pc-method",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci24-pc-method (HRDMO lab, PeopleTools 8.62.09): PCM +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci24-pc-method"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "e6ddc7736b1a65dcdfe0f67b9f0dae3c5cb786fab041dffb12ba016ceb6aa339"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:05:48.659Z",
+    "updatedAt": "2026-10-13T11:05:48.659Z",
+    "schemaVersion": 1
+  }
+}

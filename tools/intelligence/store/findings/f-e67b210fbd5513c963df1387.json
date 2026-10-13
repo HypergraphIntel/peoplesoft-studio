@@ -1,0 +1,1372 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-e67b210fbd5513c963df1387",
+  "fingerprint": "e67b210fbd5513c963df1387e4fada8e710cdbbe1ccff2cb08cdb942f874bd30",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "menu",
+    "objectType": "Menu",
+    "tables": [
+      "PSMENUDEFN",
+      "PSMENUITEM"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "change": "menu-definition",
+      "MDM": 1,
+      "SYS": 1,
+      "PCM": 0,
+      "CLM": 0
+    }
+  },
+  "title": "A menu definition save moves MDM and SYS by 1",
+  "statement": "Creating a menu or popup, Save As, and saving changes to its properties, labels, items, separators, bars, their order or transfers move MDM and SYS by one each (PSMENUDEFN.VERSION the new MDM); PCM and CLM do not move. Menu group and Menu installed changes are other cases.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-11T21:25:21.899Z",
+      "method": "save-capture",
+      "experimentId": "mn01-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn01-create (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn01-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "4d045ac93c783fb47c594bf982fcd00c17abb3de55708732ba0f0334edde4e61"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:30.593Z",
+      "method": "save-capture",
+      "experimentId": "mn02-descr",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn02-descr (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn02-descr"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "ea0a5ffa239e3b11dfbe0be3b975fcbd2479fe2526bec8e19de60942e04e19b0"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:31.009Z",
+      "method": "save-capture",
+      "experimentId": "mn03-comments",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn03-comments (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn03-comments"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "7d3fb8dd68bb507ab289ec281b40222ff569f53e72cf4c307768d711a8966086"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:31.442Z",
+      "method": "save-capture",
+      "experimentId": "mn04-owner",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn04-owner (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn04-owner"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "f3edef94515d704e82ceefc454f4ca8320196e639655f55527d5752ae65cbda5"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:31.838Z",
+      "method": "save-capture",
+      "experimentId": "mn05-label",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn05-label (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn05-label"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "ff38c13975db247ef16ead387094a389b38fd5847a21ddd4b45801711d99aac9"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:32.259Z",
+      "method": "save-capture",
+      "experimentId": "mn07-menu-order",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn07-menu-order (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn07-menu-order"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "eb1633480bd51f9edfcbb4ca0b7e2751aac49aae2a49f5994030db505d016005"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:32.659Z",
+      "method": "save-capture",
+      "experimentId": "mn08-menu-sep",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn08-menu-sep (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn08-menu-sep"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "f306d9824ab0d851b967632fcaf1c49ae051bd28fbddf4b4c4df57b23488e5af"
+    },
+    {
+      "observedAt": "2026-10-11T21:34:34.012Z",
+      "method": "save-capture",
+      "experimentId": "mn12-save-as",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn12-save-as (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSMENUORIGIN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn12-save-as"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "43b4b3c82e54c3e99fd1bfc6b66a4d84dd63f6bda324295e075fc5015d25cc84"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:33.479Z",
+      "method": "save-capture",
+      "experimentId": "mn19-recreate-deleted",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn19-recreate-deleted (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSMENUDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSMENUORIGIN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn19-recreate-deleted"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "4642a8b268c3dd2995a6912fe40a0dd35cff97bcb0397f1107c852da791e320a"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:33.857Z",
+      "method": "save-capture",
+      "experimentId": "mi01-add-item",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mi01-add-item (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mi01-add-item"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "56cce2bfdbe02811a835924e11463fc7645583e02347054f68058cc111bc983a"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:34.280Z",
+      "method": "save-capture",
+      "experimentId": "mi02-item-label",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mi02-item-label (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mi02-item-label"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "19e5b8bdc518243de47990184cf120100b6f448a21bfa83f104a8d4c73257e26"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:34.692Z",
+      "method": "save-capture",
+      "experimentId": "mi03-search-override",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mi03-search-override (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mi03-search-override"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "f814bfe7257bed1d72e6c1e8c1659fc9f65e5cf5585a0476f9347a0d15fecee5"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:35.098Z",
+      "method": "save-capture",
+      "experimentId": "mi04-separator",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mi04-separator (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mi04-separator"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "5e772e625b889e14c56c3017454fe285e6f134c0f1f51dbb0326f5ea3d5d31fe"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:35.490Z",
+      "method": "save-capture",
+      "experimentId": "mi05-pc-item",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mi05-pc-item (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mi05-pc-item"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "0b18381501f537096a2ffef4401b75ebcf27783ddc2201fd71bada4c284fe995"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:35.901Z",
+      "method": "save-capture",
+      "experimentId": "mi07-item-reorder",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mi07-item-reorder (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 3
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mi07-item-reorder"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "4fd6b25ed2530d2ce9a54fbcbc8f42e7e7cbfffff6bc14317505a06447f88509"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:36.319Z",
+      "method": "save-capture",
+      "experimentId": "mi11-separator-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mi11-separator-delete (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mi11-separator-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "694f9ae151a317aa4a7e7ec21f30732627923bd9e809d55e85b8e5a7eba0f3c6"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:36.720Z",
+      "method": "save-capture",
+      "experimentId": "mi13-second-bar",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mi13-second-bar (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mi13-second-bar"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "a3ebda8df0b3186bddc0b6ac83eb00954dbc14a06226daba6b00eaedb3f07daa"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:37.139Z",
+      "method": "save-capture",
+      "experimentId": "mb01-add-bar",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mb01-add-bar (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mb01-add-bar"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "59aebff77ed1f9d03f3be998f8d07a2ea7ce9a155d51e2833be871aa7e9e7566"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:37.547Z",
+      "method": "save-capture",
+      "experimentId": "mb02-bar-label",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mb02-bar-label (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mb02-bar-label"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "5afc0f5f7df89090705c6be220f4b7a78baa8b2c93b32069f803fe844b562662"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:37.953Z",
+      "method": "save-capture",
+      "experimentId": "mb03-baritem-pc",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mb03-baritem-pc (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mb03-baritem-pc"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "b0a37c2411c0c888c1c3ec599fb9b8aa296afc325b4ca760e642f5c20dad3e24"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:38.377Z",
+      "method": "save-capture",
+      "experimentId": "mb06-bar-reorder",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mb06-bar-reorder (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 3
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mb06-bar-reorder"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "63457fb1a799a368749b8e24220f7795d974104f4e031951ccb73f30f2a75579"
+    },
+    {
+      "observedAt": "2026-10-11T22:05:12.399Z",
+      "method": "save-capture",
+      "experimentId": "mp01-popup-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mp01-popup-create (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSXFERITEM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mp01-popup-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "df8564acf13831fcaca4f9ba2683207174ad9fef96d79715814a4ddbd5a7d924"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:39.188Z",
+      "method": "save-capture",
+      "experimentId": "mp02-xfer-add",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mp02-xfer-add (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSXFERITEM",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mp02-xfer-add"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "9ddd6ef5490caaf8d858161f52194aa753a052d1470d73b1fe54b3efc25f1a7a"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:39.570Z",
+      "method": "save-capture",
+      "experimentId": "mp03-xfer-correction",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mp03-xfer-correction (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSXFERITEM",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mp03-xfer-correction"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "4fdb027c8d901e0d4d7ed368d4c013f9406396e3de913e6bc483792f86da83b5"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:40.014Z",
+      "method": "save-capture",
+      "experimentId": "mp04-xfer-upd-all",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mp04-xfer-upd-all (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSXFERITEM",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mp04-xfer-upd-all"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "be087563d9cb797dba613a0932a4d2a100c213ed089e9390ac3f7dc0f4a76d95"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:40.434Z",
+      "method": "save-capture",
+      "experimentId": "mp05-xfer-new-window",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mp05-xfer-new-window (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSXFERITEM",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mp05-xfer-new-window"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "22f0722704485d43d1262353802bbe93de9a57e93d342fd2e574d1904a1d771c"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:40.890Z",
+      "method": "save-capture",
+      "experimentId": "mp06-xfer-keysearch",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mp06-xfer-keysearch (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSXFERITEM",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mp06-xfer-keysearch"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "1760f96b2bfef8ce6725ec9c022c1aacbb2617a1a434d8933e00536036e412fd"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:41.306Z",
+      "method": "save-capture",
+      "experimentId": "mp07-xfer-portal",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mp07-xfer-portal (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSXFERITEM",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mp07-xfer-portal"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "b9480459a14451d948f1fbf70a105517eca6cd3264406e73b370a72ea97d7eca"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:41.705Z",
+      "method": "save-capture",
+      "experimentId": "mp08-xfer-restore",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mp08-xfer-restore (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSXFERITEM",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mp08-xfer-restore"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "a8974288f81f788ed192a2d07ef6500e2ee9ec6355bc3505b1dfe61d7bf9efce"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:42.127Z",
+      "method": "save-capture",
+      "experimentId": "mp09-popup-pc-sep",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mp09-popup-pc-sep (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mp09-popup-pc-sep"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "9a91b765b916cd7ee214edbf25564ee206c0a77b39b90952433ebb2e840e4ae5"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:42.575Z",
+      "method": "save-capture",
+      "experimentId": "mp11-popup-label",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mp11-popup-label (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mp11-popup-label"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "f41d0dec2e1073ac5d7150398139325e4eadc36537e5e4506776653705ddfe51"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:43.031Z",
+      "method": "save-capture",
+      "experimentId": "mp12-xfer-menu",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mp12-xfer-menu (HRDMO lab, PeopleTools 8.62.09): MDM +1, SYS +1, nothing else.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSXFERITEM",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mp12-xfer-menu"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "1cb03ed7e31fd2a0c24ebc270b5e875bd5f87209215121a02d8da8afd5896ed6"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:04:30.194Z",
+    "updatedAt": "2026-10-13T11:04:43.038Z",
+    "schemaVersion": 1
+  }
+}

@@ -108,6 +108,474 @@
         }
       ],
       "digest": "0981ee8b618edbbcaab6a3096a98cb955ee935ccd6e63d7c404db94f81eb1a6f"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:34.978Z",
+      "method": "save-capture",
+      "experimentId": "chn02-props",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture chn02-props (HRDMO lab, PeopleTools 8.62.09): CHDM +1, SYS +1; PSCHNLDEFN.VERSION equal to the new CHDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCHNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "CHDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "chn02-props"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "c8c4461e238240bbc6423b957dab7ce7c07ea1f08e5a35e77d51fb9bfd505dbe"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:35.381Z",
+      "method": "save-capture",
+      "experimentId": "chn03-use",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture chn03-use (HRDMO lab, PeopleTools 8.62.09): CHDM +1, SYS +1; PSCHNLDEFN.VERSION equal to the new CHDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCHNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "CHDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "chn03-use"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "fa5c70e33dc8c7b1f6b0a1d9e38ca0e6b8571248fc57a363941e3587a3a5a2db"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:35.762Z",
+      "method": "save-capture",
+      "experimentId": "chn04-ordered",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture chn04-ordered (HRDMO lab, PeopleTools 8.62.09): CHDM +1, SYS +1; PSCHNLDEFN.VERSION equal to the new CHDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCHNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "CHDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "chn04-ordered"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "56e03f6cbce2fb0519959612f705d243197e816676952b86f6c4bdd59b244f51"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:36.158Z",
+      "method": "save-capture",
+      "experimentId": "chn05-partitions",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture chn05-partitions (HRDMO lab, PeopleTools 8.62.09): CHDM +1, SYS +1; PSCHNLDEFN.VERSION equal to the new CHDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCHNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSUBCHNL",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CHDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "chn05-partitions"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "0b93ced22c87d03c38e72267078dc180e6bfce99d83aeddeab6a747f23290503"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:36.549Z",
+      "method": "save-capture",
+      "experimentId": "chn06-saveas",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture chn06-saveas (HRDMO lab, PeopleTools 8.62.09): CHDM +1, SYS +1; PSCHNLDEFN.VERSION equal to the new CHDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCHNLDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSUBCHNL",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CHDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "chn06-saveas"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "eace47b9d1cadabe9fa139093eefac462bad33a7bcc239b64f7fa51a7e809166"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:36.931Z",
+      "method": "save-capture",
+      "experimentId": "chn09-ok-noop",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture chn09-ok-noop (HRDMO lab, PeopleTools 8.62.09): CHDM +1, SYS +1; PSCHNLDEFN.VERSION equal to the new CHDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCHNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "CHDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "chn09-ok-noop"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "3edabe9d3a5c84261ffc1f33f869c8a1f48f8ee77b3b9b3931a5827c523a0ab4"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:37.324Z",
+      "method": "save-capture",
+      "experimentId": "chn10-create-props",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture chn10-create-props (HRDMO lab, PeopleTools 8.62.09): CHDM +1, SYS +1; PSCHNLDEFN.VERSION equal to the new CHDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCHNLDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CHDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "chn10-create-props"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "ceee7d91f7d7ceacdecc94af6f9a76c4c9f4e542dc24f3fa52fff1ad20c94b76"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:37.714Z",
+      "method": "save-capture",
+      "experimentId": "chn11-archive-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture chn11-archive-off (HRDMO lab, PeopleTools 8.62.09): CHDM +1, SYS +1; PSCHNLDEFN.VERSION equal to the new CHDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCHNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "CHDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "chn11-archive-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "9ce7c52066bd7b3ef9101ca5ce7778012bb17ad491cbad7a4e51702e0f554969"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:38.101Z",
+      "method": "save-capture",
+      "experimentId": "chn12-add-fields",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture chn12-add-fields (HRDMO lab, PeopleTools 8.62.09): CHDM +1, SYS +1; PSCHNLDEFN.VERSION equal to the new CHDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCHNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSUBCHNL",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CHDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "chn12-add-fields"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "57ed95992573bc1da5ed3ba2ca26980503661e07d34f4522b7a4fba37e61ea08"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:38.476Z",
+      "method": "save-capture",
+      "experimentId": "chn13-uncheck",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture chn13-uncheck (HRDMO lab, PeopleTools 8.62.09): CHDM +1, SYS +1; PSCHNLDEFN.VERSION equal to the new CHDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCHNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSUBCHNL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CHDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "chn13-uncheck"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "081b472db69e570969f22c9d55e4703eb84145cbedd5f66e92331a828f5393c0"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:38.864Z",
+      "method": "save-capture",
+      "experimentId": "chn14-readd",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture chn14-readd (HRDMO lab, PeopleTools 8.62.09): CHDM +1, SYS +1; PSCHNLDEFN.VERSION equal to the new CHDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCHNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSUBCHNL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CHDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "chn14-readd"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "6321d5c3eeb087cf63796cef6ab4d4904e6892af55a869ecedfa8949cee4a7ec"
+    },
+    {
+      "observedAt": "2026-10-13T11:05:39.263Z",
+      "method": "save-capture",
+      "experimentId": "chn15-reopen-save",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Definition capture chn15-reopen-save (HRDMO lab, PeopleTools 8.62.09): CHDM +1, SYS +1; PSCHNLDEFN.VERSION equal to the new CHDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCHNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSUBCHNL",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CHDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "chn15-reopen-save"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "c52b32c489f798897704d7da4bca9e46e68efc5e87617b0f54a76f2916ec54a9"
     }
   ],
   "privacy": {
@@ -117,7 +585,7 @@
   "provenance": {
     "source": "research-harness",
     "createdAt": "2026-10-13T02:31:22.428Z",
-    "updatedAt": "2026-10-13T02:31:22.719Z",
+    "updatedAt": "2026-10-13T11:05:39.270Z",
     "schemaVersion": 1
   }
 }

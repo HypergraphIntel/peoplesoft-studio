@@ -1,0 +1,188 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-fafae98d016ada8a134677e2",
+  "fingerprint": "fafae98d016ada8a134677e2c2526fa9b87d8db2acd2259e638be37c9cfe464d",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "menu",
+    "objectType": "Menu",
+    "tables": [
+      "PSPCMPROG"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "change": "itemselected-peoplecode",
+      "PCM": 1,
+      "SYS": 1,
+      "MDM": 0
+    }
+  },
+  "title": "Editing only a menu item's ItemSelected PeopleCode moves PCM and SYS by 1; the menu row is not touched",
+  "statement": "A save that changes only an item's ItemSelected PeopleCode writes the PeopleCode rows and moves PCM and SYS by one; MDM does not move and PSMENUDEFN is not restamped.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:04:43.456Z",
+      "method": "save-capture",
+      "experimentId": "mi06-item-peoplecode",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mi06-item-peoplecode (HRDMO lab, PeopleTools 8.62.09): PCM +1, SYS +1, MDM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mi06-item-peoplecode"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "ea43e57c64050ac3418857269c675b2ad0ef8c79510e9ff537aa58d46faccea2"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:43.886Z",
+      "method": "save-capture",
+      "experimentId": "mb04-baritem-code",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mb04-baritem-code (HRDMO lab, PeopleTools 8.62.09): PCM +1, SYS +1, MDM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mb04-baritem-code"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "b36481c00f7fe6984fcc562c621bf9299a039998097c85cb9517750d562bdd50"
+    },
+    {
+      "observedAt": "2026-10-13T11:04:44.347Z",
+      "method": "save-capture",
+      "experimentId": "mp10-popup-code",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mp10-popup-code (HRDMO lab, PeopleTools 8.62.09): PCM +1, SYS +1, MDM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mp10-popup-code"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "763ad7a0d1e3ce6b651d66956dbd195d7ee412a1569d6f9ab7e824a1dae4312d"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:04:43.465Z",
+    "updatedAt": "2026-10-13T11:04:44.361Z",
+    "schemaVersion": 1
+  }
+}

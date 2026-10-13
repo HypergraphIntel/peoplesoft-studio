@@ -1,0 +1,124 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-05f121f074b6a7576e29a858",
+  "fingerprint": "05f121f074b6a7576e29a8586b1c8c99e5447601fc32e113b1b2d9a0f43059dc",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "component-interface",
+    "objectType": "Component Interface",
+    "tables": [
+      "PSBCDEFN",
+      "PSBCDEL"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "change": "file-rename",
+      "BCM": 1,
+      "CLM": 1,
+      "MPM": 1,
+      "PCM": 1,
+      "PJM": 1,
+      "SYS": 1
+    }
+  },
+  "title": "File > Rename of a Component Interface moves BCM, CLM, MPM, PCM, PJM and SYS by 1 each",
+  "statement": "Renaming a Component Interface re-keys its rows and PeopleCode in place, writes PSBCDEL for the old name, and moves six counters by one each.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-12T02:52:53.121Z",
+      "method": "save-capture",
+      "experimentId": "ci26-rename",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ci26-rename (HRDMO lab, PeopleTools 8.62.09): BCM, CLM, MPM, PCM, PJM, SYS each +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSBCDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSBCITEM",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 22
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "CLM": 1,
+          "MPM": 1,
+          "PCM": 1,
+          "PJM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ci26-rename"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "aaeb5ea783894b4ffe1ab9dd8a50b9cdb718da188270729c626b1c70247a6ab6"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:05:49.041Z",
+    "updatedAt": "2026-10-13T11:05:49.041Z",
+    "schemaVersion": 1
+  }
+}
