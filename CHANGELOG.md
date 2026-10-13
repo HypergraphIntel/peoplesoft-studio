@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.8.5
 
 ### Added
 
@@ -47,14 +47,14 @@
   the Configure Event Mapping page's grid, saved after its plan is shown.
   *New Service...* creates the service a row runs -- and its application
   class, a stub to fill in, and its package when missing -- as PeopleTools'
-  Define Related Content Service page saves it.
+  Define Related Content Service page saves it. **Configuration Tools >
+  Customization > Event Mapping** opens it too: type part of a component
+  content reference's name and pick it, on a connected database.
 - MCP: `psft_customization_get_policy`, `psft_object_classify`,
   `psft_customization_discover`, `psft_event_mapping_reference`,
   `psft_event_mapping_get`, `psft_event_mapping_save`,
-  `psft_event_mapping_remove`, `psft_event_mapping_create_service`.
-
-See docs/CUSTOMIZATION.md.
-
+  `psft_event_mapping_remove`, `psft_event_mapping_create_service`. See
+  docs/CUSTOMIZATION.md.
 - **Discovery & Intelligence Network, phase 1: local discoveries.** Research
   findings about PeopleSoft recorded as structured, versioned records
   (`psft-finding/1`): a claim with its evidence, a deterministic fingerprint,
@@ -69,7 +69,10 @@ See docs/CUSTOMIZATION.md.
   by default (`peoplesoft.intelligence.uploadMode`, `serverUrl`), closed by
   VS Code telemetry `off` or an administrator's machine policy file, and
   needs your approval of each submission; the token is kept in secret
-  storage. *Record Discovery from JSON*, *Show Discoveries*.
+  storage. A submission never carries a definition name with your
+  organization's or a vendor's naming prefix, or the time of day it was
+  observed (rounded to the day). *Record Discovery from JSON*, *Show
+  Discoveries*.
 - **Discovery server MVP** (`server/intelligence/`, local development only):
   FastAPI and PostgreSQL; submissions validated and privacy-checked again,
   the same identities and outcomes as the extension, tokens and roles,
@@ -91,13 +94,13 @@ See docs/CUSTOMIZATION.md.
   connection's release; its *Studio Knowledge* section does the same for the
   page, component, record, App Engine, channel or other definition open.
 - Research tooling: lab end-to-end runs and writer replay tests recorded as
-  findings (check names and outcomes only); a finding turned into an issue body and a regression
-  fixture for review (`tools/intelligence/engineering-task.mts`; files nothing).
+  findings (check names and outcomes only); a finding turned into an issue
+  body and a regression fixture for review
+  (`tools/intelligence/engineering-task.mts`; files nothing).
 
-- **Configuration Tools > Customization > Event Mapping** opens the Event
-  Mapping editor: type part of a component content reference's name and
-  pick it (on a connected database); the entry and its group are no longer
-  placeholders.
+### Changed
+
+- The README opens with what PeopleSoft Studio is for, and screenshots.
 
 ### Fixed
 
