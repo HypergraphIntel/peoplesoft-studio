@@ -1,0 +1,81 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-c945e4793142f596bfb4a88f",
+  "fingerprint": "c945e4793142f596bfb4a88f572d0b3f4f4dd3a99f8c0163fcfd58130c23759e",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "message-channel",
+    "objectType": "Message channel"
+  },
+  "assertion": {
+    "kind": "app-designer-accepts",
+    "facts": {
+      "writer": "channelWriter",
+      "appDesignerSaveChanged": "only the edit, VERSION, stamp"
+    }
+  },
+  "title": "App Designer opens a message channel PeopleSoft Studio's writer made and saves an edit of it changing only that edit",
+  "statement": "App Designer opened a message channel created by Studio's channel writer, showed what the writer reads (the message, its fields, the partition choices and flags), and saved an edit: the channel row's status and one PSSUBCHNL row, with the channel's VERSION and stamp; CHDM and SYS +1. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:51:48.855Z",
+      "method": "save-capture",
+      "experimentId": "nchn01-native-edit",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture nchn01-native-edit: App Designer's save of a channel Studio's writer created changed PSCHNLDEFN.CHNLSTATUS and added one PSSUBCHNL row (the edit), with VERSION and LASTUPDDTTM; CHDM +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCHNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSUBCHNL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CHDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "nchn01-native-edit"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "f75c082f51ea70a62df69228e91683149127e7108d89caa02802157141605fd9"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:51:48.862Z",
+    "updatedAt": "2026-10-13T11:51:48.862Z",
+    "schemaVersion": 1
+  }
+}

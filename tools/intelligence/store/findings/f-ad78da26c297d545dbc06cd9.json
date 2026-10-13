@@ -1,0 +1,75 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-ad78da26c297d545dbc06cd9",
+  "fingerprint": "ad78da26c297d545dbc06cd96ec1d34b3a1af1a5853c9008ab628541eda57fd7",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "component-interface",
+    "objectType": "Component Interface"
+  },
+  "assertion": {
+    "kind": "app-designer-accepts",
+    "facts": {
+      "writer": "ciWriter",
+      "appDesignerSaveChanged": "only the edit, VERSION, stamp"
+    }
+  },
+  "title": "App Designer opens a Component Interface PeopleSoft Studio's writer made and saves an edit of it changing only that edit",
+  "statement": "App Designer opened a Component Interface created by Studio's Component Interface writer, showed its user method and Validate findings, and saved a description edit: only PSBCDEFN's DESCR, VERSION and stamp changed, with BCM and SYS +1. Evidence that the writer's rows are App Designer's own; one capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:51:59.111Z",
+      "method": "save-capture",
+      "experimentId": "nce01-native-edit",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture nce01-native-edit: App Designer's save of an interface Studio's writer created changed PSBCDEFN.DESCR (the edit), VERSION and LASTUPDDTTM, and no other watched row; BCM +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSBCDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "BCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "nce01-native-edit"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "02cb37838850fe1ce7ddc47f46c17c1f2b35cd050e42413545fa31ceb44c8c6d"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:51:59.118Z",
+    "updatedAt": "2026-10-13T11:51:59.118Z",
+    "schemaVersion": 1
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-d2ebb48c4ecbd05fdb1d9433",
+  "fingerprint": "d2ebb48c4ecbd05fdb1d94332516c6a6fa566d1ed867699f5cc77e91c1274177",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "menu",
+    "objectType": "Menu"
+  },
+  "assertion": {
+    "kind": "app-designer-accepts",
+    "facts": {
+      "writer": "menuWriter",
+      "appDesignerSaveChanged": "only the edit, VERSION, stamp"
+    }
+  },
+  "title": "App Designer opens a menu PeopleSoft Studio's writer made and saves an edit of it changing only that edit",
+  "statement": "App Designer opened a menu and popup created by Studio's menu writer, showed the moved PeopleCode and the transfer as written, and saved a label edit: only that item's ITEMLABEL and the menu row's VERSION and stamp changed, with MDM and SYS +1. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:51:48.477Z",
+      "method": "save-capture",
+      "experimentId": "nme01-native-edit",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture nme01-native-edit: App Designer's save of a menu Studio's writer created changed one PSMENUITEM.ITEMLABEL (the edit) and PSMENUDEFN's VERSION and LASTUPDDTTM, nothing else; MDM +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSMENUITEM",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "nme01-native-edit"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "362eb2327e9dac5ecba7d6011414e1c5ab0c480127c95afca61d22294971275d"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:51:48.485Z",
+    "updatedAt": "2026-10-13T11:51:48.485Z",
+    "schemaVersion": 1
+  }
+}

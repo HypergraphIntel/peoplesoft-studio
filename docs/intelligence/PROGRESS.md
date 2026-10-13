@@ -121,17 +121,19 @@ fingerprint; server: see `server/intelligence/README.md`.
 
 ## Recorded findings (tools/intelligence/store)
 
-185 findings, 942 observations, each checked against its capture rows before recording (2026-10-13; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
+192 findings, 977 observations, each checked against its capture rows before recording (2026-10-13; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
 
 | Subsystem | ID | Claim | Status | Obs. |
 |---|---|---|---|---|
+| app-engine | f-16cd3559dbd1cbacc0bd8c1b | App Designer opens an App Engine program PeopleSoft Studio created and saves an edit of it changing only that edit, filling LICENSE_CODE | observed | 1 |
 | app-engine | f-1c1a9d9f3727c2c253ef70c9 | Changing only an App Engine program's properties moves AEM and SYS by 1, not AES | reproduced | 18 |
 | app-engine | f-1df2296199d258b85b90f32f | Editing only an App Engine action's SQL text moves SRM and SYS by 1, not AEM | reproduced | 9 |
+| app-engine | f-32eb4c415debde9f5f2b8840 | Deleting App Engine actions or a section tombstones their PeopleCode in PSPCMPROGDEL at the new PCM, SQL in PSSQLDEL at the new SRM, and a section in PSAESECTDEL at the new AES | reproduced | 3 |
 | app-engine | f-345656b01a15e8c89db1e4c5 | PeopleSoft Studio's App Engine writer reproduces App Designer's rows for 85 of 88 captured saves; the 3 others differ only in PSSQLHASH.MARKET | observed | 1 |
 | app-engine | f-40babbc79f39efd83f68859c | After an App Engine section's market is re-keyed, App Designer leaves PSSQLHASH.MARKET unchanged until a later save | reproduced | 3 |
 | app-engine | f-7813ad82caab6c1204716fa1 | Renaming an App Engine program tombstones the old name in PSAEAPPLDEL at the new AEM | observed | 1 |
-| app-engine | f-9f82873fd798d79a6f5df946 | Editing only an App Engine action's PeopleCode moves PCM and SYS by 1 | observed | 1 |
-| app-engine | f-aca484c980b5bbc3045596c1 | Changing an App Engine section, step or action moves AEM, AES and SYS by 1 | reproduced | 48 |
+| app-engine | f-9f82873fd798d79a6f5df946 | Editing only an App Engine action's PeopleCode moves PCM and SYS by 1 | reproduced | 2 |
+| app-engine | f-aca484c980b5bbc3045596c1 | Changing an App Engine section, step or action moves AEM, AES and SYS by 1 | reproduced | 51 |
 | app-engine | f-d3a388ee70c25792a50ca764 | Deleting an App Engine program moves AEM, AES, SRM and PCM by 2 and SYS by 1, and leaves tombstones at the final counters | observed | 1 |
 | app-engine | f-d477c0ab70e48a7736224355 | Saving a new App Engine program moves AEM by 1 and stamps PSAEAPPLDEFN.VERSION with it | reproduced | 2 |
 | application-class | f-0955875d330562f340b9c23e | Adding an application class rewrites every PSPACKAGEDEFN row of its root package with VERSION = the new APM | reproduced | 3 |
@@ -145,6 +147,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | component | f-d26798fcd3f9779bfc1d21d6 | Component style sheets and JavaScript objects are numbered SEQNO 0, 10, 20 ... per PTSCRIPTTYPE, PTSCRIPTCATG DEV | reproduced | 4 |
 | component-interface | f-05f121f074b6a7576e29a858 | File > Rename of a Component Interface moves BCM, CLM, MPM, PCM, PJM and SYS by 1 each | observed | 1 |
 | component-interface | f-7ad3b8980b1c7ae6b464ca59 | File > Delete of a Component Interface moves BCM, CLM and SYS by 1 (PCM too with PeopleCode) | observed | 1 |
+| component-interface | f-ad78da26c297d545dbc06cd9 | App Designer opens a Component Interface PeopleSoft Studio's writer made and saves an edit of it changing only that edit | observed | 1 |
 | component-interface | f-cac4dc5f446f39d9dbbb8026 | Taking a standard method away from a Component Interface also moves CLM | observed | 1 |
 | component-interface | f-e914dad1753456f91f7828a2 | Editing only a Component Interface's methods PeopleCode moves PCM and SYS by 1 | observed | 1 |
 | component-interface | f-fedefefdb30a40a90ea77a36 | Creating a Component Interface or changing its properties, items or synchronization moves BCM and SYS by 1 | reproduced | 22 |
@@ -168,12 +171,14 @@ fingerprint; server: see `server/intelligence/README.md`.
 | menu | f-6be47b7e2ae3c56a70dc07c4 | File > Rename of a menu moves TSTM, ACM, CLM, MDM, PCM, PJM, SYS and TSM by 1 each | reproduced | 2 |
 | menu | f-747bf896569263b485e2c14c | Deleting or cutting a menu item (not a separator) or bar moves CLM by 1, with MDM and SYS | reproduced | 4 |
 | menu | f-79c2f48c47bc70d84de97fae | A menu's Menu Group Order is PSMENUDEFN.GROUPORDER | observed | 1 |
+| menu | f-d2ebb48c4ecbd05fdb1d9433 | App Designer opens a menu PeopleSoft Studio's writer made and saves an edit of it changing only that edit | observed | 1 |
 | menu | f-e67b210fbd5513c963df1387 | A menu definition save moves MDM and SYS by 1 | reproduced | 32 |
 | menu | f-ee56e64b0456e64d337abd06 | Renaming a menu item or bar moves CLM and MDM by 2, PCM by 1, SYS by 2 | reproduced | 3 |
 | menu | f-fa22f24f6a25576eab01a161 | A menu's Menu Group is PSMENUDEFN.MENUGROUP | observed | 1 |
 | menu | f-fafae98d016ada8a134677e2 | Editing only a menu item's ItemSelected PeopleCode moves PCM and SYS by 1; the menu row is not touched | reproduced | 3 |
 | message-channel | f-13baaf5f7d94524fb24f7c28 | A message channel save moves CHDM by 1 and SYS by 1; PSCHNLDEFN.VERSION is the new CHDM | reproduced | 14 |
 | message-channel | f-63084706f407d6e694a0b917 | Deleting a message channel writes PSCHNLDEL at the new CHDM and removes its partition rows | observed | 1 |
+| message-channel | f-c945e4793142f596bfb4a88f | App Designer opens a message channel PeopleSoft Studio's writer made and saves an edit of it changing only that edit | observed | 1 |
 | message-channel | f-e652e5d38577cf3f511c6456 | Renaming a message channel re-keys its rows in place and moves CHDM, MSDM, PJM and SYS by 1, references or not | reproduced | 2 |
 | other | f-76b320392022a312cd7d7562 | PSADSTRACKING.PTKEYHASH is SHA-1 over UTF-16LE '( NAME = value )' text, keys sorted by name, base64 | observed | 1 |
 | page-designer | f-00050251f7aa77dedbda7a85 | An edit box's Size Average / Maximum / Custom is PSPNLFIELD.FIELDSIZETYPE 0 / 1 / 2 | reproduced | 3 |
@@ -192,6 +197,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-1c4f8c2db2dd8406f9cce1b2 | A page's type is PSPNLDEFN.PNLTYPE: 0 Standard, 1 Subpage, 2 Secondary, 3 Popup, 4 Header, 5 Side Page 1, 6 Footer, 7 Layout, 8 Search, 9 Prompt, 10 Master/Detail Target, 11 Side Page 2 | reproduced | 18 |
 | page-designer | f-1cfacdb76859e25a4b7885f2 | A label's Position is PSPNLFIELD.LABELSIZETYPE: 0 Left, 1 Custom, 2 Top | reproduced | 4 |
 | page-designer | f-1d8a1339e6ad19df29cbe338 | A page control label's Alignment Left / Centered / Right is PSPNLFIELD.DSPLFORMAT 0x80000 / 0x100000 / 0x200000 | reproduced | 7 |
+| page-designer | f-1de8ee3db13ed02a78431b8b | App Designer puts a new page control right after the control before it in reading order, not after the selection or at the end | reproduced | 19 |
 | page-designer | f-218f79682c2d01f237e7f3c2 | Fluid Suppress On Form Factor: Large is PSPNLFIELD.FIELDUSETMP 0x20000000 | observed | 1 |
 | page-designer | f-22fdf94fdd2a0fb6d19ef98d | A page's Background is PSPNLDEFN.PNLSTYLE | observed | 1 |
 | page-designer | f-28c115a2a1db1ccac7fcd6fc | The first OK on a page control's Properties dialog writes PSPNLFIELDEXT.FFSTYLELONG ' | | | | ' | reproduced | 7 |
@@ -239,6 +245,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-938ded8dd042f5e560b3826c | A Secondary Page control is inserted invisible (FIELDUSE 0x2, SECUREINVISIBLE 1), 24 x 22, FIELDSIZETYPE 3, DSPLFORMAT 0x80000, SUBPNLNAME the page | observed | 1 |
 | page-designer | f-9a96add14da9ae2f35c1e568 | A group box's Fluid Group Box Type, Html Tag Type and ScrollBars are PSPNLFIELDEXT.GRPBOXTYPE, GRPBOXHTMLTYPE and SCROLLBARS, as list indexes | reproduced | 4 |
 | page-designer | f-9ecc6fd8d9258c7cdf8d40e6 | A group box's Suppress Accessible Label is PSPNLFIELD.FIELDUSE 0x2000 | observed | 1 |
+| page-designer | f-9f767c0982b8c4778efdccee | App Designer puts a new scroll (Scroll Area, Scroll Bar, Grid) after the last control whose top is at or above the scroll's bottom edge | reproduced | 5 |
 | page-designer | f-a0c36f3aa7c4649110545d1a | Dragging a control to a new tab position swaps PSPNLFIELD.FIELDNUM; nothing else changes | observed | 1 |
 | page-designer | f-a4b24a8100957266f22d7bb3 | An HTML Area's Respond Only Once is PSPNLFIELDEXT.FIELDUSETEMP2 0x1000 | reproduced | 2 |
 | page-designer | f-a59884249af2192134fa87ee | Every page control has a PSPNLFIELDEXT row beside its PSPNLFIELD row | reproduced | 5 |
@@ -333,11 +340,17 @@ fingerprint; server: see `server/intelligence/README.md`.
    codes and insert defaults (*-fresh, in01, in03), the property-grid saves
    (cb-*; Invisible there leaves SECUREINVISIBLE 0) and menu groups
    (mn06-mn22), Record PeopleCode writeback (02-12b; not 03 or 12, multi-
-   save windows). Not yet recorded: message PeopleCode (msg02-03), where an
-   inserted control goes (to-*), the
-   App Engine and CI leftovers (ae10/11/16/17, ad01/02, ar01, ap*, ci18,
-   ci25); the n*/nae/nce/nchn/nme "native" and d* / e01 cases are to be
-   checked as writer runs first. When adding captures -- check each family's
+   save windows), where an inserted control goes (to-*, every single insert
+   checked against the rule; sp-fresh the one exception), App Designer
+   saving what Studio's writers made (nae01, nce01, nchn01, nme01: the
+   "native" cases are App Designer), and the App Engine leftovers (aa01,
+   ae10, ap19, ap-pc01, the ad01 / ad02 / ae16 tombstones). Left out on
+   purpose: msg02-03 (no record of which tool saved them), multi-save
+   windows (ae11, ae17, ar01, 03, 12, h398, r02, r25, r53, r65, s01, s04,
+   p03, f03, f06's counters), saves that wrote nothing (cb modjs, cbx01,
+   eb06, eb52, msg01, sc-scroll-fields, in02, sec-fresh), and the writer
+   runs (w*, x*, rd*, NN-writer-*, d*, e01, emw*). When adding captures --
+   check each family's
    format with the adapter, select cases by operation, record with
    `--expect-counters` (DISCOVERY_PROTOCOL.md rules 7-9).
 3. Adapters for the controlled compile lab and writer replay tests.

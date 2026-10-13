@@ -1,0 +1,966 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-1de8ee3db13ed02a78431b8b",
+  "fingerprint": "1de8ee3db13ed02a78431b8b216421c42d89008273c438ce245736d78637734a",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDNUM"
+    ]
+  },
+  "assertion": {
+    "kind": "insert-placement",
+    "facts": {
+      "column": "PSPNLFIELD.FIELDNUM",
+      "rule": "after the last control at or above-left of the drop point",
+      "rowBand": 20,
+      "selection": "ignored",
+      "exception": "Secondary Page (sp-fresh)"
+    }
+  },
+  "title": "App Designer puts a new page control right after the control before it in reading order, not after the selection or at the end",
+  "statement": "An inserted page control (not a scroll or grid column) takes the FIELDNUM right after the last control, in tab order, that is at or above-left of its drop point in reading order -- two controls on one row when their tops are within 20 units, then left to right -- or the first FIELDNUM when none is; the controls after it move down one. The selected control and the end of the tab order play no part. Checked against the page before each of 19 single App Designer inserts; one Secondary Page insert (sp-fresh) went one place earlier than this gives and is not covered.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:50:14.009Z",
+      "method": "save-capture",
+      "experimentId": "to-a-selected",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture to-a-selected: the inserted control (FIELDTYPE 0) took FIELDNUM 9 among 12 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 4
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "to-a-selected"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "ab802794625b054fd473be634eb625d4fd127fd2a3eab4684d6e83808a82996d"
+    },
+    {
+      "observedAt": "2026-10-13T11:50:14.391Z",
+      "method": "save-capture",
+      "experimentId": "to-c-canvas-sel",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture to-c-canvas-sel: the inserted control (FIELDTYPE 0) took FIELDNUM 9 among 13 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 5
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "to-c-canvas-sel"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "8259189d45bd4f5eab375ab1939bfc2cdd479fc2dae09353637162e04fb9ce31"
+    },
+    {
+      "observedAt": "2026-10-13T11:50:14.799Z",
+      "method": "save-capture",
+      "experimentId": "to-d-band24",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture to-d-band24: the inserted control (FIELDTYPE 0) took FIELDNUM 10 among 14 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 5
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "to-d-band24"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "c637935ac61244c5d985be6f0adc59b1d3c11c17acdd62035bc322b68a66ca9e"
+    },
+    {
+      "observedAt": "2026-10-09T16:12:30.908Z",
+      "method": "save-capture",
+      "experimentId": "02-add-edit",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 02-add-edit: the inserted control (FIELDTYPE 4) took FIELDNUM 2 among 1 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "02-add-edit"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "727d6e7157ea04d03c99dd0310fb9745712df61ff675ac316f3272bad44712e5"
+    },
+    {
+      "observedAt": "2026-10-09T16:49:34.806Z",
+      "method": "save-capture",
+      "experimentId": "07-groupbox",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 07-groupbox: the inserted control (FIELDTYPE 2) took FIELDNUM 3 among 5 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 3
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "07-groupbox"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a460263600e5cd5905f5b8b86eab6f5ccfe39346f3a1128e0da27787add61dfe"
+    },
+    {
+      "observedAt": "2026-10-09T20:18:40.000Z",
+      "method": "save-capture",
+      "experimentId": "15-static-text",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 15-static-text: the inserted control (FIELDTYPE 0) took FIELDNUM 4 among 7 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 4
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "15-static-text"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "ccb373d2a857d3e0b0f7996d6d7298b531ac94b08eaaef2ac88d341b96e8bd0d"
+    },
+    {
+      "observedAt": "2026-10-09T20:18:52.000Z",
+      "method": "save-capture",
+      "experimentId": "16-frame",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 16-frame: the inserted control (FIELDTYPE 1) took FIELDNUM 5 among 8 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 4
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "16-frame"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "2157575842919eb58c8cfc333c2836fdf395aae3326fcee00f613317b199dceb"
+    },
+    {
+      "observedAt": "2026-10-09T20:19:30.000Z",
+      "method": "save-capture",
+      "experimentId": "17-hrule",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 17-hrule: the inserted control (FIELDTYPE 23) took FIELDNUM 6 among 9 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 4
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "17-hrule"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "1d83d8ff75ddecbad88578476053193e301346123d37c6778f8b66378fe52730"
+    },
+    {
+      "observedAt": "2026-10-13T11:50:17.130Z",
+      "method": "save-capture",
+      "experimentId": "in01-insert-static-image",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture in01-insert-static-image: the inserted control (FIELDTYPE 3) took FIELDNUM 2 among 1 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "in01-insert-static-image"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a72fc0baae1e1e13adc5c6323468d83ac2711ae9434213c4642433712b884a2d"
+    },
+    {
+      "observedAt": "2026-10-13T11:50:17.539Z",
+      "method": "save-capture",
+      "experimentId": "in03-insert-check-box",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture in03-insert-check-box: the inserted control (FIELDTYPE 7) took FIELDNUM 3 among 2 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "in03-insert-check-box"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "3db5328ca112c776b4f73f57c371d633755924302a64ddd1922966e1c457fa8c"
+    },
+    {
+      "observedAt": "2026-10-13T11:50:17.949Z",
+      "method": "save-capture",
+      "experimentId": "rb-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture rb-fresh: the inserted control (FIELDTYPE 8) took FIELDNUM 6 among 6 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "rb-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "17b3b65a99c793653d2a1912dcbce47f80bc3764b9e6c4b0fd0745208aeb0564"
+    },
+    {
+      "observedAt": "2026-10-13T11:50:18.341Z",
+      "method": "save-capture",
+      "experimentId": "le-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture le-fresh: the inserted control (FIELDTYPE 6) took FIELDNUM 4 among 7 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 4
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "le-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "cdb8eb2de684cc233db3bb1f905c61f3fa5d2f7754a29a6ff41a6ceb0d1f0333"
+    },
+    {
+      "observedAt": "2026-10-13T11:50:18.724Z",
+      "method": "save-capture",
+      "experimentId": "ht-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ht-fresh: the inserted control (FIELDTYPE 25) took FIELDNUM 5 among 10 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 6
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ht-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "6dfdff9be896cad394ed9de70a6f1c83461f57298ee1a26f5f3f2478b33aa063"
+    },
+    {
+      "observedAt": "2026-10-13T11:50:19.108Z",
+      "method": "save-capture",
+      "experimentId": "ht-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ht-field: the inserted control (FIELDTYPE 25) took FIELDNUM 6 among 11 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 6
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ht-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "3caca559b298b7ee9f2f80c47fe4f58d5295ad05024c5bba51212f55267daece"
+    },
+    {
+      "observedAt": "2026-10-13T11:50:19.480Z",
+      "method": "save-capture",
+      "experimentId": "sub-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture sub-fresh: the inserted control (FIELDTYPE 11) took FIELDNUM 1 among 4 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 4
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "sub-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "f6cfc9e22725dd0059d5b4d62931ef2c1e1334dde4032410f53b7c5a093219b8"
+    },
+    {
+      "observedAt": "2026-10-13T11:50:19.857Z",
+      "method": "save-capture",
+      "experimentId": "sbp-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture sbp-fresh: the inserted control (FIELDTYPE 11) took FIELDNUM 1 among 5 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 5
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLTREECTRL",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "sbp-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "fd7d638ac4208b860eeda250c801c32c5d1ca62f2c0c577e996fbfc4171cab2a"
+    },
+    {
+      "observedAt": "2026-10-13T11:50:20.225Z",
+      "method": "save-capture",
+      "experimentId": "im-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture im-fresh: the inserted control (FIELDTYPE 9) took FIELDNUM 2 among 1 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "im-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "d03df3a1c259e17e17723a9a6e2ec49de300f9d8af1cb61f90bb0890b067d4e9"
+    },
+    {
+      "observedAt": "2026-10-13T11:50:20.607Z",
+      "method": "save-capture",
+      "experimentId": "ch-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ch-fresh: the inserted control (FIELDTYPE 30) took FIELDNUM 4 among 3 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ch-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "ed7ca003442041398751ed3756384faa4bbaef466a4cb6db9b1b4447a587794f"
+    },
+    {
+      "observedAt": "2026-10-13T11:50:20.973Z",
+      "method": "save-capture",
+      "experimentId": "tr-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture tr-fresh: the inserted control (FIELDTYPE 20) took FIELDNUM 2 among 2 controls, the place the reading-order rule gives from the page before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "tr-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "e04873cfa3a338ba3b29f44f234496c529379bb3dc7951464ffd2dc43ee12837"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:50:14.016Z",
+    "updatedAt": "2026-10-13T11:50:20.980Z",
+    "schemaVersion": 1
+  }
+}

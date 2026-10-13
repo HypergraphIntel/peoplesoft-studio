@@ -1,0 +1,353 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-32eb4c415debde9f5f2b8840",
+  "fingerprint": "32eb4c415debde9f5f2b884093d1207f0546ec380e7296341b7ac573346cf4ed",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "app-engine",
+    "objectType": "App Engine program",
+    "tables": [
+      "PSPCMPROGDEL",
+      "PSSQLDEL",
+      "PSAESECTDEL"
+    ]
+  },
+  "assertion": {
+    "kind": "tombstone",
+    "facts": {
+      "peopleCode": "PSPCMPROGDEL at the new PCM",
+      "sql": "PSSQLDEL at the new SRM",
+      "section": "PSAESECTDEL at the new AES",
+      "alsoMoves": "PCM / SRM by 1"
+    }
+  },
+  "title": "Deleting App Engine actions or a section tombstones their PeopleCode in PSPCMPROGDEL at the new PCM, SQL in PSSQLDEL at the new SRM, and a section in PSAESECTDEL at the new AES",
+  "statement": "When App Designer deletes a PeopleCode action, a SQL action or a whole section, the program's PeopleCode rows go with a PSPCMPROGDEL row at the new PCM (PCM +1), the SQL definition's rows go with a PSSQLDEL row at the new SRM (SRM +1), and a deleted section leaves a PSAESECTDEL row at the new AES (not AEM), besides AEM, AES and SYS +1.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-11T18:04:26.452Z",
+      "method": "save-capture",
+      "experimentId": "ad01-delete-pc",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ad01-delete-pc: a PeopleCode action deleted; PSPCMPROG, PSPCMTXT, PSPCMNAME rows deleted and PSPCMPROGDEL inserted with VERSION 128 = the new PCM; AEM, AES, PCM, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAEAPPLSTATE",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAEAPPLTEMPTBL",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAESECTDTLDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTEPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAESTEPMSGDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTMTDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "AES": 1,
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ad01-delete-pc"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "c07ef763aae90b3429b76bb41b09ed2aec9a64bbcbcbdda116fea81788f2ad54"
+    },
+    {
+      "observedAt": "2026-10-13T11:52:51.641Z",
+      "method": "save-capture",
+      "experimentId": "ad02-delete-sql",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ad02-delete-sql: a SQL action deleted; its PSSQLDEFN, PSSQLDESCR, PSSQLHASH, PSSQLTEXTDEFN rows deleted and PSSQLDEL inserted with VERSION 39 = the new SRM; AEM, AES, SRM, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAESTMTDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDESCR",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "AES": 1,
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ad02-delete-sql"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "0ef783209b533f4805f607b6cbe93913575492e571becd2c1d7c0e223688ecad"
+    },
+    {
+      "observedAt": "2026-10-13T11:52:52.035Z",
+      "method": "save-capture",
+      "experimentId": "ae16-delete-section",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ae16-delete-section: a section with a PeopleCode and a SQL action deleted; PSPCMPROGDEL VERSION 136 = the new PCM, PSSQLDEL VERSION 47 = the new SRM, PSAESECTDEL VERSION 73 = the new AES (AEM is 85); AEM, AES, PCM, SRM, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDTLDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTEPDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTMTDEFN",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROGDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDESCR",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "AES": 1,
+          "PCM": 1,
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ae16-delete-section"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "b490f4a862144f8c1d5c71a2e63a5a6ebb25aed17dd23d24b1e22aa4c10f631f"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:52:51.249Z",
+    "updatedAt": "2026-10-13T11:52:52.042Z",
+    "schemaVersion": 1
+  }
+}

@@ -1,0 +1,292 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-9f767c0982b8c4778efdccee",
+  "fingerprint": "9f767c0982b8c4778efdccee3c6675402938ad80caa46b42d9a2cd7d6e554544",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDNUM"
+    ]
+  },
+  "assertion": {
+    "kind": "insert-placement",
+    "facts": {
+      "column": "PSPNLFIELD.FIELDNUM",
+      "rule": "after the last control whose top is at or above the scroll bottom",
+      "types": "10,19,27"
+    }
+  },
+  "title": "App Designer puts a new scroll (Scroll Area, Scroll Bar, Grid) after the last control whose top is at or above the scroll's bottom edge",
+  "statement": "An inserted Scroll Area, Scroll Bar or Grid takes the FIELDNUM after the last control, in tab order, whose top is at or above the scroll's bottom edge, so what is drawn above or beside it stays ahead of it. Checked against the page before each of 5 App Designer inserts of a scroll.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:50:21.359Z",
+      "method": "save-capture",
+      "experimentId": "gd-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gd-fresh: the inserted scroll (FIELDTYPE 19) took FIELDNUM 7, the place the rule gives from the page's controls before the save.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLCNTRLDATA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gd-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a45ad4496494eea92725628c35558f59a468d1aa4880c1d4588f5adf036908c9"
+    },
+    {
+      "observedAt": "2026-10-13T11:50:21.744Z",
+      "method": "save-capture",
+      "experimentId": "gr-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gr-fresh: the inserted scroll (FIELDTYPE 19) took FIELDNUM 2, the place the rule gives from the page's controls before the save (3 controls inserted in the save; the scroll is the first in tab order).",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gr-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "9e247c2e9623ac523f13bc6d30f88a3cd244be5cca3786b180b5bf60729772f2"
+    },
+    {
+      "observedAt": "2026-10-13T11:50:22.137Z",
+      "method": "save-capture",
+      "experimentId": "sb-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture sb-fresh: the inserted scroll (FIELDTYPE 10) took FIELDNUM 2, the place the rule gives from the page's controls before the save (3 controls inserted in the save; the scroll is the first in tab order).",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "sb-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "5ce7843b2f5cabbed97dd17a27cd337383fc969d03ac436587ad9cceeb9ec3e4"
+    },
+    {
+      "observedAt": "2026-10-13T11:50:22.529Z",
+      "method": "save-capture",
+      "experimentId": "sa-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture sa-fresh: the inserted scroll (FIELDTYPE 27) took FIELDNUM 2, the place the rule gives from the page's controls before the save (3 controls inserted in the save; the scroll is the first in tab order).",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "sa-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "8a9f8810e822865a18c7836f9b65e1fb59f3eeacfbcc7df92b8170f5f3dbdecc"
+    },
+    {
+      "observedAt": "2026-10-13T11:50:22.907Z",
+      "method": "save-capture",
+      "experimentId": "eb-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb-fresh: the inserted scroll (FIELDTYPE 27) took FIELDNUM 4, the place the rule gives from the page's controls before the save (2 controls inserted in the save; the scroll is the first in tab order).",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "3502f6263df71e3fd15e1283f25dd0118ce31761d220c9006a58f5105641c0f2"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:50:21.366Z",
+    "updatedAt": "2026-10-13T11:50:22.912Z",
+    "schemaVersion": 1
+  }
+}

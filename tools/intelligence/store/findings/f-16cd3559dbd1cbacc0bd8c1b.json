@@ -1,0 +1,124 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-16cd3559dbd1cbacc0bd8c1b",
+  "fingerprint": "16cd3559dbd1cbacc0bd8c1b1e6a8a7c815a8bc0ca0b3d870f9356b236544adc",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "app-engine",
+    "objectType": "App Engine program"
+  },
+  "assertion": {
+    "kind": "app-designer-accepts",
+    "facts": {
+      "writer": "appEngineWriter",
+      "appDesignerSaveChanged": "the edit, LICENSE_CODE filled, stale tombstones removed"
+    }
+  },
+  "title": "App Designer opens an App Engine program PeopleSoft Studio created and saves an edit of it changing only that edit, filling LICENSE_CODE",
+  "statement": "App Designer opened an App Engine program created through Studio's MCP and App Engine writer and saved an edit: one step row changed, every other row came back identical but for VERSION and stamp, PSAEAPPLDEFN.LICENSE_CODE (left blank by the writer) was filled, and stale tombstones of an earlier delete of the name were removed (the writer now removes them on create). One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-11T19:34:37.638Z",
+      "method": "save-capture",
+      "experimentId": "nae01-ad-resave-mcp",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture nae01-ad-resave-mcp: App Designer's save of a program Studio's MCP created rewrote its rows (by ROWID) with one PSAESTEPDEFN row changed (the edit), PSAEAPPLDEFN.LICENSE_CODE blank -> filled, the rest identical but VERSION and stamp, and deleted a stale PSAEAPPLDEL and PSAESECTDEL row of the name; AEM, AES, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAEAPPLDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAEAPPLSTATE",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAEAPPLTEMPTBL",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAESECTDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDTLDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTEPDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAESTMTDEFN",
+            "inserted": 7,
+            "deleted": 7,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "AES": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "nae01-ad-resave-mcp"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "32d5dae6fac196b46e7c65447a1613bc99d65bc245ba6f4b701153b388503159"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:51:49.259Z",
+    "updatedAt": "2026-10-13T11:51:49.259Z",
+    "schemaVersion": 1
+  }
+}

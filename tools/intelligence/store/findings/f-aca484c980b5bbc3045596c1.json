@@ -2454,6 +2454,183 @@
         }
       ],
       "digest": "6eb79cebe81a558aa92f0f23d149a74995ef52e497faa0f286d01a347c9ddea7"
+    },
+    {
+      "observedAt": "2026-10-11T17:43:12.515Z",
+      "method": "save-capture",
+      "experimentId": "aa01-insert-step",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture aa01-insert-step (a step and its SQL action inserted): PSVERSION AEM +1, AES +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAEAPPLSTATE",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAEAPPLTEMPTBL",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAESECTDTLDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTEPDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSAESTMTDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "AES": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "aa01-insert-step"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "cef1ca2c3debdb51e25f3ab9c1a9a205843b967ee10d99f1d5396321acf2dde4"
+    },
+    {
+      "observedAt": "2026-10-13T11:52:50.022Z",
+      "method": "save-capture",
+      "experimentId": "ae10-insert-section",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ae10-insert-section (a section inserted): PSVERSION AEM +1, AES +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDTLDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "AES": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ae10-insert-section"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "60a9c76f0bfd319119ebc43449137696f712cdcad8d783b3a5b28cadfdabecd2"
+    },
+    {
+      "observedAt": "2026-10-13T11:52:50.447Z",
+      "method": "save-capture",
+      "experimentId": "ap19-app-library-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ap19-app-library-off (Application Library turned off (a new empty MAIN section)): PSVERSION AEM +1, AES +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAEAPPLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSAESECTDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSAESECTDTLDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "AEM": 1,
+          "AES": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ap19-app-library-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "3e94693b692d34feaaff4a71e662cef05fc962d48cffb3aeb6e939b9940ca9ca"
     }
   ],
   "privacy": {
@@ -2463,7 +2640,7 @@
   "provenance": {
     "source": "research-harness",
     "createdAt": "2026-10-13T02:36:17.067Z",
-    "updatedAt": "2026-10-13T02:36:30.202Z",
+    "updatedAt": "2026-10-13T11:52:50.455Z",
     "schemaVersion": 1
   }
 }
