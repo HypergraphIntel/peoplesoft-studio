@@ -367,6 +367,22 @@ try {
       'Compare With Environment activated the other connection');
   }
 
+  // Validate PeopleCode compiles the active editor's text and reports where it stopped, in Problems.
+  {
+    const programUri = vscode._diffs.at(-1)?.left;
+    const editorBefore = vscode.window.activeTextEditor;
+    vscode.window.activeTextEditor = { document: { uri: programUri, languageId: 'psft-peoplecode', getText: () => 'Local number &n = 1;\nLocal string &c = ;\n' } };
+    await vscode.commands.executeCommand('psft.peoplecode.validate');
+    const diags = vscode._diagnostics.get('psft-peoplecode-validate')?.get(programUri) ?? [];
+    check(diags.length === 1 && diags[0].range.start.line === 1 && diags[0].range.start.character === 18 && diags[0].severity === 1,
+      `Validate PeopleCode did not report the error at line 2, column 19 (${JSON.stringify(diags.map((d) => [d.range.start, d.message]))}; ${JSON.stringify(vscode._messages.slice(-1))})`);
+    vscode.window.activeTextEditor.document.getText = () => 'Local number &n = 1;\n';
+    await vscode.commands.executeCommand('psft.peoplecode.validate');
+    check((vscode._diagnostics.get('psft-peoplecode-validate')?.get(programUri) ?? []).length === 0
+      && /compiles with PeopleSoft Studio's compiler/.test(vscode._messages.at(-1)?.[1] ?? ''), 'Validate PeopleCode did not clear the problem once the program compiles');
+    vscode.window.activeTextEditor = editorBefore;
+  }
+
   // Find References searches the active connection's PeopleCode and opens the line chosen.
   {
     const before = vscode._quickPickResult;

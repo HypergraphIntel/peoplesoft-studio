@@ -105,10 +105,15 @@ const APPLICATION_CLASS_IDS = new Set([105, 106, 107]);
 
 /** The owner, from the stored key; refuses anything outside the first writer's scope. */
 export function targetForKey(key: PcmKey): CompileTarget {
+  const scope = writeScopeRefusal(key.objectValues[0]?.trim() ?? '');
+  if (scope) throw new SaveRefusedError(scope);
+  return compileTargetFor(key);
+}
+
+/** What a program compiles against, whatever the write scope (validation compiles programs it may not save). */
+export function compileTargetFor(key: PcmKey): CompileTarget {
   const ids = key.objectIds.map(Number);
   const values = key.objectValues.map((v) => v.trim());
-  const scope = writeScopeRefusal(values[0]);
-  if (scope) throw new SaveRefusedError(scope);
   if (ids[0] === RECORD_ID && ids[1] === FIELD_ID && ids[2] === EVENT_ID && ids.slice(3).every((id) => id === 0)) {
     return { applicationClass: false, recordName: values[0], fieldName: values[1] };
   }

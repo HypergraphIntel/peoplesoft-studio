@@ -112,6 +112,10 @@ export function createStub() {
     }
   }
 
+  class Diagnostic {
+    constructor(range, message, severity) { this.range = range; this.message = message; this.severity = severity; }
+  }
+
   class FileSystemError extends Error {
     static NoPermissions(m) { return new FileSystemError(m); }
     static FileNotFound(m) { return new FileSystemError(m); }
@@ -125,7 +129,8 @@ export function createStub() {
     Disposable, EventEmitter, Uri, TreeItem, ThemeIcon, ThemeColor,
     TabInputText, TabInputCustom, TabInputWebview,
     MarkdownString, FileSystemError, CompletionItem, SnippetString, Hover,
-    DocumentSymbol, Range, Position,
+    DocumentSymbol, Range, Position, Diagnostic,
+    DiagnosticSeverity: { Error: 0, Warning: 1, Information: 2, Hint: 3 },
 
     FileType: { Unknown: 0, File: 1, Directory: 2, SymbolicLink: 64 },
     FilePermission: { Readonly: 1 },
@@ -187,6 +192,7 @@ export function createStub() {
     // VS Code's own commands a smoke test observes: vscode.diff records its arguments.
     _handlers: new Map([['vscode.diff', (left, right, title) => { vscode._diffs.push({ left, right, title }); }]]),
     _diffs: [],
+    _diagnostics: new Map(),
     _inputBoxes: [],
     _inputBoxResult: undefined,
     _shownDocuments: [],
@@ -338,6 +344,7 @@ export function createStub() {
       },
       onDidSaveTextDocument: () => new Disposable(() => {}),
       onDidCloseTextDocument: () => new Disposable(() => {}),
+      onDidChangeTextDocument: () => new Disposable(() => {}),
       registerTextDocumentContentProvider(scheme, provider) {
         vscode._contentProviders.set(scheme, provider);
         return new Disposable(() => vscode._contentProviders.delete(scheme));
@@ -355,6 +362,19 @@ export function createStub() {
       openTextDocument: async (uri) => ({ uri })
     },
     languages: {
+      // Diagnostic collections by name: a smoke test reads what a command set.
+      createDiagnosticCollection(name) {
+        const entries = new Map();
+        const c = {
+          name, entries,
+          set: (uri, diags) => entries.set(String(uri), diags),
+          delete: (uri) => entries.delete(String(uri)),
+          get: (uri) => entries.get(String(uri)),
+          dispose() {}
+        };
+        vscode._diagnostics.set(name, c);
+        return c;
+      },
       registerCompletionItemProvider(_selector, _provider, ..._triggerCharacters) {
         return new Disposable(() => {});
       },

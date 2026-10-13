@@ -216,7 +216,7 @@ reproducing App Designer's saves; **Read-only** = viewer, from the database;
 - Running App Engine programs (the designer and the MCP read, write and validate definitions; they never run them)
 - In the component editor: Default Search Action, the search-page link message numbers, the Custom style lists; component edits through the MCP
 - Build beyond SQL Tables (Alter Tables, indexes alone, views), project-level migrate/copy
-- Full language server (go-to-definition across the environment, compile diagnostics)
+- Full language server (go-to-definition across the environment, compile diagnostics as you type; *Validate PeopleCode* checks on demand)
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the longer path.
 
@@ -274,6 +274,7 @@ compile the program in Application Designer as well (see the Disclaimer). See
 - **Hover** — short docs for keywords, built-ins, `%` system variables
 - **Outline** — class / method / function / property symbols
 - **Snippets** — `if`, `for`, `try`, `locs`, `msgbox`, `sqlexec`, …
+- **Validate PeopleCode** — compiles the program in the editor with PeopleSoft Studio's compiler (the one saves use) for the connection's PeopleTools release, and shows where it stops in Problems; Application Designer has the last word
 - **Find References** — where an identifier (a whole word) or any text occurs in every PeopleCode program of the connection, from the word at the cursor; on a database one search of the stored source, so every program is covered. Pick an occurrence to open it at that line
 - **Compare With Environment** — a definition side by side with the same one in another connection (a database or a project export), in VS Code's diff editor. The other side is read once, without making that connection the active one
 

@@ -10,6 +10,12 @@
   diff editor. The other side is read once through a temporary connection,
   as *Test Connection* reads, so the active connection stays as it is (one
   connection is still active at a time).
+- **Validate PeopleCode** (PeopleCode editor title bar): compiles the
+  editor's text with PeopleSoft Studio's compiler -- the one saves use --
+  against the program's own record and field or class, for the
+  connection's PeopleTools release, and shows in Problems where it stopped
+  and why (`Local string &c = ;`: line 2, column 19). Any program can be
+  checked, not only those the write scope allows saving.
 - **Find References** (PeopleCode editor title bar, or the command palette):
   every occurrence of an identifier -- a whole word, so `JOB` finds neither
   `JOB_DATA` nor `&JOB` -- or of any text, in all PeopleCode of the

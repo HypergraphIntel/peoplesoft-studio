@@ -27,6 +27,7 @@ import { registerPeopleCodeHover } from './peoplecode/hover.js';
 import { registerPeopleCodeSymbols } from './peoplecode/symbols.js';
 import { parseUri, SCHEME } from './util/uri.js';
 import { findPeopleCodeReferences } from './peoplecode/findReferences.js';
+import { lineAndColumn, validatePeopleCode } from './peoplecode/validate.js';
 import type { DefinitionProvider } from './providers/provider.js';
 import { StatusBar } from './views/statusBar.js';
 import { selectConnection } from './views/connectionSelection.js';
@@ -252,6 +253,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const workspace = new Workspace(context.secrets);
   workspace.db2DriverDir = path.join(context.globalStorageUri.fsPath, 'db2-driver');
   context.subscriptions.push(workspace);
+  // Validate PeopleCode's results, cleared as soon as the text changes.
+  const validationDiagnostics = vscode.languages.createDiagnosticCollection('psft-peoplecode-validate');
+  context.subscriptions.push(
+    validationDiagnostics,
+    vscode.workspace.onDidChangeTextDocument((e) => { if (e.contentChanges.length) validationDiagnostics.delete(e.document.uri); }),
+    vscode.workspace.onDidCloseTextDocument((d) => validationDiagnostics.delete(d.uri))
+  );
   // Compare With Environment's other side: read-only snapshots, forgotten when their tab closes.
   const compareContent = new CompareContent();
   context.subscriptions.push(
@@ -429,9 +437,33 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     vscode.commands.registerCommand('psft.refresh', refreshAll),
 
-    vscode.commands.registerCommand('psft.peoplecode.validate', () => {
-      vscode.window.showInformationMessage(
-        'PeopleCode validate is not implemented yet.');
+    vscode.commands.registerCommand('psft.peoplecode.validate', async () => {
+      await withError('Validate PeopleCode', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (editor?.document.uri.scheme !== SCHEME || editor.document.languageId !== 'psft-peoplecode') {
+          vscode.window.showInformationMessage('Validate PeopleCode checks the PeopleCode program in the active editor: open one first.');
+          return;
+        }
+        const doc = editor.document;
+        const { handle, key } = parseUri(doc.uri);
+        const provider = await workspace.requireByHandle(handle);
+        // The connection's PeopleTools release picks the compiler profile; a project export has none, so the newest is used.
+        const release = (await provider.readEnvironment?.())?.toolsRelease;
+        const text = doc.getText();
+        const v = validatePeopleCode(text, key, release ?? '8.62');
+        const normalized = text.replace(/\r\n/g, '\n');
+        validationDiagnostics.set(doc.uri, v.problems.map((p) => {
+          const at = lineAndColumn(normalized, p.offset);
+          const start = new vscode.Position(at.line, at.column);
+          const d = new vscode.Diagnostic(new vscode.Range(start, start.translate(0, 1)),
+            `${p.message} (PeopleSoft Studio's compiler, ${v.profile}; Application Designer has the last word)`, vscode.DiagnosticSeverity.Warning);
+          d.source = 'PeopleCode';
+          return d;
+        }));
+        const where = `${v.profile}${release ? '' : ', no PeopleTools release known for this source'}`;
+        if (v.problems.length) vscode.window.showWarningMessage(`${displayName(key)} does not compile with PeopleSoft Studio's compiler (${where}): see Problems.`);
+        else vscode.window.showInformationMessage(`${displayName(key)} compiles with PeopleSoft Studio's compiler (${where}).`);
+      });
     }),
 
     vscode.commands.registerCommand('psft.peoplecode.findReferences', async () => {
