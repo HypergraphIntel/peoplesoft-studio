@@ -104,7 +104,9 @@ def record(session: Session, value: dict, token: auth.ApiToken) -> tuple[str, Fi
     fid = finding_id(fingerprint)
     obs = value["observation"]
     digest = observation_digest(obs)
-    run_key = f"{obs.get('experimentId', '')}|{obs['runId']}" if obs.get("runId") else digest
+    # One contributor's run of one experiment by one method (the local store's runKey, per contributor):
+    # the same run in other words is the same evidence; another contributor's run of it reproduces it.
+    run_key = f"{token.contributor}|{obs['method']}|{obs['experimentId']}|{obs.get('runId', '')}" if obs.get("experimentId") else digest
     now = utcnow()
     for attempt in (1, 2):
         f = session.execute(select(Finding).where(Finding.id == fid).with_for_update()).scalar_one_or_none()
@@ -126,7 +128,8 @@ def record(session: Session, value: dict, token: auth.ApiToken) -> tuple[str, Fi
                 continue
         if f.fingerprint != fingerprint:
             raise RuntimeError(f"{fid} holds another finding")
-        dup = session.execute(select(Observation.id).where(and_(Observation.finding_id == fid, Observation.digest == digest))).first()
+        dup = session.execute(select(Observation.id).where(and_(Observation.finding_id == fid,
+                                                                or_(Observation.digest == digest, Observation.run_key == run_key)))).first()
         if dup:
             session.rollback()
             return "duplicate", f

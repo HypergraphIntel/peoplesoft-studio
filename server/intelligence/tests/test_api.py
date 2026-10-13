@@ -31,6 +31,9 @@ def test_outcomes_match_the_local_store(server, finding, vectors):
     again = server.post(POST, json={**vectors[1]["input"], "title": "reworded", "observation": {**vectors[1]["input"]["observation"], "observedAt": "2027-01-01T00:00:00Z"}}, headers=h)
     assert (again.status_code, again.json()["outcome"]) == (200, "duplicate")
     assert again.json()["finding"]["title"] == vectors[0]["input"]["title"]
+    # The same run of the same experiment described in other words: the same evidence.
+    reworded = {**vectors[0]["input"], "observation": {**vectors[0]["input"]["observation"], "observation": "The same capture, described again."}}
+    assert server.post(POST, json=reworded, headers=h).json()["outcome"] == "duplicate"
     # A second run: merged and reproduced; releases widen.
     run2 = {**vectors[0]["input"], "observation": {**vectors[0]["input"]["observation"], "runId": "run-2", "environment": {"peopleToolsRelease": "8.61.05"}}}
     merged = server.post(POST, json=run2, headers=h).json()
@@ -38,6 +41,17 @@ def test_outcomes_match_the_local_store(server, finding, vectors):
     assert merged["finding"]["status"] == "reproduced"
     assert merged["finding"]["compatibility"]["observedReleases"] == ["8.61.05", "8.62.09"]
     assert len(merged["finding"]["observations"]) == 2
+
+
+def test_another_contributors_run_of_the_same_experiment_reproduces(server, finding):
+    first = server.post(POST, json=finding(), headers=server.headers_for("contributor")).json()
+    assert first["finding"]["status"] == "observed"
+    theirs = server.post(POST, json=finding(), headers=server.headers_for("contributor2")).json()
+    assert theirs["outcome"] == "duplicate", "the same digest is the same evidence, whoever sends it"
+    other = finding()
+    other["observation"] = {**other["observation"], "observation": "Their own capture of the case."}
+    again = server.post(POST, json=other, headers=server.headers_for("contributor2")).json()
+    assert (again["outcome"], again["finding"]["status"]) == ("merged", "reproduced")
 
 
 def test_others_evidence_is_summarized(server, finding):

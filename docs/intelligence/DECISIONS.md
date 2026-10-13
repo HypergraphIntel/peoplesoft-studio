@@ -270,3 +270,22 @@ never grants a write.
 **Not chosen.** A numeric score (invites thresholds an agent would treat as
 permission); folding confidence into the answer (confidence is the author's,
 the answer is about verification).
+
+## D19 — The same evidence: one run of one experiment, whatever its words (2026-10-13)
+
+**Decision.** An observation is a duplicate of one already on the finding
+when its digest matches, or when it is the same run of the same experiment
+by the same method -- `method | experimentId | runId` -- in other words.
+The local store (`store.ts` runKey) and the server (`main.py` run_key, per
+contributor) count runs the same way, so "reproduced" needs a second run or
+experiment; on the server another contributor's run of the same case is a
+reproduction. An observation without an experiment ID is its own run.
+
+**Why.** Recording the page captures again with clearer observation texts
+added 14 second observations of the same captures and could have turned
+one capture into a "reproduction" (DISCOVERY_PROTOCOL.md rule 2). The
+digest alone covers only an identical text.
+
+**Not chosen.** Keying by experiment alone (a re-run with `--run-id` is a
+genuine reproduction); keying the server by experiment without the
+contributor (two labs naming a case alike would be one run).

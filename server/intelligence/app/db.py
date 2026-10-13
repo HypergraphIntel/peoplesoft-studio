@@ -67,7 +67,7 @@ class Observation(Base):
     digest: Mapped[str] = mapped_column(String(64), nullable=False)
     method: Mapped[str] = mapped_column(String(32), nullable=False)
     release: Mapped[str] = mapped_column(String(16), nullable=False)
-    run_key: Mapped[str] = mapped_column(String(300), nullable=False)
+    run_key: Mapped[str] = mapped_column(String(400), nullable=False)  # contributor | method | experiment | run, at most 315
     payload: Mapped[dict] = mapped_column(JSONType, nullable=False)
     source: Mapped[str] = mapped_column(String(32), nullable=False)
     contributor: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
