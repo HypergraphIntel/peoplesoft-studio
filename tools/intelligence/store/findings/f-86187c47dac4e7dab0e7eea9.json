@@ -1,0 +1,193 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-86187c47dac4e7dab0e7eea9",
+  "fingerprint": "86187c47dac4e7dab0e7eea9ca208828c55774f5eea40cf731a36bddcbc35353",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "record",
+    "objectType": "Record"
+  },
+  "assertion": {
+    "kind": "unit-replay-passes",
+    "facts": {
+      "test": "src/test/recordEdit.test.ts",
+      "reference": "App Designer captures (tools/corpus/save-protocol/results)",
+      "allPass": true
+    }
+  },
+  "title": "PeopleSoft Studio's record writer (save plan) replays App Designer's captured saves: every replay test passes",
+  "statement": "src/test/recordEdit.test.ts rebuilds App Designer's captured saves (HRDMO, PeopleTools 8.62.09) through Studio's record writer (save plan) and requires App Designer's rows and counters; every top-level test passed in the recorded run. Evidence about Studio, not PeopleSoft (rule 3); it says nothing about releases not captured. docs/RECORD_SAVE.md lists the cases.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:57:41.142Z",
+      "method": "unit-replay",
+      "experimentId": "recordEdit.test",
+      "runId": "2026-10-13",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "tool": "node:test"
+      },
+      "observation": "Run of src/test/recordEdit.test.ts (node:test, TAP): 32 top-level tests, all passed.",
+      "actual": "32 passed, 0 failed, 0 skipped",
+      "testResults": [
+        {
+          "name": "a record save plans App Designer's rows: r01-reorder-fields",
+          "outcome": "pass"
+        },
+        {
+          "name": "a record save plans App Designer's rows: r02-insert-field",
+          "outcome": "pass"
+        },
+        {
+          "name": "a record save plans App Designer's rows: r03-sqltable-key-and-fields",
+          "outcome": "pass"
+        },
+        {
+          "name": "a record save plans App Designer's rows: r04-listbox-off",
+          "outcome": "pass"
+        },
+        {
+          "name": "a record save plans App Designer's rows: r05-key-ascending",
+          "outcome": "pass"
+        },
+        {
+          "name": "a record save plans App Designer's rows: r06-delete-field-sqltable",
+          "outcome": "pass"
+        },
+        {
+          "name": "a record save plans App Designer's rows: r07-delete-field-derived",
+          "outcome": "pass"
+        },
+        {
+          "name": "a record save plans App Designer's rows: r08-search-key-dup-order",
+          "outcome": "pass"
+        },
+        {
+          "name": "a record save plans App Designer's rows: r09-search-audit-system",
+          "outcome": "pass"
+        },
+        {
+          "name": "a record save plans App Designer's rows: r11-default-search-field",
+          "outcome": "pass"
+        },
+        {
+          "name": "a record save plans App Designer's rows: r12-search-edit",
+          "outcome": "pass"
+        },
+        {
+          "name": "a record save plans App Designer's rows: r13-disable-advanced-search",
+          "outcome": "pass"
+        },
+        {
+          "name": "a record save plans App Designer's rows: r14-allow-search-events",
+          "outcome": "pass"
+        },
+        {
+          "name": "a record save plans App Designer's rows: r15-edits-defaults-label",
+          "outcome": "pass"
+        },
+        {
+          "name": "a record save plans App Designer's rows: r16-yes-no-smart",
+          "outcome": "pass"
+        },
+        {
+          "name": "a record save plans App Designer's rows: r18-record-general",
+          "outcome": "pass"
+        },
+        {
+          "name": "edits: move, insert, remove, and the key flags",
+          "outcome": "pass"
+        },
+        {
+          "name": "the plan restamps only changed and new rows, rebuilds the key index, and bumps PGM on removal",
+          "outcome": "pass"
+        },
+        {
+          "name": "what the cases do not cover is refused",
+          "outcome": "pass"
+        },
+        {
+          "name": "Use settings keep the combinations delivered fields keep",
+          "outcome": "pass"
+        },
+        {
+          "name": "a duplicate order key joins the key index and makes it non-unique",
+          "outcome": "pass"
+        },
+        {
+          "name": "Search Edit, the search options and Do Not Trace (r10-r14)",
+          "outcome": "pass"
+        },
+        {
+          "name": "the Edits tab, default value, label and page control (r15, r16)",
+          "outcome": "pass"
+        },
+        {
+          "name": "several fields are removed at once (multi-select Delete / Cut)",
+          "outcome": "pass"
+        },
+        {
+          "name": "Record Properties: names, lengths and the Tools Table / Managed flags",
+          "outcome": "pass"
+        },
+        {
+          "name": "an SQL Table that never had a key saves with no key index (r26)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new record plans as App Designer created R1 / R2 (r02, r35): new field rows, the key index from its keys",
+          "outcome": "pass"
+        },
+        {
+          "name": "record type changes as App Designer saved them (r26, r28): tablespace, key index and view SQL follow the type",
+          "outcome": "pass"
+        },
+        {
+          "name": "audit record and options, and the Timestamp Field with its Auto-Update bit (r49, r51)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a subrecord inserts as App Designer inserted ABS_HIST_BELSBR into R5 (r53): one row, its fields expanded after",
+          "outcome": "pass"
+        },
+        {
+          "name": "alternate search keys index as App Designer indexed R6's (r55): one index each, the field then the keys",
+          "outcome": "pass"
+        },
+        {
+          "name": "the System ID Field takes Auto-Update, as R4's did (r54)",
+          "outcome": "pass"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/test/recordEdit.test.ts"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "074ad8af09f33f95992294a9b20b6ed7a7771027f61d422d6a6fe3c31a04415d"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:57:41.150Z",
+    "updatedAt": "2026-10-13T11:57:41.150Z",
+    "schemaVersion": 1
+  }
+}

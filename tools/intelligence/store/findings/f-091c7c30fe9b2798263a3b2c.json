@@ -1,0 +1,101 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-091c7c30fe9b2798263a3b2c",
+  "fingerprint": "091c7c30fe9b2798263a3b2cb6c1021b9aa3d49f25af79e978522b7f03499642",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "component-interface",
+    "objectType": "Component Interface"
+  },
+  "assertion": {
+    "kind": "unit-replay-passes",
+    "facts": {
+      "test": "src/test/ciWriter.test.ts",
+      "reference": "App Designer captures (tools/corpus/save-protocol/results)",
+      "allPass": true
+    }
+  },
+  "title": "PeopleSoft Studio's Component Interface writer replays App Designer's captured saves: every replay test passes",
+  "statement": "src/test/ciWriter.test.ts rebuilds App Designer's captured saves (HRDMO, PeopleTools 8.62.09) through Studio's Component Interface writer and requires App Designer's rows and counters; every top-level test passed in the recorded run. Evidence about Studio, not PeopleSoft (rule 3); it says nothing about releases not captured. docs/COMPONENT_INTERFACES.md lists the cases.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:57:38.821Z",
+      "method": "unit-replay",
+      "experimentId": "ciWriter.test",
+      "runId": "2026-10-13",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "tool": "node:test"
+      },
+      "observation": "Run of src/test/ciWriter.test.ts (node:test, TAP): 9 top-level tests, all passed.",
+      "actual": "9 passed, 0 failed, 0 skipped",
+      "testResults": [
+        {
+          "name": "a new interface defaulted from its component is App Designer's, item for item, SYNCIDs and names (ci01-ci04)",
+          "outcome": "pass"
+        },
+        {
+          "name": "\"No\" to defaulting: the key items only, and the name made again leaves PSBCDEL (ci28)",
+          "outcome": "pass"
+        },
+        {
+          "name": "Definition Properties: General, Standard Methods (CLM), Synchronization (ci05-ci10)",
+          "outcome": "pass"
+        },
+        {
+          "name": "Edit Property: a rename keeps the SYNCID; Comment and Read Only (ci11, ci12)",
+          "outcome": "pass"
+        },
+        {
+          "name": "Delete: a property, a key, a collection with everything under it (ci13, ci16, ci19)",
+          "outcome": "pass"
+        },
+        {
+          "name": "Drag: a field takes its buffer number and the next SYNCID; a key; a Long Edit field (ci14, ci15, ci17)",
+          "outcome": "pass"
+        },
+        {
+          "name": "Drag: a scroll, with its child scrolls, push buttons, invisible fields; merged into its collection (ci20-ci23)",
+          "outcome": "pass"
+        },
+        {
+          "name": "Save As: a copy whose every item takes a new SYNCID in the window's order (ci25)",
+          "outcome": "pass"
+        },
+        {
+          "name": "an interface saved unchanged plans nothing",
+          "outcome": "pass"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/test/ciWriter.test.ts"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENT_INTERFACES.md"
+        }
+      ],
+      "digest": "c20ecd1098422e4186b328f2946afc51add20f0a45e8963a5db2bdcdd9f50acc"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:57:38.828Z",
+    "updatedAt": "2026-10-13T11:57:38.828Z",
+    "schemaVersion": 1
+  }
+}

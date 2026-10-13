@@ -1,0 +1,213 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-1c0bc5ecb8125781487a8aa2",
+  "fingerprint": "1c0bc5ecb8125781487a8aa2808e0cc0bd675c4178f29998ca123d0263c8e874",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page"
+  },
+  "assertion": {
+    "kind": "unit-replay-passes",
+    "facts": {
+      "test": "src/test/pageControlTemplates.test.ts",
+      "reference": "App Designer captures (tools/corpus/save-protocol/results)",
+      "allPass": true
+    }
+  },
+  "title": "PeopleSoft Studio's new-control templates replays App Designer's captured saves: every replay test passes",
+  "statement": "src/test/pageControlTemplates.test.ts rebuilds App Designer's captured saves (HRDMO, PeopleTools 8.62.09) through Studio's new-control templates and requires App Designer's rows and counters; every top-level test passed in the recorded run. Evidence about Studio, not PeopleSoft (rule 3); it says nothing about releases not captured. docs/PAGE_SAVE.md lists the cases.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:57:37.606Z",
+      "method": "unit-replay",
+      "experimentId": "pageControlTemplates.test",
+      "runId": "2026-10-13",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "tool": "node:test"
+      },
+      "observation": "Run of src/test/pageControlTemplates.test.ts (node:test, TAP): 37 top-level tests, all passed.",
+      "actual": "37 passed, 0 failed, 0 skipped",
+      "testResults": [
+        {
+          "name": "a new Edit Box is the row App Designer inserted (02-add-edit)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Drop-Down List Box is the row App Designer inserted (06-types)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Check Box is the row App Designer inserted (06-types)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Push Button is the row App Designer inserted (06-types)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Group Box is the row App Designer inserted (07-groupbox)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Static Text is the row App Designer inserted (15-static-text)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Frame is the row App Designer inserted (16-frame)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Horizontal Rule is the row App Designer inserted (17-hrule)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Edit Box on a datetime field is the row App Designer inserted (18-number-datetime)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Edit Box on a number field is the row App Designer inserted (18-number-datetime)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Static Image is the row App Designer inserted (in01-insert-static-image)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Radio Button is the row App Designer inserted (rb-fresh)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Long Edit Box is the row App Designer inserted (le-fresh)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new HTML Area on a field is the row App Designer inserted (ht-field)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new HTML Area on a record alone is the row App Designer inserted (ht-fresh)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Scroll Area is the row App Designer inserted (lv02-scroll-area)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Scroll Bar is the row App Designer inserted (lv03-scroll-bar)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new drawn Scroll Area is the row App Designer inserted (sa-fresh)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new drawn Scroll Bar is the row App Designer inserted (sb-fresh)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Image is the row App Designer wrote (im-fresh)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Image on an image field is the row App Designer wrote (im-field)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Tree is the row App Designer wrote (tr-fresh)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Tree with a root and a level is the row App Designer wrote (tr-nodes)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Chart is the row App Designer wrote (ch-fresh)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Chart on a field is the row App Designer wrote (ch-field)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Secondary Page is the row App Designer wrote (sp-fresh)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Subpage is the row App Designer wrote (sbp-fresh)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Subpage with a record substitution is the row App Designer wrote (sb-subst)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Grid is the row App Designer wrote (gd-fresh)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Tab Separator is the row App Designer wrote (ts-fresh)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Analytic Grid is the row App Designer wrote (ag-fresh)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Edit Box column of an Analytic Grid is the row App Designer wrote (ag-fresh)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Grid's, Analytic Grid's and Tree's own rows are App Designer's (gd-fresh, ag-fresh, tr-nodes)",
+          "outcome": "pass"
+        },
+        {
+          "name": "an edited label replaces the default label text but keeps the label id",
+          "outcome": "pass"
+        },
+        {
+          "name": "new controls are refused on fields the captures do not cover",
+          "outcome": "pass"
+        },
+        {
+          "name": "a control added inside a scroll takes its OCCURSLEVEL (default 0 outside)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new Scroll Area's PSPNLCNTRLDATA and PSPNLBTNDATA rows are App Designer's (lv19: ZZ_PCODE_LAB_LV's scroll area as App Designer wrote it)",
+          "outcome": "pass"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/test/pageControlTemplates.test.ts"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "ef4de17166833dca8e5216e3d9ce0da557ee0c815b7b550e1267d6773cc5eb52"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:57:37.614Z",
+    "updatedAt": "2026-10-13T11:57:37.614Z",
+    "schemaVersion": 1
+  }
+}

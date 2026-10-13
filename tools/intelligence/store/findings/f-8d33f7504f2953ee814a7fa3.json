@@ -1,0 +1,277 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-8d33f7504f2953ee814a7fa3",
+  "fingerprint": "8d33f7504f2953ee814a7fa35b9927f7d60e09dc50c24aa88c25792876c3cd71",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "peoplecode",
+    "objectType": "Record PeopleCode"
+  },
+  "assertion": {
+    "kind": "unit-replay-passes",
+    "facts": {
+      "test": "src/test/savePlan.test.ts",
+      "reference": "App Designer captures (tools/corpus/save-protocol/results)",
+      "allPass": true
+    }
+  },
+  "title": "PeopleSoft Studio's PeopleCode writer (save plan and encoder) replays App Designer's captured saves: every replay test passes",
+  "statement": "src/test/savePlan.test.ts rebuilds App Designer's captured saves (HRDMO, PeopleTools 8.62.09) through Studio's PeopleCode writer (save plan and encoder) and requires App Designer's rows and counters; every top-level test passed in the recorded run. Evidence about Studio, not PeopleSoft (rule 3); it says nothing about releases not captured. docs/CONTROLLED_COMPILE_LAB.md lists the cases.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:57:39.580Z",
+      "method": "unit-replay",
+      "experimentId": "savePlan.test",
+      "runId": "2026-10-13",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "tool": "node:test"
+      },
+      "observation": "Run of src/test/savePlan.test.ts (node:test, TAP): 53 top-level tests, all passed.",
+      "actual": "53 passed, 0 failed, 0 skipped",
+      "testResults": [
+        {
+          "name": "the save matrix results are present",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: 02-resave 1:ZZ_PCODE_LAB / 2:ZZ_PCODE_LAB_C01 / 12:FieldChange",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: 03-a-to-b 1:ZZ_PCODE_LAB / 2:ZZ_PCODE_LAB_C01 / 12:FieldChange",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: 04-b-to-a 1:ZZ_PCODE_LAB / 2:ZZ_PCODE_LAB_C01 / 12:FieldChange",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: 05-comment 1:ZZ_PCODE_LAB / 2:ZZ_PCODE_LAB_C01 / 12:FieldChange",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: 06-literal 1:ZZ_PCODE_LAB / 2:ZZ_PCODE_LAB_C01 / 12:FieldChange",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: 07-source-same-names 1:ZZ_PCODE_LAB / 2:ZZ_PCODE_LAB_C01 / 12:FieldChange",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: 08-source-new-names 1:ZZ_PCODE_LAB / 2:ZZ_PCODE_LAB_C01 / 12:FieldChange",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: 09-reference-row 1:ZZ_PCODE_LAB / 2:ZZ_PCODE_LAB_C01 / 12:FieldChange",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: 11b-recreate 1:ZZ_PCODE_LAB / 2:ZZ_PCODE_LAB_C01 / 12:FieldChange",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: 12-app-class 1:ZZ_PCODE_LAB / 2:ZZ_PCODE_LAB_C01 / 12:FieldChange",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: 12-app-class 104:ZZ_PCODE_LAB / 105:SUPPORT / 107:SmokeTest / 12:OnExecute",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: 12b-class-signature 104:ZZ_PCODE_LAB / 105:SUPPORT / 107:SmokeTest / 12:OnExecute",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: ae11-rename-section 66:ZZ_AE_LAB01 / 77:Proc / 39:GBL / 20:default / 21:1900-01-01 / 78:Step01 / 12:OnExecute",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: ae13-save-as 66:ZZ_AE_LAB02 / 77:Proc / 39:GBL / 20:default / 21:1900-01-01 / 78:Step01 / 12:OnExecute",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: ae14-rename-program 66:ZZ_AE_LAB03 / 77:Proc / 39:GBL / 20:default / 21:1900-01-01 / 78:Step01 / 12:OnExecute",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: ap-pc01-create 66:ZZ_AE_LAB01 / 77:MAIN / 39:GBL / 20:default / 21:1900-01-01 / 78:Step01 / 12:OnExecute",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: ar01-rename-step 66:ZZ_AE_LAB01 / 77:MAIN / 39:GBL / 20:default / 21:1900-01-01 / 78:Init / 12:OnExecute",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: c04-package-class 104:ZZ_PCODE_LAB_PK2 / 107:Hello / 12:OnExecute",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: c05-subpackage-class 104:ZZ_PCODE_LAB_PK2 / 105:SUB1 / 107:Inner / 12:OnExecute",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: c06-subpackage-second 104:ZZ_PCODE_LAB_PK2 / 105:SUB1 / 107:Second / 12:OnExecute",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: ci26-rename 74:ZZ_PCODE_LAB_CI6 / 12:Methods",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: emw02-service-create 104:ZZ_PCODE_LAB_EM / 107:Handler4 / 12:OnExecute",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: mb05-bar-rename-full 3:ZZ_PCODE_LAB_MEN2 / 4:LAB_BAR2 / 5:ZZ_LAB_PCITEM / 12:ItemSelected",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: mi09-item-rename-full 3:ZZ_PCODE_LAB_MEN2 / 4:USE / 5:ZZ_LAB_PCITEM / 12:ItemSelected",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: mn16-menu-rename 3:ZZ_PCODE_LAB_PO2 / 4:MENUITEM1 / 5:ZZ_LAB_POPPC / 12:ItemSelected",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: n01-native-resave 1:ZZ_PCODE_LAB / 2:ZZ_PCODE_LAB_C01 / 12:FieldChange",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: n01-native-resave 104:ZZ_PCODE_LAB / 105:SUPPORT / 107:SmokeTest / 12:OnExecute",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: n02-native-resave-of-editor-save 1:ZZ_PCODE_LAB / 2:ZZ_PCODE_LAB_C01 / 12:FieldChange",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: n03-native-resave-of-fixtures 1:ZZ_PCODE_LAB / 2:ZZ_PCODE_LAB_C01 / 12:FieldChange",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: n03-native-resave-of-fixtures 104:ZZ_PCODE_LAB / 105:ORDERING / 107:CHILD / 12:OnExecute",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: n03-native-resave-of-fixtures 104:ZZ_PCODE_LAB / 105:SUPPORT / 107:SmokeTest / 12:OnExecute",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: p01-component-prebuild 10:ZZ_PCODE_LAB_CMP / 39:GBL / 12:PreBuild",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: p02-component-record-rowinit 10:ZZ_PCODE_LAB_CMP / 39:GBL / 1:ZZ_PCODE_LAB_T / 12:RowInit",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: p03-component-field-fieldchange 10:ZZ_PCODE_LAB_CMP / 39:GBL / 1:ZZ_PCODE_LAB_T / 2:ZZ_PCODE_LAB_KEY / 12:FieldChange",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: p04-component-prebuild-edit 10:ZZ_PCODE_LAB_CMP / 39:GBL / 12:PreBuild",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: q01-page-activate-create 9:ZZ_PCODE_LAB_PG / 12:Activate",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: q02-page-activate-edit 9:ZZ_PCODE_LAB_PG / 12:Activate",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: w04-writer-component-field-create 10:ZZ_PCODE_LAB_CMP / 39:GBL / 1:ZZ_PCODE_LAB_T / 2:ZZ_PCODE_LAB_KEY / 12:FieldChange",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: w05-writer-component-prebuild-resave 10:ZZ_PCODE_LAB_CMP / 39:GBL / 12:PreBuild",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: w07-writer-page-activate-create 9:ZZ_PCODE_LAB_PG / 12:Activate",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: w08-writer-page-activate-edit 9:ZZ_PCODE_LAB_PG / 12:Activate",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: x17-direct-class-create 104:ZZ_PCODE_LAB_PK3 / 107:Hello / 12:OnExecute",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: x20-direct-subpackage-class 104:ZZ_PCODE_LAB_PK3 / 105:SUB1 / 107:Inner / 12:OnExecute",
+          "outcome": "pass"
+        },
+        {
+          "name": "the writer's rows equal App Designer's: x21-direct-subpackage-second 104:ZZ_PCODE_LAB_PK3 / 105:SUB1 / 107:Second / 12:OnExecute",
+          "outcome": "pass"
+        },
+        {
+          "name": "every scratch program App Designer left on HRDMO passes the gate or is refused for a stated reason",
+          "outcome": "pass"
+        },
+        {
+          "name": "PSPCMTXT rows split greedily after line feeds, at most 14,000 characters",
+          "outcome": "pass"
+        },
+        {
+          "name": "PSPCMPROG rows are 28,000-byte slices",
+          "outcome": "pass"
+        },
+        {
+          "name": "the source is saved with LF endings and a final newline",
+          "outcome": "pass"
+        },
+        {
+          "name": "Record Field PeopleCode and Application Class programs are in scope, any name unless a prefix is set",
+          "outcome": "pass"
+        },
+        {
+          "name": "PACKAGE rows are the compiler references, serialized as App Designer writes them",
+          "outcome": "pass"
+        },
+        {
+          "name": "every scratch program App Designer compiled on HRDMO is rebuilt to its stored rows exactly",
+          "outcome": "pass"
+        },
+        {
+          "name": "operator ids are required and well formed",
+          "outcome": "pass"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/test/savePlan.test.ts"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CONTROLLED_COMPILE_LAB.md"
+        }
+      ],
+      "digest": "fa061327542f179881738935128f3bdf4e0aa9c2f689db4bef405a0ff2cfbfcb"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:57:39.587Z",
+    "updatedAt": "2026-10-13T11:57:39.587Z",
+    "schemaVersion": 1
+  }
+}

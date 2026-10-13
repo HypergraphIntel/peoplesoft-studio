@@ -34,6 +34,14 @@ npx tsx tools/intelligence/discovery.mts lab-run --script tools/lab/event-mappin
   --release 8.62 --run-id 2026-10-13a --tests '^(configure|edit|remove|unchanged):' --type roundtrip-comparison …
 ```
 
+From a writer replay test (Studio's plan against App Designer's captures; rule 3):
+
+```bash
+node --test --test-reporter=tap dist-test/test/channelWriter.test.js > run.tap
+npx tsx tools/intelligence/discovery.mts test-run --file src/test/channelWriter.test.ts --output run.tap \
+  --release 8.62.09 --run-id 2026-10-13 --type roundtrip-comparison --subsystem message-channel …
+```
+
 From a JSON file (any method):
 
 ```bash
@@ -105,9 +113,9 @@ it supports. `--store DIR` or `PSFT_DISCOVERY_STORE` points elsewhere.
 |---|---|---|
 | Save captures (`tools/corpus/save-protocol`): sweeps (`save-protocol-delta/1`), definition captures (`def-capture/1`, `ae-capture/1`) and page captures (`page-capture/1`, one page's rows; PDM, RDM and SYS only) | Implemented (`adapters/saveCapture.ts`) | Changed tables (counts), counter moves, case ID (the directory read: a renamed case keeps its old name inside); the release from a sweep, or given (`--release`) for the others, which do not record it |
 | Lab end-to-end proofs (`tools/lab/*-e2e.mts`) | Implemented (`adapters/labRun.ts`, CLI `lab-run --script --output --release [--tests REGEX]`) | Check names and outcomes only (failure details never leave), `live-e2e`; a Studio writer's proof is a `roundtrip-comparison` |
-| Controlled compile lab | Proposed | `compile-difference` observations |
+| Controlled compile lab | Covered by the two adapters here | Its App Designer saves are sweeps (00-12b, recorded as save captures); its encoder comparison -- Studio's compiled bytes against App Designer's -- is `savePlan.test.ts`, recorded as a writer replay |
 | PeopleCode corpus harness | Proposed | `bytecode-pattern` observations — derived facts only; the corpus is institutional |
-| Writer replay tests (`src/test/*Writer.test.ts`) | Proposed | `unit-replay` test results |
+| Writer replay tests (`src/test/*Writer.test.ts`, `savePlan.test.ts`, `pageControlTemplates.test.ts`, `recordEdit.test.ts`) | Implemented (`adapters/testRun.ts`, CLI `test-run --file --output --release [--tests REGEX]`) | Top-level test names and outcomes from a TAP run, `unit-replay`; about Studio, so a `roundtrip-comparison` (rule 3) |
 
 An adapter is a pure function from the source's own output to an
 `Observation`; it never changes the research tool it reads.

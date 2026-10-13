@@ -1,0 +1,265 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-6b49973d8569d4c27deabc97",
+  "fingerprint": "6b49973d8569d4c27deabc97238ff61f2973611a6f754952457d6630a878b3d6",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page"
+  },
+  "assertion": {
+    "kind": "unit-replay-passes",
+    "facts": {
+      "test": "src/test/pageWriter.test.ts",
+      "reference": "App Designer captures (tools/corpus/save-protocol/results)",
+      "allPass": true
+    }
+  },
+  "title": "PeopleSoft Studio's page writer replays App Designer's captured saves: every replay test passes",
+  "statement": "src/test/pageWriter.test.ts rebuilds App Designer's captured saves (HRDMO, PeopleTools 8.62.09) through Studio's page writer and requires App Designer's rows and counters; every top-level test passed in the recorded run. Evidence about Studio, not PeopleSoft (rule 3); it says nothing about releases not captured. docs/PAGE_SAVE.md lists the cases.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:57:37.218Z",
+      "method": "unit-replay",
+      "experimentId": "pageWriter.test",
+      "runId": "2026-10-13",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "tool": "node:test"
+      },
+      "observation": "Run of src/test/pageWriter.test.ts (node:test, TAP): 50 top-level tests, all passed.",
+      "actual": "50 passed, 0 failed, 0 skipped",
+      "testResults": [
+        {
+          "name": "a move writes only the moved control's position columns (03-move shape)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a resize writes RIGHT/BOTTOM and FIELDSIZETYPE (04-resize shape)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a label change writes LBLTYPE and LBLTEXT (05-label shape)",
+          "outcome": "pass"
+        },
+        {
+          "name": "use changes write FIELDUSE and SECUREINVISIBLE (09-property shape)",
+          "outcome": "pass"
+        },
+        {
+          "name": "rebinding a control writes RECNAME / FIELDNAME, and only what changed (Record tab)",
+          "outcome": "pass"
+        },
+        {
+          "name": "toggling Allow Deferred Processing writes DEFERPROC (default 1)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a Grid / Scroll Area Options tab writes OCCURSCOUNT1 and the grid display flags",
+          "outcome": "pass"
+        },
+        {
+          "name": "a delete removes the row and renumbers the survivors (08-delete shape)",
+          "outcome": "pass"
+        },
+        {
+          "name": "no change yields no updates",
+          "outcome": "pass"
+        },
+        {
+          "name": "an existing control not on the stored page is refused (an added one carries `add`)",
+          "outcome": "pass"
+        },
+        {
+          "name": "an added control takes MAXPNLFLDID + 1 and is numbered after the survivors (02-add-edit shape)",
+          "outcome": "pass"
+        },
+        {
+          "name": "deleted ids are never reused: adds start above the high-water mark",
+          "outcome": "pass"
+        },
+        {
+          "name": "a blank label sent as '' is the stored ' ', not a change (and is written as ' ')",
+          "outcome": "pass"
+        },
+        {
+          "name": "page properties write only what changed, as App Designer stores it (19-props-descr shape)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new page size writes PANELRIGHT/BOTTOM and makes the Page Size choice Custom (14-props-use shape)",
+          "outcome": "pass"
+        },
+        {
+          "name": "the Order tab's order renumbers FIELDNUM; an order that is not the page's is refused",
+          "outcome": "pass"
+        },
+        {
+          "name": "a reorder across a grid or scroll takes the level of its new place; one that empties a scroll is refused",
+          "outcome": "pass"
+        },
+        {
+          "name": "the captured General / Use settings plan exactly App Designer's columns (g01, u01-u05)",
+          "outcome": "pass"
+        },
+        {
+          "name": "blank names are stored as ' '; unchanged settings plan nothing",
+          "outcome": "pass"
+        },
+        {
+          "name": "page type and a secondary page's options plan exactly App Designer's columns (u08-u12)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a secondary page sized Custom keeps its button bits (0x08 with 0x01 / 0x02 as they were)",
+          "outcome": "pass"
+        },
+        {
+          "name": "Fluid Page and the Fluid tab plan exactly App Designer's columns (u13, f01-f06, u14)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a tab order change writes only the moved controls' FIELDNUM (o01)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a paste copies its source's rows, moved by the paste offset, after the source in tab order (c02)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a pasted auto-sized Edit Box: its 0 RIGHT moves too, its hidden label does not (c01); onto another page (n01)",
+          "outcome": "pass"
+        },
+        {
+          "name": "New Page: App Designer's fresh PSPNLDEFN row (n01); a writer-created page carries LICENSE_CODE ' '",
+          "outcome": "pass"
+        },
+        {
+          "name": "New Page Fluid: the Layout Page's row, renamed, standard, Owner ID blank (n02 from PSL_APPS_CONTENT)",
+          "outcome": "pass"
+        },
+        {
+          "name": "every page type change plans exactly App Designer's columns (t01-t11, r01-r06)",
+          "outcome": "pass"
+        },
+        {
+          "name": "each Page Size choice plans exactly App Designer's columns (s01-s08)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a frame's Properties dialog: each setting plans exactly App Designer's columns (fr01-fr07)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a changed Page Field Name must be free on the page; names already stored are left alone",
+          "outcome": "pass"
+        },
+        {
+          "name": "a frame's Fluid tab: each setting plans exactly App Designer's columns (fr08-fr20)",
+          "outcome": "pass"
+        },
+        {
+          "name": "Static Text / Static Image / Check Box single-column property edits plan exactly App Designer's columns",
+          "outcome": "pass"
+        },
+        {
+          "name": "Static Text Paragraph and Static Image dims use the right ext/geometry columns",
+          "outcome": "pass"
+        },
+        {
+          "name": "Static Text line feeds and Multi-Currency on a Fluid page plan exactly App Designer's columns (st11)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a pasted copy's rows carry the level the save planned; without one, the source's level",
+          "outcome": "pass"
+        },
+        {
+          "name": "an added control takes the tab order App Designer gives it: after the control before it in reading order",
+          "outcome": "pass"
+        },
+        {
+          "name": "a Group Box's dialog settings plan exactly App Designer's columns (gb02-gb27; gb08 was a full snapshot without PSPNLFIELDEXT, its bit recurs in gb09)",
+          "outcome": "pass"
+        },
+        {
+          "name": "OK on a Group Box's dialog writes App Designer's explicit Left, FIELDUSETMP 0x6000000 and five Fluid slots; -1 Header Extension on a Fluid page only",
+          "outcome": "pass"
+        },
+        {
+          "name": "a Horizontal Rule's dialog plans exactly App Designer's columns (hr02-hr06), and its OK writes the five Fluid slots on any page (hr01, hr07)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a Check Box's dialog plans exactly App Designer's columns (cbx02-cbx17)",
+          "outcome": "pass"
+        },
+        {
+          "name": "an HTML Area's dialog plans exactly App Designer's columns and PSPNLHTMLAREA row (ha01-ha10)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a Long Edit Box's dialog plans exactly App Designer's columns and PSPTPNLRTEDITOR row (le01-le19)",
+          "outcome": "pass"
+        },
+        {
+          "name": "an Edit Box's dialog plans exactly App Designer's columns (eb01-eb82)",
+          "outcome": "pass"
+        },
+        {
+          "name": "scroll levels: App Designer's level changes, Set to Level and reorders replay exactly (lv04, lv06, lv08-lv16)",
+          "outcome": "pass"
+        },
+        {
+          "name": "added controls take App Designer's tab order and level: a scroll at 1, the rest the running level (lv02, lv03, lv05, lv07)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a field dropped in a grid is its next column, at (0, 0), and the grid counts it (gd-column, ts-fresh)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a grid added with its column counts it (ag-fresh); a Tab Separator outside a grid is refused",
+          "outcome": "pass"
+        },
+        {
+          "name": "a grid whose stored count does not follow the (0, 0) rule keeps it (Fluid grids nesting group boxes)",
+          "outcome": "pass"
+        },
+        {
+          "name": "a Tree's TREECTRLID follows its FIELDNUM, with its levels; a deleted tree's levels go (sp-fresh, sb-delete)",
+          "outcome": "pass"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/test/pageWriter.test.ts"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "00d890ee25c7f29d032f1fc7c6b6eb2fc6067626953fd3c9d37c6e1ac05ea28a"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:57:37.227Z",
+    "updatedAt": "2026-10-13T11:57:37.227Z",
+    "schemaVersion": 1
+  }
+}

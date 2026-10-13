@@ -1,0 +1,81 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-3a9aaf7e052c2268b9bd8a82",
+  "fingerprint": "3a9aaf7e052c2268b9bd8a82cdd2990509b93545e316ffea210e9db782f84d73",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "component",
+    "objectType": "Component"
+  },
+  "assertion": {
+    "kind": "unit-replay-passes",
+    "facts": {
+      "test": "src/test/componentWriter.test.ts",
+      "reference": "App Designer captures (tools/corpus/save-protocol/results)",
+      "allPass": true
+    }
+  },
+  "title": "PeopleSoft Studio's component writer replays App Designer's captured saves: every replay test passes",
+  "statement": "src/test/componentWriter.test.ts rebuilds App Designer's captured saves (HRDMO, PeopleTools 8.62.09) through Studio's component writer and requires App Designer's rows and counters; every top-level test passed in the recorded run. Evidence about Studio, not PeopleSoft (rule 3); it says nothing about releases not captured. docs/COMPONENTS.md lists the cases.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:57:37.996Z",
+      "method": "unit-replay",
+      "experimentId": "componentWriter.test",
+      "runId": "2026-10-13",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "tool": "node:test"
+      },
+      "observation": "Run of src/test/componentWriter.test.ts (node:test, TAP): 4 top-level tests, all passed.",
+      "actual": "4 passed, 0 failed, 0 skipped",
+      "testResults": [
+        {
+          "name": "the plan reproduces each of App Designer's component saves (c01-c08b)",
+          "outcome": "pass"
+        },
+        {
+          "name": "an inserted page is labelled as App Designer labels it",
+          "outcome": "pass"
+        },
+        {
+          "name": "a component without a search record, or with a page twice, is refused before anything is read",
+          "outcome": "pass"
+        },
+        {
+          "name": "the Internet, Fluid and Style tabs: the plan reproduces each one-control App Designer save (i336-s406)",
+          "outcome": "pass"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/test/componentWriter.test.ts"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/COMPONENTS.md"
+        }
+      ],
+      "digest": "b9c4dac0a809623edd869ea51f80bf9029f3d6753a38bb1f6f336c9b0af57ad9"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:57:38.001Z",
+    "updatedAt": "2026-10-13T11:57:38.001Z",
+    "schemaVersion": 1
+  }
+}

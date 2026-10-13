@@ -1,0 +1,73 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-a8fad28d5da0fd2352df8eb5",
+  "fingerprint": "a8fad28d5da0fd2352df8eb5da8be564cbca9266af164ee18b48859fc065204c",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "html",
+    "objectType": "HTML definition"
+  },
+  "assertion": {
+    "kind": "unit-replay-passes",
+    "facts": {
+      "test": "src/test/htmlWriter.test.ts",
+      "reference": "App Designer captures (tools/corpus/save-protocol/results)",
+      "allPass": true
+    }
+  },
+  "title": "PeopleSoft Studio's HTML definition writer replays App Designer's captured saves: every replay test passes",
+  "statement": "src/test/htmlWriter.test.ts rebuilds App Designer's captured saves (HRDMO, PeopleTools 8.62.09) through Studio's HTML definition writer and requires App Designer's rows and counters; every top-level test passed in the recorded run. Evidence about Studio, not PeopleSoft (rule 3); it says nothing about releases not captured. docs/HTML_SAVE.md lists the cases.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:57:40.749Z",
+      "method": "unit-replay",
+      "experimentId": "htmlWriter.test",
+      "runId": "2026-10-13",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "tool": "node:test"
+      },
+      "observation": "Run of src/test/htmlWriter.test.ts (node:test, TAP): 2 top-level tests, all passed.",
+      "actual": "2 passed, 0 failed, 0 skipped",
+      "testResults": [
+        {
+          "name": "HTML text is stored CRLF, UTF-16LE, NUL-terminated, as App Designer stored h01-h03",
+          "outcome": "pass"
+        },
+        {
+          "name": "long HTML is cut into 32,000-byte chunks, the terminator in the last",
+          "outcome": "pass"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/test/htmlWriter.test.ts"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/HTML_SAVE.md"
+        }
+      ],
+      "digest": "3a582e92291bab06cc5b71a11e126177d4dc8f81f937dee690a676cd41855505"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:57:40.754Z",
+    "updatedAt": "2026-10-13T11:57:40.754Z",
+    "schemaVersion": 1
+  }
+}

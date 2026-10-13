@@ -99,7 +99,7 @@ load or behind TLS.
 
 | File | Role |
 |---|---|
-| `src/intelligence/{schema,fingerprint,privacy,store,contract,index}.ts`, `adapters/saveCapture.ts` | Local engine |
+| `src/intelligence/{schema,fingerprint,privacy,store,contract,index}.ts`, `adapters/{saveCapture,labRun,testRun}.ts` | Local engine |
 | `src/intelligenceCommands.ts` | Extension store; commands (open, show, record from JSON, token) |
 | `src/views/discoveryView.ts` | *Discoveries* tree, finding panel, submission review, `currentUploadDecision()` |
 | `src/intelligenceClient.ts` | Upload client (fetch; no tokens in errors) |
@@ -121,7 +121,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 
 ## Recorded findings (tools/intelligence/store)
 
-202 findings, 989 observations, each checked against its capture rows before recording (2026-10-13; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
+213 findings, 1000 observations, each checked against its capture rows before recording (2026-10-13; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
 
 | Subsystem | ID | Claim | Status | Obs. |
 |---|---|---|---|---|
@@ -131,6 +131,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | app-engine | f-32eb4c415debde9f5f2b8840 | Deleting App Engine actions or a section tombstones their PeopleCode in PSPCMPROGDEL at the new PCM, SQL in PSSQLDEL at the new SRM, and a section in PSAESECTDEL at the new AES | reproduced | 3 |
 | app-engine | f-345656b01a15e8c89db1e4c5 | PeopleSoft Studio's App Engine writer reproduces App Designer's rows for 85 of 88 captured saves; the 3 others differ only in PSSQLHASH.MARKET | observed | 1 |
 | app-engine | f-40babbc79f39efd83f68859c | After an App Engine section's market is re-keyed, App Designer leaves PSSQLHASH.MARKET unchanged until a later save | reproduced | 3 |
+| app-engine | f-45fefe77f51629084405abc0 | PeopleSoft Studio's App Engine writer replays App Designer's captured saves: every replay test passes | observed | 1 |
 | app-engine | f-7813ad82caab6c1204716fa1 | Renaming an App Engine program tombstones the old name in PSAEAPPLDEL at the new AEM | observed | 1 |
 | app-engine | f-9f82873fd798d79a6f5df946 | Editing only an App Engine action's PeopleCode moves PCM and SYS by 1 | reproduced | 2 |
 | app-engine | f-aca484c980b5bbc3045596c1 | Changing an App Engine section, step or action moves AEM, AES and SYS by 1 | reproduced | 51 |
@@ -140,12 +141,14 @@ fingerprint; server: see `server/intelligence/README.md`.
 | application-class | f-25040e230f523de62ee3f1d6 | Creating an application class in one save moves APM and PCM by 1 and SYS by 1 | reproduced | 2 |
 | application-class | f-6ba6f6aadec5d928c6042e3f | An application class's program is PSPCMPROG 104 (root) / 105 (subpackage) / 107 (class) / 12 OnExecute; a class's QUALIFYPATH is ':' in the root, else its subpackage path | reproduced | 3 |
 | application-class | f-f7f2f20852253b5e6cf6ef0f | Creating an application package writes one PSPACKAGEDEFN row (PACKAGEROOT = its name, QUALIFYPATH '.', PACKAGELEVEL 0, VERSION = new APM) and moves APM and SYS by 1 | observed | 1 |
+| component | f-3a9aaf7e052c2268b9bd8a82 | PeopleSoft Studio's component writer replays App Designer's captured saves: every replay test passes | observed | 1 |
 | component | f-3cacac9b191a0225654a8f3d | Saving an existing component moves PGM and MDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSPNLGRPDEFN.VERSION is the new PGM | reproduced | 78 |
 | component | f-510fe8f23a5e77342c8859e0 | Creating a component moves PGM by 1 and SYS by 1, not MDM | observed | 1 |
 | component | f-64ec2d6391192f12f64cad1a | An App Designer component save deletes and re-inserts the component's PSPNLGRPDEFN, PSPNLGROUP, PSPNLGRPDEFNEXT and PSPNLGRPSCRIPTS rows | reproduced | 6 |
 | component | f-6acf5819cedc01ac096ddc83 | A component save that changes Fluid Mode or Small Form Factor also moves PRSM by 1 | reproduced | 4 |
 | component | f-d26798fcd3f9779bfc1d21d6 | Component style sheets and JavaScript objects are numbered SEQNO 0, 10, 20 ... per PTSCRIPTTYPE, PTSCRIPTCATG DEV | reproduced | 4 |
 | component-interface | f-05f121f074b6a7576e29a858 | File > Rename of a Component Interface moves BCM, CLM, MPM, PCM, PJM and SYS by 1 each | observed | 1 |
+| component-interface | f-091c7c30fe9b2798263a3b2c | PeopleSoft Studio's Component Interface writer replays App Designer's captured saves: every replay test passes | observed | 1 |
 | component-interface | f-7ad3b8980b1c7ae6b464ca59 | File > Delete of a Component Interface moves BCM, CLM and SYS by 1 (PCM too with PeopleCode) | observed | 1 |
 | component-interface | f-ad78da26c297d545dbc06cd9 | App Designer opens a Component Interface PeopleSoft Studio's writer made and saves an edit of it changing only that edit | observed | 1 |
 | component-interface | f-cac4dc5f446f39d9dbbb8026 | Taking a standard method away from a Component Interface also moves CLM | observed | 1 |
@@ -158,6 +161,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | event-mapping | f-ad18a114ff35fcdc4d8920ef | PeopleSoft Studio's Event Mapping writer writes what the Configure Event Mapping page writes | observed | 1 |
 | event-mapping | f-b54ce4b7edd085b036ed619c | Removing a content reference's Event Mapping deletes every configuration row with a tombstone each, and its PSPTCS_SRVCFG row with PSPTCSSRVCFGDEL at the new RCSCM | observed | 1 |
 | event-mapping | f-e3a3f17f095c20582322485d | The fluid Configure Event Mapping page re-saves every row on Save | reproduced | 3 |
+| event-mapping | f-e6fdb168677a3cd025175690 | PeopleSoft Studio's Event Mapping writer replays App Designer's captured saves: every replay test passes | observed | 1 |
 | field | f-1d79752a8a48303988b8c2ab | Deleting a field's last translate value leaves a PSXLATDEFNDEL row at that save's XTM; adding a value again deletes it | reproduced | 2 |
 | field | f-633064c7628c8b8f0fd8dd36 | A new translate value takes SYNCID from PSSYSTEMID.PTNEXTSYSTEMID, advanced by 1; rewritten values keep theirs | reproduced | 3 |
 | field | f-80ff5e4273d52649f898bf83 | Creating a field moves RDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSDBFIELD.VERSION is the new RDM | reproduced | 2 |
@@ -165,6 +169,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | field | f-e10dc0f6587024ea43dd7abf | A translate value save moves XTM and PDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSXLATDEFN.VERSION is the new XTM | reproduced | 5 |
 | field | f-e4fc9115d38500fbd986c268 | Saving a changed field moves RDM and PDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSDBFIELD.VERSION is the new RDM | reproduced | 2 |
 | field | f-e7c1a3192f3c6684f68e2935 | Creating a Character field of length 1-4 writes a PSXLATDEFNDEL row at the new XTM and moves XTM and PDM by 1 | reproduced | 2 |
+| html | f-a8fad28d5da0fd2352df8eb5 | PeopleSoft Studio's HTML definition writer replays App Designer's captured saves: every replay test passes | observed | 1 |
 | html | f-b8776d69c6d610f49325fded | An HTML definition's text is PSCONTENT.CONTDATA in UTF-16LE without BOM, 32,000-byte rows from SEQNUM 0, CRLF, one NUL terminator at the end | reproduced | 2 |
 | html | f-d20e461de84d3a5911bb529d | An HTML definition save stamps PSCONTDEFN.VERSION with CRM, which moves in PSVERSION and PSLOCK with SYS | reproduced | 2 |
 | menu | f-17af9b7e2bf6ed8affa19fd4 | A menu's Menu Group separator is PSMENUDEFN.GROUPSEP | observed | 1 |
@@ -174,12 +179,14 @@ fingerprint; server: see `server/intelligence/README.md`.
 | menu | f-6be47b7e2ae3c56a70dc07c4 | File > Rename of a menu moves TSTM, ACM, CLM, MDM, PCM, PJM, SYS and TSM by 1 each | reproduced | 2 |
 | menu | f-747bf896569263b485e2c14c | Deleting or cutting a menu item (not a separator) or bar moves CLM by 1, with MDM and SYS | reproduced | 4 |
 | menu | f-79c2f48c47bc70d84de97fae | A menu's Menu Group Order is PSMENUDEFN.GROUPORDER | observed | 1 |
+| menu | f-ca429609d102ce862bf958d3 | PeopleSoft Studio's menu writer replays App Designer's captured saves: every replay test passes | observed | 1 |
 | menu | f-d2ebb48c4ecbd05fdb1d9433 | App Designer opens a menu PeopleSoft Studio's writer made and saves an edit of it changing only that edit | observed | 1 |
 | menu | f-e67b210fbd5513c963df1387 | A menu definition save moves MDM and SYS by 1 | reproduced | 32 |
 | menu | f-ee56e64b0456e64d337abd06 | Renaming a menu item or bar moves CLM and MDM by 2, PCM by 1, SYS by 2 | reproduced | 3 |
 | menu | f-fa22f24f6a25576eab01a161 | A menu's Menu Group is PSMENUDEFN.MENUGROUP | observed | 1 |
 | menu | f-fafae98d016ada8a134677e2 | Editing only a menu item's ItemSelected PeopleCode moves PCM and SYS by 1; the menu row is not touched | reproduced | 3 |
 | message-channel | f-13baaf5f7d94524fb24f7c28 | A message channel save moves CHDM by 1 and SYS by 1; PSCHNLDEFN.VERSION is the new CHDM | reproduced | 14 |
+| message-channel | f-574ef3d86cf55a2bac122dc2 | PeopleSoft Studio's message channel writer replays App Designer's captured saves: every replay test passes | observed | 1 |
 | message-channel | f-63084706f407d6e694a0b917 | Deleting a message channel writes PSCHNLDEL at the new CHDM and removes its partition rows | observed | 1 |
 | message-channel | f-c945e4793142f596bfb4a88f | App Designer opens a message channel PeopleSoft Studio's writer made and saves an edit of it changing only that edit | observed | 1 |
 | message-channel | f-e652e5d38577cf3f511c6456 | Renaming a message channel re-keys its rows in place and moves CHDM, MSDM, PJM and SYS by 1, references or not | reproduced | 2 |
@@ -197,6 +204,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-13f00023f4a3a533d8e2910b | Hide Border on a frame or group box is PSPNLFIELD.FIELDUSE 0x4000000 | reproduced | 2 |
 | page-designer | f-14e0cdaa292646aba5f54d97 | A group box's Droppable is PSPNLFIELD.FIELDUSETMP 0x1000000 | observed | 1 |
 | page-designer | f-1a28b9a9355c3b91165ec3df | A page's Fluid Page setting is PSPNLDEFN.PNLUSE 0x4000 | reproduced | 3 |
+| page-designer | f-1c0bc5ecb8125781487a8aa2 | PeopleSoft Studio's new-control templates replays App Designer's captured saves: every replay test passes | observed | 1 |
 | page-designer | f-1c4f8c2db2dd8406f9cce1b2 | A page's type is PSPNLDEFN.PNLTYPE: 0 Standard, 1 Subpage, 2 Secondary, 3 Popup, 4 Header, 5 Side Page 1, 6 Footer, 7 Layout, 8 Search, 9 Prompt, 10 Master/Detail Target, 11 Side Page 2 | reproduced | 18 |
 | page-designer | f-1cfacdb76859e25a4b7885f2 | A label's Position is PSPNLFIELD.LABELSIZETYPE: 0 Left, 1 Custom, 2 Top | reproduced | 4 |
 | page-designer | f-1d8a1339e6ad19df29cbe338 | A page control label's Alignment Left / Centered / Right is PSPNLFIELD.DSPLFORMAT 0x80000 / 0x100000 / 0x200000 | reproduced | 7 |
@@ -232,6 +240,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-60f36939a246a479af94f7ba | A page control label's type is PSPNLFIELD.LBLTYPE: 0 None, 1 Text, 2 RFT Short, 3 RFT Long, 7 Message Catalog | reproduced | 15 |
 | page-designer | f-62b99e3779da3856fbe781ac | App Designer stores each page control's OCCURSLEVEL from tab order: a running level that each scroll and each Set to Level rule sets to its own | reproduced | 16 |
 | page-designer | f-6a77a4c6fa99303b68267217 | Fluid Control Structure: Basic is PSPNLFIELD.FIELDUSETMP 0x4000000 | observed | 1 |
+| page-designer | f-6b49973d8569d4c27deabc97 | PeopleSoft Studio's page writer replays App Designer's captured saves: every replay test passes | observed | 1 |
 | page-designer | f-6bbfd2ebcb24e3aa8d8a3bee | An App Designer page save moves PDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSPNLDEFN.VERSION is the new PDM | reproduced | 95 |
 | page-designer | f-6db3412abdca45605004f823 | A group box's Draggable is PSPNLFIELD.FIELDUSETMP 0x800000 | observed | 1 |
 | page-designer | f-6e870830b618233fd3bd3ad8 | Fluid Suppress On Form Factor: Extra Large is PSPNLFIELDEXT.FIELDUSETEMP2 0x80 | observed | 1 |
@@ -303,6 +312,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | peoplecode | f-59da48c7debdd679ee3e231e | Deleting a component PeopleCode program writes a PSPCMPROGDEL row at the new PCM | observed | 1 |
 | peoplecode | f-5bf95fb66564b0f38173eb9f | Record Field PeopleCode is keyed PSPCMPROG OBJECTID 1 (record) / 2 (field) / 12 (event) | reproduced | 2 |
 | peoplecode | f-6f30e5b716884d8f951e7ff5 | A Record PeopleCode save moves PCM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSPCMPROG.VERSION is the new PCM | reproduced | 9 |
+| peoplecode | f-8d33f7504f2953ee814a7fa3 | PeopleSoft Studio's PeopleCode writer (save plan and encoder) replays App Designer's captured saves: every replay test passes | observed | 1 |
 | peoplecode | f-8fcfa52cbc8b14ffc8bc9bb8 | PSPCMPROG.PROGLEN is the program's total bytes and NAMECOUNT the number of its PSPCMNAME rows | reproduced | 4 |
 | peoplecode | f-a0584c68febd6fc37ec6e774 | Creating, editing or deleting Page PeopleCode moves PCM and SYS by 1; the page's PDM does not move | reproduced | 3 |
 | peoplecode | f-a8f691f0029aa37a5c51e405 | App Designer writes nothing when a PeopleCode program does not compile | observed | 1 |
@@ -319,6 +329,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | record | f-1ae1a55f3e464f2673977ca6 | An App Designer record save moves RDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSRECDEFN.VERSION is the new RDM | reproduced | 41 |
 | record | f-641fe0bd360226a91e455c39 | An App Designer record save deletes and re-inserts the PSRECDEFN row and every PSRECFIELD and PSRECFIELDDB row of the record | reproduced | 7 |
 | record | f-6d12bbea7647baca6415b746 | Renaming a record re-keys its rows in place, writes PSRECDEL and PSOBJCHNG, and moves 19 counters by 1 each | observed | 1 |
+| record | f-86187c47dac4e7dab0e7eea9 | PeopleSoft Studio's record writer (save plan) replays App Designer's captured saves: every replay test passes | observed | 1 |
 | record | f-a4f8562daa47bf2f893a75a5 | Deleting a record moves RDM and AEM by 1 and SYS by 1, and writes PSRECDEL at the new RDM | observed | 1 |
 | record | f-a8daaa0842dae718027cde3e | Saving a record sets VERSION on each record that names it as Related Language record to the new RDM, without restamping | reproduced | 5 |
 | record | f-dcf2998165b40fdf33d49b52 | A record save that writes or removes the record's view SQL moves SRM by 1 as well as RDM | reproduced | 6 |
@@ -363,7 +374,9 @@ fingerprint; server: see `server/intelligence/README.md`.
    check each family's
    format with the adapter, select cases by operation, record with
    `--expect-counters` (DISCOVERY_PROTOCOL.md rules 7-9).
-3. Adapters for the controlled compile lab and writer replay tests.
+3. ~~Adapters for the controlled compile lab and writer replay tests.~~ Done:
+   `adapters/testRun.ts` (`test-run`); 11 writer replay findings recorded
+   (run 2026-10-13). Re-run with a new `--run-id` after a writer changes.
 4. Filing issues / preparing pull requests from CI: the owner's decision
    and a least-privilege token.
 5. Owner decisions: the production signing key (generate offline, add to

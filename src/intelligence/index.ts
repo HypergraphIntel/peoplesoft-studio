@@ -16,4 +16,5 @@ export { BUNDLE_FORMAT, ENVELOPE_FORMAT, keyIdOf, KnowledgeStore, verifyEnvelope
 export { TRUSTED_KNOWLEDGE_KEYS } from './trustedKeys.js';
 export { answerCapability, KNOWLEDGE_NEVER_GRANTS, type CapabilityAnswer, type CapabilityEvidence, type CapabilityQuestion, type CapabilityResult } from './capability.js';
 export { observationFromLabRun, parseLabRun, type LabRunResult } from './adapters/labRun.js';
+export { observationFromTestRun, parseTap, type TestRunResult } from './adapters/testRun.js';
 export { engineeringTask, type EngineeringTask } from './engineering.js';

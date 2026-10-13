@@ -1,0 +1,97 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-45fefe77f51629084405abc0",
+  "fingerprint": "45fefe77f51629084405abc0b4b0783da495dda4bf863a586fe7ed4a30c69fe7",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "app-engine",
+    "objectType": "App Engine program"
+  },
+  "assertion": {
+    "kind": "unit-replay-passes",
+    "facts": {
+      "test": "src/test/appEngineWriter.test.ts",
+      "reference": "App Designer captures (tools/corpus/save-protocol/results)",
+      "allPass": true
+    }
+  },
+  "title": "PeopleSoft Studio's App Engine writer replays App Designer's captured saves: every replay test passes",
+  "statement": "src/test/appEngineWriter.test.ts rebuilds App Designer's captured saves (HRDMO, PeopleTools 8.62.09) through Studio's App Engine writer and requires App Designer's rows and counters; every top-level test passed in the recorded run. Evidence about Studio, not PeopleSoft (rule 3); it says nothing about releases not captured. docs/APP_ENGINE.md lists the cases.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:57:39.968Z",
+      "method": "unit-replay",
+      "experimentId": "appEngineWriter.test",
+      "runId": "2026-10-13",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "tool": "node:test"
+      },
+      "observation": "Run of src/test/appEngineWriter.test.ts (node:test, TAP): 8 top-level tests, all passed.",
+      "actual": "8 passed, 0 failed, 0 skipped",
+      "testResults": [
+        {
+          "name": "an unchanged document plans nothing",
+          "outcome": "pass"
+        },
+        {
+          "name": "plans move the counters App Designer moved",
+          "outcome": "pass"
+        },
+        {
+          "name": "a step rename moves its SQL (ENABLEEFFDT N, PSSQLDEL) and its PeopleCode (PSPCMPROGDEL) [ar01]",
+          "outcome": "pass"
+        },
+        {
+          "name": "re-creating a deleted key removes its tombstone [ae17]; a section delete writes one [ae16]",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new program plans App Designer's create: AEM, AES, SYS + 1; LICENSE_CODE blank [ae01]",
+          "outcome": "pass"
+        },
+        {
+          "name": "SQL typed in the editor is flattened; unchanged stored SQL is never rewritten",
+          "outcome": "pass"
+        },
+        {
+          "name": "PeopleCode that does not compile is refused, never written",
+          "outcome": "pass"
+        },
+        {
+          "name": "creating a program whose name was deleted removes its tombstones, as App Designer's next save does [nae01]",
+          "outcome": "pass"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/test/appEngineWriter.test.ts"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/APP_ENGINE.md"
+        }
+      ],
+      "digest": "4deede136dcb6007cfb6fcba38702b42a67ecda7261e4dd313b209692fe959d9"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:57:39.975Z",
+    "updatedAt": "2026-10-13T11:57:39.975Z",
+    "schemaVersion": 1
+  }
+}

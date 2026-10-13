@@ -1,0 +1,113 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-e6fdb168677a3cd025175690",
+  "fingerprint": "e6fdb168677a3cd025175690ea8b86a059318516445a9481680efc9436326fbc",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "event-mapping",
+    "objectType": "Event Mapping configuration"
+  },
+  "assertion": {
+    "kind": "unit-replay-passes",
+    "facts": {
+      "test": "src/test/eventMappingWriter.test.ts",
+      "reference": "App Designer captures (tools/corpus/save-protocol/results)",
+      "allPass": true
+    }
+  },
+  "title": "PeopleSoft Studio's Event Mapping writer replays App Designer's captured saves: every replay test passes",
+  "statement": "src/test/eventMappingWriter.test.ts rebuilds App Designer's captured saves (HRDMO, PeopleTools 8.62.09) through Studio's Event Mapping writer and requires App Designer's rows and counters; every top-level test passed in the recorded run. Evidence about Studio, not PeopleSoft (rule 3); it says nothing about releases not captured. docs/CUSTOMIZATION.md lists the cases.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:57:40.351Z",
+      "method": "unit-replay",
+      "experimentId": "eventMappingWriter.test",
+      "runId": "2026-10-13",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "tool": "node:test"
+      },
+      "observation": "Run of src/test/eventMappingWriter.test.ts (node:test, TAP): 12 top-level tests, all passed.",
+      "actual": "12 passed, 0 failed, 0 skipped",
+      "testResults": [
+        {
+          "name": "the captures are here",
+          "outcome": "pass"
+        },
+        {
+          "name": "the key hash is PIA's: SHA-1 over UTF-16LE \"( NAME = value )\" sorted by name [em01, em03, em04]",
+          "outcome": "pass"
+        },
+        {
+          "name": "a new row on a saved configuration: every row re-saved at the next SCNFM, the parameter its own mapping [em04]",
+          "outcome": "pass"
+        },
+        {
+          "name": "page and record rows added, one disabled, a sequence changed [em05]",
+          "outcome": "pass"
+        },
+        {
+          "name": "a row deleted: the others re-saved first, then its tombstone at the next SCNFM [em06]",
+          "outcome": "pass"
+        },
+        {
+          "name": "Remove: every row with its tombstone, then the content reference's at the next RCSCM [em07]",
+          "outcome": "pass"
+        },
+        {
+          "name": "a content reference configured for the first time: PSPTCS_SRVCFG as the page adds it [em03]",
+          "outcome": "pass"
+        },
+        {
+          "name": "nothing changed: nothing written",
+          "outcome": "pass"
+        },
+        {
+          "name": "what the page refuses, and what it would not let change",
+          "outcome": "pass"
+        },
+        {
+          "name": "a saved row's level and service are locked; an unknown instance is refused",
+          "outcome": "pass"
+        },
+        {
+          "name": "instance IDs as the page draws them; the token moves with every save",
+          "outcome": "pass"
+        },
+        {
+          "name": "a service defined as the Define Related Content Service page saves it [em01]",
+          "outcome": "pass"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/test/eventMappingWriter.test.ts"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        }
+      ],
+      "digest": "c44298517c885192ebd87a1cbcbab68637b00f887469af07489c56288c232aed"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:57:40.358Z",
+    "updatedAt": "2026-10-13T11:57:40.358Z",
+    "schemaVersion": 1
+  }
+}

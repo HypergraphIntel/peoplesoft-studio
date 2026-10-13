@@ -1,0 +1,93 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-ca429609d102ce862bf958d3",
+  "fingerprint": "ca429609d102ce862bf958d3033b332d1208ea1de11df4c68bef4eca57b3f9a8",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "menu",
+    "objectType": "Menu"
+  },
+  "assertion": {
+    "kind": "unit-replay-passes",
+    "facts": {
+      "test": "src/test/menuWriter.test.ts",
+      "reference": "App Designer captures (tools/corpus/save-protocol/results)",
+      "allPass": true
+    }
+  },
+  "title": "PeopleSoft Studio's menu writer replays App Designer's captured saves: every replay test passes",
+  "statement": "src/test/menuWriter.test.ts rebuilds App Designer's captured saves (HRDMO, PeopleTools 8.62.09) through Studio's menu writer and requires App Designer's rows and counters; every top-level test passed in the recorded run. Evidence about Studio, not PeopleSoft (rule 3); it says nothing about releases not captured. docs/MENUS.md lists the cases.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:57:38.412Z",
+      "method": "unit-replay",
+      "experimentId": "menuWriter.test",
+      "runId": "2026-10-13",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "tool": "node:test"
+      },
+      "observation": "Run of src/test/menuWriter.test.ts (node:test, TAP): 7 top-level tests, all passed.",
+      "actual": "7 passed, 0 failed, 0 skipped",
+      "testResults": [
+        {
+          "name": "the captures are here",
+          "outcome": "pass"
+        },
+        {
+          "name": "plans write the rows App Designer wrote",
+          "outcome": "pass"
+        },
+        {
+          "name": "plans move the counters App Designer moved",
+          "outcome": "pass"
+        },
+        {
+          "name": "the menu row is stamped when App Designer stamped it, the group written when it wrote the group",
+          "outcome": "pass"
+        },
+        {
+          "name": "ItemSelected PeopleCode compiles to App Designer's bytes and versions; moved and deleted programs are tombstoned",
+          "outcome": "pass"
+        },
+        {
+          "name": "re-creating a deleted menu removes its PSMENUDEL row",
+          "outcome": "pass"
+        },
+        {
+          "name": "a stored menu read and saved unchanged plans nothing",
+          "outcome": "pass"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/test/menuWriter.test.ts"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "27b0b463c374b58b943f49b7867f5e92a66fbbd3e5845646f40a596fd3287d4c"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:57:38.419Z",
+    "updatedAt": "2026-10-13T11:57:38.419Z",
+    "schemaVersion": 1
+  }
+}

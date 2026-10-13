@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import {
-  answerCapability, decideUpload, engineeringTask, observationFromLabRun, parseLabRun, DiscoveryInputError, KNOWLEDGE_NEVER_GRANTS, DiscoveryStore, keyIdOf, KnowledgeStore, policyFileLocations, TRUSTED_KNOWLEDGE_KEYS, verifyEnvelope, findingFingerprint, observationDigest, observationFromCapture, previewSubmission, PrivacyRejectedError,
+  answerCapability, decideUpload, engineeringTask, observationFromLabRun, observationFromTestRun, parseLabRun, parseTap, DiscoveryInputError, KNOWLEDGE_NEVER_GRANTS, DiscoveryStore, keyIdOf, KnowledgeStore, policyFileLocations, TRUSTED_KNOWLEDGE_KEYS, verifyEnvelope, findingFingerprint, observationDigest, observationFromCapture, previewSubmission, PrivacyRejectedError,
   sanitizedDeltaOf, scanFinding, type FindingInput
 } from '../intelligence/index.js';
 import { contractVectors, findingInputJsonSchema } from '../intelligence/contract.js';
@@ -326,6 +326,23 @@ test('capability answers: verified on a release, unsupported, conflicting, unver
     assert.equal(r.answer, 'UNKNOWN');
     assert.match(r.notes.join(), /revoked/);
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('a replay test run (TAP) as an observation: top-level test names and outcomes only', () => {
+  const tap = ['TAP version 13', '# Subtest: the captures are here', 'ok 1 - the captures are here', '  ---', '  duration_ms: 0.6', '  ...',
+    '# Subtest: rows equal App Designer\'s [chn02]', '    # Subtest: nested', '    ok 1 - nested', 'not ok 2 - rows equal App Designer\'s [chn02]', '  ---',
+    '  error: \'expected ZZ_SECRET_VALUE for EMPLID 12345\'', '  ...', 'ok 3 - a live check # SKIP no database', '1..3', '# tests 3', '# pass 1'].join('\n');
+  assert.deepEqual(parseTap(tap), { results: [
+    { name: 'the captures are here', outcome: 'pass' }, { name: 'rows equal App Designer\'s [chn02]', outcome: 'fail' }, { name: 'a live check', outcome: 'skip' }
+  ], passed: 1, failed: 1, skipped: 1 });
+  assert.equal(parseTap(tap, /chn02/).results.length, 1);
+  const o = observationFromTestRun(tap, { testFile: 'dist-test/test/channelWriter.test.js', peopleToolsRelease: '8.62.09', observation: 'The replay ran.', observedAt: '2026-10-13T00:00:00Z' });
+  assert.equal(o.method, 'unit-replay');
+  assert.equal(o.experimentId, 'channelWriter.test');
+  assert.deepEqual(o.evidence, [{ kind: 'repo-path', ref: 'src/test/channelWriter.test.ts' }], 'the compiled file is reported as its source');
+  assert.equal(o.actual, '1 passed, 1 failed, 1 skipped');
+  assert.ok(!JSON.stringify(o).includes('ZZ_SECRET_VALUE') && !JSON.stringify(o).includes('nested'), 'diagnostics and subtests never leave the run');
+  assert.throws(() => observationFromTestRun('PASS x', { testFile: 'x', peopleToolsRelease: '8.62', observation: 'x' }), /TAP/);
 });
 
 test('a lab run as an observation: check names and outcomes only, never the failure details', async () => {

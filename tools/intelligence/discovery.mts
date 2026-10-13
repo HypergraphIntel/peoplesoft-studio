@@ -10,6 +10,9 @@
  *       [--expect-counters MDM=1,SYS=1]   (refused unless the capture's counter steps are exactly these)
  *   npx tsx tools/intelligence/discovery.mts lab-run --script tools/lab/X-e2e.mts --output run.log --release 8.62 [--tests REGEX] \
  *       --type roundtrip-comparison --subsystem ... --object-type ... --kind ... --fact k=v --title ... --statement ... --observation ...
+ *   npx tsx tools/intelligence/discovery.mts test-run --file src/test/X.test.ts --output run.tap --release 8.62.09 [--tests REGEX] \
+ *       --type roundtrip-comparison --subsystem ... --object-type ... --kind ... --fact k=v --title ... --statement ... --observation ...
+ *       (run.tap: node --test --test-reporter=tap dist-test/test/X.test.js > run.tap)
  *   npx tsx tools/intelligence/discovery.mts list [--subsystem S] [--type T] [--release 8.62] [--text words]
  *   npx tsx tools/intelligence/discovery.mts get <id>
  *
@@ -21,7 +24,7 @@
  */
 import { readFileSync } from 'node:fs';
 import * as path from 'node:path';
-import { DiscoveryStore, observationFromCapture, observationFromLabRun, type FindingInput, type Observation } from '../../src/intelligence/index';
+import { DiscoveryStore, observationFromCapture, observationFromLabRun, observationFromTestRun, type FindingInput, type Observation } from '../../src/intelligence/index';
 
 const args = process.argv.slice(2);
 const command = args.shift();
@@ -52,7 +55,8 @@ try {
       break;
     }
     case 'capture':
-    case 'lab-run': {
+    case 'lab-run':
+    case 'test-run': {
       let observation: Observation;
       if (command === 'capture') {
         const caseName = positional[0];
@@ -62,6 +66,11 @@ try {
           observation: need('observation'), ...(one('tool') ? { tool: one('tool')! } : {}), ...(one('run-id') ? { runId: one('run-id')! } : {}),
           ...(one('expected') ? { expected: one('expected')! } : {}), ...(one('actual') ? { actual: one('actual')! } : {}),
           ...(one('release') ? { peopleToolsRelease: one('release')! } : {}), caseName
+        });
+      } else if (command === 'test-run') {
+        observation = observationFromTestRun(readFileSync(need('output'), 'utf8'), {
+          testFile: need('file'), peopleToolsRelease: need('release'), observation: need('observation'),
+          ...(one('run-id') ? { runId: one('run-id')! } : {}), ...(one('tests') ? { only: new RegExp(one('tests')!) } : {})
         });
       } else {
         observation = observationFromLabRun(readFileSync(need('output'), 'utf8'), {
@@ -109,7 +118,7 @@ try {
       break;
     }
     default:
-      console.log('Commands: record --file F | capture <case> ... | list | get <id>  (see the comment at the top of this file)');
+      console.log('Commands: record --file F | capture <case> ... | lab-run ... | test-run ... | list | get <id>  (see the comment at the top of this file)');
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));

@@ -1,0 +1,109 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-574ef3d86cf55a2bac122dc2",
+  "fingerprint": "574ef3d86cf55a2bac122dc2e9e9cd6f70238cc47f1a9b91b8c068b2e65dfffc",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "message-channel",
+    "objectType": "Message channel"
+  },
+  "assertion": {
+    "kind": "unit-replay-passes",
+    "facts": {
+      "test": "src/test/channelWriter.test.ts",
+      "reference": "App Designer captures (tools/corpus/save-protocol/results)",
+      "allPass": true
+    }
+  },
+  "title": "PeopleSoft Studio's message channel writer replays App Designer's captured saves: every replay test passes",
+  "statement": "src/test/channelWriter.test.ts rebuilds App Designer's captured saves (HRDMO, PeopleTools 8.62.09) through Studio's message channel writer and requires App Designer's rows and counters; every top-level test passed in the recorded run. Evidence about Studio, not PeopleSoft (rule 3); it says nothing about releases not captured. docs/MESSAGE_CHANNELS.md lists the cases.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:57:39.197Z",
+      "method": "unit-replay",
+      "experimentId": "channelWriter.test",
+      "runId": "2026-10-13",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "tool": "node:test"
+      },
+      "observation": "Run of src/test/channelWriter.test.ts (node:test, TAP): 11 top-level tests, all passed.",
+      "actual": "11 passed, 0 failed, 0 skipped",
+      "testResults": [
+        {
+          "name": "the captures are here",
+          "outcome": "pass"
+        },
+        {
+          "name": "the window's operations write the rows App Designer wrote",
+          "outcome": "pass"
+        },
+        {
+          "name": "a sweep shows nothing else written",
+          "outcome": "pass"
+        },
+        {
+          "name": "Save As copies the properties and the checked partitions under the new name [chn06]",
+          "outcome": "pass"
+        },
+        {
+          "name": "File > Delete: the rows, PSCHNLDEL at the new CHDM, CHDM and SYS [chn08]",
+          "outcome": "pass"
+        },
+        {
+          "name": "File > Rename re-keys the channel and repoints its references [chn07-rename]",
+          "outcome": "pass"
+        },
+        {
+          "name": "File > Rename re-keys the channel and repoints its references [chn17-rename-refs]",
+          "outcome": "pass"
+        },
+        {
+          "name": "the partition list is App Designer's: shared level-0 fields, then the standard four; none without messages",
+          "outcome": "pass"
+        },
+        {
+          "name": "opening drops stored partitions the window does not list, and says so",
+          "outcome": "pass"
+        },
+        {
+          "name": "Add Partition Field: uppercased, a duplicate ignored, an unchecked one re-checked",
+          "outcome": "pass"
+        },
+        {
+          "name": "the token moves with the version and the partitions",
+          "outcome": "pass"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/test/channelWriter.test.ts"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MESSAGE_CHANNELS.md"
+        }
+      ],
+      "digest": "11f268ff3672a4a85af1f3b1ebc0cf128f3e47628ee65c179219c00d93a79790"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:57:39.204Z",
+    "updatedAt": "2026-10-13T11:57:39.204Z",
+    "schemaVersion": 1
+  }
+}

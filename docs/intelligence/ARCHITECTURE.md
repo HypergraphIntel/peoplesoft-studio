@@ -66,13 +66,18 @@ workspace.
   assertion, D3), observation digests (D4).
 - `privacy.ts` — the deny-by-default text scan and the basic classification (D6).
 - `store.ts` — `DiscoveryStore`: `open`, `record` (created / merged /
-  duplicate), `get`, `list` (filters: subsystem, type, release, text),
+  duplicate: the same digest, or the same method, experiment and run), `get`,
+  `list` (filters: subsystem, type, release, text),
   `remove`. Atomic file writes, per-finding serialization (D1).
 - `adapters/saveCapture.ts` — a save capture's `delta.json` as an
   observation: changed tables and counter moves as counts; background
-  tables (Integration Broker, sign-on bookkeeping) left out.
+  tables (Integration Broker, sign-on bookkeeping) left out; sweeps,
+  definition and page captures; the case ID is the directory read.
+- `adapters/labRun.ts`, `adapters/testRun.ts` — a lab end-to-end run's
+  PASS / FAIL lines and a replay test's TAP output as observations: test
+  names and outcomes only, about Studio (roundtrip comparisons).
 
-Callers: `tools/intelligence/discovery.mts` (record / capture / list / get
+Callers: `tools/intelligence/discovery.mts` (record / capture / lab-run / test-run / list / get
 for research harnesses); `src/intelligenceCommands.ts` (the installation's
 store, *PeopleSoft: Show Local Discoveries*).
 
