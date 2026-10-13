@@ -42,10 +42,16 @@
   Data Migration Workbench tracking rows with PeopleTools' own key hash.
   Proven against the page's saves on HRDMO. The write scope applies to the
   services mapped, not the (usually Oracle's) content reference.
+- **The Event Mapping editor**: *Configure Event Mapping...* in the
+  Customization Strategy view opens a content reference's configuration as
+  the Configure Event Mapping page's grid, saved after its plan is shown.
+  *New Service...* creates the service a row runs -- and its application
+  class, a stub to fill in, and its package when missing -- as PeopleTools'
+  Define Related Content Service page saves it.
 - MCP: `psft_customization_get_policy`, `psft_object_classify`,
   `psft_customization_discover`, `psft_event_mapping_reference`,
   `psft_event_mapping_get`, `psft_event_mapping_save`,
-  `psft_event_mapping_remove`.
+  `psft_event_mapping_remove`, `psft_event_mapping_create_service`.
 
 See docs/CUSTOMIZATION.md.
 

@@ -113,6 +113,47 @@ export function registerEventMappingTools(server: McpServer, workspace: Workspac
     return jsonResult({ saved: result.written, token: after.token, planned, rows: shown(cref, after.rows) });
   });
 
+  server.registerTool('psft_event_mapping_create_service', {
+    title: 'Event Mapping: create a service (and its class)',
+    description: 'Creates what an Event Mapping row runs: the Application Package when missing, the application class when missing (extends ' +
+      'PT_RCF:ServiceInterface with execute() -- the given source, or a stub to fill in with psft_save_peoplecode), then the Application Class ' +
+      'related content service, saved as the Define Related Content Service page saves it. Service Name holds 18 characters. dryRun says what ' +
+      'would be created. Then map it with psft_event_mapping_save. ' + GATES,
+    inputSchema: z.object({
+      connection: z.string().min(1),
+      serviceId: z.string().min(1).describe('The service ID (30 characters, letters, digits and _).'),
+      name: z.string().min(1).describe('Service Name (18 characters).'),
+      description: z.string().optional(),
+      packageRoot: z.string().min(1),
+      path: z.array(z.string()).optional().describe('Subpackages below the root; none: the class is at the root.'),
+      classId: z.string().min(1),
+      source: z.string().optional().describe('The class\'s PeopleCode when it does not exist yet; default a stub.'),
+      purpose: z.string().optional().describe('A line for the stub\'s comment.'),
+      dryRun: z.boolean().optional()
+    }),
+    annotations: WRITE
+  }, async ({ connection, serviceId, name, description, packageRoot, path, classId, source, purpose, dryRun }) => {
+    const id = serviceId.trim().toUpperCase();
+    const gate = await writable(workspace, host, connection, id);
+    const request = {
+      serviceId: id, name, ...(description ? { description } : {}), packageRoot, ...(path?.length ? { path } : {}), classId,
+      ...(source ? { source } : {}), ...(purpose ? { purpose } : {}), operatorId: gate.operatorId
+    };
+    const preview = await gate.provider.createEventMappingService({ ...request, dryRun: true });
+    const cls = [packageRoot.toUpperCase(), ...(path ?? []), classId].join(':');
+    const steps = [
+      ...(preview.packageCreated ? [`create Application Package ${packageRoot.toUpperCase()}`] : []),
+      ...(preview.classCreated ? [`create class ${cls}${source ? '' : ' (a stub)'}`] : []),
+      `define related content service ${id} ("${name}") -> ${cls}`
+    ];
+    if (dryRun) return jsonResult({ created: false, reason: 'dry run', steps });
+    const classKey: DefinitionKey = { type: DefinitionType.ApplicationClassPeopleCode, parts: [packageRoot.toUpperCase(), ...(path ?? []), classId, 'OnExecute'] };
+    await approve(host, gate, classKey, `create the Event Mapping service ${id}`, steps.join('\n'));
+    const r = await gate.provider.createEventMappingService(request);
+    if (r.classCreated) host.saved(gate.provider.id, classKey);
+    return jsonResult({ created: true, steps, service: { serviceId: r.service.serviceId, version: r.service.version } });
+  });
+
   server.registerTool('psft_event_mapping_remove', {
     title: 'Event Mapping: remove a content reference\'s configuration',
     description: 'Removes every Event Mapping configuration row of a content reference and the content reference\'s configuration, as the Configure ' +

@@ -64,6 +64,9 @@ import {
   configRowsOf, configurationToken, readStoredConfiguration, removeConfiguration, saveConfiguration,
   type ConfigurationSaveRequest, type ConfigurationSaveResult
 } from './eventMappingWriter.js';
+import {
+  createAppClassService, qualifyPath, serviceClassSource, validateServiceRequest, type AppClassServicePlan, type AppClassServiceRequest
+} from './rcServiceWriter.js';
 import type { EventMappingConfigRow, EventMappingDiscovery } from '../model/eventMapping.js';
 import type { MenuReferenceLookup } from '../model/menuSession.js';
 import type { AeDocument } from '../model/aeDocument.js';
@@ -81,9 +84,10 @@ import { IB_TRANSLATE_FIELDS, renderMessage as renderIbMessage, renderOperation,
 /** LASTUPDDTTM as text, for the page / component / menu views. */
 const UI_STAMP = `TO_CHAR(LASTUPDDTTM, 'YYYY-MM-DD HH24:MI:SS') AS LASTUPD`;
 import {
-  operatorExists, readForEdit, readStoredProgram, savePeopleCode as writePeopleCode, verifyCommitted,
+  operatorExists, readForEdit, readStoredProgram, savePeopleCode as writePeopleCode, select, verifyCommitted,
   type PeopleCodeSaveRequest, type PeopleCodeSaveResult
 } from './peopleCodeWriter.js';
+import { writeScopeRefusal } from './writeScope.js';
 
 export interface DatabaseConnectionConfig {
   name: string;
@@ -2005,6 +2009,78 @@ export class DatabaseProvider implements DefinitionProvider {
       if (configurationToken(after) !== result.token) throw new ProviderError(`After COMMIT ${result.plan.cref}'s Event Mapping configuration is not what was written.`);
     }
     return result;
+  }
+
+  /**
+   * An Event Mapping service, end to end: the root package when missing
+   * (createPackage), the class when missing (as App Designer creates one,
+   * subpackages on its path included; source serviceClassSource's unless
+   * given), then the Application Class related content service as the Define
+   * Related Content Service page saves it (rcServiceWriter.ts). Each step is
+   * its own transaction; the result says which ran.
+   */
+  async createEventMappingService(request: AppClassServiceRequest & { source?: string; purpose?: string }): Promise<{
+    packageCreated: boolean; classCreated: boolean; service: AppClassServicePlan & { written: boolean };
+  }> {
+    const pkg = request.packageRoot.trim().toUpperCase();
+    const classId = request.classId.trim();
+    const problems = validateServiceRequest(request);
+    if (problems.length) throw new ProviderError(problems.join(' '));
+    const scope = writeScopeRefusal(pkg);
+    if (scope) throw new ProviderError(scope);
+    const classKey = makeKey(DefinitionType.ApplicationClassPeopleCode, pkg, ...(request.path ?? []), classId, 'OnExecute');
+    const classExists = await this.withConnection(async (c) => (await select(c,
+      `SELECT 'X' AS X FROM PSAPPCLASSDEFN WHERE PACKAGEROOT = :p AND QUALIFYPATH = :q AND APPCLASSID = :c`, { p: pkg, q: qualifyPath(request.path), c: classId })).length > 0);
+    const packageExists = await this.packageExists(pkg);
+    if (request.dryRun) {
+      const service = await this.withConnection((c) => createAppClassService(c, { ...request, dryRun: true }).catch((e) => {
+        // The class does not exist yet in a dry run that would create it: plan the service regardless.
+        if (!classExists && /no application class/.test(String((e as Error).message))) return { serviceId: request.serviceId.toUpperCase(), statements: [], version: 0, row: {}, written: false };
+        throw e;
+      }));
+      return { packageCreated: !packageExists, classCreated: !classExists, service };
+    }
+    if (!packageExists) await this.createPackage({ name: pkg, operatorId: request.operatorId });
+    if (!classExists) {
+      await this.savePeopleCode(classKey, {
+        source: request.source ?? serviceClassSource(classId, request.purpose), openedFingerprint: 'absent', operatorId: request.operatorId, createClass: true
+      });
+    }
+    const service = await this.withConnection((c) => createAppClassService(c, request));
+    return { packageCreated: !packageExists, classCreated: !classExists, service };
+  }
+
+  /**
+   * What the Event Mapping editor offers, as the page's default prompts do
+   * (PTCS_EV_CFG_WRK.PTCS_UNRESTRICT FieldChange): the component's pages, the
+   * records on them, and the Application Class services with their classes.
+   */
+  async eventMappingChoices(component: string): Promise<{ pages: string[]; records: string[]; services: Array<{ id: string; name: string; appClass: string }> }> {
+    return this.withConnection(async (c) => {
+      const g = { g: component };
+      const pages = (await select<{ P: string }>(c, `SELECT DISTINCT PNLNAME AS P FROM PSPNLGROUP WHERE PNLGRPNAME = :g ORDER BY 1`, g)).map((r) => String(r.P).trim());
+      const records = (await select<{ R: string }>(c,
+        `SELECT DISTINCT F.RECNAME AS R FROM PSPNLFIELD F JOIN PSRECDEFN D ON D.RECNAME = F.RECNAME
+          WHERE F.PNLNAME IN (SELECT PNLNAME FROM PSPNLGROUP WHERE PNLGRPNAME = :g) AND D.RECTYPE <> 5 ORDER BY 1`, g)).map((r) => String(r.R).trim());
+      const services = (await select<{ S: string; N: string; P: string; Q: string; C: string }>(c,
+        `SELECT PTCS_SERVICEID AS S, PTCS_SERVICENAME AS N, PACKAGEROOT AS P, QUALIFYPATH AS Q, APPCLASSID AS C FROM PSPTCSSRVDEFN WHERE PTCS_SERVICEURLTYP = 'UAPC' ORDER BY 1`))
+        .map((r) => {
+          const path = String(r.Q ?? '').trim();
+          return { id: String(r.S).trim(), name: String(r.N ?? '').trim(), appClass: [String(r.P).trim(), ...(path && path !== ':' ? path.split(':') : []), String(r.C).trim()].join(':') };
+        });
+      return { pages, records, services };
+    });
+  }
+
+  /** A record's fields for the editor: those on the component's pages, else (Unrestricted Prompt) all of them. */
+  async eventMappingFields(record: string, component: string): Promise<{ onComponent: string[]; all: string[] }> {
+    return this.withConnection(async (c) => {
+      const onComponent = (await select<{ F: string }>(c,
+        `SELECT DISTINCT FIELDNAME AS F FROM PSPNLFIELD WHERE RECNAME = :r AND FIELDNAME <> ' ' AND PNLNAME IN (SELECT PNLNAME FROM PSPNLGROUP WHERE PNLGRPNAME = :g) ORDER BY 1`,
+        { r: record, g: component })).map((x) => String(x.F).trim());
+      const all = (await select<{ F: string }>(c, `SELECT FIELDNAME AS F FROM PSRECFIELDDB WHERE RECNAME = :r ORDER BY FIELDNUM`, { r: record })).map((x) => String(x.F).trim());
+      return { onComponent, all };
+    });
   }
 
   /** The configuration list's Remove. */

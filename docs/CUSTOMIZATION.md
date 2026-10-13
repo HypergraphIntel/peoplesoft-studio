@@ -245,6 +245,40 @@ What the captures leave open:
   the PTPORTALREGISTRY search index, not built on HRDMO): the PSPTCS_SRVCFG
   row is the classic page's and the related-content API's defaults.
 
+### The Event Mapping editor
+
+The Customization Strategy view lists, under Event Mapping, each content
+reference the open component (or a page's or record's components) is
+registered as: *Configure Event Mapping...* opens it in the Event Mapping
+editor (`src/editors/eventMappingPanel.ts`, `media/eventMapping.js`), as do
+the configuration rows. The editor is the page's grid -- level, page or
+record and field, event, service and its class, processing, Event Map
+Parameter, sequence, enabled -- with the page's rules: a saved row's level and
+service are locked, the events offered are the level's, names are
+uppercased, the component's pages, records and fields are suggested. Save
+shows the plan first (the changes, how many unchanged rows the save re-saves,
+rows reaching outside the component) and saves only on Save. *Remove
+Configuration...* is the list's Remove. Editable on a Writable connection
+with an Operator ID; read only otherwise.
+
+### Creating a service
+
+An Event Mapping row runs an Application Class related content service.
+*New Service...* in the editor and `psft_event_mapping_create_service` create
+what is missing of one: the Application Package, the class (a stub extending
+`PT_RCF:ServiceInterface` with `execute()`, created as App Designer creates a
+class), then the service as the Define Related Content Service page saves it
+[em01] (`src/providers/rcServiceWriter.ts`): PSPTCSSRVDEFN with the page's
+defaults for URL type Application Class (service type S, `FieldFormula` /
+`IScript_`, escape parameters Y, post map data N, attribute GNRL; the URL,
+help text, validity dates and admin URL left NULL), QUALIFYPATH as
+PSAPPCLASSDEFN keeps it (`:` for a class at the package root), VERSION the
+next RCSDM, stamped; RCSDM and SYS + 1, PSLOCK RCSDM + 2 as the page moves it;
+the tracking row. Service ID at most 30 characters, Service Name 18 (the page
+keeps 18). The class reads the Event Map Parameter with
+`%This.getParamValue("EV_PARAM")` (PT_RCF:ServiceInterface). Editing and
+deleting services are not captured, and not offered.
+
 The write scope (`peoplesoft.writeNamePrefix`) applies to the services a save
 adds -- the organization's code -- not the content reference, which is
 usually Oracle's. No delivered-object guard: no definition changes.
@@ -260,6 +294,7 @@ usually Oracle's. No delivered-object guard: no definition changes.
 | `psft_event_mapping_get` | A content reference's configuration as the page lists it, with instance IDs and the token |
 | `psft_event_mapping_save` | Saves the whole configuration as the page does (dryRun: the plan, rows restamped, warnings) |
 | `psft_event_mapping_remove` | The list's Remove |
+| `psft_event_mapping_create_service` | The package and class when missing, then the Application Class service, as the Define Related Content Service page saves it |
 
 ## Proof
 
@@ -280,6 +315,11 @@ usually Oracle's. No delivered-object guard: no definition changes.
   reference only): configure, edit, an unchanged save, refusals, remove,
   configure again -- 35 of 35; a sweep around one writer save
   (`results/emw01-writer-save`) shows the tables the page's save touches and
-  no others.
+  no others. `--create-service` creates a service with a scaffolded class
+  (6 of 6), and its sweep (`results/emw02-service-create`) shows App
+  Designer's class save and the page's service save [em01], nothing else.
+- The editor's page driven in a browser with HRDMO's rows and choices
+  (rows shown, a row added, its level, page and service set and checked by
+  the validator, a row deleted, Revert); not yet inside VS Code.
 - `src/test/ownership.test.ts` also proves the origin survives awaits and
   interleaved calls, and that an MCP tool's callback runs as an agent's.

@@ -164,7 +164,7 @@ const STATE_ICONS: Readonly<Record<DiscoveryState, string>> = {
   UNKNOWN: 'circle-large-outline', POTENTIAL: 'circle-large-outline', VERIFIED_AVAILABLE: 'pass', VERIFIED_UNAVAILABLE: 'circle-slash', INDETERMINATE: 'warning'
 };
 
-function capabilityRow(f: Framework, caps: CapabilitiesState | undefined): StrategyRow {
+function capabilityRow(f: Framework, caps: CapabilitiesState | undefined, connectionId?: string): StrategyRow {
   const info = FRAMEWORKS[f];
   const unknown: StrategyRow = { id: `capability.${f}`, label: info.label, description: DISCOVERY_LABELS.UNKNOWN, icon: 'circle-large-outline', muted: true,
     tooltip: `${info.purpose}.\nTo verify: ${info.mustVerify}.\n${PREVIEW}`, command: { id: 'psft.customization.discover', args: [info.label] } };
@@ -179,9 +179,21 @@ function capabilityRow(f: Framework, caps: CapabilitiesState | undefined): Strat
     tooltip: `${info.purpose}.\n${d.evidence.join('\n')}`,
     children: [
       ...d.evidence.map((line, i) => ({ id: `capability.${f}.evidence.${i}`, label: line, icon: 'debug-stackframe-dot', muted: true, tooltip: line })),
-      ...d.mappings.map((m, i) => ({ id: `capability.${f}.mapping.${i}`, label: describeMapping(m), icon: m.enabled ? 'symbol-event' : 'circle-slash',
-        description: `${m.contentReference}${m.operator ? ` · ${m.operator === 'PPLSOFT' ? 'Oracle' : m.operator}` : ''}`,
-        tooltip: `${describeMapping(m)}\nContent reference ${m.contentReference}${m.updated ? `; last saved by ${m.operator} on ${m.updated}` : ''}` }))
+      // Configure Event Mapping on each content reference the component is registered as (editors/eventMappingPanel.ts).
+      ...(connectionId ? d.contentReferences.map((c) => ({
+        id: `capability.${f}.configure.${c.portal}.${c.name}`, label: `Configure Event Mapping…`, description: `${c.label} · ${c.name}`, icon: 'edit',
+        tooltip: `Open ${c.name} (${c.portal}, "${c.label}") in the Event Mapping editor: map its events to Application Class services, saved as PeopleTools' Configure Event Mapping page saves them.`,
+        command: { id: 'psft.customization.configureEventMapping', args: [connectionId, c.name, c.portal] }
+      })) : []),
+      ...d.mappings.map((m, i) => {
+        const cref = d.contentReferences.find((c) => c.name === m.contentReference);
+        return {
+          id: `capability.${f}.mapping.${i}`, label: describeMapping(m), icon: m.enabled ? 'symbol-event' : 'circle-slash',
+          description: `${m.contentReference}${m.operator ? ` · ${m.operator === 'PPLSOFT' ? 'Oracle' : m.operator}` : ''}`,
+          tooltip: `${describeMapping(m)}\nContent reference ${m.contentReference}${m.updated ? `; last saved by ${m.operator} on ${m.updated}` : ''}`,
+          ...(connectionId && cref ? { command: { id: 'psft.customization.configureEventMapping', args: [connectionId, cref.name, cref.portal] } } : {})
+        };
+      })
     ]
   };
 }
@@ -208,7 +220,7 @@ export function strategySections(ctx: CustomizationContext | undefined, policy: 
         tooltip: 'peoplesoft.customization.agentDeliveredObjectPolicy: the same writes made by an AI agent through the MCP. An agent cannot approve them; you do, in VS Code.' }
     ] },
     { id: 'capabilities', label: 'Configuration Capabilities', icon: 'extensions', children: frameworks.length
-      ? frameworks.map((f) => capabilityRow(f, caps))
+      ? frameworks.map((f) => capabilityRow(f, caps, ctx.connectionId))
       : [{ id: 'capability.none', label: 'None documented for this type', icon: 'circle-slash', muted: true }] },
     { id: 'impact', label: 'Dependencies & Upgrade Impact', icon: 'references', children: [
       { id: 'impact.none', label: 'Not analyzed', icon: 'circle-large-outline', muted: true, tooltip: `No customization registry yet. ${PREVIEW}` }

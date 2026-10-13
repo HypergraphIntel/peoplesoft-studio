@@ -1,0 +1,29 @@
+body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--vscode-foreground); background: var(--vscode-editor-background); padding: 0 16px 16px; }
+header h1 { font-size: 1.3em; margin: 12px 0 2px; }
+header .sub, .muted { color: var(--vscode-descriptionForeground); }
+.toolbar { display: flex; gap: 6px; align-items: center; margin: 12px 0; flex-wrap: wrap; }
+.toolbar .spacer { flex: 1; }
+button { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); border: 1px solid var(--vscode-button-border, transparent); padding: 3px 10px; cursor: pointer; }
+button.primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
+button:disabled { opacity: .5; cursor: default; }
+table { border-collapse: collapse; width: 100%; }
+th { text-align: left; font-weight: 600; border-bottom: 1px solid var(--vscode-panel-border); padding: 4px 6px; white-space: nowrap; }
+td { border-bottom: 1px solid var(--vscode-panel-border); padding: 4px 6px; vertical-align: top; }
+td.num { color: var(--vscode-descriptionForeground); width: 1.5em; }
+td.center { text-align: center; white-space: nowrap; }
+td.target input, td.service input { display: block; margin-bottom: 3px; }
+td.service input[type=text] { width: 16em; }
+td button { padding: 0 7px; }
+input[type=text], input[type=number], select { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); padding: 2px 4px; font: inherit; }
+input[type=text] { width: 12em; }
+td:nth-child(7) input[type=text] { width: 9em; }
+table { table-layout: auto; }
+input[type=number] { width: 4.5em; }
+input:disabled, select:disabled { opacity: .7; }
+a.cls { color: var(--vscode-textLink-foreground); font-size: .9em; }
+.bad, .problems li { color: var(--vscode-errorForeground); }
+.warnings li { color: var(--vscode-editorWarning-foreground); }
+tr.disabled-row td { opacity: .65; }
+.status { margin-top: 10px; color: var(--vscode-descriptionForeground); min-height: 1.2em; }
+.note { margin-bottom: 8px; color: var(--vscode-descriptionForeground); }
+details { margin-top: 14px; color: var(--vscode-descriptionForeground); }

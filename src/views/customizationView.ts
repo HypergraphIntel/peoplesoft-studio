@@ -1,5 +1,8 @@
 import * as vscode from 'vscode';
-import { keyFromString, type DefinitionType } from '../model/definitions.js';
+import { DefinitionType, keyFromString, makeKey } from '../model/definitions.js';
+import type { EventMappingConfigRow } from '../model/eventMapping.js';
+import { EventMappingPanel, setEventMappingExtensionUri } from '../editors/eventMappingPanel.js';
+import { SERVICE_NAME_MAX, validateServiceRequest } from '../providers/rcServiceWriter.js';
 import {
   DESIGNER_TYPES, nameFromTitle, strategySections, type CapabilitiesState, type CustomizationContext, type CustomizationPolicy, type OwnershipState, type StrategyRow
 } from '../model/customizationStrategy.js';
@@ -163,8 +166,78 @@ export class CustomizationStrategyView implements vscode.TreeDataProvider<Strate
   }
 }
 
+/** Asks for a service's ID, name and class, then creates what is missing of them (DatabaseProvider.createEventMappingService). */
+async function newEventMappingService(provider: DatabaseProvider, operatorId: string, label: string): Promise<string | undefined> {
+  const serviceId = (await vscode.window.showInputBox({
+    title: 'New Event Mapping Service (1/3)', prompt: 'Service ID (at most 30 characters: letters, digits and _)',
+    validateInput: (v) => validateServiceRequest({ serviceId: v, name: 'x', packageRoot: 'X', classId: 'X' })[0]
+  }))?.trim().toUpperCase();
+  if (!serviceId) return undefined;
+  const name = (await vscode.window.showInputBox({
+    title: 'New Event Mapping Service (2/3)', prompt: `Service Name (at most ${SERVICE_NAME_MAX} characters)`, value: serviceId.slice(0, SERVICE_NAME_MAX),
+    validateInput: (v) => validateServiceRequest({ serviceId, name: v, packageRoot: 'X', classId: 'X' })[0]
+  }))?.trim();
+  if (!name) return undefined;
+  const cls = (await vscode.window.showInputBox({
+    title: 'New Event Mapping Service (3/3)', prompt: 'Application class it runs: PACKAGE:Class or PACKAGE:Path:Class (created when missing, with its package)',
+    value: `${serviceId}:Handler`, validateInput: (v) => (/^[A-Za-z0-9_]+(:[A-Za-z0-9_]+)+$/.test(v.trim()) ? undefined : 'PACKAGE:Class')
+  }))?.trim();
+  if (!cls) return undefined;
+  const parts = cls.split(':');
+  const request = {
+    serviceId, name, packageRoot: parts[0].toUpperCase(), ...(parts.length > 2 ? { path: parts.slice(1, -1) } : {}), classId: parts[parts.length - 1],
+    purpose: `Event Mapping service ${serviceId}, for ${label}`, operatorId
+  };
+  const plan = await provider.createEventMappingService({ ...request, dryRun: true });
+  const steps = [
+    ...(plan.packageCreated ? [`Create Application Package ${request.packageRoot}`] : []),
+    ...(plan.classCreated ? [`Create class ${cls} (a stub extending PT_RCF:ServiceInterface)`] : []),
+    `Define related content service ${serviceId} ("${name}") running ${cls}`
+  ];
+  if (await vscode.window.showInformationMessage(`Create the Event Mapping service ${serviceId} on ${provider.displayName}?`, { modal: true, detail: steps.join('\n') }, 'Create') !== 'Create') return undefined;
+  const r = await provider.createEventMappingService(request);
+  if (r.classCreated) {
+    void vscode.commands.executeCommand('psft.openDefinition', provider.id,
+      makeKey(DefinitionType.ApplicationClassPeopleCode, request.packageRoot, ...(request.path ?? []), request.classId, 'OnExecute'));
+  }
+  return serviceId;
+}
+
+/** A content reference's Event Mapping configuration in its editor: editable on a Writable connection with an Operator ID. */
+export async function showEventMapping(workspace: Workspace, connectionId: string, cref: string, portal = 'EMPLOYEE'): Promise<void> {
+  const provider = workspace.activeProviders.find((p) => p.id === connectionId);
+  if (!(provider instanceof DatabaseProvider) || !provider.isConnected) throw new Error('Event Mapping is configured on a connected database.');
+  const read = await provider.readEventMappingConfiguration(cref, portal);
+  if (!read.component) throw new Error(`${cref} is not a component content reference in the ${portal} portal.`);
+  const component = read.component;
+  const operatorId = workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim();
+  const editable = workspace.isWritable(provider.id) && !!operatorId;
+  await EventMappingPanel.show({
+    connection: { id: provider.id, displayName: provider.displayName }, cref, portal, label: component.label || cref, component,
+    reload: () => provider.readEventMappingConfiguration(cref, portal),
+    choices: () => provider.eventMappingChoices(component.name),
+    fields: (record) => provider.eventMappingFields(record, component.name),
+    openClass: async (appClass) => {
+      await vscode.commands.executeCommand('psft.openDefinition', provider.id, makeKey(DefinitionType.ApplicationClassPeopleCode, ...appClass.split(':'), 'OnExecute'));
+    },
+    ...(editable ? {
+      save: async (rows: EventMappingConfigRow[], token: string, dryRun: boolean) => {
+        const result = await provider.saveEventMappingConfiguration({ cref, portal, rows, openedToken: token, operatorId: operatorId!, dryRun });
+        if (result.written) void vscode.commands.executeCommand('psft.customization.refresh');
+        return result;
+      },
+      remove: async (token: string) => {
+        await provider.removeEventMappingConfiguration(cref, token, operatorId!);
+        void vscode.commands.executeCommand('psft.customization.refresh');
+      },
+      newService: () => newEventMappingService(provider, operatorId!, component.label || cref)
+    } : {})
+  });
+}
+
 /** Registers the view, its commands and the Plan Designer. */
 export function registerCustomizationStrategy(context: vscode.ExtensionContext, workspace: Workspace): void {
+  setEventMappingExtensionUri(context.extensionUri);
   const view = new CustomizationStrategyView(workspace);
   const tree = vscode.window.createTreeView('psft.customizationStrategy', { treeDataProvider: view });
   tree.description = 'Preview';
@@ -179,6 +252,15 @@ export function registerCustomizationStrategy(context: vscode.ExtensionContext, 
     vscode.commands.registerCommand('psft.customization.refresh', () => { view.follow(); view.refresh(); }),
     vscode.commands.registerCommand('psft.customization.discover', (what?: string) => {
       void vscode.window.showInformationMessage(`${what ? `${what}: c` : 'C'}apability discovery is not available yet — Customization Intelligence is a preview.`);
+    }),
+    vscode.commands.registerCommand('psft.customization.configureEventMapping', async (connectionId?: string, cref?: string, portal?: string) => {
+      if (!connectionId || !cref) {
+        void vscode.window.showInformationMessage('Open a component, page or record from a connected database: the Customization Strategy view lists its content references under Event Mapping.');
+        return;
+      }
+      try { await showEventMapping(workspace, connectionId, cref, portal); } catch (error) {
+        void vscode.window.showErrorMessage(error instanceof Error ? error.message : String(error));
+      }
     }),
     vscode.commands.registerCommand('psft.customization.openPlan', () => {
       CustomizationPlanPanel.show(context.extensionUri, view.context, readCustomizationPolicy());

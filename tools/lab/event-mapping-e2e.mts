@@ -62,6 +62,29 @@ try {
   // Reset Event Mapping-only lab state the e2e owns: the services' EV_PARAM on EMSVC2 (so the first mapping adds it).
   const svc2Param = (await q(`SELECT 'X' X FROM PSPTCS_PARAMS WHERE PTCS_SERVICEID = :s AND PTCS_PARAMETERNAME = 'EV_PARAM'`, { s: SVC2 })).length > 0;
 
+  if (process.argv.includes('--create-service')) {
+    // A service and its class scaffolded (left unmapped: a service without EV_PARAM for the em09 capture).
+    const SVC3 = 'ZZ_PCODE_LAB_EMSVC3';
+    const req = { serviceId: SVC3, name: 'ZZ Lab EM Svc 3', packageRoot: 'ZZ_PCODE_LAB_EM', classId: 'Handler4', purpose: 'Lab: scaffolded by event-mapping-e2e', operatorId };
+    if ((await q(`SELECT 'X' X FROM PSPTCSSRVDEFN WHERE PTCS_SERVICEID = :s`, { s: SVC3 })).length) { console.log(`${SVC3} exists; nothing to do`); process.exit(0); }
+    const dry = await p.createEventMappingService({ ...req, dryRun: true });
+    check('create service: the dry run plans the class and the service, writes nothing', dry.classCreated && !dry.packageCreated && !dry.service.written
+      && !(await q(`SELECT 'X' X FROM PSAPPCLASSDEFN WHERE PACKAGEROOT = 'ZZ_PCODE_LAB_EM' AND APPCLASSID = 'Handler4'`)).length);
+    const c0 = await counters();
+    const l0 = await locks();
+    const r = await p.createEventMappingService(req);
+    const c1 = await counters();
+    const row = (await q(`SELECT * FROM PSPTCSSRVDEFN WHERE PTCS_SERVICEID = :s`, { s: SVC3 }))[0];
+    check('create service: the class created', r.classCreated && (await q(`SELECT 'X' X FROM PSAPPCLASSDEFN WHERE PACKAGEROOT = 'ZZ_PCODE_LAB_EM' AND QUALIFYPATH = ':' AND APPCLASSID = 'Handler4'`)).length === 1);
+    check('create service: the row as the page writes it [em01]', !!row && t(row.PTCS_SERVICEURLTYP) === 'UAPC' && t(row.PACKAGEROOT) === 'ZZ_PCODE_LAB_EM' && t(row.QUALIFYPATH) === ':'
+      && t(row.APPCLASSID) === 'Handler4' && t(row.PC_EVENT_TYPE) === 'FieldFormula' && t(row.PC_FUNCTION_NAME) === 'IScript_' && t(row.PTCS_SRVCATTR) === 'GNRL'
+      && Number(row.VERSION) === c1.RCSDM && t(row.LASTUPDOPRID) === operatorId && row.PORTAL_URI_TEXT === null, JSON.stringify(row));
+    check('create service: RCSDM +1, PSLOCK RCSDM +2', c1.RCSDM === c0.RCSDM + 1 && (await locks()).RCSDM === l0.RCSDM + 2);
+    check('create service: tracked', await tracked('RCF_SERVICE_DEFINITIONS', 'PSPTCSSRVDEFN', [['PTCS_SERVICEID', SVC3]]));
+    try { await p.createEventMappingService(req); check('create service: a second create refused', false); } catch (e) { check('create service: a second create refused', /already exists/.test(String((e as Error).message))); }
+    process.exit(failed ? 1 : 0);
+  }
+
   if (process.argv.includes('--save-only')) {
     const cur = await p.readEventMappingConfiguration(CREF);
     const { result } = await saveRows([...cur.rows.map((r) => ({ ...r, sequence: (r.sequence + 1) % 1000 })),
@@ -163,6 +186,9 @@ try {
     { level: 'P', record: 'ZZ_PCODE_LAB_T', event: 'RINI', serviceId: SVC, processing: 'OVER', sequence: 2, enabled: false }
   ], 'configure for PIA');
   check('left configured for the PIA page', final.result.written && (await confs()).length === 3);
+} catch (e) {
+  failed++;
+  console.log(`ERROR ${(e as Error).stack ?? e}`);
 } finally {
   console.log(`\n${passed} passed, ${failed} failed`);
   await raw.close();

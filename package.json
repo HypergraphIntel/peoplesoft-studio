@@ -213,6 +213,11 @@
         "category": "PeopleSoft"
       },
       {
+        "command": "psft.customization.configureEventMapping",
+        "title": "Configure Event Mapping",
+        "category": "PeopleSoft"
+      },
+      {
         "command": "psft.customization.openSettings",
         "title": "Customization Settings",
         "category": "PeopleSoft",
@@ -655,6 +660,10 @@
         },
         {
           "command": "psft.customization.discover",
+          "when": "false"
+        },
+        {
+          "command": "psft.customization.configureEventMapping",
           "when": "false"
         },
         {

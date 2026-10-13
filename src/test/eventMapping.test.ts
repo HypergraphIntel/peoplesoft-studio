@@ -52,3 +52,17 @@ test('the view: Event Mapping verified with its configurations; the other framew
   const unavailable = all(strategySections(ctx, policy, false, undefined, { state: 'done', eventMapping: discoveryFor('ZZ_X.GBL', [], [], 325) })).find((r) => r.id === 'capability.EVENT_MAPPING')!;
   assert.deepEqual([unavailable.description, unavailable.icon], ['Verified unavailable', 'circle-slash']);
 });
+
+test('the view opens the Event Mapping editor on each content reference, and from each configuration row', () => {
+  const policy: CustomizationPolicy = { prefixes: [], defaultStrategy: 'configurationFirst', deliveredObjectPolicy: 'allowWithAudit', agentDeliveredObjectPolicy: 'requireApproval' };
+  const caps = { state: 'done' as const, eventMapping: discoveryFor('DEPEND_BENEF.GBL', [CREF], DEP, 325) };
+  const all = (rows: StrategyRow[]): StrategyRow[] => rows.flatMap((r) => [r, ...all(r.children ?? [])]);
+  const on = all(strategySections({ type: DefinitionType.Component, name: 'DEPEND_BENEF', connection: 'HRDMO', connectionId: 'c1' }, policy, false, undefined, caps));
+  const configure = on.filter((r) => r.id.startsWith('capability.EVENT_MAPPING.configure.'));
+  assert.equal(configure.length, 1);
+  assert.deepEqual(configure[0].command, { id: 'psft.customization.configureEventMapping', args: ['c1', 'HC_DEPEND_BENEF_GBL8', 'EMPLOYEE'] });
+  assert.ok(on.filter((r) => r.id.startsWith('capability.EVENT_MAPPING.mapping.')).every((r) => r.command?.args?.[1] === 'HC_DEPEND_BENEF_GBL8'));
+  // Without a connection there is nothing to open it on.
+  const off = all(strategySections({ type: DefinitionType.Component, name: 'DEPEND_BENEF' }, policy, false, undefined, caps));
+  assert.equal(off.filter((r) => r.id.startsWith('capability.EVENT_MAPPING.configure.')).length, 0);
+});

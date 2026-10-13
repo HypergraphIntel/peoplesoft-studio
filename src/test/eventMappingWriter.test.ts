@@ -6,6 +6,7 @@ import {
   configRowsOf, configurationToken, newInstanceId, planConfigurationRemove, planConfigurationSave,
   type ConfigurationContext, type Counters, type StoredConfiguration
 } from '../providers/eventMappingWriter.js';
+import { planAppClassService, qualifyPath, serviceClassSource, validateServiceRequest } from '../providers/rcServiceWriter.js';
 import { applyDelta, captureExists, counterValues, execute, insertedRows, tableText, type Tables } from './eventMappingCaptures.js';
 
 /*
@@ -187,4 +188,25 @@ test('instance IDs as the page draws them; the token moves with every save', { s
   const b = configurationToken(stored(st.get('em06-fluid-delete-row')!));
   assert.notEqual(a, b);
   assert.equal(configurationToken(stored({})), 'absent');
+});
+
+test('a service defined as the Define Related Content Service page saves it [em01]', { skip: !captureExists('em01-service-create') && 'captures' }, () => {
+  const captured = insertedRows('em01-service-create', 'PSPTCSSRVDEFN')[0];
+  const plan = planAppClassService(
+    { serviceId: 'zz_pcode_lab_emsvc', name: 'ZZ Lab EM Service', packageRoot: 'ZZ_PCODE_LAB_EM', classId: 'Handler', operatorId: 'JARED' },
+    { rcsdm: 5, sys: 2785, lastupddttm: '2026-10-12T14:28:10.821538', tracked: new Set(['RCF_SERVICE_DEFINITIONS|PSPTCSSRVDEFN']) });
+  const ran = execute(plan.statements, {}, { RCSDM: 5, SYS: 2785 });
+  const [row] = ran.tables.PSPTCSSRVDEFN;
+  // The page leaves PORTAL_URI_TEXT, the help text, the validity dates and PORTAL_URL_ADM NULL; the writer leaves them out.
+  const nulls = Object.keys(captured).filter((k) => captured[k] === null);
+  assert.deepEqual(nulls.sort(), ['LASTUPDDTTM', 'PORTAL_URI_TEXT', 'PORTAL_URL_ADM', 'PTCS_SRVHELPTEXT', 'PTCS_VALID_FROM', 'PTCS_VALID_TO'].filter((k) => k !== 'LASTUPDDTTM' || captured[k] === null).sort());
+  assert.deepEqual(tableText([row]), tableText([Object.fromEntries(Object.entries(captured).filter(([, v]) => v !== null))]));
+  const moved = counterValues('em01-service-create', 'after');
+  assert.equal(ran.counters.RCSDM, moved.RCSDM);
+  assert.equal(ran.counters.SYS, moved.SYS);
+  assert.equal(ran.counters['PSLOCK.RCSDM'], 2, 'PSLOCK RCSDM + 2, as the page moves it');
+  assert.ok(plan.statements.some((s) => s.what === 'Tracking PSPTCSSRVDEFN (RCF_SERVICE_DEFINITIONS)'));
+  assert.equal(qualifyPath(['Services']), 'Services');
+  assert.match(validateServiceRequest({ serviceId: 'X', name: 'A name longer than eighteen', packageRoot: 'P', classId: 'C' })[0], /18 characters/);
+  assert.match(serviceClassSource('Handler3'), /class Handler3 extends PT_RCF:ServiceInterface\n   method execute\(\);/);
 });
