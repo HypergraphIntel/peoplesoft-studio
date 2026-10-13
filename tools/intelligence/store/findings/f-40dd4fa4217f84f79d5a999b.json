@@ -1,0 +1,112 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-40dd4fa4217f84f79d5a999b",
+  "fingerprint": "40dd4fa4217f84f79d5a999b68d60ad3b775275be696fcd73d99846db1137d19",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "event-mapping",
+    "objectType": "Related content service",
+    "tables": [
+      "PSPTCS_PARAMS",
+      "PSPTCSSRVDEFN"
+    ]
+  },
+  "assertion": {
+    "kind": "first-mapping",
+    "facts": {
+      "table": "PSPTCS_PARAMS",
+      "param": "EV_PARAM",
+      "serviceVersion": "new RCSDM"
+    }
+  },
+  "title": "Mapping a related content service for the first time adds its EV_PARAM parameter row and sets the service's VERSION to the new RCSDM",
+  "statement": "The first time a service is used in an Event Mapping configuration, the page inserts the service's PSPTCS_PARAMS row (EV_PARAM, 'For Event Mapping') and updates its PSPTCSSRVDEFN.VERSION to the new RCSDM. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-12T19:46:48.154Z",
+      "method": "save-capture",
+      "experimentId": "em03-config-add",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Capture em03-config-add: the service's first mapping inserted one PSPTCS_PARAMS row for it and updated its PSPTCSSRVDEFN.VERSION 6 -> 7, the new RCSDM (RCSDM +1).",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSADSTRACKING",
+            "inserted": 5,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPTCSSRVCONF",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCSSRVDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPTCS_MAPFLDS",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_PARAMS",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_SRVCFG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RCSDM": 1,
+          "RCSCM": 2,
+          "SCNFM": 1,
+          "SYS": 2
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "em03-config-add"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        }
+      ],
+      "digest": "fa356b30d602d405a20c3a2475190448e681ada2e10e692dd57eac8d8dc3baeb"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:54:34.666Z",
+    "updatedAt": "2026-10-13T11:54:34.666Z",
+    "schemaVersion": 1
+  }
+}

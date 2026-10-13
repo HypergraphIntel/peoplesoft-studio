@@ -121,7 +121,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 
 ## Recorded findings (tools/intelligence/store)
 
-192 findings, 977 observations, each checked against its capture rows before recording (2026-10-13; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
+202 findings, 989 observations, each checked against its capture rows before recording (2026-10-13; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
 
 | Subsystem | ID | Claim | Status | Obs. |
 |---|---|---|---|---|
@@ -151,9 +151,12 @@ fingerprint; server: see `server/intelligence/README.md`.
 | component-interface | f-cac4dc5f446f39d9dbbb8026 | Taking a standard method away from a Component Interface also moves CLM | observed | 1 |
 | component-interface | f-e914dad1753456f91f7828a2 | Editing only a Component Interface's methods PeopleCode moves PCM and SYS by 1 | observed | 1 |
 | component-interface | f-fedefefdb30a40a90ea77a36 | Creating a Component Interface or changing its properties, items or synchronization moves BCM and SYS by 1 | reproduced | 22 |
+| event-mapping | f-38ae377ffee33015fc094aa9 | Configuring Event Mapping on a content reference for the first time inserts its PSPTCS_SRVCFG row (menu, component, ExpandFrame N) at RCSCM | reproduced | 2 |
+| event-mapping | f-40dd4fa4217f84f79d5a999b | Mapping a related content service for the first time adds its EV_PARAM parameter row and sets the service's VERSION to the new RCSDM | observed | 1 |
 | event-mapping | f-5731b0851774a312b6aa05af | PTCS_ISCOMPSERVICE level codes: C Component, R Page, P Record, F Record Field (PSXLATITEM's labels mislead) | observed | 1 |
 | event-mapping | f-7e8ece79e395dbb863bc93e5 | Defining a related content service moves RCSDM by 1 in PSVERSION but by 2 in PSLOCK | observed | 1 |
 | event-mapping | f-ad18a114ff35fcdc4d8920ef | PeopleSoft Studio's Event Mapping writer writes what the Configure Event Mapping page writes | observed | 1 |
+| event-mapping | f-b54ce4b7edd085b036ed619c | Removing a content reference's Event Mapping deletes every configuration row with a tombstone each, and its PSPTCS_SRVCFG row with PSPTCSSRVCFGDEL at the new RCSCM | observed | 1 |
 | event-mapping | f-e3a3f17f095c20582322485d | The fluid Configure Event Mapping page re-saves every row on Save | reproduced | 3 |
 | field | f-1d79752a8a48303988b8c2ab | Deleting a field's last translate value leaves a PSXLATDEFNDEL row at that save's XTM; adding a value again deletes it | reproduced | 2 |
 | field | f-633064c7628c8b8f0fd8dd36 | A new translate value takes SYNCID from PSSYSTEMID.PTNEXTSYSTEMID, advanced by 1; rewritten values keep theirs | reproduced | 3 |
@@ -204,7 +207,9 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-29741c05ebc7cd61421d4026 | An edit box's Auto Decimal is PSPNLFIELD.DSPLFORMAT 0x400 | reproduced | 2 |
 | page-designer | f-2bdceb29cac6ed0da30bc8bf | An edit box's Show Prompt Button off is PSPNLFIELD.DSPLFORMAT 0x800000 | reproduced | 2 |
 | page-designer | f-2cf26e1cbf388b8318b68f40 | An edit box's Generate As Hyperlink is PSPNLFIELD.FIELDUSETMP 0x80000 | reproduced | 2 |
+| page-designer | f-344bfc8e62cafef8619be717 | An edit box's Display Name is PSPNLFIELD.DISPFMTNAME, one of the field's format family display names | observed | 1 |
 | page-designer | f-37b4f697cdfd1298674419a4 | A freshly inserted Scroll Bar is invisible (FIELDUSE 0x2, SECUREINVISIBLE 1), 17 wide, at Occurs Level 1 | observed | 1 |
+| page-designer | f-39b51aabf8e869e2966c038f | A static image's alt text is PSPNLFIELD.LBLTEXT | observed | 1 |
 | page-designer | f-3b06650e8f06201594627764 | An edit box's Auto Fill is PSPNLFIELD.DSPLFORMAT 0x200 | reproduced | 2 |
 | page-designer | f-3c462058225a8bc301b1903b | A group box's Fluid Capture Trigger is PSPNLFIELDEXT.FIELDUSETEMP2 0x8000 | observed | 1 |
 | page-designer | f-3c56a041d8fbd4f7f9cd5f6a | A long edit box's Enable Long Edit Counter is PSPNLFIELD.FIELDUSETMP 0x8000000 | observed | 1 |
@@ -238,6 +243,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-79e2038a6957e7b6c50f6557 | An edit box's Currency Symbol is PSPNLFIELD.DSPLFORMAT 0x10 | reproduced | 2 |
 | page-designer | f-7d8871e6dd323ebf5735c04e | An edit box's Fill Character is PSPNLFIELD.DSPLFILL | reproduced | 2 |
 | page-designer | f-7ee9369365c10274e498ac35 | An edit box's Page Popup is PSPNLFIELD.FIELDUSETMP 0x200 and PSPNLFIELDEXT.PTPOPUPPNL | reproduced | 2 |
+| page-designer | f-811b324d64de4bc71f6af9de | An HTML Area may be bound to a record alone: clearing its Field Name leaves RECNAME | observed | 1 |
 | page-designer | f-816517d0d2510c55b26932ae | A page control's Page Field Name is PSPNLFIELD.PNLFIELDNAME | observed | 1 |
 | page-designer | f-822a0691dc44467e46a5bde4 | A page's Fluid style classes are PSPNLDEFN.FFSTYLEDESKTOP, FFSTYLEPHONE (Small), FFSTYLEMEDIUM, FFSTYLETABLET (Large) and FFSTYLEEXLARGE | reproduced | 5 |
 | page-designer | f-89c46286c14ee7f87b30a73b | A long edit box's Display in Modal Window is PSPNLFIELD.FIELDUSETMP 0x100 | observed | 1 |
@@ -247,6 +253,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-9ecc6fd8d9258c7cdf8d40e6 | A group box's Suppress Accessible Label is PSPNLFIELD.FIELDUSE 0x2000 | observed | 1 |
 | page-designer | f-9f767c0982b8c4778efdccee | App Designer puts a new scroll (Scroll Area, Scroll Bar, Grid) after the last control whose top is at or above the scroll's bottom edge | reproduced | 5 |
 | page-designer | f-a0c36f3aa7c4649110545d1a | Dragging a control to a new tab position swaps PSPNLFIELD.FIELDNUM; nothing else changes | observed | 1 |
+| page-designer | f-a1c86d074bbb9fa7631aa361 | A group box's Header Extension reference is stored as the referenced group box's FIELDNUM - 1, -1 for none | observed | 1 |
 | page-designer | f-a4b24a8100957266f22d7bb3 | An HTML Area's Respond Only Once is PSPNLFIELDEXT.FIELDUSETEMP2 0x1000 | reproduced | 2 |
 | page-designer | f-a59884249af2192134fa87ee | Every page control has a PSPNLFIELDEXT row beside its PSPNLFIELD row | reproduced | 5 |
 | page-designer | f-a62727af1a73ad77f017d76e | A Message Catalog label's set and number are PSPNLFIELD.GRDLBLMSGSET and GRDLBLMSGNUM | reproduced | 6 |
@@ -256,6 +263,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-af75869018e651465d3e0897 | A group box's Collapsible Data Area, Default Initial View to Expanded and Hide all Fields are PSPNLFIELD.PTCOLLAPSEDATAAREA, PTDFLTVIEWEXPANDED and PTHIDEFIELDS | reproduced | 3 |
 | page-designer | f-b37f4d98644bf0db3b970b00 | Set Component Changed off is PSPNLFIELD.FIELDUSETMP 0x8 | reproduced | 3 |
 | page-designer | f-b46dd5e41d5dc1cc10dffda0 | A page's Owner ID is PSPNLDEFN.OBJECTOWNERID | observed | 1 |
+| page-designer | f-b8aa1a5268f2a32aba5d75d0 | A static image's Width / Height are its rectangle's FIELDRIGHT / FIELDBOTTOM | reproduced | 2 |
 | page-designer | f-b948d204e86b0616d9d4a9cf | An edit box's 1000 Separator is PSPNLFIELD.DSPLFORMAT 0x20 | reproduced | 2 |
 | page-designer | f-b9671e6c984cf7b1dfccb69b | Binding an edit box to another field writes the field's default LABEL_ID and FORMATFAMILY | reproduced | 2 |
 | page-designer | f-bb18f22a884a893c5c6a9e15 | A new page control takes PNLFLDID = MAXPNLFLDID + 1; MAXPNLFLDID never goes down, deleted ids are not reused | reproduced | 4 |
@@ -281,6 +289,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-dfd8f0d79b2abf200c8322c6 | A long edit box's Expand Field When Display Only is PSPNLFIELD.PTLEBEXPANDFIELD 1 | reproduced | 2 |
 | page-designer | f-e2c41d86557fba7f022cc9f2 | A group box's Message Catalog Popup is PSPNLFIELD.FIELDUSETMP 0xA000 with PSPNLFIELDEXT.MESSAGE_SET_NBR / MESSAGE_NBR | reproduced | 2 |
 | page-designer | f-e601f9dfa5a2ccc9b10d2d01 | A page's Allow Deferred Processing is PSPNLDEFN.DEFERPROC 1 | observed | 1 |
+| page-designer | f-edcbe509a35cb6f7ea8ad26c | Binding a group box to a field makes its label RFT Long with the field's default label | observed | 1 |
 | page-designer | f-f31161a932a8df1c887fc17c | An HTML Area's HTML Tags Only is PSPNLFIELD.FIELDUSETMP 0x100000 | reproduced | 2 |
 | page-designer | f-f5591d5a054aa476ae80a09f | Invisible on a page control is PSPNLFIELD.FIELDUSE 0x2 with SECUREINVISIBLE 1 | reproduced | 4 |
 | page-designer | f-f7904ce34399f697bd7fb272 | Fluid Include Labels in Grid Cells is PSPNLFIELDEXT.FIELDUSETEMP2 0x2 | observed | 1 |
@@ -300,6 +309,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | peoplecode | f-c25d40474b82a4b3d5f39a89 | Creating, editing or deleting a component PeopleCode program moves PCM and SYS by 1; the component's PGM and MDM do not move | reproduced | 5 |
 | peoplecode | f-f5ee5f5d3c262cf5fcefaf63 | Saving a PeopleCode program empty deletes it and writes PSPCMPROGDEL at the new PCM; saving the key again deletes that marker | reproduced | 2 |
 | peoplecode | f-fb2ffc81365c4d15d0ea8077 | A PeopleCode save deletes and re-inserts every PSPCMTXT, PSPCMPROG and PSPCMNAME row of the program's key, unchanged rows included | reproduced | 7 |
+| portal-registry | f-71f28f6a78ca21df67f40b22 | Registering a content reference moves PRSM and SYS by 1; its PSPRSMDEFN row, and one other registry row, take the new PRSM as VERSION | observed | 1 |
 | project | f-1a1df3b9c0cdf0d0553e5ffb | Creating a project writes one PSPROJECTDEFN row (VERSION = new PJM; KEEPTGT 31, COMPARETYPE 1, COMMITLIMIT 50, REPORTFILTER 16232832) and moves PJM and SYS by 1 | observed | 1 |
 | project | f-26c465f2ded30e5cb29a474d | Saving a project after Insert Into Project adds one PSPROJECTITEM row, rewrites PSPROJECTDEFN at the new PJM and moves PJM and SYS by 1 | observed | 1 |
 | project | f-74c70228d2ea52f7a76b0219 | A message channel in a project is PSPROJECTITEM OBJECTTYPE 36, OBJECTID1 61 (CHNLNAME) | observed | 1 |

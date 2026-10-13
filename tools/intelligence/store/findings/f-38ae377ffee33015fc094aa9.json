@@ -1,0 +1,168 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-38ae377ffee33015fc094aa9",
+  "fingerprint": "38ae377ffee33015fc094aa9ce14724e6ec42a7aee2ec9285334b8e856da7724",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "event-mapping",
+    "objectType": "Event Mapping configuration",
+    "tables": [
+      "PSPTCS_SRVCFG",
+      "PSPTCSSRVCONF"
+    ]
+  },
+  "assertion": {
+    "kind": "first-configuration",
+    "facts": {
+      "table": "PSPTCS_SRVCFG",
+      "menuAndComponent": "from the registry",
+      "PTCS_EXPANDFRAME": "N",
+      "versionIsCounter": "RCSCM"
+    }
+  },
+  "title": "Configuring Event Mapping on a content reference for the first time inserts its PSPTCS_SRVCFG row (menu, component, ExpandFrame N) at RCSCM",
+  "statement": "The Configure Event Mapping page's first save for a content reference inserts a PSPTCS_SRVCFG row holding the content reference's menu and component and PTCS_EXPANDFRAME 'N', with VERSION from RCSCM (the window's final RCSCM in both captures, which hold more than one save), beside the configuration rows.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-12T19:46:48.154Z",
+      "method": "save-capture",
+      "experimentId": "em03-config-add",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Capture em03-config-add (a window of two saves: RCSCM +2, SYS +2): PSPTCS_SRVCFG inserted with the menu and component, PTCS_EXPANDFRAME N, VERSION 3 = the final RCSCM; one PSPTCSSRVCONF and one PSPTCS_MAPFLDS row inserted.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSADSTRACKING",
+            "inserted": 5,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPTCSSRVCONF",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCSSRVDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPTCS_MAPFLDS",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_PARAMS",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_SRVCFG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RCSDM": 1,
+          "RCSCM": 2,
+          "SCNFM": 1,
+          "SYS": 2
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "em03-config-add"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        }
+      ],
+      "digest": "497f3fa4320eddb2476b822f5a13ec85d4710977fb2279605567197118a73f80"
+    },
+    {
+      "observedAt": "2026-10-12T20:04:43.326Z",
+      "method": "save-capture",
+      "experimentId": "em08-classic-readd",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Capture em08-classic-readd (RCSCM +2, SYS +2): after a Remove, a configuration added again through the classic component; PSPTCS_SRVCFG inserted with PTCS_EXPANDFRAME N, VERSION 6 = the final RCSCM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSADSTRACKING",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPTCSSRVCONF",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_MAPFLDS",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_SRVCFG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RCSCM": 2,
+          "SCNFM": 1,
+          "SYS": 2
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "em08-classic-readd"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        }
+      ],
+      "digest": "f6e948b1985085ccaa120ba311b188ef0f34134f3a628a1110db0a69b664f8c9"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:54:33.875Z",
+    "updatedAt": "2026-10-13T11:54:34.297Z",
+    "schemaVersion": 1
+  }
+}

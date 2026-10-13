@@ -1,0 +1,89 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-344bfc8e62cafef8619be717",
+  "fingerprint": "344bfc8e62cafef8619be717c08247a5259986da8b32b7b66dbb69c492d209ae",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "DISPFMTNAME"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "DISPFMTNAME",
+      "source": "PSFMTITEM.DISPFMTNAME of FORMATFAMILY",
+      "control": "Edit Box"
+    }
+  },
+  "title": "An edit box's Display Name is PSPNLFIELD.DISPFMTNAME, one of the field's format family display names",
+  "statement": "Record tab Display Name on an edit box bound to a field with a format family is stored in PSPNLFIELD.DISPFMTNAME (a PSFMTITEM display name of the family); none is ' '.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:55:14.747Z",
+      "method": "save-capture",
+      "experimentId": "eb78-display-name",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture eb78-display-name, control 5: DISPFMTNAME ' ' -> NORMAL. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "eb78-display-name"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "d98f0a18fa08d314d8504ae05158da1c4af4611bb42da14efb5ea53d595c0173"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:55:14.755Z",
+    "updatedAt": "2026-10-13T11:55:14.755Z",
+    "schemaVersion": 1
+  }
+}

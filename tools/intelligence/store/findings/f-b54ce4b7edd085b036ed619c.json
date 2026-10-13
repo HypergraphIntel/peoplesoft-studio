@@ -1,0 +1,113 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-b54ce4b7edd085b036ed619c",
+  "fingerprint": "b54ce4b7edd085b036ed619cfce54cfb5237f421fabf4b7e68d320e103217ad3",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "event-mapping",
+    "objectType": "Event Mapping configuration",
+    "tables": [
+      "PSPTCSSRVCONF",
+      "PSPTCSSRVCNFDEL",
+      "PSPTCS_SRVCFG",
+      "PSPTCSSRVCFGDEL"
+    ]
+  },
+  "assertion": {
+    "kind": "remove",
+    "facts": {
+      "rows": "every configuration row of the content reference",
+      "tombstones": "PSPTCSSRVCNFDEL per row",
+      "srvcfg": "deleted, PSPTCSSRVCFGDEL at the new RCSCM"
+    }
+  },
+  "title": "Removing a content reference's Event Mapping deletes every configuration row with a tombstone each, and its PSPTCS_SRVCFG row with PSPTCSSRVCFGDEL at the new RCSCM",
+  "statement": "The Configure Event Mapping list's Remove deletes every PSPTCSSRVCONF row of the content reference, writing a PSPTCSSRVCNFDEL tombstone for each, deletes its PSPTCS_MAPFLDS rows, and deletes its PSPTCS_SRVCFG row, writing PSPTCSSRVCFGDEL with VERSION = the new RCSCM. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-12T19:56:22.475Z",
+      "method": "save-capture",
+      "experimentId": "em07-fluid-remove-config",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Capture em07-fluid-remove-config: the list's Remove deleted the 3 PSPTCSSRVCONF rows with a PSPTCSSRVCNFDEL row each, 2 PSPTCS_MAPFLDS rows, and the PSPTCS_SRVCFG row, writing PSPTCSSRVCFGDEL with VERSION 4 = the new RCSCM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSADSTRACKING",
+            "inserted": 1,
+            "deleted": 2,
+            "updated": 3
+          },
+          {
+            "table": "PSPTCSSRVCFGDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCSSRVCNFDEL",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCSSRVCONF",
+            "inserted": 0,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_MAPFLDS",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_SRVCFG",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RCSCM": 1,
+          "SCNFM": 3,
+          "SYS": 4
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "em07-fluid-remove-config"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        }
+      ],
+      "digest": "0f3429995d07ede8375bc14fe4a250a7ea0533860233fba26a94bef2f8af24dc"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:54:35.068Z",
+    "updatedAt": "2026-10-13T11:54:35.068Z",
+    "schemaVersion": 1
+  }
+}

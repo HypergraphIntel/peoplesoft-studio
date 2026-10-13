@@ -1,0 +1,91 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-edcbe509a35cb6f7ea8ad26c",
+  "fingerprint": "edcbe509a35cb6f7ea8ad26ccca503b1e9f8872f95d700d5ca5f19bf33509e49",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "LBLTYPE",
+      "LABEL_ID",
+      "LBLTEXT",
+      "FIELDNAME"
+    ]
+  },
+  "assertion": {
+    "kind": "rebind-defaults",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "onBind": "LBLTYPE 3, LABEL_ID default, LBLTEXT long name",
+      "control": "Group Box"
+    }
+  },
+  "title": "Binding a group box to a field makes its label RFT Long with the field's default label",
+  "statement": "Setting a group box's Record / Field Name in its dialog changes its label to RFT Long (LBLTYPE 3) with the field's default label: LABEL_ID the label ID and LBLTEXT its long name.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:55:13.170Z",
+      "method": "save-capture",
+      "experimentId": "gb16-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gb16-field, control 21: LBLTYPE 1 -> 3; LABEL_ID ' ' -> ZZ_PCODE_LAB_L2; LBLTEXT 'Group Box' -> 'Long 254'; FIELDNAME ' ' -> ZZ_PCODE_LAB_L2. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gb16-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "be28affdf5ad2e7bc411d3b15165428302c3614240ed4a0bfaf31d4037d7ec0f"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:55:13.178Z",
+    "updatedAt": "2026-10-13T11:55:13.178Z",
+    "schemaVersion": 1
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-71f28f6a78ca21df67f40b22",
+  "fingerprint": "71f28f6a78ca21df67f40b2229633d20ec8d706a6b809c55334e73d64e2c37a5",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "portal-registry",
+    "objectType": "Content reference",
+    "tables": [
+      "PSPRSMDEFN",
+      "PSVERSION"
+    ]
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "PRSM": 1,
+      "SYS": 1,
+      "versionColumn": "PSPRSMDEFN.VERSION",
+      "versionIsNewCounter": "PRSM",
+      "alsoRestamps": "one other PSPRSMDEFN row (VERSION and LASTUPDDTTM)"
+    }
+  },
+  "title": "Registering a content reference moves PRSM and SYS by 1; its PSPRSMDEFN row, and one other registry row, take the new PRSM as VERSION",
+  "statement": "Saving a new content reference in PIA inserts its PSPRSMDEFN row (with PSPRSMNUI and system-attribute rows) with VERSION = the new PRSM, updates one other PSPRSMDEFN row's VERSION to the same value (its stamp too, nothing else), records the content reference in PSADSTRACKING, and bumps PSVERSION PRSM and SYS by one. Which row the other is cannot be read from the ROWID diff. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-12T19:37:35.886Z",
+      "method": "save-capture",
+      "experimentId": "em02-cref-register",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Capture em02-cref-register: a component content reference registered in PIA; PSPRSMDEFN inserted with VERSION 151 (the new PRSM) with its PSPRSMNUI, PSPRSMSYSATTR and PSPRSMSYSATTRVL rows; one other PSPRSMDEFN row's VERSION 13 -> 151 and stamp updated in place; PSADSTRACKING rows for PSPRSM_CREF; PRSM +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSADSTRACKING",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPRSMDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPRSMNUI",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPRSMSYSATTR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPRSMSYSATTRVL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PRSM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "em02-cref-register"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        }
+      ],
+      "digest": "b3cbafbaec81f34a6dd3b3462df1964178b64313c215b9042ea61354e7446626"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:54:33.488Z",
+    "updatedAt": "2026-10-13T11:54:33.488Z",
+    "schemaVersion": 1
+  }
+}

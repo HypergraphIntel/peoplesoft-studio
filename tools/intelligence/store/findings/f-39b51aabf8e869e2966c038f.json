@@ -1,0 +1,89 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-39b51aabf8e869e2966c038f",
+  "fingerprint": "39b51aabf8e869e2966c038fe24d7a5ec9da74ff0fedb9150d216699f395e15e",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "LBLTEXT"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "LBLTEXT",
+      "setting": "Alt tag text",
+      "control": "Static Image"
+    }
+  },
+  "title": "A static image's alt text is PSPNLFIELD.LBLTEXT",
+  "statement": "The Static Image dialog's Alt tag text (Label Type Text) is stored in PSPNLFIELD.LBLTEXT.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:55:14.362Z",
+      "method": "save-capture",
+      "experimentId": "si03-image-alt-text",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture si03-image-alt-text, control 2: LBLTEXT 'Static Image' -> 'ZZ Alt'. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "si03-image-alt-text"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "96ebff7e93f75c4b2ec07f548dfe290d406229773b8aec975f07d1d9aa1c1175"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:55:14.369Z",
+    "updatedAt": "2026-10-13T11:55:14.369Z",
+    "schemaVersion": 1
+  }
+}

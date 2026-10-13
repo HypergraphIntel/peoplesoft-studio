@@ -1,0 +1,132 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-b8aa1a5268f2a32aba5d75d0",
+  "fingerprint": "b8aa1a5268f2a32aba5d75d003ecac5b4761d6e22b63b188bef1ec578753ce25",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDRIGHT",
+      "FIELDBOTTOM"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "width": "FIELDRIGHT",
+      "height": "FIELDBOTTOM",
+      "control": "Static Image"
+    }
+  },
+  "title": "A static image's Width / Height are its rectangle's FIELDRIGHT / FIELDBOTTOM",
+  "statement": "The Static Image dialog's Width and Height are stored by moving the control's rectangle: PSPNLFIELD.FIELDRIGHT and FIELDBOTTOM (the dialog shows the rectangle less 2).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:55:13.567Z",
+      "method": "save-capture",
+      "experimentId": "si08-image-width",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture si08-image-width, control 2: FIELDRIGHT 20 -> 58. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "si08-image-width"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "cd486ebbc6055a26e03a5505d9e75d18a2778c9a8ca33f9f6f419ec65e62c3ab"
+    },
+    {
+      "observedAt": "2026-10-13T11:55:13.948Z",
+      "method": "save-capture",
+      "experimentId": "si09-image-height",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture si09-image-height, control 2: FIELDBOTTOM 52 -> 80. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "si09-image-height"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "ac5f6a3db9d40c6c0978c95d93a015c093c6386527dd79f34b799fd044b4678a"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:55:13.575Z",
+    "updatedAt": "2026-10-13T11:55:13.955Z",
+    "schemaVersion": 1
+  }
+}
