@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Compare With Environment** works again: a PeopleCode program, SQL or
+  other text definition side by side with the same definition in another
+  configured connection -- a database or a project export -- in VS Code's
+  diff editor. The other side is read once through a temporary connection,
+  as *Test Connection* reads, so the active connection stays as it is (one
+  connection is still active at a time).
+
 ## 0.8.5
 
 ### Added

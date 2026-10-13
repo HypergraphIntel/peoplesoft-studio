@@ -173,7 +173,10 @@ export function createStub() {
         return h(...args);
       }
     },
-    _handlers: new Map(),
+    // VS Code's own commands a smoke test observes: vscode.diff records its arguments.
+    _handlers: new Map([['vscode.diff', (left, right, title) => { vscode._diffs.push({ left, right, title }); }]]),
+    _diffs: [],
+    _contentProviders: new Map(),
     StatusBarAlignment: {
       Left: 1,
       Right: 2,
@@ -319,6 +322,11 @@ export function createStub() {
         return new Disposable(() => registered.fileSystems.delete(scheme));
       },
       onDidSaveTextDocument: () => new Disposable(() => {}),
+      onDidCloseTextDocument: () => new Disposable(() => {}),
+      registerTextDocumentContentProvider(scheme, provider) {
+        vscode._contentProviders.set(scheme, provider);
+        return new Disposable(() => vscode._contentProviders.delete(scheme));
+      },
       onDidChangeConfiguration(listener, thisArg, disposables) {
         const bound = thisArg ? listener.bind(thisArg) : listener;
         vscode._configurationListeners.push(bound);

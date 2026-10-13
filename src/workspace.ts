@@ -207,6 +207,30 @@ export class Workspace implements vscode.Disposable {
     }
   }
 
+  /**
+   * Reads from a connection without making it the active one (Compare With
+   * Environment): through the live provider when it is this connection,
+   * else through a throwaway one, connected for the read and disposed after
+   * it, as testConnection does. The active connection is left alone.
+   */
+  async readFromConnection<T>(config: ConnectionConfig, read: (provider: DefinitionProvider) => Promise<T>): Promise<T> {
+    const live = this.providers.get(providerId(config));
+    if (live?.isConnected) return read(live);
+    const provider = await this.create(config);
+    try {
+      await provider.connect();
+      return await read(provider);
+    } catch (err) {
+      // Same rule as connect(): a rejected password must not be reused.
+      if (isDatabase(config) && isCredentialFailure(err)) {
+        await this.forgetPassword(config.name);
+      }
+      throw err;
+    } finally {
+      await provider.dispose();
+    }
+  }
+
   private async create(config: ConnectionConfig): Promise<DefinitionProvider> {
     if (config.kind === 'projectFile') {
       if (!config.path) throw new Error(`Connection "${config.name}" has no project file path.`);

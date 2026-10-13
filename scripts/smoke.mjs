@@ -348,6 +348,25 @@ try {
   await pick(0);
   await until(() => lastState()?.selectedConnectionId === devId, 'the picker to restore HCDEV');
 
+  // Compare With Environment reads the other side without activating it: HCDEV stays the one active connection.
+  {
+    const key = { type: 8, parts: ['WEBLIB_DEMO', 'ISCRIPT1', 'FieldFormula'] };
+    const before = vscode._quickPickResult;
+    vscode._quickPickResult = 0; // the other connections, in order: HCTST, ORA
+    await vscode.commands.executeCommand('psft.compareDefinition', { kind: 'definition', provider: { id: devId }, summary: { key } });
+    vscode._quickPickResult = before;
+    const diff = vscode._diffs.at(-1);
+    check(diff?.right?.scheme === 'psft-compare', 'Compare With Environment did not open a diff against the other environment');
+    if (diff) {
+      const right = vscode._contentProviders.get('psft-compare')?.provideTextDocumentContent(diff.right) ?? '';
+      const left = new TextDecoder().decode(await vscode._fs.get('psft').readFile(diff.left));
+      check(right.length > 0 && right === left, 'the other environment\'s text is not the program read from HCTST');
+      check(diff.title.includes('HCDEV') && diff.title.includes('HCTST'), `the compare title does not name both environments (${diff.title})`);
+    }
+    check(lastState()?.connections?.filter((c) => c.connected).map((c) => c.name).join() === 'HCDEV',
+      'Compare With Environment activated the other connection');
+  }
+
   // The side-bar Settings view summarizes the same target.
   const settingsTree = vscode._trees.get('psft.settings');
   const rows = settingsTree ? settingsTree.getChildren(undefined) : [];

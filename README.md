@@ -209,7 +209,7 @@ reproducing App Designer's saves; **Read-only** = viewer, from the database;
 
 ## What does **not** work yet
 
-- Comparing a definition across two environments (only one connection is active at a time)
+- Comparing a whole project across environments (single definitions compare: *Compare With Environment...*)
 - Editing record shapes and settings no App Designer save has been captured for (see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md))
 - Register Menu Item (portal registration) and menu translations
 - Component Interfaces: Test Component Interface, Java / C templates, CI references
@@ -274,7 +274,7 @@ compile the program in Application Designer as well (see the Disclaimer). See
 - **Hover** — short docs for keywords, built-ins, `%` system variables
 - **Outline** — class / method / function / property symbols
 - **Snippets** — `if`, `for`, `try`, `locs`, `msgbox`, `sqlexec`, …
-- **Compare** — currently unavailable: it needs a second connected environment, and only one connection is active at a time
+- **Compare With Environment** — a definition side by side with the same one in another connection (a database or a project export), in VS Code's diff editor. The other side is read once, without making that connection the active one
 
 SQL documents use language id `psft-sql` (basic highlighting).
 

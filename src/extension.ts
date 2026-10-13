@@ -19,6 +19,7 @@ import { HtmlSaveRefusedError } from './providers/htmlWriter.js';
 import { StyleSheetSaveRefusedError } from './providers/styleSheetWriter.js';
 import { CREATABLE_FIELD_TYPES, FIXED_FIELD_LENGTH, FieldCreateRefusedError, fieldCreateRefusal } from './providers/fieldWriter.js';
 import { toUri } from './util/uri.js';
+import { COMPARE_SCHEME, CompareContent } from './compareContent.js';
 import type { McpWriteMode } from './mcp/writeTools.js';
 import type { PeopleCodeSaveResult } from './providers/peopleCodeWriter.js';
 import { registerPeopleCodeCompletion } from './peoplecode/completion.js';
@@ -249,6 +250,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const workspace = new Workspace(context.secrets);
   workspace.db2DriverDir = path.join(context.globalStorageUri.fsPath, 'db2-driver');
   context.subscriptions.push(workspace);
+  // Compare With Environment's other side: read-only snapshots, forgotten when their tab closes.
+  const compareContent = new CompareContent();
+  context.subscriptions.push(
+    vscode.workspace.registerTextDocumentContentProvider(COMPARE_SCHEME, compareContent),
+    vscode.workspace.onDidCloseTextDocument((d) => { if (d.uri.scheme === COMPARE_SCHEME) compareContent.forget(d.uri); })
+  );
   setAeDesignerExtensionUri(context.extensionUri);
   AeDesignerPanel.register(context);
   setMenuDesignerExtensionUri(context.extensionUri);
@@ -878,52 +885,38 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           return;
         }
 
-        const candidates = workspace.activeProviders.filter(
-          (p) => p.isConnected && p.id !== left.connectionId);
-        if (candidates.length === 0) {
-          vscode.window.showWarningMessage(
-            'Compare needs a second connected environment, but only one connection is active at a time. ' +
-            'Comparing across environments is not available until compare reads the other side without activating it.');
+        // Any other configured connection -- a database or a project export -- read without making it active.
+        const others = workspace.connections.filter((c) => providerId(c) !== left.connectionId);
+        if (others.length === 0) {
+          vscode.window.showInformationMessage(
+            'Compare With Environment reads the same definition from another connection: add one (a database or a project export file) first.');
           return;
         }
-
-        let rightProvider = candidates[0];
-        if (candidates.length > 1) {
+        let right = others[0];
+        if (others.length > 1) {
           const picked = await vscode.window.showQuickPick(
-            candidates.map((p) => ({
-              label: p.displayName,
-              description: p.id,
-              provider: p
-            })),
-            {
-              title: `Compare ${displayName(left.key)} with…`,
-              placeHolder: 'Other environment',
-              ignoreFocusOut: true
-            });
+            others.map((c) => ({ label: c.name, description: c.kind === 'projectFile' ? 'project export' : 'database', config: c })),
+            { title: `Compare ${displayName(left.key)} with…`, placeHolder: 'Other environment (read only; your active connection stays as it is)', ignoreFocusOut: true });
           if (!picked) return;
-          rightProvider = picked.provider;
+          right = picked.config;
         }
 
-        if (!rightProvider.canReadAsText(left.key.type)) {
-          vscode.window.showInformationMessage(
-            `${rightProvider.displayName} can't open ${typeLabel(left.key.type)} as text.`);
+        let text: string;
+        try {
+          text = await vscode.window.withProgress(
+            { location: vscode.ProgressLocation.Notification, title: `Reading ${displayName(left.key)} from ${right.name}…` },
+            () => workspace.readFromConnection(right, async (p) => {
+              if (!p.canReadAsText(left.key.type)) throw new Error(`${right.name} can't open ${typeLabel(left.key.type)} as text.`);
+              return p.readText(left.key);
+            }));
+        } catch (err) {
+          vscode.window.showErrorMessage(`Could not read ${displayName(left.key)} from ${right.name}: ${(err as Error).message}`);
           return;
         }
 
         const leftUri = toUri(left.connectionId, left.key);
-        const rightUri = toUri(rightProvider.id, left.key);
-        await vscode.workspace.openTextDocument(leftUri);
-        try {
-          await vscode.workspace.openTextDocument(rightUri);
-        } catch (err) {
-          vscode.window.showErrorMessage(
-            `Could not read ${displayName(left.key)} from ${rightProvider.displayName}: ` +
-            `${(err as Error).message}`);
-          return;
-        }
-
-        const title =
-          `${displayName(left.key)} (${leftProvider.displayName} ↔ ${rightProvider.displayName})`;
+        const rightUri = compareContent.put(right.name, left.key, text);
+        const title = `${displayName(left.key)} (${leftProvider.displayName} ↔ ${right.name})`;
         await vscode.commands.executeCommand('vscode.diff', leftUri, rightUri, title);
       });
     }),
