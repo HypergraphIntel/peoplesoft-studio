@@ -7,6 +7,7 @@ import {
   DiscoveryInputError, DiscoveryStore, findingFingerprint, observationDigest, observationFromCapture, PrivacyRejectedError, sanitizedDeltaOf,
   scanFinding, type FindingInput
 } from '../intelligence/index.js';
+import { contractVectors, findingInputJsonSchema } from '../intelligence/contract.js';
 
 /*
  * The local discovery engine (docs/intelligence, phase 1): schema
@@ -192,4 +193,19 @@ test('the engine works offline: it imports no network module', () => {
     const text = readFileSync(f, 'utf8');
     assert.doesNotMatch(text, /from 'node:(http|https|net|tls|dns|dgram)'|from '(http|https|net|tls|dns)'|\bfetch\(|from 'vscode'/, f);
   }
+});
+
+test('the server contract is the code\'s: the exported JSON Schema and fingerprint vectors have not drifted', () => {
+  const dir = 'server/intelligence/contract';
+  const schema = JSON.parse(readFileSync(path.join(dir, 'finding-input.schema.json'), 'utf8'));
+  const facts = schema.properties.assertion.properties.facts;
+  assert.deepEqual(schema, findingInputJsonSchema(), 'run: npx tsx tools/intelligence/export-contract.mts');
+  const vectors = JSON.parse(readFileSync(path.join(dir, 'fingerprint-vectors.json'), 'utf8'));
+  assert.deepEqual(vectors.vectors, JSON.parse(JSON.stringify(contractVectors())), 'run: npx tsx tools/intelligence/export-contract.mts');
+  // Facts are 1..64 in the JSON Schema too (a zod refinement, written out).
+  assert.deepEqual([facts.minProperties, facts.maxProperties], [1, 64]);
+  // The vectors cover identity equality across reordering and case, and the number and string forms.
+  const by = Object.fromEntries(vectors.vectors.map((v: { name: string; fingerprint: string }) => [v.name, v.fingerprint]));
+  assert.equal(by['facts in another order'], by.basic);
+  assert.equal(by['object type case and padding'], by.basic);
 });

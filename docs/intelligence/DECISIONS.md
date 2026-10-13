@@ -139,3 +139,39 @@ arrive with the features they control (phases 2–4), named under the
 existing `peoplesoft.*` namespace.
 
 **Why.** A setting with nothing behind it misdescribes the product.
+
+## D10 — Server MVP: tables from the metadata, SQLite for quick tests (2026-10-12)
+
+**Decided.** The MVP creates its tables from the SQLAlchemy metadata
+(`create_all`); Alembic arrives with the first schema change that must keep
+data. The test suite runs on SQLite by default and on PostgreSQL when
+`PSFT_INTEL_TEST_DATABASE_URL` is set (CI runs both; the concurrency test
+needs PostgreSQL's row locks). JSON columns are JSONB on PostgreSQL.
+
+**Why.** No production data exists to migrate; a migration framework with
+nothing to migrate is ceremony. SQLite keeps the inner loop instant.
+
+## D11 — The contract is exported from the client and pinned by vectors (2026-10-12)
+
+**Decided.** `tools/intelligence/export-contract.mts` writes
+`server/intelligence/contract/`: the finding input JSON Schema (zod's export,
+with the facts 1–64 refinement written out) and fingerprint vectors
+(canonical identity text, fingerprint, ID, observation text and digest). A
+TypeScript test fails when the files drift from the code; a Python test
+proves the server reproduces every vector byte for byte. The server
+implements JavaScript's number-to-text (ECMA-262 Number::toString) and
+`trim()` whitespace set, because canonical JSON is what is hashed.
+
+**Not chosen.** Hand-maintaining a Python schema (drifts); hashing
+something language-neutral like a sorted key list (loses the facts' values
+and types).
+
+## D12 — Contributors see each other's evidence only as summaries (2026-10-12)
+
+**Decided.** `GET /findings/{id}` shows a contributor their own
+observations in full and other contributors' as method, release, digest and
+receipt time; reviewers see everything.
+
+**Why.** Observations may carry lab provenance (experiment and run IDs,
+capture cases) classified `internal`; sharing a claim must not disclose
+another installation's research context.

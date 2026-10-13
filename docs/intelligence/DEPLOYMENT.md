@@ -1,27 +1,22 @@
 # Deployment — proposed
 
-**Nothing is deployed.** No server code exists yet (phase 2).
+**Nothing is deployed.** The server MVP exists for local development (`server/intelligence/README.md`); it has never been exposed beyond localhost.
 
 ## Where the server lives
 
 `server/intelligence/` in this repository (DECISIONS D7): its own
-`pyproject.toml`, `Dockerfile`, tests, and a CI job that runs only when it
-changes. It shares one artifact with the extension: the finding JSON Schema
+`pyproject.toml`, tests, a compose file for local PostgreSQL, and a CI job
+that runs only when it changes (a container image comes with the deployment
+review). It shares one artifact with the extension: the finding JSON Schema
 generated from `src/intelligence/schema.ts`.
 
-## Local development (phase 2 target)
+## Local development (implemented)
 
-```bash
-cd server/intelligence
-docker compose up -d postgres           # PostgreSQL 16, local only
-uv run alembic upgrade head             # schema migrations
-uv run uvicorn app.main:app --reload    # http://127.0.0.1:8000, /docs for OpenAPI
-uv run pytest
-```
-
-Docker and PostgreSQL client tools are present on the development machine
-(checked 2026-10-12); FastAPI is not installed system-wide — the server
-pins its own environment.
+See `server/intelligence/README.md`: a venv with `pip install -e '.[dev]'`,
+`docker compose up -d` (PostgreSQL 16 on `127.0.0.1:55432`), a token from
+`python -m app.admin issue-token`, `uvicorn` on `127.0.0.1`. Tables are
+created on start (DECISIONS D10). CI: `.github/workflows/intelligence-server.yml`
+runs the suite on SQLite and PostgreSQL.
 
 ## Before anything is reachable from the Internet
 

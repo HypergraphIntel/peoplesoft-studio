@@ -1,0 +1,14 @@
+# Local development only: PostgreSQL bound to localhost (docs/intelligence/DEPLOYMENT.md).
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: psft_intel
+      POSTGRES_USER: psft_intel
+      POSTGRES_PASSWORD: psft_intel_dev
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - psft-intel-pg:/var/lib/postgresql/data
+volumes:
+  psft-intel-pg:

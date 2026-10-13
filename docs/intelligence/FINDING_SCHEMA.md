@@ -80,3 +80,15 @@ values) — readers ignore nothing silently because objects are strict, so a
 reader must be updated before a writer uses a new field. An incompatible
 change is `psft-finding/2`, with a migration in the store; the fingerprint's
 `v` changes only if identity changes.
+
+## Contract with the server
+
+`server/intelligence/contract/finding-input.schema.json` (JSON Schema
+2020-12) and `fingerprint-vectors.json` are generated from this schema and
+`fingerprint.ts` (`npx tsx tools/intelligence/export-contract.mts`); a test
+fails when they drift. Canonical JSON is precisely: object keys sorted by
+UTF-16 code unit; strings trimmed with ECMAScript's `trim()` whitespace set
+and written as `JSON.stringify` writes them (only `"`, `\\` and control
+characters escaped; non-ASCII literal); numbers as ECMA-262
+`Number::toString` (`2`, `0.1`, `1e+21`, `1.5e-7`, `-0` as `0`); no spaces.
+Hashes are SHA-256 over the UTF-8 text.

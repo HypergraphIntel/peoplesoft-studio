@@ -1,69 +1,71 @@
 # Progress and handoff
 
 **Read this first when resuming the Discovery & Intelligence Network.**
-Last updated 2026-10-12. The founding directive: `CUSTOMIZATION_INTEL_SERVER.md`
+Last updated 2026-10-13. The founding directive: `CUSTOMIZATION_INTEL_SERVER.md`
 (repository root).
 
 ## Current state
 
-- **Phase 0 (reconnaissance, architecture): done.** ARCHITECTURE.md records
-  what exists; DECISIONS.md D1–D9.
-- **Phase 1 (local discovery foundation): done.** Definition of done below,
-  each with its evidence.
-- **Phases 2–6: not started.** Everything in KNOWLEDGE_REGISTRY.md,
-  MCP_INTEGRATION.md, DEPLOYMENT.md and the server parts of
-  SECURITY_PRIVACY.md is design only.
-- **Nothing is uploaded, synchronized or networked.** No settings exist for it.
+- **Phase 0 (reconnaissance, architecture): done.** ARCHITECTURE.md; DECISIONS.md D1–D12.
+- **Phase 1 (local discovery foundation): done.** Evidence below.
+- **Phase 2 (server MVP): done, local only.** Evidence below.
+- **Phases 3–6: not started.** Discovery Center UI, submission review and
+  upload, verification workflow, signed bundles, MCP tools, GitHub
+  automation are design only.
+- **Nothing is uploaded or synchronized by the extension.** No settings
+  exist for it. The server has run only on localhost.
 
-## Phase 1 definition of done
+## Phase 1 evidence
 
 | Criterion | Evidence |
 |---|---|
-| A discovery can be created through a supported local API | `DiscoveryStore.record()`; `tools/intelligence/discovery.mts record/capture` — used to record the 4 findings in `tools/intelligence/store` |
-| Its schema is validated | `src/intelligence/schema.ts` (strict zod); test "the schema is an allowlist…" |
-| It receives a deterministic fingerprint | `fingerprint.ts`; test "the fingerprint is the claim…" |
-| It persists across extension restarts | File store; test "…persisted across a restart" (new store instance on the same directory); the bundled extension's command read a store in its global storage (stub `vscode`, 2026-10-12) |
-| Duplicates are handled predictably | `created` / `merged` / `duplicate`; tests; the CLI reported `duplicate` re-recording em04 |
-| Findings can be listed and retrieved | `list()` with filters, `get()`; tests; CLI `list`, `get` |
-| Private or unsupported fields are rejected | Strict schema + privacy scan; tests (unknown keys at each level, URLs, e-mail, paths, IPs, connect strings, hosts, credentials, tokens; values never echoed) |
-| Findings retain PeopleTools version and evidence metadata | `environment.peopleToolsRelease` required; `compatibility.observedReleases`; evidence refs; adapter test on em04 (8.62.09) |
-| Works without network connectivity | No network module (test enforces); files only |
-| Automated tests cover the core | `src/test/intelligence.test.ts` — 8 tests, all pass |
-| Documentation reflects implementation | This directory; README.md status table |
-| Existing functionality operational | `npm test` 1636 tests, 1635 pass, 0 fail, 1 skipped (a pre-existing encoder TODO); `npm run smoke` activates 59 commands |
+| Created through a supported local API | `DiscoveryStore.record()`; `tools/intelligence/discovery.mts` — 4 findings in `tools/intelligence/store` |
+| Schema validated | Strict zod schema; tests |
+| Deterministic fingerprint | `fingerprint.ts`; tests; the Python server computes the same (vectors) |
+| Persists across restarts | File store; restart test; the bundled extension's command read a store (stub `vscode`) |
+| Duplicates predictable | `created` / `merged` / `duplicate`; tests; CLI |
+| Listed and retrieved | `list()` / `get()`; tests; CLI |
+| Private / unsupported fields rejected | Strict schema + privacy scan; tests (values never echoed) |
+| PeopleTools version and evidence kept | Required release; compatibility; evidence refs; adapter test on em04 |
+| Offline | No network module (tested) |
+| Tests | `src/test/intelligence.test.ts` — 9 tests (incl. contract drift) |
+| Existing functionality | `npm test`: 1637 tests, 1636 pass, 0 fail, 1 pre-existing skip; smoke 59 commands |
 
-**Not verified:** *Show Local Discoveries* inside a real VS Code window
-(only against the bundled extension with the smoke stub); concurrent
-writers on one store across processes (documented limit, D1).
+## Phase 2 evidence
 
-## Architecture in one paragraph
+| Criterion | Evidence |
+|---|---|
+| Standalone FastAPI service | `server/intelligence/app/` (FastAPI 0.143, SQLAlchemy 2.1, psycopg 3.3, jsonschema 4.26) |
+| PostgreSQL persistence | `compose.yaml` (PostgreSQL 16, 127.0.0.1:55432); JSONB columns |
+| Authenticated submissions | Bearer tokens (hashed), roles; 401/403 tests |
+| Retrieval | `GET /findings/{id}`; evidence visibility per D12 |
+| Duplicate detection | Same outcomes as the local store; vector IDs; concurrency test (1 created, 11 merged) |
+| Basic verification states | observed / reproduced computed; others reserved for review |
+| API tests | `pytest`: 39 pass on PostgreSQL; 38 pass + 1 skipped (concurrency) on SQLite |
+| Local deployment configuration | compose + README; run with uvicorn on localhost: the 4 repository findings got the local IDs and statuses |
+| Security / deployment docs | DEPLOYMENT.md (review required before exposure), SECURITY_PRIVACY.md |
 
-`src/intelligence/` (no `vscode`, no network) holds the schema
-`psft-finding/1`, fingerprints (identity = the structured assertion), the
-privacy scan, the file store and the save-capture adapter. Research
-harnesses record into `tools/intelligence/store` (committed) through
-`tools/intelligence/discovery.mts`; each installation has its own store in
-`<globalStorage>/intelligence` (`src/intelligenceCommands.ts`). The server,
-registry, Discovery Center, bundles and MCP tools are proposed.
+**Not verified:** *Show Local Discoveries* in a real VS Code window; the
+CI workflow has not run on GitHub (nothing pushed); concurrent writers on
+one *local* store across processes (documented limit, D1); the server under
+load or behind TLS.
 
 ## Key files
 
 | File | Role |
 |---|---|
-| `src/intelligence/schema.ts` | Schema, enums, `Finding` type |
-| `src/intelligence/fingerprint.ts` | `canonicalJson`, `findingFingerprint`, `findingId`, `observationDigest` |
-| `src/intelligence/privacy.ts` | `scanFinding`, `classify`, `PrivacyRejectedError` |
-| `src/intelligence/store.ts` | `DiscoveryStore` (`open`, `record`, `get`, `list`, `remove`) |
-| `src/intelligence/adapters/saveCapture.ts` | `sanitizedDeltaOf`, `observationFromCapture`, `BACKGROUND_TABLES` |
-| `src/intelligence/index.ts` | Public exports |
+| `src/intelligence/{schema,fingerprint,privacy,store,contract,index}.ts`, `adapters/saveCapture.ts` | Local engine |
 | `src/intelligenceCommands.ts` | Extension store; `psft.intelligence.showDiscoveries` |
-| `tools/intelligence/discovery.mts` | CLI: `record`, `capture`, `list`, `get` |
+| `tools/intelligence/discovery.mts` | CLI: record, capture, list, get |
+| `tools/intelligence/export-contract.mts` | Writes `server/intelligence/contract/` |
 | `tools/intelligence/store/` | The repository's research findings (commit them) |
-| `src/test/intelligence.test.ts` | Tests |
+| `server/intelligence/app/{main,canonical,privacy,contract,db,auth,admin}.py` | Server |
+| `server/intelligence/tests/` | Contract, privacy, API tests |
+| `.github/workflows/intelligence-server.yml` | Server CI (SQLite + PostgreSQL) |
 
-Commands: `npm run typecheck`; `npx tsc -p . && node --test dist-test/test/intelligence.test.js`;
-`npm test`; `npm run compile && npm run smoke`.
-Dependencies: none new (zod v4 was already a runtime dependency).
+Commands: `npm run typecheck`; `npm test`; `npm run compile && npm run smoke`;
+`npx tsx tools/intelligence/export-contract.mts` after changing the schema or
+fingerprint; server: see `server/intelligence/README.md`.
 
 ## Recorded findings (tools/intelligence/store)
 
@@ -76,22 +78,23 @@ Dependencies: none new (zod v4 was already a runtime dependency).
 
 ## Resume: next tasks, in order
 
-1. **Phase 2 start**: export the finding JSON Schema from zod
-   (`z.toJSONSchema(findingInput)`) to `server/intelligence/schema/` with a
-   test that fails when it drifts; write shared fingerprint test vectors
-   (input → fingerprint, observation → digest) that the Python server must
-   reproduce.
-2. Scaffold `server/intelligence/` (FastAPI, PostgreSQL via compose,
-   Alembic, pytest) per DEPLOYMENT.md; implement `POST /findings` with the
-   same outcomes as the local store, `GET /findings/{id}`, contributor and
-   reviewer tokens, audit table. Localhost only.
-3. A lab-e2e adapter (`testResults` from `tools/lab/*-e2e.mts` PASS/FAIL
-   lines) — the next research source after save captures.
-4. Settle the retention policy (SECURITY_PRIVACY.md) with the owner before
-   any submission feature.
+1. **Phase 3 start — Discovery Center, read side**: a *Discoveries* tree
+   view in the PeopleSoft container listing the installation's store
+   (overview, details as in *Show Local Discoveries*), following the
+   existing tree/webview conventions (`src/views/`).
+2. **Submission projection** (pure, tested): the exact payload that would
+   leave — allowlisted fields, `internal` provenance stripped unless kept —
+   and a review webview showing it. Upload stays impossible until the
+   settings below exist and the user approves each submission.
+3. **Settings** with the features: `peoplesoft.intelligence.uploadMode`
+   (`off` default | `manual`), `peoplesoft.intelligence.serverUrl`; token in
+   SecretStorage; VS Code telemetry off ⇒ no submission; machine-scoped
+   policy to force `off`.
+4. A lab-e2e adapter (`testResults` from `tools/lab/*-e2e.mts`).
+5. Settle the retention policy (SECURITY_PRIVACY.md) with the owner before
+   any upload ships.
 
-**Do not repeat:** the reconnaissance (ARCHITECTURE.md has it); recording
-the four findings above (re-recording reports `duplicate`, harmless).
+**Do not repeat:** reconnaissance; recording the 4 findings; the contract
+export (regenerate only after a schema change).
 
-**Blockers:** none for phase 2. A public deployment needs the separate
-review in DEPLOYMENT.md.
+**Blockers:** none. Exposure beyond localhost needs the DEPLOYMENT.md review.

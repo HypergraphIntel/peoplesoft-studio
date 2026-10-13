@@ -1,0 +1,289 @@
+{
+  "format": "psft-fingerprint-vectors/1",
+  "vectors": [
+    {
+      "name": "basic",
+      "input": {
+        "type": "save-protocol",
+        "subject": {
+          "subsystem": "event-mapping",
+          "objectType": "Event Mapping configuration",
+          "tables": [
+            "PSPTCSSRVCONF"
+          ]
+        },
+        "assertion": {
+          "kind": "row-resave",
+          "facts": {
+            "table": "PSPTCSSRVCONF",
+            "everyRowOnSave": true,
+            "versionCounter": "SCNFM"
+          }
+        },
+        "title": "Every row re-saved",
+        "statement": "Each row is deleted and re-inserted.",
+        "confidence": "high",
+        "source": "research-harness",
+        "observation": {
+          "observedAt": "2026-10-12T19:50:28.000Z",
+          "method": "pia-capture",
+          "experimentId": "em04",
+          "environment": {
+            "peopleToolsRelease": "8.62.09"
+          },
+          "observation": "Two rows re-saved."
+        }
+      },
+      "identityCanonical": "{\"assertion\":{\"facts\":{\"everyRowOnSave\":true,\"table\":\"PSPTCSSRVCONF\",\"versionCounter\":\"SCNFM\"},\"kind\":\"row-resave\"},\"objectType\":\"event mapping configuration\",\"subsystem\":\"event-mapping\",\"type\":\"save-protocol\",\"v\":1}",
+      "fingerprint": "e5a2b5f198dd3d89a6be30992145199efbeb8c5ea59631198933753f0df0b00b",
+      "id": "f-e5a2b5f198dd3d89a6be3099",
+      "observationCanonical": "{\"environment\":{\"peopleToolsRelease\":\"8.62.09\"},\"experimentId\":\"em04\",\"method\":\"pia-capture\",\"observation\":\"Two rows re-saved.\"}",
+      "observationDigest": "0f6c97c43df94361bf5b6ac95cb0ff9237901fd17fd8d52ae23dce61c95fbc66"
+    },
+    {
+      "name": "facts in another order",
+      "input": {
+        "type": "save-protocol",
+        "subject": {
+          "subsystem": "event-mapping",
+          "objectType": "Event Mapping configuration",
+          "tables": [
+            "PSPTCSSRVCONF"
+          ]
+        },
+        "assertion": {
+          "kind": "row-resave",
+          "facts": {
+            "versionCounter": "SCNFM",
+            "table": "PSPTCSSRVCONF",
+            "everyRowOnSave": true
+          }
+        },
+        "title": "Every row re-saved",
+        "statement": "Each row is deleted and re-inserted.",
+        "confidence": "high",
+        "source": "research-harness",
+        "observation": {
+          "observedAt": "2026-10-12T19:50:28.000Z",
+          "method": "pia-capture",
+          "experimentId": "em04",
+          "environment": {
+            "peopleToolsRelease": "8.62.09"
+          },
+          "observation": "Two rows re-saved."
+        }
+      },
+      "identityCanonical": "{\"assertion\":{\"facts\":{\"everyRowOnSave\":true,\"table\":\"PSPTCSSRVCONF\",\"versionCounter\":\"SCNFM\"},\"kind\":\"row-resave\"},\"objectType\":\"event mapping configuration\",\"subsystem\":\"event-mapping\",\"type\":\"save-protocol\",\"v\":1}",
+      "fingerprint": "e5a2b5f198dd3d89a6be30992145199efbeb8c5ea59631198933753f0df0b00b",
+      "id": "f-e5a2b5f198dd3d89a6be3099",
+      "observationCanonical": "{\"environment\":{\"peopleToolsRelease\":\"8.62.09\"},\"experimentId\":\"em04\",\"method\":\"pia-capture\",\"observation\":\"Two rows re-saved.\"}",
+      "observationDigest": "0f6c97c43df94361bf5b6ac95cb0ff9237901fd17fd8d52ae23dce61c95fbc66"
+    },
+    {
+      "name": "object type case and padding",
+      "input": {
+        "type": "save-protocol",
+        "subject": {
+          "subsystem": "event-mapping",
+          "objectType": "  EVENT MAPPING Configuration ",
+          "tables": [
+            "PSPTCSSRVCONF"
+          ]
+        },
+        "assertion": {
+          "kind": "row-resave",
+          "facts": {
+            "table": "PSPTCSSRVCONF",
+            "everyRowOnSave": true,
+            "versionCounter": "SCNFM"
+          }
+        },
+        "title": "Every row re-saved",
+        "statement": "Each row is deleted and re-inserted.",
+        "confidence": "high",
+        "source": "research-harness",
+        "observation": {
+          "observedAt": "2026-10-12T19:50:28.000Z",
+          "method": "pia-capture",
+          "experimentId": "em04",
+          "environment": {
+            "peopleToolsRelease": "8.62.09"
+          },
+          "observation": "Two rows re-saved."
+        }
+      },
+      "identityCanonical": "{\"assertion\":{\"facts\":{\"everyRowOnSave\":true,\"table\":\"PSPTCSSRVCONF\",\"versionCounter\":\"SCNFM\"},\"kind\":\"row-resave\"},\"objectType\":\"event mapping configuration\",\"subsystem\":\"event-mapping\",\"type\":\"save-protocol\",\"v\":1}",
+      "fingerprint": "e5a2b5f198dd3d89a6be30992145199efbeb8c5ea59631198933753f0df0b00b",
+      "id": "f-e5a2b5f198dd3d89a6be3099",
+      "observationCanonical": "{\"environment\":{\"peopleToolsRelease\":\"8.62.09\"},\"experimentId\":\"em04\",\"method\":\"pia-capture\",\"observation\":\"Two rows re-saved.\"}",
+      "observationDigest": "0f6c97c43df94361bf5b6ac95cb0ff9237901fd17fd8d52ae23dce61c95fbc66"
+    },
+    {
+      "name": "numbers",
+      "input": {
+        "type": "save-protocol",
+        "subject": {
+          "subsystem": "event-mapping",
+          "objectType": "Event Mapping configuration",
+          "tables": [
+            "PSPTCSSRVCONF"
+          ]
+        },
+        "assertion": {
+          "kind": "numbers",
+          "facts": {
+            "int": 3,
+            "neg": -12,
+            "zero": 0,
+            "negZero": 0,
+            "frac": 0.1,
+            "half": 1.5,
+            "big": 1e+21,
+            "small": 1.5e-7,
+            "wholeFloat": 2,
+            "maxSafe": 9007199254740991
+          }
+        },
+        "title": "Every row re-saved",
+        "statement": "Each row is deleted and re-inserted.",
+        "confidence": "high",
+        "source": "research-harness",
+        "observation": {
+          "observedAt": "2026-10-12T19:50:28.000Z",
+          "method": "pia-capture",
+          "experimentId": "em04",
+          "environment": {
+            "peopleToolsRelease": "8.62.09"
+          },
+          "observation": "Two rows re-saved."
+        }
+      },
+      "identityCanonical": "{\"assertion\":{\"facts\":{\"big\":1e+21,\"frac\":0.1,\"half\":1.5,\"int\":3,\"maxSafe\":9007199254740991,\"neg\":-12,\"negZero\":0,\"small\":1.5e-7,\"wholeFloat\":2,\"zero\":0},\"kind\":\"numbers\"},\"objectType\":\"event mapping configuration\",\"subsystem\":\"event-mapping\",\"type\":\"save-protocol\",\"v\":1}",
+      "fingerprint": "6f4079539d49fd86beb3cca6234187200909ba3f064b1bc1294a2db64bfbae2c",
+      "id": "f-6f4079539d49fd86beb3cca6",
+      "observationCanonical": "{\"environment\":{\"peopleToolsRelease\":\"8.62.09\"},\"experimentId\":\"em04\",\"method\":\"pia-capture\",\"observation\":\"Two rows re-saved.\"}",
+      "observationDigest": "0f6c97c43df94361bf5b6ac95cb0ff9237901fd17fd8d52ae23dce61c95fbc66"
+    },
+    {
+      "name": "strings and escapes",
+      "input": {
+        "type": "save-protocol",
+        "subject": {
+          "subsystem": "event-mapping",
+          "objectType": "Event Mapping configuration",
+          "tables": [
+            "PSPTCSSRVCONF"
+          ]
+        },
+        "assertion": {
+          "kind": "strings",
+          "facts": {
+            "quote": "say \"x\"",
+            "back": "a\\b",
+            "tab": "a\tb",
+            "nl": "a\nb",
+            "ctl": "a\u0001b",
+            "unicode": "Größe – 名前 ✓",
+            "emoji": "ok 👍",
+            "padded": "  trimmed  ",
+            "empty": ""
+          }
+        },
+        "title": "Every row re-saved",
+        "statement": "Each row is deleted and re-inserted.",
+        "confidence": "high",
+        "source": "research-harness",
+        "observation": {
+          "observedAt": "2026-10-12T19:50:28.000Z",
+          "method": "pia-capture",
+          "experimentId": "em04",
+          "environment": {
+            "peopleToolsRelease": "8.62.09"
+          },
+          "observation": "Two rows re-saved."
+        }
+      },
+      "identityCanonical": "{\"assertion\":{\"facts\":{\"back\":\"a\\\\b\",\"ctl\":\"a\\u0001b\",\"emoji\":\"ok 👍\",\"empty\":\"\",\"nl\":\"a\\nb\",\"padded\":\"trimmed\",\"quote\":\"say \\\"x\\\"\",\"tab\":\"a\\tb\",\"unicode\":\"Größe – 名前 ✓\"},\"kind\":\"strings\"},\"objectType\":\"event mapping configuration\",\"subsystem\":\"event-mapping\",\"type\":\"save-protocol\",\"v\":1}",
+      "fingerprint": "39c8cf66c09c40ddb00026983603bece5d8e5df4a2b8fba1a285aa57efc7e454",
+      "id": "f-39c8cf66c09c40ddb0002698",
+      "observationCanonical": "{\"environment\":{\"peopleToolsRelease\":\"8.62.09\"},\"experimentId\":\"em04\",\"method\":\"pia-capture\",\"observation\":\"Two rows re-saved.\"}",
+      "observationDigest": "0f6c97c43df94361bf5b6ac95cb0ff9237901fd17fd8d52ae23dce61c95fbc66"
+    },
+    {
+      "name": "null and booleans",
+      "input": {
+        "type": "save-protocol",
+        "subject": {
+          "subsystem": "event-mapping",
+          "objectType": "Event Mapping configuration",
+          "tables": [
+            "PSPTCSSRVCONF"
+          ]
+        },
+        "assertion": {
+          "kind": "flags",
+          "facts": {
+            "yes": true,
+            "no": false,
+            "none": null
+          }
+        },
+        "title": "Every row re-saved",
+        "statement": "Each row is deleted and re-inserted.",
+        "confidence": "high",
+        "source": "research-harness",
+        "observation": {
+          "observedAt": "2026-10-12T19:50:28.000Z",
+          "method": "pia-capture",
+          "experimentId": "em04",
+          "environment": {
+            "peopleToolsRelease": "8.62.09"
+          },
+          "observation": "Two rows re-saved."
+        }
+      },
+      "identityCanonical": "{\"assertion\":{\"facts\":{\"no\":false,\"none\":null,\"yes\":true},\"kind\":\"flags\"},\"objectType\":\"event mapping configuration\",\"subsystem\":\"event-mapping\",\"type\":\"save-protocol\",\"v\":1}",
+      "fingerprint": "44262ddbb377759d832d979e06df90cfaab323e33653445d99ec04e7165715ca",
+      "id": "f-44262ddbb377759d832d979e",
+      "observationCanonical": "{\"environment\":{\"peopleToolsRelease\":\"8.62.09\"},\"experimentId\":\"em04\",\"method\":\"pia-capture\",\"observation\":\"Two rows re-saved.\"}",
+      "observationDigest": "0f6c97c43df94361bf5b6ac95cb0ff9237901fd17fd8d52ae23dce61c95fbc66"
+    },
+    {
+      "name": "another subsystem",
+      "input": {
+        "type": "metadata-mapping",
+        "subject": {
+          "subsystem": "page-designer",
+          "objectType": "Page"
+        },
+        "assertion": {
+          "kind": "column-mapping",
+          "facts": {
+            "property": "Display Only",
+            "table": "PSPNLFIELD",
+            "column": "FIELDUSE",
+            "bit": 1
+          }
+        },
+        "title": "Every row re-saved",
+        "statement": "Each row is deleted and re-inserted.",
+        "confidence": "high",
+        "source": "research-harness",
+        "observation": {
+          "observedAt": "2026-10-12T19:50:28.000Z",
+          "method": "pia-capture",
+          "experimentId": "em04",
+          "environment": {
+            "peopleToolsRelease": "8.62.09"
+          },
+          "observation": "Two rows re-saved."
+        }
+      },
+      "identityCanonical": "{\"assertion\":{\"facts\":{\"bit\":1,\"column\":\"FIELDUSE\",\"property\":\"Display Only\",\"table\":\"PSPNLFIELD\"},\"kind\":\"column-mapping\"},\"objectType\":\"page\",\"subsystem\":\"page-designer\",\"type\":\"metadata-mapping\",\"v\":1}",
+      "fingerprint": "481875f7c021f27132e4f9f98ed0c0e489398ed9364ee84eb94d915b04c15e3c",
+      "id": "f-481875f7c021f27132e4f9f9",
+      "observationCanonical": "{\"environment\":{\"peopleToolsRelease\":\"8.62.09\"},\"experimentId\":\"em04\",\"method\":\"pia-capture\",\"observation\":\"Two rows re-saved.\"}",
+      "observationDigest": "0f6c97c43df94361bf5b6ac95cb0ff9237901fd17fd8d52ae23dce61c95fbc66"
+    }
+  ]
+}

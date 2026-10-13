@@ -1,6 +1,9 @@
 # Knowledge registry and server API — proposed
 
-Design for phases 2 and 4. **Nothing on this page is built.**
+Design for phases 2 and 4. **Built (phase 2 MVP, local only):** the server
+skeleton, `POST /findings`, `GET /findings/{id}`, `GET /discoveries/pending`,
+`GET /health`, tokens with roles, the audit table, size and rate limits —
+see `server/intelligence/README.md`. Everything else here is design.
 
 ## Server (phase 2)
 

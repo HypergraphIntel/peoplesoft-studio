@@ -8,14 +8,16 @@ verified knowledge between installations safely.
 The founding directive is `CUSTOMIZATION_INTEL_SERVER.md` at the repository
 root. These pages are the design and the record of what exists.
 
-## Status (2026-10-12)
+## Status (2026-10-13)
 
 | Part | Status |
 |---|---|
 | Local Discovery Engine (`src/intelligence/`) | **Implemented** (phase 1), unit-tested; used for this repository's research findings |
 | Research hook (`tools/intelligence/discovery.mts`), save-capture adapter | **Implemented** |
 | *PeopleSoft: Show Local Discoveries* (extension) | **Implemented**; exercised against the bundled extension with a stub `vscode`, not yet in a VS Code window |
-| Central server, registry, verification workflow | Proposed (phases 2, 4) |
+| Client/server contract (JSON Schema + fingerprint vectors) | **Implemented**; drift-tested on both sides |
+| Central server MVP (`server/intelligence/`): submit, get, pending, tokens, audit, limits | **Implemented** (phase 2), tested on SQLite and PostgreSQL; run locally with this repository's findings. Local only |
+| Verification workflow, reviews, publication | Proposed (phase 4) |
 | Discovery Center UI, submission review, uploads | Proposed (phase 3) — **nothing is uploaded today** |
 | Signed knowledge bundles, sync | Proposed (phase 4) |
 | MCP knowledge tools | Proposed (phase 5) |

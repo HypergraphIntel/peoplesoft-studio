@@ -26,7 +26,15 @@ earlier one teaches something (record it in DECISIONS.md).
 - [x] Unit tests (`src/test/intelligence.test.ts`); offline by construction (tested).
 - [x] First research findings recorded from captures with evidence.
 
-## Phase 2 — Intelligence server MVP
+## Phase 2 — Intelligence server MVP — DONE (2026-10-13)
+
+- [x] Contract exported (`tools/intelligence/export-contract.mts`), drift-tested in TS; vectors reproduced byte for byte in Python.
+- [x] `server/intelligence/`: FastAPI, SQLAlchemy 2 / psycopg 3, PostgreSQL 16 via compose (localhost).
+- [x] `POST /findings` (schema + privacy re-checked; created / merged / duplicate as the local store), `GET /findings/{id}`, `GET /discoveries/pending` (reviewer, keyset pages), `GET /health`, OpenAPI at `/docs`.
+- [x] Tokens hashed, roles contributor / reviewer / admin, admin CLI; audit table; 256 KB and 120/min limits; problem+json errors without values.
+- [x] pytest: 39 on PostgreSQL (incl. 12-way concurrent submission), 38 + 1 skipped on SQLite; CI workflow.
+- [x] Run locally: this repository's 4 findings submitted, same IDs and statuses as the local store.
+- Deferred: `POST /validation-results`, contributor withdrawal, reviews (phase 4); Alembic (D10); a shared rate limiter; a container image.
 
 Acceptance: `server/intelligence/` runs locally (compose); `POST
 /findings` validates against the exported JSON Schema, re-runs the privacy
