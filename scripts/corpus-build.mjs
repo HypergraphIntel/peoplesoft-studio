@@ -1,17 +1,18 @@
 // Builds a calibration corpus: every PeopleCode program that appears in a
 // project export (which carries plain-text source) paired with its real
 // PSPCMPROG bytes and PSPCMNAME table from the database. Writes JSON to the
-// path given as the first argument.
+// path given as the first argument; the project exports (.XML) are the rest:
+//   node scripts/corpus-build.mjs <out.json> <export.XML>...
 import { writeFileSync } from 'node:fs';
 import oracledb from 'oracledb';
 import { ProjectFileProvider } from '../dist-test/providers/projectFile.js';
 import { isPeopleCode } from '../dist-test/model/definitions.js';
 
-const OUT = process.argv[2];
-const EXPORTS = [
-  'scripts/ZZ_WEBLIBS_JN/ZZ_WEBLIBS_JN.XML',
-  'scripts/ZZ_CUSTOM_LANDINGPAGE_JN/ZZ_CUSTOM_LANDINGPAGE_JN.XML'
-];
+const [OUT, ...EXPORTS] = process.argv.slice(2);
+if (!OUT || EXPORTS.length === 0) {
+  console.error('usage: node scripts/corpus-build.mjs <out.json> <export.XML>...');
+  process.exit(2);
+}
 
 oracledb.outFormat = oracledb.OUT_FORMAT_OBJECT;
 oracledb.fetchAsBuffer = [oracledb.BLOB];

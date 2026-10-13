@@ -27,3 +27,5 @@ dist-test/
 /.claude/settings.json
 /.claude/settings.local.json
 /tools/intelligence/tasks/
+/tools/corpus/appclass-metadata/manifest.local.txt
+/tools/corpus/appclass-metadata/required-classes.local.txt

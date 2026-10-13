@@ -4,6 +4,7 @@
 # (564 absent receiver classes less 28 %metadata system classes). The seed of
 #   npx tsx tools/corpus/capture-appclass-metadata.ts --paths <this file> --out <json> --transitive --corpus-paths
 # whose fixed point (3,178 classes since Cycle 168) manifest.txt records.
+# An institution's own classes are listed in the gitignored required-classes.local.txt beside this file; the tool reads both.
 ptwidgets:treegrid
 pt_conqrs:conqrsmgr
 ptib_package:mobileurlparams
@@ -46,9 +47,6 @@ eoaw_emc:utils
 eoen_event_manager:base:baseevent
 eoen_event_manager:base:types:exceptiontype
 g3form:reports:report
-zz_ib_monitor:asyncpublishmonitor
-zz_laserfiche_api:import:import
-zz_pageup_api:hire:offer
 fm_ps_esp:psformprocessor
 hr_direct_reports:directreports
 bn_costs:optioninput
@@ -116,7 +114,6 @@ hmap_approval:object:approvalitem
 hmap_approval:object:itemregistryentry
 hmcc_tree:treediff
 hr_direct_reports:employeeselectionapi
-zz_pageup_api:pageup
 pt_conqrs:conqrsxslt
 pt_pm_treenode:treenode
 pt_pm_treenode:usertreenode
@@ -256,7 +253,6 @@ hr_person_data:person_bio_nid
 hrrc_notifications:hrrc_notifications
 hrs_common:common:list:listmanager
 hrs_toolbar:commonrstoolbar
-zz_pageup_api:datamodels:employeeaccess
 pt_analyticmodeldefn:ruledefn
 pt_analyticmodeldefn:userfunctiondefn
 pt_conqrs:queryitemprompt
@@ -391,11 +387,6 @@ hrtr_utilities:stringhashtable
 hs_fl:utilities:vaccineconfig
 hs_utility:timezone
 jpm_common_profile_search:commonprofilesearchui
-zz_pageup_api:datamodels:employeeineligibleperfreview
-zz_pageup_api:datamodels:employeelocation
-zz_pageup_api:datamodels:employeeposition
-zz_pageup_api:datamodels:employeesuccession
-zz_pageup_api:utility:base
 payment:installment
 position_utilities:aweutilities
 pt_ace_conversion:pt_ace_converter

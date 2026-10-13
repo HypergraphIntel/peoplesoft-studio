@@ -23,7 +23,8 @@
  *     npx tsx tools/corpus/capture-appclass-metadata.ts --import <json>
  *   manifest  (offline) the snapshot's captured classes, one line each:
  *             path, program sha256 / length, name rows sha256 / count;
- *             --check-manifest compares them with a committed manifest.
+ *             --check-manifest compares them with a committed manifest (plus its
+ *             gitignored .local.txt, the institution's own classes, when present).
  *     npx tsx tools/corpus/capture-appclass-metadata.ts --manifest [<out>]
  *     npx tsx tools/corpus/capture-appclass-metadata.ts --check-manifest tools/corpus/appclass-metadata/manifest.txt
  *
@@ -227,7 +228,10 @@ async function main(): Promise<void> {
   }
   const checkFile = option('--check-manifest');
   if (checkFile !== undefined) {
-    const expected = fs.readFileSync(checkFile, 'utf8').split('\n').filter(line => line.trim() !== '' && !line.startsWith('#'));
+    // Classes the public manifest leaves out (an institution's own) live in a gitignored <name>.local.txt beside it.
+    const localFile = checkFile.replace(/\.txt$/, '.local.txt');
+    const read = (f: string) => fs.readFileSync(f, 'utf8').split('\n').filter(line => line.trim() !== '' && !line.startsWith('#'));
+    const expected = [...read(checkFile), ...(localFile !== checkFile && fs.existsSync(localFile) ? read(localFile) : [])];
     const actual = capturedApplicationClassManifest(listSnapshotCapturedApplicationClasses(openSnapshotDatabase()));
     const missing = expected.filter(line => !actual.includes(line));
     const extra = actual.filter(line => !expected.includes(line));
@@ -247,7 +251,10 @@ async function main(): Promise<void> {
   if (pathsFile === undefined || out === undefined) throw new Error('usage: --paths <file> --out <json> [--transitive] [--corpus-paths] | --import <json> | --manifest [<out>] | --check-manifest <file>');
   const db = openSnapshotDatabase();
   const corpusClasses = new Set(listSnapshotApplicationClassDefinitions(db).map(d => d.path.join(':').toLowerCase()));
-  const listed = fs.readFileSync(pathsFile, 'utf8').split('\n').map(line => line.replace(/#.*/, '').trim());
+  // An institution's own classes may be listed in a gitignored <name>.local.txt beside the paths file.
+  const localPaths = pathsFile.replace(/\.txt$/, '.local.txt');
+  const listed = [pathsFile, ...(localPaths !== pathsFile && fs.existsSync(localPaths) ? [localPaths] : [])]
+    .flatMap(f => fs.readFileSync(f, 'utf8').split('\n')).map(line => line.replace(/#.*/, '').trim());
   const requested = [...listed, ...(args.includes('--corpus-paths') ? corpusNamedClassPaths(db) : [])]
     .filter(p => p !== '' && !corpusClasses.has(p.toLowerCase()));
   const existing: ApplicationClassCaptureFile = fs.existsSync(out) ? JSON.parse(fs.readFileSync(out, 'utf8')) : { captured: [], absent: [] };

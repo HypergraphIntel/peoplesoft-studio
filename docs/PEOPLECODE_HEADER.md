@@ -79,7 +79,7 @@ anchors every section: 193 bytes = 37 + 112 statement bytes + 24 name bytes +
 Reproduce the full-buffer audit after `npm test` (which emits dist-test):
 
 ```sh
-node scripts/corpus-build.mjs /tmp/peoplesoft-header-corpus.json
+node scripts/corpus-build.mjs /tmp/peoplesoft-header-corpus.json <project export .XML>...
 node scripts/corpus-header.mjs /tmp/peoplesoft-header-corpus.json
 ```
 
