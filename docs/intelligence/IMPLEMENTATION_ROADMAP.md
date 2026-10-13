@@ -88,7 +88,8 @@ local findings; bundles are declarative and cannot change gates.
 - [x] `psft_discovery_list` / `_get` / `_record`, `psft_knowledge_capability` / `_compatibility` / `_evidence` (`src/mcp/discoveryTools.ts`).
 - [x] Capability answers VERIFIED / UNVERIFIED / UNSUPPORTED / UNKNOWN / CONFLICTING with provenance and the connection's release (`src/intelligence/capability.ts`, D18); no permission in any answer (tested).
 - [x] Verified by calling the registered handlers with the extension's stores (list, get, capability, compatibility, evidence; record refused with writes off, refused on decline, created on approval, refused by the privacy scan).
-- [ ] Customization planning, Page Designer and App Engine planning consult it.
+- [x] Customization planning consults it: the Strategy view's Event Mapping row and `psft_customization_discover` (`knowledgeFor()`; live on HRDMO).
+- [ ] Page Designer and App Engine planning consult it.
 - [ ] Exercised from a real MCP client (the installed extension's server).
 
 Acceptance: `psft_discovery_*` and `psft_knowledge_*` tools

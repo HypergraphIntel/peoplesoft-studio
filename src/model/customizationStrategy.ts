@@ -158,7 +158,14 @@ function ownershipRows(ctx: CustomizationContext, policy: CustomizationPolicy, o
 export type CapabilitiesState =
   | { state: 'pending' }
   | { state: 'unavailable'; message: string }
-  | { state: 'done'; eventMapping?: EventMappingDiscovery };
+  | { state: 'done'; eventMapping?: EventMappingDiscovery; knowledge?: KnowledgeSummary };
+
+/** What recorded and verified knowledge says about Event Mapping on the connection's release (docs/intelligence, D18): information, never permission. */
+export interface KnowledgeSummary {
+  answer: 'VERIFIED' | 'UNVERIFIED' | 'UNSUPPORTED' | 'UNKNOWN' | 'CONFLICTING';
+  release?: string;
+  findings: Array<{ id: string; title: string; source: 'published' | 'local'; status: string }>;
+}
 
 const STATE_ICONS: Readonly<Record<DiscoveryState, string>> = {
   UNKNOWN: 'circle-large-outline', POTENTIAL: 'circle-large-outline', VERIFIED_AVAILABLE: 'pass', VERIFIED_UNAVAILABLE: 'circle-slash', INDETERMINATE: 'warning'
@@ -179,6 +186,13 @@ function capabilityRow(f: Framework, caps: CapabilitiesState | undefined, connec
     tooltip: `${info.purpose}.\n${d.evidence.join('\n')}`,
     children: [
       ...d.evidence.map((line, i) => ({ id: `capability.${f}.evidence.${i}`, label: line, icon: 'debug-stackframe-dot', muted: true, tooltip: line })),
+      ...(caps.knowledge && caps.knowledge.answer !== 'UNKNOWN' ? [{
+        id: `capability.${f}.knowledge`, label: `Knowledge: ${caps.knowledge.answer}${caps.knowledge.release ? ` on PeopleTools ${caps.knowledge.release}` : ''}`,
+        description: `${caps.knowledge.findings.length} finding${caps.knowledge.findings.length === 1 ? '' : 's'}`,
+        icon: caps.knowledge.answer === 'VERIFIED' ? 'verified' : caps.knowledge.answer === 'UNSUPPORTED' || caps.knowledge.answer === 'CONFLICTING' ? 'warning' : 'beaker',
+        tooltip: `What PeopleSoft Studio's recorded findings say about Event Mapping on this release (information, never permission):\n${caps.knowledge.findings.map((k) => `• ${k.title} (${k.source}, ${k.status})`).join('\n')}`,
+        command: { id: 'psft.intelligence.showDiscoveries' }
+      }] : []),
       // Configure Event Mapping on each content reference the component is registered as (editors/eventMappingPanel.ts).
       ...(connectionId ? d.contentReferences.map((c) => ({
         id: `capability.${f}.configure.${c.portal}.${c.name}`, label: `Configure Event Mapping…`, description: `${c.label} · ${c.name}`, icon: 'edit',

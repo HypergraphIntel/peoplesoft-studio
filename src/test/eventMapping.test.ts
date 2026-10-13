@@ -66,3 +66,17 @@ test('the view opens the Event Mapping editor on each content reference, and fro
   const off = all(strategySections({ type: DefinitionType.Component, name: 'DEPEND_BENEF' }, policy, false, undefined, caps));
   assert.equal(off.filter((r) => r.id.startsWith('capability.EVENT_MAPPING.configure.')).length, 0);
 });
+
+test('the Event Mapping row shows what recorded knowledge says on the release -- information, with its findings', () => {
+  const policy: CustomizationPolicy = { prefixes: [], defaultStrategy: 'configurationFirst', deliveredObjectPolicy: 'allowWithAudit', agentDeliveredObjectPolicy: 'requireApproval' };
+  const all = (rows: StrategyRow[]): StrategyRow[] => rows.flatMap((r) => [r, ...all(r.children ?? [])]);
+  const ctx = { type: DefinitionType.Component, name: 'DEPEND_BENEF', connection: 'HRDMO', connectionId: 'c1' };
+  const em = discoveryFor('DEPEND_BENEF.GBL', [CREF], DEP, 325);
+  const knowledge = { answer: 'UNVERIFIED' as const, release: '8.62.09', findings: [{ id: 'f-e3a3f17f095c20582322485d', title: 'Every row re-saved', source: 'local' as const, status: 'reproduced' }] };
+  const row = all(strategySections(ctx, policy, false, undefined, { state: 'done', eventMapping: em, knowledge })).find((r) => r.id === 'capability.EVENT_MAPPING.knowledge')!;
+  assert.equal(row.label, 'Knowledge: UNVERIFIED on PeopleTools 8.62.09');
+  assert.equal(row.description, '1 finding');
+  assert.match(row.tooltip!, /never permission[\s\S]*Every row re-saved \(local, reproduced\)/);
+  const none = all(strategySections(ctx, policy, false, undefined, { state: 'done', eventMapping: em, knowledge: { answer: 'UNKNOWN', findings: [] } }));
+  assert.equal(none.find((r) => r.id === 'capability.EVENT_MAPPING.knowledge'), undefined, 'nothing known: no row');
+});

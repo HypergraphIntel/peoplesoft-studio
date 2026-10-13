@@ -4,6 +4,7 @@ import * as z from 'zod/v4';
 import { decideWrite, OWNERSHIP_LABELS } from '../model/ownership.js';
 import { describeMapping, EVENT_LEVEL_LABELS, eventLabel, PROCESSING_LABELS, type EventLevel } from '../model/eventMapping.js';
 import { DatabaseProvider } from '../providers/database.js';
+import { knowledgeFor } from '../intelligenceCommands.js';
 import { effectivePolicy } from '../providers/writeGuard.js';
 import { Workspace } from '../workspace.js';
 import { jsonResult, keyFromInput, requireProvider } from './tools.js';
@@ -75,6 +76,8 @@ export function registerCustomizationTools(server: McpServer, workspace: Workspa
           processing: PROCESSING_LABELS[m.processing] ?? m.processing, sequence: m.sequence, enabled: m.enabled, savedBy: m.operator, savedAt: m.updated
         }))
       } : { state: 'NOT_APPLICABLE', evidence: ['Event Mapping maps components\' events: it applies to components, pages, records and their PeopleCode.'] },
+      ...(em ? { knowledge: await knowledgeFor({ subsystem: 'event-mapping' }, p).then((k) => k ?? { answer: 'UNKNOWN', findings: [] }).catch(() => ({ answer: 'UNKNOWN', findings: [] })),
+        knowledgeNote: 'What recorded findings say about Event Mapping on this connection\'s release (psft_knowledge_capability for details): information, never permission.' } : {}),
       notDiscoveredYet: ['Drop Zones', 'Page and Field Configurator', 'Configurable Search', 'App Engine Plug-ins']
     });
   });

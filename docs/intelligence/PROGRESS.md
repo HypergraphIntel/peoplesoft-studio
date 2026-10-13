@@ -13,7 +13,10 @@ Last updated 2026-10-13 (phase 5). The founding directive: `CUSTOMIZATION_INTEL_
   window. Evidence below.
 - **Phase 4 (verification, distribution): done** but for a production
   signing key (none is trusted: every bundle is refused). Evidence below.
-- **Phase 5 (MCP): tools done**; planning features do not consult them yet.
+- **Phase 5 (MCP): done** — six tools; the Customization Strategy view's
+  Event Mapping row and `psft_customization_discover` show the knowledge
+  answer for the connection's release (live on HRDMO: UNVERIFIED on 8.62,
+  three local findings). Page Designer and App Engine planning: not yet.
 - **Phase 6 (development automation): not started.**
 - **Nothing leaves by default.** Submissions need four gates (D13) and the
   user's approval of the exact payloads. The server has run only on localhost.
@@ -128,13 +131,10 @@ fingerprint; server: see `server/intelligence/README.md`.
 1. **Open the Discovery Center in a real VS Code window** (install the
    built VSIX): the view, a panel, the review; with the local server, one
    submission.
-2. **Planning consults knowledge**: the Customization Strategy view's
-   Event Mapping capability row and `psft_customization_discover` show the
-   matching findings' answer for the connection's release (information only).
-3. **Phase 6 start**: a script turning a verified (or reproduced) finding
+2. **Phase 6 start**: a script turning a verified (or reproduced) finding
    into a GitHub issue body and a regression-fixture stub (dry-run output;
    creating issues needs the owner's go-ahead and least-privilege token).
-4. A lab-e2e adapter (`testResults` from `tools/lab/*-e2e.mts`).
+3. A lab-e2e adapter (`testResults` from `tools/lab/*-e2e.mts`).
 4. Owner decisions: the production signing key (generate offline, add to
    `trustedKeys.ts` in a release); the retention policy (SECURITY_PRIVACY.md)
    before uploads are used outside this project.

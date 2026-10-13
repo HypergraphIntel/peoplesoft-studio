@@ -4,9 +4,10 @@ import type { EventMappingConfigRow } from '../model/eventMapping.js';
 import { EventMappingPanel, setEventMappingExtensionUri } from '../editors/eventMappingPanel.js';
 import { SERVICE_NAME_MAX, validateServiceRequest } from '../providers/rcServiceWriter.js';
 import {
-  DESIGNER_TYPES, nameFromTitle, strategySections, type CapabilitiesState, type CustomizationContext, type CustomizationPolicy, type OwnershipState, type StrategyRow
+  DESIGNER_TYPES, nameFromTitle, strategySections, type CapabilitiesState, type CustomizationContext, type KnowledgeSummary, type CustomizationPolicy, type OwnershipState, type StrategyRow
 } from '../model/customizationStrategy.js';
 import { DatabaseProvider } from '../providers/database.js';
+import { knowledgeFor } from '../intelligenceCommands.js';
 import { CustomizationPlanPanel } from '../editors/customizationPlanPanel.js';
 import { SCHEME } from '../util/uri.js';
 import type { Workspace } from '../workspace.js';
@@ -22,6 +23,16 @@ import { normalizePrefixes } from '../model/ownership.js';
  * is classified from the database's evidence (model/ownership.ts); capability
  * discovery is not implemented yet, so capabilities show as unknown, greyed.
  */
+
+/** What the discovery engine knows about Event Mapping on the connection's release (best effort: none when unavailable). */
+async function eventMappingKnowledge(provider: DatabaseProvider): Promise<{ knowledge?: KnowledgeSummary }> {
+  try {
+    const knowledge = await knowledgeFor({ subsystem: 'event-mapping' }, provider);
+    return knowledge ? { knowledge } : {};
+  } catch {
+    return {};
+  }
+}
 
 export function readCustomizationPolicy(): CustomizationPolicy {
   const c = vscode.workspace.getConfiguration('peoplesoft.customization');
@@ -98,7 +109,7 @@ export class CustomizationStrategyView implements vscode.TreeDataProvider<Strate
     const pending: CapabilitiesState = { state: 'pending' };
     this.capabilities.set(id, pending);
     provider.discoverCapabilities({ type: ctx.type, parts: ctx.parts ?? [ctx.name] })
-      .then((r) => this.capabilities.set(id, { state: 'done', ...r }))
+      .then(async (r) => this.capabilities.set(id, { state: 'done', ...r, ...(r.eventMapping ? await eventMappingKnowledge(provider) : {}) }))
       .catch((error) => this.capabilities.set(id, { state: 'unavailable', message: `Discovery failed: ${error instanceof Error ? error.message : String(error)}` }))
       .finally(() => { if (this.capabilities.get(id) !== pending) this.changed.fire(); });
     return pending;

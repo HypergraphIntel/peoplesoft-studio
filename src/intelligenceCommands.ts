@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { readFile } from 'node:fs/promises';
-import { DiscoveryInputError, DiscoveryStore, KnowledgeStore, PrivacyRejectedError, TRUSTED_KNOWLEDGE_KEYS } from './intelligence/index.js';
+import {
+  answerCapability, DiscoveryInputError, DiscoveryStore, KnowledgeStore, PrivacyRejectedError, TRUSTED_KNOWLEDGE_KEYS,
+  type CapabilityQuestion, type CapabilityResult, type Finding
+} from './intelligence/index.js';
 import { DiscoveryPanel, DiscoveryTree, discoverySources, TOKEN_KEY, type DiscoverySource } from './views/discoveryView.js';
 
 /*
@@ -38,6 +41,22 @@ export interface IntelligenceAccess {
 
 let access: IntelligenceAccess | undefined;
 export function intelligenceAccess(): IntelligenceAccess | undefined { return access; }
+
+/**
+ * The capability answer for a question on a connection's PeopleTools release, summarized
+ * (for the Customization Strategy view and psft_customization_discover). Undefined before activation.
+ */
+export async function knowledgeFor(q: Omit<CapabilityQuestion, 'release'>, provider?: { databaseRelease(): Promise<{ toolsRelease: string }> }): Promise<{
+  answer: CapabilityResult['answer']; release?: string; findings: Array<{ id: string; title: string; source: 'published' | 'local'; status: string }>;
+} | undefined> {
+  if (!access) return undefined;
+  const release = provider ? (await provider.databaseRelease()).toolsRelease.trim() || undefined : undefined;
+  const local: Finding[] = [];
+  for (const s of await access.sources()) for (const x of await s.store.list()) { const f = await s.store.get(x.id); if (f) local.push(f); }
+  const installed = await (await access.knowledge()).current();
+  const r = answerCapability({ ...q, ...(release ? { release } : {}) }, local, installed?.ok ? installed.bundle : undefined);
+  return { answer: r.answer, ...(r.release ? { release: r.release } : {}), findings: r.evidence.map((e) => ({ id: e.id, title: e.title, source: e.source, status: e.status })) };
+}
 
 export function registerIntelligenceCommands(context: vscode.ExtensionContext): void {
   const sources = discoverySources(() => discoveryStore(context));
