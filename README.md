@@ -1,20 +1,54 @@
-
-
-A note from the developer:
-
-**October 9, 2026**
-This extension is **under active development**, expect updates every couple days if not daily.
-
-
 # PeopleSoft Studio
 
-VS Code extension for **viewing and editing** PeopleSoft definitions — PeopleCode, records, fields, pages, components, SQL, HTML, style sheets and related objects — from a PeopleSoft database (Oracle; SQL Server and DB2 experimental) or an Application Designer project export. On connections you set to Writable, definitions are **saved natively** to the database, writing the same rows Application Designer writes (see [Saving PeopleCode](#saving-peoplecode-experimental) and the table below).
+**PeopleSoft development in VS Code.** Open, edit and save PeopleCode, records,
+pages, components, App Engine programs and the rest of Application Designer's
+definitions, and let AI agents work on them through a built-in MCP server.
 
-> **Please read the [Disclaimer](#disclaimer) before saving anything to a database.**
+PeopleSoft Studio connects to a PeopleSoft database (Oracle; SQL Server and DB2
+experimental) or opens an Application Designer project export. Every connection
+is read-only until you make it writable; then definitions are saved natively,
+writing the same rows Application Designer writes.
 
-PeopleSoft Studio includes its own MCP server and does not require PeopleTools 8.63 MCP. When the delivered PeopleTools 8.63 MCP is available, PeopleSoft Studio can use it as a backend for supported operations.
+> **Status:** under active development, with new builds every few days. Saving
+> is experimental: read the [Disclaimer](#disclaimer) before writing to any
+> database.
 
-AI agent compatibility in both directions:
+![The Page designer: JOB_DATA1's Layout view with the Page Properties panel](docs/images/page-designer.png)
+
+## Why PeopleSoft Studio
+
+- **Your definitions, in the editor you already use.** PeopleCode with
+  completion, hover and outline. App Designer's record, field, page, component,
+  menu, Component Interface, App Engine and message channel windows, rebuilt as
+  VS Code editors. SQL, HTML and style sheets as plain text.
+- **Saves Application Designer recognizes.** Each writer reproduces rows
+  captured from Application Designer 8.62.09 saves, column for column, and its
+  tests replay those captures. Application Designer opens and edits what
+  PeopleSoft Studio writes.
+- **A PeopleCode compiler checked at scale.** Its own compiler reproduces
+  PeopleTools' stored bytecode for 30,205 of the 30,209 programs in a full HCM
+  database, and matches PeopleTools 8.62.09 on all 30,067 programs compared.
+- **Built for AI agents.** A local MCP server gives Claude Code, Codex or any
+  MCP client the same reads and writes as the editors, each write approved by
+  you in VS Code by default. On PeopleTools 8.63 it can delegate to Oracle's
+  delivered MCP.
+- **Safe by default.** Read-only connections, delivered-object policies that
+  block or ask before Oracle's definitions are changed, an audit log, and a
+  report of the rows every save replaced.
+- **Knows what is yours.** Every definition is classified Delivered, Delivered
+  modified, Partner or Custom, with its evidence, and Event Mapping is
+  discovered and configured the way PeopleTools' own page does it.
+
+![The App Engine Designer: BEN110's sections, steps and actions with the section's properties](docs/images/app-engine-designer.png)
+
+![The Customization Strategy view and the Customization Plan for BEN110](docs/images/customization-strategy.png)
+
+## AI agents
+
+PeopleSoft Studio includes its own MCP server and does not require PeopleTools
+8.63 MCP. When the delivered PeopleTools 8.63 MCP is available, PeopleSoft
+Studio can use it as a backend for supported operations. AI agent
+compatibility in both directions:
 
 ```text
 PeopleTools 8.63+
