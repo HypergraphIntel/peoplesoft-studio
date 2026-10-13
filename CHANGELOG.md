@@ -23,6 +23,10 @@
   other definition reference (`Record.JOB`, `Page.X`, an application class, ...)
   shows its type, description and when it was last changed. Built-in functions,
   keywords and system variables still show their static help.
+- **Find All References** (Shift+F12 / the editor's references peek) for the
+  identifier under the cursor, the same engine as the *Find References* command
+  (one PSPCMTXT search on a database, a bounded scan on a project export), now
+  without the input box.
 
 ## 0.8.6 — 2026-10-13
 

@@ -400,6 +400,9 @@ export function createStub() {
       registerDefinitionProvider(_selector, _provider) {
         return new Disposable(() => {});
       },
+      registerReferenceProvider(_selector, _provider) {
+        return new Disposable(() => {});
+      },
       registerDocumentSymbolProvider(_selector, _provider) {
         return new Disposable(() => {});
       }
