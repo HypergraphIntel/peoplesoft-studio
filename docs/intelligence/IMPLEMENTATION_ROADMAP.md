@@ -99,7 +99,13 @@ existing write gates unchanged (tests prove a verified finding does not
 open a gate); customization planning, Page Designer and App Engine planning
 consult it.
 
-## Phase 6 — Development automation
+## Phase 6 — Development automation — STARTED (2026-10-13): dry run only
+
+- [x] `engineeringTask()` (`src/intelligence/engineering.ts`): issue title, labels, body (claim, facts, scope, evidence, acceptance criteria from the evidence) and a runnable regression fixture (each capture still shows the recorded counts).
+- [x] `tools/intelligence/engineering-task.mts <id> [--write-fixture]`: writes the body to `tools/intelligence/tasks/` (gitignored), prints the `gh issue create` command for a person to run after review; files nothing.
+- [x] First fixture: `src/test/discovery-f-e3a3f17f095c20582322485d.test.ts` (3 tests pass).
+- [ ] Filing issues from CI with a least-privilege token — the owner's decision.
+- [ ] Pull-request preparation for human review.
 
 Acceptance: verified findings generate GitHub issues and regression
 fixtures through the existing workflow with least privilege; pull requests
@@ -108,5 +114,6 @@ automatically.
 
 ## Adapters (any phase)
 
-Lab e2e results, the controlled compile lab, writer replay tests, the
-corpus harness (derived facts only) — DISCOVERY_PROTOCOL.md "Adapters".
+Implemented: save captures, lab end-to-end runs (`adapters/labRun.ts`,
+CLI `lab-run`). Proposed: the controlled compile lab, writer replay tests,
+the corpus harness (derived facts only) — DISCOVERY_PROTOCOL.md "Adapters".

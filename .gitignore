@@ -26,3 +26,4 @@ dist-test/
 # Personal Claude Code settings (permission allowlist) -- local only.
 /.claude/settings.json
 /.claude/settings.local.json
+/tools/intelligence/tasks/

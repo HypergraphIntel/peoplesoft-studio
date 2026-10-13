@@ -17,7 +17,10 @@ Last updated 2026-10-13 (phase 5). The founding directive: `CUSTOMIZATION_INTEL_
   Event Mapping row and `psft_customization_discover` show the knowledge
   answer for the connection's release (live on HRDMO: UNVERIFIED on 8.62,
   three local findings). Page Designer and App Engine planning: not yet.
-- **Phase 6 (development automation): not started.**
+- **Phase 6 (development automation): started, dry run only** —
+  `tools/intelligence/engineering-task.mts` writes an issue body and a
+  regression fixture from a finding and prints the `gh` command; it files
+  nothing. First fixture: `src/test/discovery-f-e3a3f17f095c20582322485d.test.ts`.
 - **Nothing leaves by default.** Submissions need four gates (D13) and the
   user's approval of the exact payloads. The server has run only on localhost.
 
@@ -125,19 +128,25 @@ fingerprint; server: see `server/intelligence/README.md`.
 | f-76b320392022a312cd7d7562 | PSADSTRACKING.PTKEYHASH algorithm | observed |
 | f-5731b0851774a312b6aa05af | PTCS_ISCOMPSERVICE level codes vs PSXLATITEM labels | observed |
 | f-7e8ece79e395dbb863bc93e5 | Defining a service: RCSDM +1 PSVERSION, +2 PSLOCK (em01) | observed |
+| f-ad18a114ff35fcdc4d8920ef | Studio's Event Mapping writer writes what the page writes (roundtrip, live e2e) | observed |
 
 ## Resume: next tasks, in order
 
 1. **Open the Discovery Center in a real VS Code window** (install the
    built VSIX): the view, a panel, the review; with the local server, one
    submission.
-2. **Phase 6 start**: a script turning a verified (or reproduced) finding
-   into a GitHub issue body and a regression-fixture stub (dry-run output;
-   creating issues needs the owner's go-ahead and least-privilege token).
-3. A lab-e2e adapter (`testResults` from `tools/lab/*-e2e.mts`).
-4. Owner decisions: the production signing key (generate offline, add to
+2. **Page Designer and App Engine planning consult knowledge** (as the
+   customization view does): record the page-save and App Engine rules
+   already proven in `docs/PAGE_SAVE.md` / `docs/APP_ENGINE*.md` as findings
+   with their capture evidence first — only where the evidence is in hand.
+3. Adapters for the controlled compile lab and writer replay tests.
+4. Filing issues / preparing pull requests from CI: the owner's decision
+   and a least-privilege token.
+5. Owner decisions: the production signing key (generate offline, add to
    `trustedKeys.ts` in a release); the retention policy (SECURITY_PRIVACY.md)
    before uploads are used outside this project.
+
+Phase 6 commands: `npx tsx tools/intelligence/engineering-task.mts <id> [--write-fixture]`.
 
 **Do not repeat:** reconnaissance; recording the 4 findings; the contract
 export (regenerate only after a schema change); the phase 3 bundle-driven

@@ -21,7 +21,7 @@ root. These pages are the design and the record of what exists.
 | Uploads | **Off by default**; only after four gates (D13) and the user's approval of the exact payloads |
 | Signed knowledge bundles, verification, controlled download | **Implemented** (phase 4); **no signing key is trusted yet**, so every bundle is refused |
 | MCP discovery and knowledge tools | **Implemented** (phase 5): six tools; not yet consulted by planning features |
-| GitHub / development automation | Proposed (phase 6) |
+| Development automation: issue body and regression fixture from a finding | **Started** (phase 6): dry run only — nothing is filed |
 
 ## Pages
 

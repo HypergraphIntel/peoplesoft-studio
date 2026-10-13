@@ -1,0 +1,165 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-ad18a114ff35fcdc4d8920ef",
+  "fingerprint": "ad18a114ff35fcdc4d8920ef840bcc29f1846dbc86513db3c3a0bc1dda18a8cb",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "event-mapping",
+    "objectType": "Event Mapping configuration",
+    "tables": [
+      "PSPTCSSRVCONF",
+      "PSPTCS_SRVCFG",
+      "PSPTCS_MAPFLDS"
+    ]
+  },
+  "assertion": {
+    "kind": "writer-matches-native",
+    "facts": {
+      "writer": "eventMappingWriter",
+      "native": "PTCSSERVICES.PT_EVMAPPING_FL",
+      "rowsResaved": true,
+      "tombstones": true,
+      "counters": "SCNFM,RCSCM,RCSDM,SYS",
+      "tracking": "PSADSTRACKING"
+    }
+  },
+  "title": "PeopleSoft Studio's Event Mapping writer writes what the Configure Event Mapping page writes",
+  "statement": "On a lab content reference, saves through DatabaseProvider.saveEventMappingConfiguration produce the page's rows, VERSIONs, tombstones, counter moves and tracking rows as captured in em03-em08: configure, edit, an unchanged save (nothing written) and remove.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T00:53:14.135Z",
+      "method": "live-e2e",
+      "experimentId": "event-mapping-e2e",
+      "runId": "2026-10-13a",
+      "environment": {
+        "peopleToolsRelease": "8.62",
+        "tool": "PeopleSoft Studio"
+      },
+      "observation": "The live end-to-end proof's configure, edit, unchanged and remove checks all passed against HRDMO.",
+      "actual": "24 passed, 0 failed",
+      "testResults": [
+        {
+          "name": "configure: a dry run writes nothing",
+          "outcome": "pass"
+        },
+        {
+          "name": "configure: PSPTCS_SRVCFG as the page adds it",
+          "outcome": "pass"
+        },
+        {
+          "name": "configure: four rows at SCNFM+1..+4, stamped",
+          "outcome": "pass"
+        },
+        {
+          "name": "configure: the columns per level",
+          "outcome": "pass"
+        },
+        {
+          "name": "configure: new rows blank but IS_DEFAULT N [em04]",
+          "outcome": "pass"
+        },
+        {
+          "name": "configure: instance IDs as the page draws them (>= 1,000,000, distinct)",
+          "outcome": "pass"
+        },
+        {
+          "name": "configure: one mapping, the parameter uppercased [em04]",
+          "outcome": "pass"
+        },
+        {
+          "name": "configure: the service mapped first time gets EV_PARAM, its VERSION the next RCSDM",
+          "outcome": "pass"
+        },
+        {
+          "name": "configure: SCNFM +4, RCSCM +1, SYS +5",
+          "outcome": "pass"
+        },
+        {
+          "name": "configure: PSLOCK moved by the same steps",
+          "outcome": "pass"
+        },
+        {
+          "name": "configure: tracking rows, PIA's hashes",
+          "outcome": "pass"
+        },
+        {
+          "name": "configure: the tombstones left alone (the page keeps them [em08])",
+          "outcome": "pass"
+        },
+        {
+          "name": "edit: a dry run writes nothing",
+          "outcome": "pass"
+        },
+        {
+          "name": "edit: three rows re-saved at SCNFM+1..+3, the tombstone at +4 [em06]",
+          "outcome": "pass"
+        },
+        {
+          "name": "edit: the parameter changed, the component row disabled",
+          "outcome": "pass"
+        },
+        {
+          "name": "edit: SCNFM +4, SYS +4, RCSCM and RCSDM unmoved",
+          "outcome": "pass"
+        },
+        {
+          "name": "edit: the removed row's tracking kept and refreshed [em06]",
+          "outcome": "pass"
+        },
+        {
+          "name": "unchanged: a dry run writes nothing",
+          "outcome": "pass"
+        },
+        {
+          "name": "unchanged: nothing written",
+          "outcome": "pass"
+        },
+        {
+          "name": "remove: no rows left",
+          "outcome": "pass"
+        },
+        {
+          "name": "remove: SCNFM +3 (a tombstone each), RCSCM +1 (the content reference's), SYS +4",
+          "outcome": "pass"
+        },
+        {
+          "name": "remove: PSPTCSSRVCFGDEL at the new RCSCM",
+          "outcome": "pass"
+        },
+        {
+          "name": "remove: RCF_SERVICE_CREFS tracking dropped, RCF_SERVICES kept [em07]",
+          "outcome": "pass"
+        },
+        {
+          "name": "remove: the services keep EV_PARAM",
+          "outcome": "pass"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "tools/lab/event-mapping-e2e.mts"
+        }
+      ],
+      "digest": "35fc7185e38b1548c593b91718694f2ec5e68b6972938e7d4312513a4ed81eb7"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T00:53:14.142Z",
+    "updatedAt": "2026-10-13T00:53:14.142Z",
+    "schemaVersion": 1
+  }
+}

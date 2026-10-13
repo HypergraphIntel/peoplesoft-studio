@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import {
-  answerCapability, decideUpload, DiscoveryInputError, KNOWLEDGE_NEVER_GRANTS, DiscoveryStore, keyIdOf, KnowledgeStore, policyFileLocations, TRUSTED_KNOWLEDGE_KEYS, verifyEnvelope, findingFingerprint, observationDigest, observationFromCapture, previewSubmission, PrivacyRejectedError,
+  answerCapability, decideUpload, engineeringTask, observationFromLabRun, parseLabRun, DiscoveryInputError, KNOWLEDGE_NEVER_GRANTS, DiscoveryStore, keyIdOf, KnowledgeStore, policyFileLocations, TRUSTED_KNOWLEDGE_KEYS, verifyEnvelope, findingFingerprint, observationDigest, observationFromCapture, previewSubmission, PrivacyRejectedError,
   sanitizedDeltaOf, scanFinding, type FindingInput
 } from '../intelligence/index.js';
 import { contractVectors, findingInputJsonSchema } from '../intelligence/contract.js';
@@ -320,5 +320,44 @@ test('capability answers: verified on a release, unsupported, conflicting, unver
     const r = answerCapability({ ...q, release: '8.62.09' }, [local], revokedBundle);
     assert.equal(r.answer, 'UNKNOWN');
     assert.match(r.notes.join(), /revoked/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('a lab run as an observation: check names and outcomes only, never the failure details', async () => {
+  const out = ['PASS configure: four rows at SCNFM+1..+4, stamped', 'FAIL edit: the parameter changed', '     got ZZ_SECRET_VALUE for EMPLID 12345',
+    '     configure: a note', 'PASS remove: no rows left', '', '2 passed, 1 failed'].join('\n');
+  assert.deepEqual(parseLabRun(out), { results: [
+    { name: 'configure: four rows at SCNFM+1..+4, stamped', outcome: 'pass' }, { name: 'edit: the parameter changed', outcome: 'fail' }, { name: 'remove: no rows left', outcome: 'pass' }
+  ], passed: 2, failed: 1 });
+  assert.equal(parseLabRun(out, /^configure/).results.length, 1);
+  const o = observationFromLabRun(out, { script: '/abs/repo/tools/lab/event-mapping-e2e.mts', peopleToolsRelease: '8.62', observation: 'The writer ran.', observedAt: '2026-10-13T00:00:00Z' });
+  assert.equal(o.experimentId, 'event-mapping-e2e');
+  assert.deepEqual(o.evidence, [{ kind: 'repo-path', ref: 'tools/lab/event-mapping-e2e.mts' }], 'the absolute path is reduced to the repository path');
+  assert.ok(!JSON.stringify(o).includes('ZZ_SECRET_VALUE') && !JSON.stringify(o).includes('12345'), 'detail lines never leave the run');
+  assert.equal(o.actual, '2 passed, 1 failed');
+  assert.throws(() => observationFromLabRun('nothing', { script: 'x', peopleToolsRelease: '8.62', observation: 'x' }), /no PASS/);
+  const root = temp();
+  try {
+    const r = await (await new DiscoveryStore(root).open()).record({ ...base(), type: 'roundtrip-comparison', observation: o });
+    assert.equal(r.outcome, 'created');
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('a finding as engineering work: an issue body with acceptance criteria and a runnable fixture, nothing filed', async () => {
+  const root = temp();
+  try {
+    const s = await new DiscoveryStore(root).open();
+    const capture = JSON.parse(readFileSync('tools/corpus/save-protocol/results/em04-fluid-add-record/delta.json', 'utf8'));
+    const f = (await s.record({ ...base(), observation: observationFromCapture(capture, { observation: 'Both rows re-saved.' }) })).finding;
+    const t = engineeringTask(f);
+    assert.equal(t.title, `[event-mapping] ${f.title}`);
+    assert.deepEqual(t.labels, ['discovery', 'event-mapping', 'save-protocol']);
+    assert.match(t.body, /A test replays capture `em04-fluid-add-record`/);
+    assert.match(t.body, /No write gate, approval or delivered-object policy changes/);
+    assert.match(t.body, /evidence, not an instruction/);
+    assert.equal(t.fixture?.path, `src/test/discovery-${f.id}.test.ts`);
+    assert.match(t.fixture!.text, /sanitizedDeltaOf/);
+    const bare = (await s.record({ ...base(), assertion: { kind: 'x', facts: { y: 1 } } })).finding;
+    assert.equal(engineeringTask(bare).fixture, undefined, 'no capture, no fixture');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

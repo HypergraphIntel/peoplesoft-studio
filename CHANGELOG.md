@@ -85,7 +85,13 @@ See docs/CUSTOMIZATION.md.
   (local only, approved by you), `psft_knowledge_capability` (VERIFIED /
   UNVERIFIED / UNSUPPORTED / CONFLICTING / UNKNOWN for the connection's
   PeopleTools release, with the evidence; never a permission),
-  `psft_knowledge_compatibility`, `psft_knowledge_evidence`.
+  `psft_knowledge_compatibility`, `psft_knowledge_evidence`. The
+  Customization Strategy view's Event Mapping row and
+  `psft_customization_discover` show what recorded knowledge says on the
+  connection's release.
+- Research tooling: lab end-to-end runs recorded as findings (check names and
+  outcomes only); a finding turned into an issue body and a regression
+  fixture for review (`tools/intelligence/engineering-task.mts`; files nothing).
 
 ## 0.8.4
 

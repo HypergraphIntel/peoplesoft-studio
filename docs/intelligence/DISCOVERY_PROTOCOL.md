@@ -26,6 +26,14 @@ npx tsx tools/intelligence/discovery.mts capture em04-fluid-add-record \
   --evidence repo-path:docs/CUSTOMIZATION.md
 ```
 
+From a lab run (Studio's own writer: a `roundtrip-comparison`, rule 3):
+
+```bash
+npx tsx tools/lab/event-mapping-e2e.mts > run.log
+npx tsx tools/intelligence/discovery.mts lab-run --script tools/lab/event-mapping-e2e.mts --output run.log \
+  --release 8.62 --run-id 2026-10-13a --tests '^(configure|edit|remove|unchanged):' --type roundtrip-comparison …
+```
+
 From a JSON file (any method):
 
 ```bash
@@ -72,10 +80,22 @@ it supports. `--store DIR` or `PSFT_DISCOVERY_STORE` points elsewhere.
 | Source | Status | Observation it gives |
 |---|---|---|
 | Save captures (`tools/corpus/save-protocol`) | Implemented (`adapters/saveCapture.ts`) | Changed tables (counts), counter moves, release, case ID |
-| Lab end-to-end proofs (`tools/lab/*-e2e.mts`) | Proposed | Test results (`testResults`), `live-e2e` |
+| Lab end-to-end proofs (`tools/lab/*-e2e.mts`) | Implemented (`adapters/labRun.ts`, CLI `lab-run --script --output --release [--tests REGEX]`) | Check names and outcomes only (failure details never leave), `live-e2e`; a Studio writer's proof is a `roundtrip-comparison` |
 | Controlled compile lab | Proposed | `compile-difference` observations |
 | PeopleCode corpus harness | Proposed | `bytecode-pattern` observations — derived facts only; the corpus is institutional |
 | Writer replay tests (`src/test/*Writer.test.ts`) | Proposed | `unit-replay` test results |
 
 An adapter is a pure function from the source's own output to an
 `Observation`; it never changes the research tool it reads.
+
+## From a finding to engineering work
+
+```bash
+npx tsx tools/intelligence/engineering-task.mts f-… [--write-fixture]
+```
+
+prints an issue title, labels and body (claim, scope, evidence, acceptance
+criteria), writes the body to `tools/intelligence/tasks/` and, with
+`--write-fixture`, a regression test asserting each capture still shows what
+the finding recorded. It files nothing: it prints the `gh issue create`
+command for a person to run after review.

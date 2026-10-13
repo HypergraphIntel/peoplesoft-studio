@@ -6,6 +6,8 @@
  *   npx tsx tools/intelligence/discovery.mts capture <case> --type save-protocol --subsystem event-mapping \
  *       --object-type "Event Mapping configuration" --kind row-resave --fact table=PSPTCSSRVCONF --fact everyRowOnSave=true \
  *       --title "..." --statement "..." --observation "..." [--confidence medium] [--tool PIA] [--run-id ID] [--evidence repo-path:docs/X.md]
+ *   npx tsx tools/intelligence/discovery.mts lab-run --script tools/lab/X-e2e.mts --output run.log --release 8.62 [--tests REGEX] \
+ *       --type roundtrip-comparison --subsystem ... --object-type ... --kind ... --fact k=v --title ... --statement ... --observation ...
  *   npx tsx tools/intelligence/discovery.mts list [--subsystem S] [--type T] [--release 8.62] [--text words]
  *   npx tsx tools/intelligence/discovery.mts get <id>
  *
@@ -17,7 +19,7 @@
  */
 import { readFileSync } from 'node:fs';
 import * as path from 'node:path';
-import { DiscoveryStore, observationFromCapture, type FindingInput } from '../../src/intelligence/index';
+import { DiscoveryStore, observationFromCapture, observationFromLabRun, type FindingInput, type Observation } from '../../src/intelligence/index';
 
 const args = process.argv.slice(2);
 const command = args.shift();
@@ -47,14 +49,23 @@ try {
       console.log(`${r.outcome} ${r.finding.id} (${r.finding.localStatus}, ${r.finding.observations.length} observation(s))`);
       break;
     }
-    case 'capture': {
-      const caseName = positional[0];
-      if (!caseName) throw new Error('Give the capture case.');
-      const delta = JSON.parse(readFileSync(path.join('tools', 'corpus', 'save-protocol', 'results', caseName, 'delta.json'), 'utf8'));
-      const observation = observationFromCapture(delta, {
-        observation: need('observation'), ...(one('tool') ? { tool: one('tool')! } : {}), ...(one('run-id') ? { runId: one('run-id')! } : {}),
-        ...(one('expected') ? { expected: one('expected')! } : {}), ...(one('actual') ? { actual: one('actual')! } : {})
-      });
+    case 'capture':
+    case 'lab-run': {
+      let observation: Observation;
+      if (command === 'capture') {
+        const caseName = positional[0];
+        if (!caseName) throw new Error('Give the capture case.');
+        const delta = JSON.parse(readFileSync(path.join('tools', 'corpus', 'save-protocol', 'results', caseName, 'delta.json'), 'utf8'));
+        observation = observationFromCapture(delta, {
+          observation: need('observation'), ...(one('tool') ? { tool: one('tool')! } : {}), ...(one('run-id') ? { runId: one('run-id')! } : {}),
+          ...(one('expected') ? { expected: one('expected')! } : {}), ...(one('actual') ? { actual: one('actual')! } : {})
+        });
+      } else {
+        observation = observationFromLabRun(readFileSync(need('output'), 'utf8'), {
+          script: need('script'), peopleToolsRelease: need('release'), observation: need('observation'),
+          ...(one('tool') ? { tool: one('tool')! } : {}), ...(one('run-id') ? { runId: one('run-id')! } : {}), ...(one('tests') ? { only: new RegExp(one('tests')!) } : {})
+        });
+      }
       const extra = (opts.get('evidence') ?? []).map((e) => { const [kind, ...ref] = e.split(':'); return { kind, ref: ref.join(':') }; });
       if (extra.length) observation.evidence = [...(observation.evidence ?? []), ...extra] as typeof observation.evidence;
       const facts = Object.fromEntries((opts.get('fact') ?? []).map((f) => { const i = f.indexOf('='); return [f.slice(0, i), parseValue(f.slice(i + 1))]; }));

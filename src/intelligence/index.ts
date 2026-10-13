@@ -15,3 +15,5 @@ export { decideUpload, policyFileLocations, type MachinePolicy, type UploadDecis
 export { BUNDLE_FORMAT, ENVELOPE_FORMAT, keyIdOf, KnowledgeStore, verifyEnvelope, type KnowledgeBundle, type KnowledgeFinding, type TrustedKey, type VerifyResult } from './knowledge.js';
 export { TRUSTED_KNOWLEDGE_KEYS } from './trustedKeys.js';
 export { answerCapability, KNOWLEDGE_NEVER_GRANTS, type CapabilityAnswer, type CapabilityEvidence, type CapabilityQuestion, type CapabilityResult } from './capability.js';
+export { observationFromLabRun, parseLabRun, type LabRunResult } from './adapters/labRun.js';
+export { engineeringTask, type EngineeringTask } from './engineering.js';
