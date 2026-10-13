@@ -8,6 +8,8 @@ AGENTS.md
 # Corpus and tooling
 tools/**
 scripts/**
+# The intelligence server (Python, its virtualenv) is not part of the extension
+server/**
 run_full.sh
 run_full_inventory.sh
 
@@ -62,3 +64,5 @@ node_modules/oracledb/SECURITY.md
 node_modules/oracledb/CHANGELOG.md
 node_modules/oracledb/NOTICE.txt
 node_modules/oracledb/THIRD_PARTY_LICENSES.txt
+# Design notes and agent prompts (repository only)
+CUSTOMIZATION_*.md
