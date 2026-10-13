@@ -397,6 +397,9 @@ export function createStub() {
       registerHoverProvider(_selector, _provider) {
         return new Disposable(() => {});
       },
+      registerDefinitionProvider(_selector, _provider) {
+        return new Disposable(() => {});
+      },
       registerDocumentSymbolProvider(_selector, _provider) {
         return new Disposable(() => {});
       }

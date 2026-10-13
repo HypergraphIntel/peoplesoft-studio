@@ -31,6 +31,7 @@ import type { PeopleCodeSaveResult } from './providers/peopleCodeWriter.js';
 import { registerPeopleCodeCompletion } from './peoplecode/completion.js';
 import { registerPeopleCodeHover } from './peoplecode/hover.js';
 import { registerPeopleCodeSymbols } from './peoplecode/symbols.js';
+import { registerPeopleCodeDefinition } from './peoplecode/definitionProvider.js';
 import { parseUri, SCHEME } from './util/uri.js';
 import { findPeopleCodeReferences } from './peoplecode/findReferences.js';
 import { htmlPreviewPage } from './editors/htmlPreview.js';
@@ -339,6 +340,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   registerPeopleCodeCompletion(context);
   registerPeopleCodeHover(context);
   registerPeopleCodeSymbols(context);
+  registerPeopleCodeDefinition(context, workspace);
 
   const connections = new ConnectionsView(workspace);
   const browser = new BrowserView(workspace);

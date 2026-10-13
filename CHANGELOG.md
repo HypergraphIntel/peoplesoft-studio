@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Go to Definition** in PeopleCode (F12 / Ctrl-click): a qualified
+  application class path (`PKG:SUB:CLASS`, as written in an import, an
+  `extends`, a `create` or a type) opens that class; a definition reference
+  (`Record.JOB`, `Page.JOB_DATA1`, `Scroll.DERIVED`, `SQL.X`, `HTML.X`,
+  `Field.X`, `Component.X`, `Menu.X`) opens that definition. The target is
+  confirmed to exist in the connection first -- the stored definition, with
+  its real casing -- so a jump never lands on nothing. Resolution is textual,
+  so it works whether or not the program compiles.
+
 ## 0.8.6 — 2026-10-13
 
 ### Added
