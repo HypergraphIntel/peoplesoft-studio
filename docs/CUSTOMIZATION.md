@@ -193,6 +193,37 @@ Activate, all masking services of EOCC_COMP_CONFIG.
 The page's Event Map Parameter is the configuration's EV_PARAM row in
 PSPTCS_MAPFLDS; its Unrestricted Prompt is not stored (below).
 
+## Drop Zone discovery
+
+A drop zone is a place on a delivered page where a custom subpage is
+inserted at runtime, configured with *Configure Drop Zones*
+(`PORTAL_ADMIN.PTCS_SUBPAGE_COMP.GBL`) instead of modifying the page.
+Studio finds them as that page does (`PTCS_SUBPNL_WRK.SEARCH_BTN`
+FieldFormula, `GetDZConfigForComponent`):
+
+- the component's pages, followed recursively into the subpages (field type
+  11) and secondary pages (18) they place;
+- on each, a subpage control placing the stub named by
+  `PSOPTIONS.PTSTUBSUBPAGE` (`PT_ERCSUBPAGE_STUB`) whose preceding control
+  (`FIELDNUM - 1`) is a group box of type 21 (`PSPNLFIELDEXT.GRPBOXTYPE`).
+  On HRDMO 2162 of the 2163 stub placements, on 1109 pages, are valid.
+
+The group box is the drop zone: its label (text, or its message-catalog
+text) names it; `level.record.field.pnlfldid` keys it (`PTCS_PNLFLDNAME`);
+it shows on the component page, or on the secondary page that holds it.
+A configured drop zone is Related Content: a service named after the custom
+subpage (`PSPTCSSRVDEFN`, URL type `UESP`) configured on the component's
+content reference -- or on `PT_DZ_UNREGCOMP`/<component> when the component
+is not registered -- with a `PTCS_MENUFIELD` map (`PSPTCS_MAPFLDS`) to the
+drop zone's key. HRDMO has none configured.
+
+The Strategy view's **Drop Zones** row and MCP `psft_customization_discover`
+report `VERIFIED_AVAILABLE` with each drop zone (page, label, key,
+configured subpage), or `VERIFIED_UNAVAILABLE` when the pages have none --
+adding one to a delivered page is itself a delivered-object customization.
+HRDMO: `JOB_CODE_TBL` 5 drop zones on 5 pages, `JOB_DATA_FL` 40 on 20,
+`USERMAINT` none.
+
 ## Writing Event Mapping
 
 `psft_event_mapping_get`, `_save` and `_remove` read and write a content

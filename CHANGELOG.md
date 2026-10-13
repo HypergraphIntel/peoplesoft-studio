@@ -4,6 +4,11 @@
 
 ### Added
 
+- **Drop Zones discovery** (Customization Strategy view, MCP
+  `psft_customization_discover`): for a component or page, its drop zones --
+  found as PeopleTools' Configure Drop Zones finds them, through subpages and
+  secondary pages -- each with its page, label and key, and any custom subpage
+  configured into it; or *verified unavailable* when its pages have none.
 - **Go to Definition** in PeopleCode (F12 / Ctrl-click): a qualified
   application class path (`PKG:SUB:CLASS`, as written in an import, an
   `extends`, a `create` or a type) opens that class; a definition reference

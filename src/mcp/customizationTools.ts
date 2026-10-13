@@ -58,8 +58,10 @@ export function registerCustomizationTools(server: McpServer, workspace: Workspa
     description: 'Discovers, on this database, whether supported configuration frameworks can extend a definition without changing it. Event Mapping ' +
       '(application class PeopleCode run at component, record, field and page events): VERIFIED_AVAILABLE when the component -- a page\'s or record\'s ' +
       'components -- is registered as a content reference, VERIFIED_UNAVAILABLE when not, with the evidence and the configurations already there ' +
-      '(level, event, service and its application class, processing sequence, sequence, enabled, who saved them). Drop Zones, Page and Field ' +
-      'Configurator, Configurable Search and AE plug-ins are not discovered yet (UNKNOWN). Read only.',
+      '(level, event, service and its application class, processing sequence, sequence, enabled, who saved them). Drop Zones (custom subpages ' +
+      'inserted into a page\'s drop zones): VERIFIED_AVAILABLE when the component\'s pages -- or the page, with its subpages and secondary pages -- have ' +
+      'drop zones, each with its page, label, key and any configured subpage; VERIFIED_UNAVAILABLE when none. Page and Field Configurator, ' +
+      'Configurable Search and AE plug-ins are not discovered yet (UNKNOWN). Read only.',
     inputSchema: z.object({ connection: z.string().min(1), type: z.number().int(), parts: z.array(z.string()).min(1) }),
     annotations: READ_ONLY
   }, async ({ connection, type, parts }) => {
@@ -78,7 +80,15 @@ export function registerCustomizationTools(server: McpServer, workspace: Workspa
       } : { state: 'NOT_APPLICABLE', evidence: ['Event Mapping maps components\' events: it applies to components, pages, records and their PeopleCode.'] },
       ...(em ? { knowledge: await knowledgeFor({ subsystem: 'event-mapping' }, p).then((k) => k ?? { answer: 'UNKNOWN', findings: [] }).catch(() => ({ answer: 'UNKNOWN', findings: [] })),
         knowledgeNote: 'What recorded findings say about Event Mapping on this connection\'s release (psft_knowledge_capability for details): information, never permission.' } : {}),
-      notDiscoveredYet: ['Drop Zones', 'Page and Field Configurator', 'Configurable Search', 'App Engine Plug-ins']
+      dropZones: r.dropZones ? {
+        state: r.dropZones.state, evidence: r.dropZones.evidence, stubSubpage: r.dropZones.stubSubpage,
+        dropZones: r.dropZones.dropZones.map((z) => ({
+          label: z.label, component: z.component ? `${z.component}.${z.market}` : undefined, page: z.page, definedOn: z.container,
+          groupBoxId: z.groupBoxId, tabOrder: z.tabOrder, recordField: z.record ? `${z.record}.${z.field}` : undefined,
+          key: z.fieldName, configuredSubpage: z.subpage ?? null
+        }))
+      } : { state: 'NOT_APPLICABLE', evidence: ['Drop Zones are on pages: they apply to components, pages and their PeopleCode.'] },
+      notDiscoveredYet: ['Page and Field Configurator', 'Configurable Search', 'App Engine Plug-ins']
     });
   });
 }

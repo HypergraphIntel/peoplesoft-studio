@@ -1,6 +1,7 @@
 import { DefinitionType, typeLabel } from './definitions.js';
 import { matchPrefix, OWNERSHIP_LABELS, type Classification, type NamingPrefix } from './ownership.js';
 import { describeMapping, type EventMappingDiscovery } from './eventMapping.js';
+import type { DropZoneDiscovery } from './dropZones.js';
 
 export { OWNERSHIP_LABELS, type Ownership } from './ownership.js';
 
@@ -158,7 +159,7 @@ function ownershipRows(ctx: CustomizationContext, policy: CustomizationPolicy, o
 export type CapabilitiesState =
   | { state: 'pending' }
   | { state: 'unavailable'; message: string }
-  | { state: 'done'; eventMapping?: EventMappingDiscovery; knowledge?: KnowledgeSummary };
+  | { state: 'done'; eventMapping?: EventMappingDiscovery; dropZones?: DropZoneDiscovery; knowledge?: KnowledgeSummary };
 
 /** What recorded and verified knowledge says about Event Mapping on the connection's release (docs/intelligence, D18): information, never permission. */
 export interface KnowledgeSummary {
@@ -175,9 +176,10 @@ function capabilityRow(f: Framework, caps: CapabilitiesState | undefined, connec
   const info = FRAMEWORKS[f];
   const unknown: StrategyRow = { id: `capability.${f}`, label: info.label, description: DISCOVERY_LABELS.UNKNOWN, icon: 'circle-large-outline', muted: true,
     tooltip: `${info.purpose}.\nTo verify: ${info.mustVerify}.\n${PREVIEW}`, command: { id: 'psft.customization.discover', args: [info.label] } };
-  if (f !== 'EVENT_MAPPING') return unknown;
+  if (f !== 'EVENT_MAPPING' && f !== 'DROP_ZONES') return unknown;
   if (!caps || caps.state === 'pending') return { ...unknown, description: 'Discovering…', icon: 'loading~spin', tooltip: `${info.purpose}.` };
   if (caps.state === 'unavailable') return { ...unknown, tooltip: `${info.purpose}.\n${caps.message}` };
+  if (f === 'DROP_ZONES') return dropZoneRow(info, caps.dropZones) ?? unknown;
   const d = caps.eventMapping;
   if (!d) return unknown;
   return {
@@ -208,6 +210,26 @@ function capabilityRow(f: Framework, caps: CapabilitiesState | undefined, connec
           ...(connectionId && cref ? { command: { id: 'psft.customization.configureEventMapping', args: [connectionId, cref.name, cref.portal] } } : {})
         };
       })
+    ]
+  };
+}
+
+/** The Drop Zones capability row: the verdict, its evidence, and each drop zone (page, label, configured subpage). */
+function dropZoneRow(info: FrameworkInfo, d: DropZoneDiscovery | undefined): StrategyRow | undefined {
+  if (!d) return undefined;
+  const configured = d.dropZones.filter((z) => z.subpage).length;
+  return {
+    id: 'capability.DROP_ZONES', label: info.label, icon: STATE_ICONS[d.state], muted: d.state !== 'VERIFIED_AVAILABLE',
+    description: `${DISCOVERY_LABELS[d.state]}${d.state === 'VERIFIED_AVAILABLE' ? ` · ${d.dropZones.length} drop zone${d.dropZones.length === 1 ? '' : 's'}${configured ? `, ${configured} configured` : ''}` : ''}`,
+    tooltip: `${info.purpose}.\n${d.evidence.join('\n')}`,
+    children: [
+      ...d.evidence.map((line, i) => ({ id: `capability.DROP_ZONES.evidence.${i}`, label: line, icon: 'debug-stackframe-dot', muted: true, tooltip: line })),
+      ...d.dropZones.map((z, i) => ({
+        id: `capability.DROP_ZONES.zone.${i}`, label: z.label, icon: z.subpage ? 'pass-filled' : 'inbox',
+        description: `${z.page}${z.container !== z.page ? ` › ${z.container}` : ''}${z.subpage ? ` · ${z.subpage}` : ' · empty'}`,
+        tooltip: `Drop zone "${z.label}" on ${z.page}${z.container !== z.page ? ` (defined on subpage ${z.container})` : ''}, group box ${z.groupBoxId} at tab order ${z.tabOrder}` +
+          `${z.record ? ` (${z.record}.${z.field})` : ''}.\nKey: ${z.fieldName}\n${z.subpage ? `Configured with subpage ${z.subpage}.` : 'No custom subpage configured.'}`
+      }))
     ]
   };
 }

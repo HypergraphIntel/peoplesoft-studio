@@ -61,6 +61,8 @@ import { classifyOwnership, type Classification, type NamingPrefix, type Ownersh
 import { captureBaseline, readOwnershipEvidence, readRelease, resolveBaseline, type BaselineFile, type DatabaseRelease } from './ownershipReader.js';
 import { guardWrite, type WriteAction } from './writeGuard.js';
 import { discoverEventMapping } from './eventMappingReader.js';
+import { discoverDropZones } from './dropZoneReader.js';
+import type { DropZoneDiscovery } from '../model/dropZones.js';
 import {
   configRowsOf, configurationToken, readStoredConfiguration, removeConfiguration, saveConfiguration,
   type ConfigurationSaveRequest, type ConfigurationSaveResult
@@ -1973,12 +1975,16 @@ export class DatabaseProvider implements DefinitionProvider {
   /**
    * Which configuration frameworks could extend a definition, as this
    * database shows it (docs/CUSTOMIZATION.md): Event Mapping -- the
-   * component's content references and the configurations on them. The
-   * other frameworks are not discovered yet.
+   * component's content references and the configurations on them -- and
+   * Drop Zones -- the drop zones on its pages and any subpage configured into
+   * them. The other frameworks are not discovered yet.
    */
-  async discoverCapabilities(key: DefinitionKey): Promise<{ eventMapping?: EventMappingDiscovery }> {
-    const eventMapping = await this.withConnection((c) => discoverEventMapping(c, key));
-    return eventMapping ? { eventMapping } : {};
+  async discoverCapabilities(key: DefinitionKey): Promise<{ eventMapping?: EventMappingDiscovery; dropZones?: DropZoneDiscovery }> {
+    return this.withConnection(async (c) => {
+      const eventMapping = await discoverEventMapping(c, key);
+      const dropZones = await discoverDropZones(c, key);
+      return { ...(eventMapping ? { eventMapping } : {}), ...(dropZones ? { dropZones } : {}) };
+    });
   }
 
   /** A content reference's Event Mapping configuration as the Configure Event Mapping page lists it, with its token (eventMappingWriter.ts). */
