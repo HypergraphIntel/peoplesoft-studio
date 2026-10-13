@@ -1,0 +1,79 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-17af9b7e2bf6ed8affa19fd4",
+  "fingerprint": "17af9b7e2bf6ed8affa19fd4ecdb920e14930f7eaad40493451a809b231b501b",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "menu",
+    "objectType": "Menu",
+    "tables": [
+      "PSMENUDEFN"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSMENUDEFN",
+      "column": "GROUPSEP",
+      "setting": "Menu Group separator"
+    }
+  },
+  "title": "A menu's Menu Group separator is PSMENUDEFN.GROUPSEP",
+  "statement": "Menu Properties Use tab Menu Group separator is stored in PSMENUDEFN.GROUPSEP (1 on, 0 off).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:47:11.382Z",
+      "method": "save-capture",
+      "experimentId": "mn10-group-sep",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn10-group-sep: PSMENUDEFN.GROUPSEP '0' -> '1'.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 2,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn10-group-sep"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "1ae0ad76eff9cd2015b83383b5cdc681343ba9420b1b5eea01a5e3b2273831a3"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:47:11.390Z",
+    "updatedAt": "2026-10-13T11:47:11.390Z",
+    "schemaVersion": 1
+  }
+}

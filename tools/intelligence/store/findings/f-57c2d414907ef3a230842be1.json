@@ -1,0 +1,151 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-57c2d414907ef3a230842be1",
+  "fingerprint": "57c2d414907ef3a230842be15b7c2710f74bb55649572243019d207caf1141cc",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "menu",
+    "objectType": "Menu",
+    "tables": [
+      "PSMENUDEFN"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSMENUDEFN",
+      "column": "INSTALLED",
+      "setting": "Menu installed"
+    }
+  },
+  "title": "A menu's Menu installed is PSMENUDEFN.INSTALLED",
+  "statement": "Menu Properties Use tab Menu installed is stored in PSMENUDEFN.INSTALLED (1 on, 0 off).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:47:11.836Z",
+      "method": "save-capture",
+      "experimentId": "mn21-installed-on",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn21-installed-on: PSMENUDEFN.INSTALLED '0' -> '1'.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 3,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn21-installed-on"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "07a5f149ae0d91ce504194a35f66d2d1e466fa11d2e1cb4cd63f7755c36f7799"
+    },
+    {
+      "observedAt": "2026-10-13T11:47:12.248Z",
+      "method": "save-capture",
+      "experimentId": "mn22-installed-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn22-installed-off: PSMENUDEFN.INSTALLED '1' -> '0'.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn22-installed-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "3374eefabaf74bfcd6c224fd0b95a32b89a3c1ebda98abe0e701cf60ec5ee9c3"
+    },
+    {
+      "observedAt": "2026-10-13T11:47:12.623Z",
+      "method": "save-capture",
+      "experimentId": "mn11-installed",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn11-installed: PSMENUDEFN.INSTALLED '1' -> '0'.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 2,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn11-installed"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "1fd938f890767728c987d1006c0d7e350f7292c31f5a065c1610e1e2d07fb290"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:47:11.845Z",
+    "updatedAt": "2026-10-13T11:47:12.630Z",
+    "schemaVersion": 1
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-fa22f24f6a25576eab01a161",
+  "fingerprint": "fa22f24f6a25576eab01a161a7824596310b209546921a00c2883ce59f3f4521",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "menu",
+    "objectType": "Menu",
+    "tables": [
+      "PSMENUDEFN"
+    ]
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSMENUDEFN",
+      "column": "MENUGROUP",
+      "setting": "Menu Group"
+    }
+  },
+  "title": "A menu's Menu Group is PSMENUDEFN.MENUGROUP",
+  "statement": "Menu Properties Use tab Menu Group is stored in PSMENUDEFN.MENUGROUP.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:47:10.532Z",
+      "method": "save-capture",
+      "experimentId": "mn06-group",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn06-group: PSMENUDEFN.MENUGROUP 'Zz Pcode Lab Menu' -> 'Lab Group'.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "MDM": 2,
+          "SYS": 2
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn06-group"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "0ba02cbdc7f10efbe2a1cf973286a760e22457d88a201a1879f464d77332491f"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:47:10.540Z",
+    "updatedAt": "2026-10-13T11:47:10.540Z",
+    "schemaVersion": 1
+  }
+}

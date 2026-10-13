@@ -1,0 +1,107 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-938ded8dd042f5e560b3826c",
+  "fingerprint": "938ded8dd042f5e560b3826cee8ae7352a86b248647a9688feb4a0b26c71f520",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDUSE",
+      "FIELDSIZETYPE",
+      "DSPLFORMAT",
+      "SUBPNLNAME"
+    ]
+  },
+  "assertion": {
+    "kind": "insert-defaults",
+    "facts": {
+      "FIELDTYPE": 18,
+      "FIELDUSE": "0x2",
+      "SECUREINVISIBLE": 1,
+      "size": "24x22",
+      "FIELDSIZETYPE": 3,
+      "DSPLFORMAT": "0x80000",
+      "SUBPNLNAME": "the page"
+    }
+  },
+  "title": "A Secondary Page control is inserted invisible (FIELDUSE 0x2, SECUREINVISIBLE 1), 24 x 22, FIELDSIZETYPE 3, DSPLFORMAT 0x80000, SUBPNLNAME the page",
+  "statement": "App Designer inserts a Secondary Page control (FIELDTYPE 18) invisible (FIELDUSE 0x2, SECUREINVISIBLE 1), 24 by 22 units with FIELDSIZETYPE 3, DSPLFORMAT 0x80000, a blank label, and the secondary page's name in SUBPNLNAME.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:45:50.118Z",
+      "method": "save-capture",
+      "experimentId": "sp-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture sp-fresh: the inserted control 5 has FIELDTYPE 18, FIELDUSE 0x2, SECUREINVISIBLE 1, DSPLFORMAT 0x80000, FIELDSIZETYPE 3, LBLTYPE 1, size 24 x 22, OCCURSLEVEL 0.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 4
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLTREECTRL",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "sp-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "ec9b9f55f04b4231874744d4146db8ebd7de617fe2de2a94f589262fef69b859"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:45:50.128Z",
+    "updatedAt": "2026-10-13T11:45:50.128Z",
+    "schemaVersion": 1
+  }
+}

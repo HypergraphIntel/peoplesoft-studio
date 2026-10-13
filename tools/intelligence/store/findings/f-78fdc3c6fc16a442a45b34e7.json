@@ -116,6 +116,90 @@
         }
       ],
       "digest": "de1348a1c522eda2c6c1179c96489b4ccc7dc5b49c6d8af97b9cab7cabc166ea"
+    },
+    {
+      "observedAt": "2026-10-13T11:46:25.616Z",
+      "method": "save-capture",
+      "experimentId": "cb-ewd",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture cb-ewd, control 3: FIELDUSE 0x0 -> 0x40000. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "cb-ewd"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "f18631cb4bbd2923f020d974c9697293d39e419113ea2d9915c1a80a04568bf8"
+    },
+    {
+      "observedAt": "2026-10-13T11:46:26.011Z",
+      "method": "save-capture",
+      "experimentId": "cb-ewd-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture cb-ewd-off, control 3: FIELDUSE 0x40000 -> 0x0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "cb-ewd-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "20b46ac268db9da462adc51f5968c76cc81724db85345bf0f1c613e8969488ea"
     }
   ],
   "privacy": {
@@ -125,7 +209,7 @@
   "provenance": {
     "source": "research-harness",
     "createdAt": "2026-10-13T11:27:25.736Z",
-    "updatedAt": "2026-10-13T11:27:26.136Z",
+    "updatedAt": "2026-10-13T11:46:26.019Z",
     "schemaVersion": 1
   }
 }

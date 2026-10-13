@@ -25,7 +25,7 @@
     }
   },
   "title": "Page control Display Only is PSPNLFIELD.FIELDUSE bit 1; Invisible is bit 2 and sets SECUREINVISIBLE",
-  "statement": "In a page control's Use properties, Display Only sets FIELDUSE bit 0x01 and Invisible sets bit 0x02; making a control Invisible also sets SECUREINVISIBLE from 0 to 1.",
+  "statement": "In a page control's Use properties (its dialog), Display Only sets FIELDUSE bit 0x01 and Invisible sets bit 0x02; making a control Invisible there also sets SECUREINVISIBLE from 0 to 1. Through the Properties window's grid, Invisible leaves SECUREINVISIBLE at 0 (cb-invisible).",
   "confidence": "high",
   "compatibility": {
     "observedReleases": [

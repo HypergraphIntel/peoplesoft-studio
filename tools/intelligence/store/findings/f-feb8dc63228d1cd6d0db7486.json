@@ -1,0 +1,1135 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-feb8dc63228d1cd6d0db7486",
+  "fingerprint": "feb8dc63228d1cd6d0db74861d0a1d0352aa2bf7994f9c3cb5c07d014984085b",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDTYPE"
+    ]
+  },
+  "assertion": {
+    "kind": "control-type-codes",
+    "facts": {
+      "column": "PSPNLFIELD.FIELDTYPE",
+      "staticText": 0,
+      "frame": 1,
+      "groupBox": 2,
+      "staticImage": 3,
+      "editBox": 4,
+      "dropDown": 5,
+      "longEditBox": 6,
+      "checkBox": 7,
+      "radioButton": 8,
+      "image": 9,
+      "scrollBar": 10,
+      "subpage": 11,
+      "pushButton": 12,
+      "secondaryPage": 18,
+      "grid": 19,
+      "tree": 20,
+      "horizontalRule": 23,
+      "tabSeparator": 24,
+      "htmlArea": 25,
+      "scrollArea": 27,
+      "chart": 30,
+      "analyticGrid": 32
+    }
+  },
+  "title": "PSPNLFIELD.FIELDTYPE is the page control's kind: 22 codes from 0 Static Text to 32 Analytic Grid, read from App Designer's inserts",
+  "statement": "PSPNLFIELD.FIELDTYPE identifies the kind of page control App Designer inserted: 0 Static Text, 1 Frame, 2 Group Box, 3 Static Image, 4 Edit Box, 5 Drop-Down List Box, 6 Long Edit Box, 7 Check Box, 8 Radio Button, 9 Image, 10 Scroll Bar, 11 Subpage, 12 Push Button, 18 Secondary Page, 19 Grid, 20 Tree, 23 Horizontal Rule, 24 Tab Separator, 25 HTML Area, 27 Scroll Area, 30 Chart, 32 Analytic Grid. Each code is read from a capture of App Designer inserting that control: the control is named by App Designer's own default label where it has one, otherwise by the case's one insert.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-09T20:18:40.000Z",
+      "method": "save-capture",
+      "experimentId": "15-static-text",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 15-static-text: the inserted Static Text (control 10, its default label) has FIELDTYPE 0.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 4
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "15-static-text"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "1d6b09cbc4bd77f16da1a6fb780a7c1658c8df148484e344824d82bafcd95aff"
+    },
+    {
+      "observedAt": "2026-10-09T20:18:52.000Z",
+      "method": "save-capture",
+      "experimentId": "16-frame",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 16-frame: the inserted Frame (control 11, its default label) has FIELDTYPE 1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 4
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "16-frame"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "ac6d98c580413d3051833eb3d5f1208cc5c9b8f9a6567491eff25abe39ff979b"
+    },
+    {
+      "observedAt": "2026-10-09T16:49:34.806Z",
+      "method": "save-capture",
+      "experimentId": "07-groupbox",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 07-groupbox: the inserted Group Box (control 6, its default label) has FIELDTYPE 2.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 3
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "07-groupbox"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "235cca9425d6de51e69674897908148e6ad885d16a4598555cfbf258ae46e531"
+    },
+    {
+      "observedAt": "2026-10-13T11:45:41.629Z",
+      "method": "save-capture",
+      "experimentId": "in01-insert-static-image",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture in01-insert-static-image: the inserted Static Image (control 2, its default label) has FIELDTYPE 3.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "in01-insert-static-image"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "5d2c205607258a5f7d4945407d3e613e3361ce323d874113ce7346194a9ebbae"
+    },
+    {
+      "observedAt": "2026-10-09T16:12:30.908Z",
+      "method": "save-capture",
+      "experimentId": "02-add-edit",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 02-add-edit: the inserted Edit Box (control 2) has FIELDTYPE 4.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "02-add-edit"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "450e700e661f466a4504fa1d2460a57d13b37df3d70a878dfab46e354cbff8ec"
+    },
+    {
+      "observedAt": "2026-10-09T16:44:25.880Z",
+      "method": "save-capture",
+      "experimentId": "06-types",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 06-types (a window of several saves: PDM +3, RDM +4, SYS +7): the inserted Drop-Down List Box (control 3) has FIELDTYPE 5; the inserted Check Box (control 4) has FIELDTYPE 7; the inserted Push Button (control 5) has FIELDTYPE 12.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRECDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSRECFIELD",
+            "inserted": 3,
+            "deleted": 1,
+            "updated": 2
+          },
+          {
+            "table": "PSRECFIELDDB",
+            "inserted": 4,
+            "deleted": 2,
+            "updated": 1
+          },
+          {
+            "table": "PSRECTBLSPC",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 3,
+          "RDM": 4,
+          "SYS": 7
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "06-types"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "f7a9ab79110b99a492d4d9e706098163a7b36983726cbfc7f20d520f5deaf918"
+    },
+    {
+      "observedAt": "2026-10-13T11:45:42.843Z",
+      "method": "save-capture",
+      "experimentId": "le-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture le-fresh: the inserted Long Edit Box (control 9) has FIELDTYPE 6.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 4
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "le-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "4d1de33f338a7a9ece44a6c444778102e8e492a46baae0a014775e920d41728e"
+    },
+    {
+      "observedAt": "2026-10-13T11:45:43.262Z",
+      "method": "save-capture",
+      "experimentId": "in03-insert-check-box",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture in03-insert-check-box: the inserted Check Box (control 3) has FIELDTYPE 7.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "in03-insert-check-box"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "b62aada12f5bd173f5ac246a389a8b060b6f7d2b9678cd809ad267c531c4dbda"
+    },
+    {
+      "observedAt": "2026-10-13T11:45:43.654Z",
+      "method": "save-capture",
+      "experimentId": "rb-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture rb-fresh: the inserted Radio Button (control 8) has FIELDTYPE 8.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "rb-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "ac63a1a903fe10208848a1abed6c933adac55c7fec03f5333b6440716e8657f2"
+    },
+    {
+      "observedAt": "2026-10-13T11:45:44.063Z",
+      "method": "save-capture",
+      "experimentId": "im-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture im-fresh: the inserted Image (control 2, its default label) has FIELDTYPE 9.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "im-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "b059948343e0c4efcd8a1575843122e2b63b8d4b86ee8fb016cbad2c16ab93c2"
+    },
+    {
+      "observedAt": "2026-10-13T11:45:44.464Z",
+      "method": "save-capture",
+      "experimentId": "sb-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture sb-fresh: the inserted Scroll Bar (control 2, its default label) has FIELDTYPE 10.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "sb-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "fba5574ceaa2aa48c7e7833851d07f7f0b8bf2bbecff7e5ba816d7ff1918f072"
+    },
+    {
+      "observedAt": "2026-10-13T11:45:44.869Z",
+      "method": "save-capture",
+      "experimentId": "sub-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture sub-fresh: the inserted Subpage (control 5) has FIELDTYPE 11.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 4
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "sub-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "6694bedebe409dfcafd87372ef78b3fc14996dbb578522e5782ed3c9abc65b49"
+    },
+    {
+      "observedAt": "2026-10-13T11:45:45.269Z",
+      "method": "save-capture",
+      "experimentId": "sp-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture sp-fresh: the inserted Secondary Page (control 5) has FIELDTYPE 18.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 4
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLTREECTRL",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "sp-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "d02436d0eadc29bbe7509a58c48d93fbf99911ae28e90efbdc9db017a07ea523"
+    },
+    {
+      "observedAt": "2026-10-13T11:45:45.646Z",
+      "method": "save-capture",
+      "experimentId": "gd-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gd-fresh: the inserted Grid (control 8, its default label) has FIELDTYPE 19.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLCNTRLDATA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gd-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "115e5f4c00d71bce17a7341234905b4203c37a5842e6d23f513f99556e89dd19"
+    },
+    {
+      "observedAt": "2026-10-13T11:45:46.057Z",
+      "method": "save-capture",
+      "experimentId": "tr-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture tr-fresh: the inserted Tree (control 3, its default label) has FIELDTYPE 20.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "tr-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "c3e00ad1a326fc5c1822aaa3edba3236e67c8449f48a7f83efd43d435bf9e4b4"
+    },
+    {
+      "observedAt": "2026-10-09T20:19:30.000Z",
+      "method": "save-capture",
+      "experimentId": "17-hrule",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 17-hrule: the inserted Horizontal Rule (control 12) has FIELDTYPE 23.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 4
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "17-hrule"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "4087f0619bdc41b50658116eaff1857232b52e96f2cd44a3a9ed0465915a01ec"
+    },
+    {
+      "observedAt": "2026-10-13T11:45:46.888Z",
+      "method": "save-capture",
+      "experimentId": "ts-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ts-fresh: the inserted Tab Separator (control 10, its default label) has FIELDTYPE 24.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ts-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "93b94b92667751154b63aa6d80581b0ee941c2e712f7ed7ea33282d6f13ddce5"
+    },
+    {
+      "observedAt": "2026-10-13T11:45:47.287Z",
+      "method": "save-capture",
+      "experimentId": "ht-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ht-fresh: the inserted HTML Area (control 15) has FIELDTYPE 25.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 6
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ht-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "2d7fa179fa903c14f184c788ea4f5d0f572146f02714087004d16781613300ad"
+    },
+    {
+      "observedAt": "2026-10-13T11:45:47.677Z",
+      "method": "save-capture",
+      "experimentId": "sa-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture sa-fresh: the inserted Scroll Area (control 2, its default label) has FIELDTYPE 27.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "sa-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "81a305163019c6530515727de26183018358800042e58c8844bfcf3477e28550"
+    },
+    {
+      "observedAt": "2026-10-13T11:45:48.102Z",
+      "method": "save-capture",
+      "experimentId": "ch-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ch-fresh: the inserted Chart (control 4, its default label) has FIELDTYPE 30.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ch-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "084441ef3c073c05780663f82650c2f020d97a85c9ec31862bdf8bba4905813d"
+    },
+    {
+      "observedAt": "2026-10-13T11:45:48.516Z",
+      "method": "save-capture",
+      "experimentId": "ag-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ag-fresh: the inserted Analytic Grid (control 11, its default label) has FIELDTYPE 32.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLACEGRDAXIS",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLACEGRDDATA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLBTNDATA",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLCNTRLDATA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ag-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "30dd1089ae797a22e18709683c3136b9d1a8c2e5f0e49e083d6b8c75e441f15c"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:45:40.394Z",
+    "updatedAt": "2026-10-13T11:45:48.525Z",
+    "schemaVersion": 1
+  }
+}

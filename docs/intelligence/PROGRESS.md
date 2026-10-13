@@ -121,7 +121,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 
 ## Recorded findings (tools/intelligence/store)
 
-166 findings, 865 observations, each checked against its capture rows before recording (2026-10-13; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
+178 findings, 916 observations, each checked against its capture rows before recording (2026-10-13; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
 
 | Subsystem | ID | Claim | Status | Obs. |
 |---|---|---|---|---|
@@ -161,11 +161,16 @@ fingerprint; server: see `server/intelligence/README.md`.
 | field | f-e7c1a3192f3c6684f68e2935 | Creating a Character field of length 1-4 writes a PSXLATDEFNDEL row at the new XTM and moves XTM and PDM by 1 | reproduced | 2 |
 | html | f-b8776d69c6d610f49325fded | An HTML definition's text is PSCONTENT.CONTDATA in UTF-16LE without BOM, 32,000-byte rows from SEQNUM 0, CRLF, one NUL terminator at the end | reproduced | 2 |
 | html | f-d20e461de84d3a5911bb529d | An HTML definition save stamps PSCONTDEFN.VERSION with CRM, which moves in PSVERSION and PSLOCK with SYS | reproduced | 2 |
+| menu | f-17af9b7e2bf6ed8affa19fd4 | A menu's Menu Group separator is PSMENUDEFN.GROUPSEP | observed | 1 |
 | menu | f-2485f61a61fab9e7ed10364d | File > Delete of a menu moves CLM, MDM and SYS by 1 | observed | 1 |
+| menu | f-511aad19c0b23469a567f007 | A menu group's order or separator is saved into every menu of the group, each taking the new MDM as VERSION, none restamped | reproduced | 3 |
+| menu | f-57c2d414907ef3a230842be1 | A menu's Menu installed is PSMENUDEFN.INSTALLED | reproduced | 3 |
 | menu | f-6be47b7e2ae3c56a70dc07c4 | File > Rename of a menu moves TSTM, ACM, CLM, MDM, PCM, PJM, SYS and TSM by 1 each | reproduced | 2 |
 | menu | f-747bf896569263b485e2c14c | Deleting or cutting a menu item (not a separator) or bar moves CLM by 1, with MDM and SYS | reproduced | 4 |
+| menu | f-79c2f48c47bc70d84de97fae | A menu's Menu Group Order is PSMENUDEFN.GROUPORDER | observed | 1 |
 | menu | f-e67b210fbd5513c963df1387 | A menu definition save moves MDM and SYS by 1 | reproduced | 32 |
 | menu | f-ee56e64b0456e64d337abd06 | Renaming a menu item or bar moves CLM and MDM by 2, PCM by 1, SYS by 2 | reproduced | 3 |
+| menu | f-fa22f24f6a25576eab01a161 | A menu's Menu Group is PSMENUDEFN.MENUGROUP | observed | 1 |
 | menu | f-fafae98d016ada8a134677e2 | Editing only a menu item's ItemSelected PeopleCode moves PCM and SYS by 1; the menu row is not touched | reproduced | 3 |
 | message-channel | f-13baaf5f7d94524fb24f7c28 | A message channel save moves CHDM by 1 and SYS by 1; PSCHNLDEFN.VERSION is the new CHDM | reproduced | 14 |
 | message-channel | f-63084706f407d6e694a0b917 | Deleting a message channel writes PSCHNLDEL at the new CHDM and removes its partition rows | observed | 1 |
@@ -179,6 +184,8 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-11419628b6ca7ab9de21fe1e | An edit box's Show Label is PSPNLFIELD.FIELDUSE 0x400 | observed | 1 |
 | page-designer | f-117a811a762c6d2723422232 | A range input's Min / Max / Step are PSPNLFIELDEXT.MINNUMBER / MAXNUMBER / STEPNUMBER, as text | reproduced | 2 |
 | page-designer | f-12240bb11be358e2373fefbd | A standard page's Page Size choice is one PSPNLDEFN.PNLUSE bit (0x4 800x600, 0x20 / 0x40 in / without portal, 0x800 / 0x80 1024x768, 0x200 / 0x400 Var, 0x8 Custom) | reproduced | 11 |
+| page-designer | f-1372499479272a44b269fd36 | A page control's Allow Deferred Processing is PSPNLFIELD.DEFERPROC 1 | reproduced | 2 |
+| page-designer | f-13ecc4acae52097e9adba9c2 | A freshly inserted Grid is FIELDUSE 0x1000, DSPLFORMAT 0x20000, label 'Grid' of type None, RECNAME its main record | reproduced | 2 |
 | page-designer | f-13f00023f4a3a533d8e2910b | Hide Border on a frame or group box is PSPNLFIELD.FIELDUSE 0x4000000 | reproduced | 2 |
 | page-designer | f-14e0cdaa292646aba5f54d97 | A group box's Droppable is PSPNLFIELD.FIELDUSETMP 0x1000000 | observed | 1 |
 | page-designer | f-1a28b9a9355c3b91165ec3df | A page's Fluid Page setting is PSPNLDEFN.PNLUSE 0x4000 | reproduced | 3 |
@@ -191,6 +198,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-29741c05ebc7cd61421d4026 | An edit box's Auto Decimal is PSPNLFIELD.DSPLFORMAT 0x400 | reproduced | 2 |
 | page-designer | f-2bdceb29cac6ed0da30bc8bf | An edit box's Show Prompt Button off is PSPNLFIELD.DSPLFORMAT 0x800000 | reproduced | 2 |
 | page-designer | f-2cf26e1cbf388b8318b68f40 | An edit box's Generate As Hyperlink is PSPNLFIELD.FIELDUSETMP 0x80000 | reproduced | 2 |
+| page-designer | f-37b4f697cdfd1298674419a4 | A freshly inserted Scroll Bar is invisible (FIELDUSE 0x2, SECUREINVISIBLE 1), 17 wide, at Occurs Level 1 | observed | 1 |
 | page-designer | f-3b06650e8f06201594627764 | An edit box's Auto Fill is PSPNLFIELD.DSPLFORMAT 0x200 | reproduced | 2 |
 | page-designer | f-3c462058225a8bc301b1903b | A group box's Fluid Capture Trigger is PSPNLFIELDEXT.FIELDUSETEMP2 0x8000 | observed | 1 |
 | page-designer | f-3c56a041d8fbd4f7f9cd5f6a | A long edit box's Enable Long Edit Counter is PSPNLFIELD.FIELDUSETMP 0x8000000 | observed | 1 |
@@ -198,16 +206,18 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-41bfc2ce8c2248b2eaa37a16 | An edit box's Display Zero is PSPNLFIELD.DSPLFORMAT 0x80 | reproduced | 2 |
 | page-designer | f-42b8af610f611006491e2062 | Fluid Label Rendering: After Control is PSPNLFIELD.FIELDUSETMP 0x2000000 | observed | 1 |
 | page-designer | f-45cd887de7d76193944eec38 | Choosing a Message Catalog label blanks PSPNLFIELD.LBLTEXT to ' ' | reproduced | 4 |
-| page-designer | f-4aeb84aae7118e1e498b49b8 | Multi-Currency Field on a page control is PSPNLFIELD.FIELDUSE 0x20 | reproduced | 5 |
+| page-designer | f-4aeb84aae7118e1e498b49b8 | Multi-Currency Field on a page control is PSPNLFIELD.FIELDUSE 0x20 | reproduced | 7 |
 | page-designer | f-4b0082e124ad2689740702a9 | An edit box's Password is PSPNLFIELD.DSPLFORMAT 0x8000 | reproduced | 2 |
 | page-designer | f-4c9dc928359cd61e972c2e46 | Generate in HTML on an invisible page control is PSPNLFIELDEXT.FIELDUSETEMP2 0x20 | reproduced | 4 |
+| page-designer | f-4ccab1a68be0d2b3c1cc3609 | A freshly inserted Static Text is DSPLFORMAT 0x4001: Left alignment 0x1 set | observed | 1 |
 | page-designer | f-4f0035647e8f65de949dcd83 | An edit box's Input Only is PSPNLFIELDEXT.FIELDUSETEMP2 0x200 | reproduced | 2 |
+| page-designer | f-4f76b0ca1768a39b7ce0cab8 | Invisible set from the Properties window's grid is PSPNLFIELD.FIELDUSE 0x2 alone; SECUREINVISIBLE stays 0 | reproduced | 2 |
 | page-designer | f-5150a2ffdf10f82fe5a02161 | An edit box's Display Century is PSPNLFIELD.DSPLFORMAT 0x10000 | reproduced | 2 |
 | page-designer | f-52f47bd73ce2e52fc4b384ca | An edit box's Message Catalog popup is PSPNLFIELD.FIELDUSETMP 0x2200 with PSPNLFIELDEXT.MESSAGE_SET_NBR / MESSAGE_NBR | reproduced | 2 |
 | page-designer | f-552b4d2db08e2d40b5859f3e | An edit box's Display Time Zone is PSPNLFIELD.DSPLFORMAT 0x20000000 | reproduced | 2 |
 | page-designer | f-59dfdd3d38ea37d8e5ced4a6 | Enable Spell Check is PSPNLFIELD.FIELDUSETMP 0x2 | reproduced | 3 |
 | page-designer | f-5c5c7eb705e2fbee555fbfe3 | A horizontal rule's Set to Level is FIELDUSE 0x2 with SECUREINVISIBLE 1; its level is OCCURSLEVEL and PSPNLFIELDEXT.PT_NUMFLD1, which clearing keeps | reproduced | 4 |
-| page-designer | f-5efa432327cbb9df35f96e29 | Display Control Field is PSPNLFIELD.FIELDUSE 0x8 | reproduced | 4 |
+| page-designer | f-5efa432327cbb9df35f96e29 | Display Control Field is PSPNLFIELD.FIELDUSE 0x8 | reproduced | 6 |
 | page-designer | f-60f36939a246a479af94f7ba | A page control label's type is PSPNLFIELD.LBLTYPE: 0 None, 1 Text, 2 RFT Short, 3 RFT Long, 7 Message Catalog | reproduced | 15 |
 | page-designer | f-62b99e3779da3856fbe781ac | App Designer stores each page control's OCCURSLEVEL from tab order: a running level that each scroll and each Set to Level rule sets to its own | reproduced | 16 |
 | page-designer | f-6a77a4c6fa99303b68267217 | Fluid Control Structure: Basic is PSPNLFIELD.FIELDUSETMP 0x4000000 | observed | 1 |
@@ -218,7 +228,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-71f9cb0003fcaa037980cd29 | Adjust Layout for Hidden Fields is PSPNLFIELD.PTADJHIDDENFIELDS 1 | reproduced | 3 |
 | page-designer | f-72a1b1e5c2b60d4641047a0d | A static text's Message Catalog shown as Explanation is PSPNLFIELD.DSPLFORMAT 0x40000000 | observed | 1 |
 | page-designer | f-774d7686aaac9710aa34aebc | A static image's Image ID is PSPNLFIELD.CONTNAME | observed | 1 |
-| page-designer | f-78fdc3c6fc16a442a45b34e7 | Enable When Page is Display Only is PSPNLFIELD.FIELDUSE 0x40000 | reproduced | 2 |
+| page-designer | f-78fdc3c6fc16a442a45b34e7 | Enable When Page is Display Only is PSPNLFIELD.FIELDUSE 0x40000 | reproduced | 4 |
 | page-designer | f-79e2038a6957e7b6c50f6557 | An edit box's Currency Symbol is PSPNLFIELD.DSPLFORMAT 0x10 | reproduced | 2 |
 | page-designer | f-7d8871e6dd323ebf5735c04e | An edit box's Fill Character is PSPNLFIELD.DSPLFILL | reproduced | 2 |
 | page-designer | f-7ee9369365c10274e498ac35 | An edit box's Page Popup is PSPNLFIELD.FIELDUSETMP 0x200 and PSPNLFIELDEXT.PTPOPUPPNL | reproduced | 2 |
@@ -226,6 +236,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-822a0691dc44467e46a5bde4 | A page's Fluid style classes are PSPNLDEFN.FFSTYLEDESKTOP, FFSTYLEPHONE (Small), FFSTYLEMEDIUM, FFSTYLETABLET (Large) and FFSTYLEEXLARGE | reproduced | 5 |
 | page-designer | f-89c46286c14ee7f87b30a73b | A long edit box's Display in Modal Window is PSPNLFIELD.FIELDUSETMP 0x100 | observed | 1 |
 | page-designer | f-8eb6c38024387aa0c2a9c163 | An edit box's Alignment Auto / Left / Right is PSPNLFIELD.DSPLFORMAT 0x8 / 0x1 / 0x4 | reproduced | 3 |
+| page-designer | f-938ded8dd042f5e560b3826c | A Secondary Page control is inserted invisible (FIELDUSE 0x2, SECUREINVISIBLE 1), 24 x 22, FIELDSIZETYPE 3, DSPLFORMAT 0x80000, SUBPNLNAME the page | observed | 1 |
 | page-designer | f-9a96add14da9ae2f35c1e568 | A group box's Fluid Group Box Type, Html Tag Type and ScrollBars are PSPNLFIELDEXT.GRPBOXTYPE, GRPBOXHTMLTYPE and SCROLLBARS, as list indexes | reproduced | 4 |
 | page-designer | f-9ecc6fd8d9258c7cdf8d40e6 | A group box's Suppress Accessible Label is PSPNLFIELD.FIELDUSE 0x2000 | observed | 1 |
 | page-designer | f-a0c36f3aa7c4649110545d1a | Dragging a control to a new tab position swaps PSPNLFIELD.FIELDNUM; nothing else changes | observed | 1 |
@@ -236,12 +247,12 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-aa52e78a39660e3e4c945bed | A page control's Enable as Page Anchor is PSPNLFIELD.ENABLEASANCHOR 1 | observed | 1 |
 | page-designer | f-acbaa492626109e5af2cb0b1 | A group box's Fluid Scroll Sizing by Style is PSPNLFIELDEXT.FIELDUSETEMP2 0x8 | observed | 1 |
 | page-designer | f-af75869018e651465d3e0897 | A group box's Collapsible Data Area, Default Initial View to Expanded and Hide all Fields are PSPNLFIELD.PTCOLLAPSEDATAAREA, PTDFLTVIEWEXPANDED and PTHIDEFIELDS | reproduced | 3 |
-| page-designer | f-b37f4d98644bf0db3b970b00 | Set Component Changed off is PSPNLFIELD.FIELDUSETMP 0x8 | observed | 1 |
+| page-designer | f-b37f4d98644bf0db3b970b00 | Set Component Changed off is PSPNLFIELD.FIELDUSETMP 0x8 | reproduced | 3 |
 | page-designer | f-b46dd5e41d5dc1cc10dffda0 | A page's Owner ID is PSPNLDEFN.OBJECTOWNERID | observed | 1 |
 | page-designer | f-b948d204e86b0616d9d4a9cf | An edit box's 1000 Separator is PSPNLFIELD.DSPLFORMAT 0x20 | reproduced | 2 |
 | page-designer | f-b9671e6c984cf7b1dfccb69b | Binding an edit box to another field writes the field's default LABEL_ID and FORMATFAMILY | reproduced | 2 |
 | page-designer | f-bb18f22a884a893c5c6a9e15 | A new page control takes PNLFLDID = MAXPNLFLDID + 1; MAXPNLFLDID never goes down, deleted ids are not reused | reproduced | 4 |
-| page-designer | f-bbad6a074f57a27f3f487f05 | Wrap Long Words is PSPNLFIELD.FIELDUSETMP 0x40 | observed | 1 |
+| page-designer | f-bbad6a074f57a27f3f487f05 | Wrap Long Words is PSPNLFIELD.FIELDUSETMP 0x40 | reproduced | 3 |
 | page-designer | f-bf31ed91a2ed6881bd7b30c6 | Modifiable by JavaScript on an invisible page control is PSPNLFIELD.SECUREINVISIBLE 0 | reproduced | 2 |
 | page-designer | f-c5cd81e8e53ac0d5d23fb332 | A page control's Style is PSPNLFIELD.FIELDSTYLE, the style class name, ' ' for the default | reproduced | 7 |
 | page-designer | f-c6a6a1fd0f428c5bd4faee8a | A page's Style Sheet is PSPNLDEFN.STYLESHEETNAME | observed | 1 |
@@ -258,7 +269,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-d9e03c2f85410cac3cad4e87 | An edit box's Smart Prompt is PSPNLFIELDEXT.PTDISABLESMARTPROM 0 | reproduced | 2 |
 | page-designer | f-dc0443deed0189182ffd137f | Display-Only Appearance: Disabled Edit Control is PSPNLFIELD.FIELDUSETMP 0x4 | reproduced | 3 |
 | page-designer | f-dcd7cd1b0236ecc69d32f9e4 | Fluid Placeholder Text is PSPNLFIELDEXT.PLHTYPE 0 None / 1 Static / 2 Message Catalog with PLACEHOLDER or PLH_MSG_SET_NBR / PLH_MSG_NBR | reproduced | 2 |
-| page-designer | f-dd4004fb630a3d4a7776ad53 | Display Only on a page control is PSPNLFIELD.FIELDUSE 0x1 | reproduced | 2 |
+| page-designer | f-dd4004fb630a3d4a7776ad53 | Display Only on a page control is PSPNLFIELD.FIELDUSE 0x1 | reproduced | 4 |
 | page-designer | f-decaffd9db3234f3841aa857 | A page's Suppress System-Supplied Style Classes is PSPNLDEFN.PNLUSETEMP 0x1 | observed | 1 |
 | page-designer | f-dfd8f0d79b2abf200c8322c6 | A long edit box's Expand Field When Display Only is PSPNLFIELD.PTLEBEXPANDFIELD 1 | reproduced | 2 |
 | page-designer | f-e2c41d86557fba7f022cc9f2 | A group box's Message Catalog Popup is PSPNLFIELD.FIELDUSETMP 0xA000 with PSPNLFIELDEXT.MESSAGE_SET_NBR / MESSAGE_NBR | reproduced | 2 |
@@ -267,6 +278,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-f5591d5a054aa476ae80a09f | Invisible on a page control is PSPNLFIELD.FIELDUSE 0x2 with SECUREINVISIBLE 1 | reproduced | 4 |
 | page-designer | f-f7904ce34399f697bd7fb272 | Fluid Include Labels in Grid Cells is PSPNLFIELDEXT.FIELDUSETEMP2 0x2 | observed | 1 |
 | page-designer | f-fe89a32dd42b46075306c28e | An HTML Area's Constant value is a PSPNLHTMLAREA row; going back to Field deletes it | reproduced | 2 |
+| page-designer | f-feb8dc63228d1cd6d0db7486 | PSPNLFIELD.FIELDTYPE is the page control's kind: 22 codes from 0 Static Text to 32 Analytic Grid, read from App Designer's inserts | reproduced | 21 |
 | page-designer | f-ffe416ba3fff85f9abc83c88 | An edit box's Fluid Input Type is PSPNLFIELDEXT.HTML_INPUT_TYPE: 0 text, 1 color, 2 date, 3 datetime, 5 email, 7 number, 8 range, 9 search, 10 tel, 11 time, 12 url | reproduced | 11 |
 | peoplecode | f-232ea6241450a52b85ba008e | Component PeopleCode keys are PSPCMPROG OBJECTIDs 10 / 39 / 12 (component), 10 / 39 / 1 / 12 (record), 10 / 39 / 1 / 2 / 12 (record field) | reproduced | 3 |
 | peoplecode | f-3761278ebeac004eaa038d19 | Page PeopleCode is keyed PSPCMPROG OBJECTID 9 (page) / 12 (event Activate) | reproduced | 2 |
@@ -310,10 +322,11 @@ fingerprint; server: see `server/intelligence/README.md`.
    (s01-s03; s04's window holds the writer's x10) and component PeopleCode
    (p01-p05), scroll levels (lv*: every after-image checked against the
    level rule), Page PeopleCode (q01-q03), projects (c02, p01; not p03, a
-   long mixed window), packages and classes (c03-c06). Not yet recorded:
-   PeopleCode writeback (00-12), fresh-insert defaults per control
-   (*-fresh, in01-in03), the property-grid saves (cb-*), menu groups
-   (mn06-mn22), message definitions (msg01-03), tab order (to-*), the
+   long mixed window), packages and classes (c03-c06), control FIELDTYPE
+   codes and insert defaults (*-fresh, in01, in03), the property-grid saves
+   (cb-*; Invisible there leaves SECUREINVISIBLE 0) and menu groups
+   (mn06-mn22). Not yet recorded: PeopleCode writeback (00-12), message
+   PeopleCode (msg02-03), where an inserted control goes (to-*), the
    App Engine and CI leftovers (ae10/11/16/17, ad01/02, ar01, ap*, ci18,
    ci25); the n*/nae/nce/nchn/nme "native" and d* / e01 cases are to be
    checked as writer runs first. When adding captures -- check each family's

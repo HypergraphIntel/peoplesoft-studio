@@ -1,0 +1,94 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-4ccab1a68be0d2b3c1cc3609",
+  "fingerprint": "4ccab1a68be0d2b3c1cc36092e440419385cec55e4c5da02a606558c1de50655",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "DSPLFORMAT"
+    ]
+  },
+  "assertion": {
+    "kind": "insert-defaults",
+    "facts": {
+      "FIELDTYPE": 0,
+      "DSPLFORMAT": "0x4001",
+      "alignment": "Left 0x1"
+    }
+  },
+  "title": "A freshly inserted Static Text is DSPLFORMAT 0x4001: Left alignment 0x1 set",
+  "statement": "App Designer inserts a Static Text (FIELDTYPE 0) with DSPLFORMAT 0x4001, which already holds the Left alignment bit 0x1 (see the static text Alignment finding).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-09T20:18:40.000Z",
+      "method": "save-capture",
+      "experimentId": "15-static-text",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture 15-static-text: the inserted control 10 has FIELDTYPE 0, FIELDUSE 0x0, SECUREINVISIBLE 0, DSPLFORMAT 0x4001, FIELDSIZETYPE 0, LBLTYPE 1, size 128 x 20, OCCURSLEVEL 0.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 4
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "15-static-text"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "1ab21e757d5325ae75fdaa75b5d0e3b6c40faeaed891c702f44091a7bb47e728"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:45:50.526Z",
+    "updatedAt": "2026-10-13T11:45:50.526Z",
+    "schemaVersion": 1
+  }
+}

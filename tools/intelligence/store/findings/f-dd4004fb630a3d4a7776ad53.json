@@ -122,6 +122,90 @@
         }
       ],
       "digest": "50d37ba5494b2456702ab45af8d3b530ea69cadcf76581df51ad0cfe75919767"
+    },
+    {
+      "observedAt": "2026-10-13T11:46:24.834Z",
+      "method": "save-capture",
+      "experimentId": "cb-display-only",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture cb-display-only, control 3: FIELDUSE 0x0 -> 0x1. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "cb-display-only"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "b15d61d8bbbb15043f4d0f4f98233577a12bc2ee93ca17352aa01da3c74ac613"
+    },
+    {
+      "observedAt": "2026-10-13T11:46:25.223Z",
+      "method": "save-capture",
+      "experimentId": "cb-display-only-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture cb-display-only-off, control 3: FIELDUSE 0x1 -> 0x0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "cb-display-only-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "cfd53cf0d8354fdbc874a2e9e112267f6d937b8db24def7199d19817a7812f93"
     }
   ],
   "privacy": {
@@ -131,7 +215,7 @@
   "provenance": {
     "source": "research-harness",
     "createdAt": "2026-10-13T11:27:48.049Z",
-    "updatedAt": "2026-10-13T11:27:48.415Z",
+    "updatedAt": "2026-10-13T11:46:25.230Z",
     "schemaVersion": 1
   }
 }

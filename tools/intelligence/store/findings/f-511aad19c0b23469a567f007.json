@@ -1,0 +1,153 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-511aad19c0b23469a567f007",
+  "fingerprint": "511aad19c0b23469a567f00718870758d900c6c4ce651292e126adf58b509b9c",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "menu",
+    "objectType": "Menu",
+    "tables": [
+      "PSMENUDEFN"
+    ]
+  },
+  "assertion": {
+    "kind": "group-wide-write",
+    "facts": {
+      "table": "PSMENUDEFN",
+      "columns": "GROUPORDER,GROUPSEP",
+      "scope": "every menu with the same MENUGROUP",
+      "versionIsNewCounter": "MDM",
+      "restamped": false
+    }
+  },
+  "title": "A menu group's order or separator is saved into every menu of the group, each taking the new MDM as VERSION, none restamped",
+  "statement": "When App Designer saves a standard menu's Menu Group Order or its separator, it writes PSMENUDEFN.GROUPORDER / GROUPSEP on every standard menu of the same MENUGROUP, and each of those rows takes the new MDM as VERSION; their LASTUPDDTTM does not change.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-11T21:35:18.913Z",
+      "method": "save-capture",
+      "experimentId": "mn13-group-order-shared",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn13-group-order-shared: 2 menus of the group updated, GROUPORDER changed on each, each VERSION set to 101 (the new MDM), no LASTUPDDTTM changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn13-group-order-shared"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "ccd909294930c67f8d2b47e262f84cbfee308f9848762842e19e9907c03f9a77"
+    },
+    {
+      "observedAt": "2026-10-11T21:37:41.547Z",
+      "method": "save-capture",
+      "experimentId": "mn14-group-sep-shared",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn14-group-sep-shared: 2 menus of the group updated, GROUPSEP changed on each, each VERSION set to 103 (the new MDM), no LASTUPDDTTM changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          }
+        ],
+        "counters": {
+          "MDM": 2,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn14-group-sep-shared"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "e2c06b71e972930c9c66ec97e33e8ce0b27e694c293c29e2cc28daa3bc90719c"
+    },
+    {
+      "observedAt": "2026-10-11T22:25:14.803Z",
+      "method": "save-capture",
+      "experimentId": "mn20-group-order-sep",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture mn20-group-order-sep: 2 menus of the group updated, GROUPORDER, GROUPSEP changed on each, each VERSION set to 144 (the new MDM), no LASTUPDDTTM changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSMENUDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "mn20-group-order-sep"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/MENUS.md"
+        }
+      ],
+      "digest": "5c6adf884cfaa8d38f138c39e69fb1f99b2321138ef9b60bbaa684df07e4b028"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:47:09.307Z",
+    "updatedAt": "2026-10-13T11:47:10.135Z",
+    "schemaVersion": 1
+  }
+}

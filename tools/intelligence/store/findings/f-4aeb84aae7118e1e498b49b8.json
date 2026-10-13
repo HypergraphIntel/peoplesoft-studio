@@ -254,6 +254,90 @@
         }
       ],
       "digest": "4b3997fb9f85f521ea162882aa9e50fb5b7132d2c0920a8194f1c77734944ce2"
+    },
+    {
+      "observedAt": "2026-10-13T11:46:23.236Z",
+      "method": "save-capture",
+      "experimentId": "cb-multicurrency",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture cb-multicurrency, control 3: FIELDUSE 0x0 -> 0x20. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "cb-multicurrency"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "2a24a4bc3c93a5fbae78b598041fa0dedb6f308da1fc4082548af0af9eb4ba1b"
+    },
+    {
+      "observedAt": "2026-10-13T11:46:23.651Z",
+      "method": "save-capture",
+      "experimentId": "cb-multicurrency-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture cb-multicurrency-off, control 3: FIELDUSE 0x20 -> 0x0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "cb-multicurrency-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "877fd450202a5b61e08c0658d2fb5f21f009a241d8387e9f418a83664196aeae"
     }
   ],
   "privacy": {
@@ -263,7 +347,7 @@
   "provenance": {
     "source": "research-harness",
     "createdAt": "2026-10-13T11:26:58.966Z",
-    "updatedAt": "2026-10-13T11:27:00.616Z",
+    "updatedAt": "2026-10-13T11:46:23.658Z",
     "schemaVersion": 1
   }
 }

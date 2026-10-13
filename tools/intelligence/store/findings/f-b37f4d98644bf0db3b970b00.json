@@ -31,7 +31,7 @@
     ],
     "knownIncompatible": []
   },
-  "localStatus": "observed",
+  "localStatus": "reproduced",
   "observations": [
     {
       "observedAt": "2026-10-13T11:27:50.940Z",
@@ -74,6 +74,90 @@
         }
       ],
       "digest": "554175625152caeb781b3240c53e2e87b322d5e9688890115af57294c214d3fe"
+    },
+    {
+      "observedAt": "2026-10-13T11:46:26.406Z",
+      "method": "save-capture",
+      "experimentId": "cb-set-comp-changed-off",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture cb-set-comp-changed-off, control 3: FIELDUSETMP 0x0 -> 0x8. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "cb-set-comp-changed-off"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "5b86868741e0f8946dd4d1fd82e338169ecf8d978efd9bdaf8bce699b0b2e158"
+    },
+    {
+      "observedAt": "2026-10-13T11:46:26.780Z",
+      "method": "save-capture",
+      "experimentId": "cb-set-comp-changed-on",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture cb-set-comp-changed-on, control 3: FIELDUSETMP 0x8 -> 0x0. Nothing else on the control changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "cb-set-comp-changed-on"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "c5b47b12881374af6088efcf8dcf8a5c450599dcc4cac14c4f3c552092c2824b"
     }
   ],
   "privacy": {
@@ -83,7 +167,7 @@
   "provenance": {
     "source": "research-harness",
     "createdAt": "2026-10-13T11:27:50.947Z",
-    "updatedAt": "2026-10-13T11:27:50.947Z",
+    "updatedAt": "2026-10-13T11:46:26.787Z",
     "schemaVersion": 1
   }
 }

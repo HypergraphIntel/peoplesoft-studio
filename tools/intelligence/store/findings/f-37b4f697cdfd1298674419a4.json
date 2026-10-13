@@ -1,0 +1,99 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-37b4f697cdfd1298674419a4",
+  "fingerprint": "37b4f697cdfd1298674419a470097863d9a73093c33a1fdfd7dbd17625e6a290",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDUSE",
+      "SECUREINVISIBLE",
+      "FIELDRIGHT"
+    ]
+  },
+  "assertion": {
+    "kind": "insert-defaults",
+    "facts": {
+      "FIELDTYPE": 10,
+      "FIELDUSE": "0x2",
+      "SECUREINVISIBLE": 1,
+      "width": 17,
+      "LBLTYPE": 0,
+      "OCCURSLEVEL": 1
+    }
+  },
+  "title": "A freshly inserted Scroll Bar is invisible (FIELDUSE 0x2, SECUREINVISIBLE 1), 17 wide, at Occurs Level 1",
+  "statement": "App Designer inserts a Scroll Bar (FIELDTYPE 10) as an invisible control (FIELDUSE 0x2 with SECUREINVISIBLE 1), 17 units wide, label 'Scroll Bar' of type None, OCCURSLEVEL 1.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:45:48.911Z",
+      "method": "save-capture",
+      "experimentId": "sb-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture sb-fresh: the inserted control 2 has FIELDTYPE 10, FIELDUSE 0x2, SECUREINVISIBLE 1, DSPLFORMAT 0x0, FIELDSIZETYPE 0, LBLTYPE 0, size 17 x 200, OCCURSLEVEL 1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "sb-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "1f23450d80ab5fd5918b8377f46d69d787484ac532f14f2f8a19d6a2e19b80a3"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:45:48.919Z",
+    "updatedAt": "2026-10-13T11:45:48.919Z",
+    "schemaVersion": 1
+  }
+}

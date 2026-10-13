@@ -1,0 +1,153 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-13ecc4acae52097e9adba9c2",
+  "fingerprint": "13ecc4acae52097e9adba9c2fa3253817f69368f554e073be41221a6e5c56fd2",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page",
+    "tables": [
+      "PSPNLFIELD"
+    ],
+    "properties": [
+      "FIELDUSE",
+      "DSPLFORMAT",
+      "LBLTYPE"
+    ]
+  },
+  "assertion": {
+    "kind": "insert-defaults",
+    "facts": {
+      "FIELDTYPE": 19,
+      "FIELDUSE": "0x1000",
+      "DSPLFORMAT": "0x20000",
+      "LBLTYPE": 0,
+      "LBLTEXT": "Grid",
+      "OCCURSLEVEL": 1
+    }
+  },
+  "title": "A freshly inserted Grid is FIELDUSE 0x1000, DSPLFORMAT 0x20000, label 'Grid' of type None, RECNAME its main record",
+  "statement": "App Designer inserts a Grid (FIELDTYPE 19) with FIELDUSE 0x1000, DSPLFORMAT 0x20000, LBLTYPE 0 with LBLTEXT 'Grid', RECNAME the grid's main record and OCCURSLEVEL 1.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T11:45:49.320Z",
+      "method": "save-capture",
+      "experimentId": "gd-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gd-fresh: the inserted control 8 has FIELDTYPE 19, FIELDUSE 0x1000, SECUREINVISIBLE 0, DSPLFORMAT 0x20000, FIELDSIZETYPE 0, LBLTYPE 0, size 380 x 108, OCCURSLEVEL 1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLCNTRLDATA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gd-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "74bb49ca6716327ff6537d11185b22eb53588b6ec2e51fedec39fc58d28e2bf5"
+    },
+    {
+      "observedAt": "2026-10-13T11:45:49.724Z",
+      "method": "save-capture",
+      "experimentId": "gr-fresh",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture gr-fresh: the inserted control 2 has FIELDTYPE 19, FIELDUSE 0x1000, SECUREINVISIBLE 0, DSPLFORMAT 0x20000, FIELDSIZETYPE 0, LBLTYPE 0, size 380 x 200, OCCURSLEVEL 1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "gr-fresh"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "521062e544783da6e0461c895af1d48f98005497923be26779d596919403b335"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-13T11:45:49.333Z",
+    "updatedAt": "2026-10-13T11:45:49.732Z",
+    "schemaVersion": 1
+  }
+}

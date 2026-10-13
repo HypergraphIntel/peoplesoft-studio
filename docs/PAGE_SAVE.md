@@ -847,7 +847,8 @@ ZZ_PCODE_LAB_CT. The dialog's tabs are Record, Label, Use, General and Fluid:
 | Use | Read only control for screen reader | FIELDUSETEMP2 0x10000 |
 | Use | Wrap Long Words | FIELDUSETMP 0x40 |
 
-Turning Invisible off clears Generate in HTML and SECUREINVISIBLE (cbx15;
+Set from the Properties window's grid instead of the dialog, Invisible wrote
+FIELDUSE 0x2 alone, SECUREINVISIBLE staying 0 (cb-invisible). Turning Invisible off clears Generate in HTML and SECUREINVISIBLE (cbx15;
 delivered visible controls carry SECUREINVISIBLE 1 only 4 times in 164,547).
 Related Field off clears ASSOCFIELDNUM and leaves Display Only on (cbx14). A
 related display must follow its control field in tab order, or App Designer

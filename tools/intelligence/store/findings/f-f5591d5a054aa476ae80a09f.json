@@ -25,7 +25,7 @@
     }
   },
   "title": "Invisible on a page control is PSPNLFIELD.FIELDUSE 0x2 with SECUREINVISIBLE 1",
-  "statement": "Use tab Invisible sets PSPNLFIELD.FIELDUSE bit 0x2 and SECUREINVISIBLE 0 -> 1 in the same save. Observed on a check box and an edit box. A horizontal rule's Set to Level writes the same pair.",
+  "statement": "In a page control's Properties dialog, Use tab Invisible sets PSPNLFIELD.FIELDUSE bit 0x2 and SECUREINVISIBLE 0 -> 1 in the same save. Observed on a check box and an edit box; a horizontal rule's Set to Level writes the same pair. Set from the Properties window's grid instead, Invisible sets FIELDUSE 0x2 alone (cb-invisible; a separate finding).",
   "confidence": "high",
   "compatibility": {
     "observedReleases": [
