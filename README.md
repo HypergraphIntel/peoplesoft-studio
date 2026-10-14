@@ -13,6 +13,7 @@ writing the same rows Application Designer writes.
 > is experimental: read the [Disclaimer](#disclaimer) before writing to any
 > database.
 
+### Page Designer:
 ![The Page designer: JOB_DATA1's Layout view with the Page Properties panel](docs/images/page-designer.png)
 
 ## Why PeopleSoft Studio
@@ -39,8 +40,11 @@ writing the same rows Application Designer writes.
   modified, Partner or Custom, with its evidence, and Event Mapping is
   discovered and configured the way PeopleTools' own page does it.
 
+
+### App Engine Designer:
 ![The App Engine Designer: BEN110's sections, steps and actions with the section's properties](docs/images/app-engine-designer.png)
 
+### Customization Orchestration:
 ![The Customization Strategy view and the Customization Plan for BEN110](docs/images/customization-strategy.png)
 
 ## AI agents

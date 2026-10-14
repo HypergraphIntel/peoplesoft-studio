@@ -1,0 +1,125 @@
+{
+ "srvconf": [
+  {
+   "PORTAL_NAME": "_PTCS_PTEVMAP",
+   "PORTAL_OBJNAME": "ZZ_PCODE_LAB_CMP_GBL",
+   "PTCS_SERVICEID": "ZZ_PCODE_LAB_EMSVC",
+   "PTCS_INSTANCEID": 95513742,
+   "PTCS_ISCOMPSERVICE": "C",
+   "RECNAME": " ",
+   "FIELDNAME": " ",
+   "PTCS_CMPEVENT": "POST",
+   "PTCS_CMPRECEVENT": " ",
+   "PTCS_PROCSEQ": "POST",
+   "PTCS_ENABLE": "Y",
+   "VERSION": 56
+  },
+  {
+   "PORTAL_NAME": "_PTCS_PTEVMAP",
+   "PORTAL_OBJNAME": "ZZ_PCODE_LAB_CMP_GBL",
+   "PTCS_SERVICEID": "ZZ_PCODE_LAB_EMSVC",
+   "PTCS_INSTANCEID": 178451356,
+   "PTCS_ISCOMPSERVICE": "P",
+   "RECNAME": "ZZ_PCODE_LAB_T",
+   "FIELDNAME": " ",
+   "PTCS_CMPEVENT": " ",
+   "PTCS_CMPRECEVENT": "RINI",
+   "PTCS_PROCSEQ": "OVER",
+   "PTCS_ENABLE": "N",
+   "VERSION": 54
+  },
+  {
+   "PORTAL_NAME": "_PTCS_PTEVMAP",
+   "PORTAL_OBJNAME": "ZZ_PCODE_LAB_CMP_GBL",
+   "PTCS_SERVICEID": "ZZ_PCODE_LAB_EMSVC2",
+   "PTCS_INSTANCEID": 72024438,
+   "PTCS_ISCOMPSERVICE": "F",
+   "RECNAME": "ZZ_PCODE_LAB_T",
+   "FIELDNAME": "ZZ_PCODE_LAB_N1",
+   "PTCS_CMPEVENT": " ",
+   "PTCS_CMPRECEVENT": "RFCH",
+   "PTCS_PROCSEQ": "PRE",
+   "PTCS_ENABLE": "Y",
+   "VERSION": 55
+  }
+ ],
+ "mapflds": [
+  {
+   "PTCS_SERVICEID": "ZZ_PCODE_LAB_EMSVC2",
+   "PTCS_INSTANCEID": 72024438,
+   "PTCS_PARAMETERNAME": "EV_PARAM",
+   "PTCS_PNLFLDNAME": "WRITER"
+  }
+ ],
+ "params": [
+  {
+   "PTCS_SERVICEID": "ZZ_PCODE_LAB_EMSVC",
+   "PTCS_PARAMETERNAME": "EV_PARAM",
+   "SEQNUM": 1,
+   "REQUIRED_FLG": "N",
+   "PTCS_DESCR128": "For Event Mapping"
+  },
+  {
+   "PTCS_SERVICEID": "ZZ_PCODE_LAB_EMSVC2",
+   "PTCS_PARAMETERNAME": "EV_PARAM",
+   "SEQNUM": 1,
+   "REQUIRED_FLG": "N",
+   "PTCS_DESCR128": "For Event Mapping"
+  }
+ ],
+ "srvdefn": [
+  {
+   "PTCS_SERVICEID": "ZZ_PCODE_LAB_EMSVC",
+   "PACKAGEROOT": "ZZ_PCODE_LAB_EM",
+   "QUALIFYPATH": ":",
+   "APPCLASSID": "Handler",
+   "VERSION": 7
+  },
+  {
+   "PTCS_SERVICEID": "ZZ_PCODE_LAB_EMSVC2",
+   "PACKAGEROOT": "ZZ_PCODE_LAB_EM",
+   "QUALIFYPATH": ":",
+   "APPCLASSID": "Handler2",
+   "VERSION": 9
+  },
+  {
+   "PTCS_SERVICEID": "ZZ_PCODE_LAB_EMSVC3",
+   "PACKAGEROOT": "ZZ_PCODE_LAB_EM",
+   "QUALIFYPATH": ":",
+   "APPCLASSID": "Handler4",
+   "VERSION": 10
+  }
+ ],
+ "counters": [
+  {
+   "OBJECTTYPENAME": "RCSCM",
+   "VERSION": 14
+  },
+  {
+   "OBJECTTYPENAME": "RCSDM",
+   "VERSION": 10
+  },
+  {
+   "OBJECTTYPENAME": "SCNFM",
+   "VERSION": 56
+  },
+  {
+   "OBJECTTYPENAME": "SYS",
+   "VERSION": 2857
+  }
+ ],
+ "locks": [
+  {
+   "OBJECTTYPENAME": "RCSCM",
+   "VERSION": 14
+  },
+  {
+   "OBJECTTYPENAME": "RCSDM",
+   "VERSION": 13
+  },
+  {
+   "OBJECTTYPENAME": "SCNFM",
+   "VERSION": 56
+  }
+ ]
+}
