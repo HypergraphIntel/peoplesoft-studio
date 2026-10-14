@@ -1,0 +1,66 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-ea75836159b0d4bde60334e0",
+  "fingerprint": "ea75836159b0d4bde60334e07c99c8da747df93604122f9377f98b068f4a7497",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "customization",
+    "objectType": "Page and Field Configurator configuration",
+    "tables": [
+      "PSRECFIELDDB",
+      "PS_EOCC_CONFIG_FLD"
+    ]
+  },
+  "assertion": {
+    "kind": "search-keys-expanded",
+    "facts": {
+      "table": "PSRECFIELDDB",
+      "subrecordsExpanded": true,
+      "searchKeyBit": "0x0800"
+    }
+  },
+  "title": "The configurator's search and prompt field events use the record's fields with subrecords expanded",
+  "statement": "For a configured search or prompt field (key part 6 Srch or Prmpt), the configurator maps the record's search keys as PeopleCode's Record object lists its fields -- subrecords expanded -- so the keys are found in PSRECFIELDDB, not PSRECFIELD (USEEDIT bit 0x0800).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-14T12:00:00Z",
+      "method": "source-inspection",
+      "experimentId": "pfc-mapper-check",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "appFamily": "HCM",
+        "platform": "oracle"
+      },
+      "observation": "PERSONAL_DATA's Masking configuration maps EOCC_MASK_SEARCHINIT on PERALL_SEC_SRCH.EMPLID and PERS_SRCH_GBL.EMPLID; EMPLID is not in those records' PSRECFIELD rows (it comes from a subrecord) but is in PSRECFIELDDB with the search-key bit. With PSRECFIELDDB the derivation matches the stored rows.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "src/providers/pfcMapper.ts"
+        }
+      ],
+      "digest": "5433f6b9a597e82b78d72ba852dc5d17406bc545043685ffe38ce364bf5c308e"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-14T11:10:53.853Z",
+    "updatedAt": "2026-10-14T11:10:53.853Z",
+    "schemaVersion": 1
+  }
+}

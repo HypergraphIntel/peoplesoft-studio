@@ -1,0 +1,83 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-56923a130a354c1a0ea1b40b",
+  "fingerprint": "56923a130a354c1a0ea1b40b32b67c87ab21b7251c668a3e49776227cc4bbe41",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "customization",
+    "objectType": "Page and Field Configurator configuration"
+  },
+  "assertion": {
+    "kind": "writer-replays-pia",
+    "facts": {
+      "replayedCaptures": 2,
+      "everyRowMatches": true
+    }
+  },
+  "title": "PeopleSoft Studio's Page and Field Configurator writer replays PIA's captured saves row for row",
+  "statement": "Planned from each capture's before-state, the writer's statements reproduce every configuration row, mapping row (instance ids drawn as the related-content API draws them), tombstone, language row, tracking row and counter PIA wrote in pfc01-configure and pfc02-remove.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-14T11:10:25.071Z",
+      "method": "unit-replay",
+      "experimentId": "pfcWriter.test",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "tool": "node:test"
+      },
+      "observation": "src/test/pfcWriter.test.ts: all tests pass, including the pfc01 and pfc02 replays.",
+      "actual": "6 passed, 0 failed, 0 skipped",
+      "testResults": [
+        {
+          "name": "a first configuration writes the configuration rows PIA wrote [pfc01]",
+          "outcome": "pass"
+        },
+        {
+          "name": "a first configuration maps its content references as PIA did [pfc01]",
+          "outcome": "pass"
+        },
+        {
+          "name": "a re-save replaces the configuration rows and the type's mapping as PIA did [pfc02]",
+          "outcome": "pass"
+        },
+        {
+          "name": "an inactive configuration removes the type's mapping, and the service when nothing is left",
+          "outcome": "pass"
+        },
+        {
+          "name": "the services a save deletes follow DeleteUtilityServiceMapping",
+          "outcome": "pass"
+        },
+        {
+          "name": "configuration checks: keys, sequences, statuses; the page's warnings",
+          "outcome": "pass"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/test/pfcWriter.test.ts"
+        }
+      ],
+      "digest": "bd077af2fd98a2143856f321d96ad22c77535d928eccd462c8e56d503c2c6c82"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-14T11:10:25.080Z",
+    "updatedAt": "2026-10-14T11:10:25.080Z",
+    "schemaVersion": 1
+  }
+}

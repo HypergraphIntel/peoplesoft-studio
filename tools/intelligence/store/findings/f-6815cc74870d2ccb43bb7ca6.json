@@ -1,0 +1,65 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-6815cc74870d2ccb43bb7ca6",
+  "fingerprint": "6815cc74870d2ccb43bb7ca60dbfd660053de60a68ab5bd987bbafe9ccc57cb2",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "customization",
+    "objectType": "Page and Field Configurator configuration",
+    "tables": [
+      "PSPTCSSRVCONF",
+      "PSPTCSSRVDEFN"
+    ]
+  },
+  "assertion": {
+    "kind": "delivered-mapping-stale",
+    "facts": {
+      "configurationsStale": 2,
+      "regeneratedOnSave": true
+    }
+  },
+  "title": "Delivered Page and Field Configurator mappings can predate the configurator's current rules until the configuration is saved again",
+  "statement": "A delivered configuration's Event Mapping is what the release that generated it mapped; services the current configurator adds (EOCC_FIELDCHANGE, numbered EOCC_ROWINITn/ROWINSERTn) are missing until the configuration is saved again, which regenerates it. A comparison of stored with derived mappings must allow for that.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-14T12:00:00Z",
+      "method": "manual-inspection",
+      "experimentId": "pfc-mapper-check",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "appFamily": "HCM",
+        "platform": "oracle"
+      },
+      "observation": "HRDMO: JOB_DATA_FL's mappings were generated 2020-09-25 and lack only EOCC_FIELDCHANGE on DERIVED_JOB_HDR.ACTION (the service was delivered 2020-12-14); EE_HR_PROC_FL's were generated 2017-07-31 and hold only PostBuild, before EOCC_ROWINIT1 and the others (2021-08-25). Neither has a stored row the rules do not derive.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "src/providers/pfcMapper.ts"
+        }
+      ],
+      "digest": "e21a76129fa153b0a1bb72963b35f1502ca361e327fc092123befa83a48116f1"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-14T11:10:54.246Z",
+    "updatedAt": "2026-10-14T11:10:54.246Z",
+    "schemaVersion": 1
+  }
+}

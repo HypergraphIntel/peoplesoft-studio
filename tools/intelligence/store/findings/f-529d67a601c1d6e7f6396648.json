@@ -1,0 +1,108 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-529d67a601c1d6e7f6396648",
+  "fingerprint": "529d67a601c1d6e7f63966487729291adba7282d4315afe2d2bae41b86baa39b",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "customization",
+    "objectType": "Page and Field Configurator configuration"
+  },
+  "assertion": {
+    "kind": "resave-regenerates-mapping",
+    "facts": {
+      "table": "PSPTCSSRVCONF",
+      "tombstoneTable": "PSPTCSSRVCNFDEL",
+      "languageRowsOnResave": true,
+      "LANGUAGE_CD": "blank",
+      "versionIsCounter": "SCNFM"
+    }
+  },
+  "title": "Every Page and Field Configurator save deletes and re-inserts the type's Event Mapping, adding language rows with a blank language code",
+  "statement": "On a re-save the configurator deletes every row of the configuration type's EOCC services on each content reference (DeleteUtilityServiceMapping order), each with a PSPTCSSRVCNFDEL tombstone at the next SCNFM, then inserts the rows it now derives. When the content reference's PSPTCS_SRVCFG already existed, each inserted row also gets a PSPTCSSRVCONFLG row whose LANGUAGE_CD is blank: the related-content API sets the language only on a new service.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-14T03:49:51.839Z",
+      "method": "save-capture",
+      "experimentId": "pfc02-remove",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Capture pfc02-remove (the field removed): per content reference 4 rows tombstoned (SCNFM 95-98, 101-104) and EOCC_POSTBUILD, EOCC_SAVEPRECHANGE inserted (99-100, 105-106), each with a PSPTCSSRVCONFLG row with LANGUAGE_CD ' '; PSPTCS_SRVCFG kept, its RCF_SERVICES tracking restamped; SEQ and FLD rows deleted and inserted.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSADSTRACKING",
+            "inserted": 4,
+            "deleted": 0,
+            "updated": 10
+          },
+          {
+            "table": "PSPTCSSRVCNFDEL",
+            "inserted": 8,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCSSRVCONF",
+            "inserted": 4,
+            "deleted": 8,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCSSRVCONFLG",
+            "inserted": 4,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PS_EOCC_CONFIG_FLD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PS_EOCC_CONFIG_SEQ",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SCNFM": 12,
+          "SYS": 12
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "pfc02-remove"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        }
+      ],
+      "digest": "9fc3d792993ecd363713f930e7dddc6216bfdc6f91e67be782acb4b29762689a"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-14T11:10:19.514Z",
+    "updatedAt": "2026-10-14T11:10:19.514Z",
+    "schemaVersion": 1
+  }
+}

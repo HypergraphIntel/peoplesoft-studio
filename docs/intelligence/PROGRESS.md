@@ -121,7 +121,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 
 ## Recorded findings (tools/intelligence/store)
 
-213 findings, 1000 observations, each checked against its capture rows before recording (2026-10-13; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
+221 findings, 1008 observations, each checked against its capture rows before recording (2026-10-14; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
 
 | Subsystem | ID | Claim | Status | Obs. |
 |---|---|---|---|---|
@@ -154,6 +154,14 @@ fingerprint; server: see `server/intelligence/README.md`.
 | component-interface | f-cac4dc5f446f39d9dbbb8026 | Taking a standard method away from a Component Interface also moves CLM | observed | 1 |
 | component-interface | f-e914dad1753456f91f7828a2 | Editing only a Component Interface's methods PeopleCode moves PCM and SYS by 1 | observed | 1 |
 | component-interface | f-fedefefdb30a40a90ea77a36 | Creating a Component Interface or changing its properties, items or synchronization moves BCM and SYS by 1 | reproduced | 22 |
+| customization | f-5186d17ed6aa474e67e6f385 | Saving a Page and Field Configurator configuration maps its EOCC services through Event Mapping on every content reference of the component | observed | 1 |
+| customization | f-529d67a601c1d6e7f6396648 | Every Page and Field Configurator save deletes and re-inserts the type's Event Mapping, adding language rows with a blank language code | observed | 1 |
+| customization | f-56923a130a354c1a0ea1b40b | PeopleSoft Studio's Page and Field Configurator writer replays PIA's captured saves row for row | observed | 1 |
+| customization | f-6815cc74870d2ccb43bb7ca6 | Delivered Page and Field Configurator mappings can predate the configurator's current rules until the configuration is saved again | observed | 1 |
+| customization | f-91b8d2b52db8f88f2649a9ce | Making a check box required with the Page and Field Configurator shows nothing at run time | observed | 1 |
+| customization | f-a0afa2b23825394bfb858b1f | PeopleSoft Studio's Page and Field Configurator writer saves what EOCC_CONFIGURE saves, and the configurator applies it at run time | observed | 1 |
+| customization | f-c95dfbb3da85a24509c28044 | Which EOCC services a Page and Field Configurator configuration maps follows the configurator's Mapper, and can be derived from its rows | observed | 1 |
+| customization | f-ea75836159b0d4bde60334e0 | The configurator's search and prompt field events use the record's fields with subrecords expanded | observed | 1 |
 | event-mapping | f-38ae377ffee33015fc094aa9 | Configuring Event Mapping on a content reference for the first time inserts its PSPTCS_SRVCFG row (menu, component, ExpandFrame N) at RCSCM | reproduced | 2 |
 | event-mapping | f-40dd4fa4217f84f79d5a999b | Mapping a related content service for the first time adds its EV_PARAM parameter row and sets the service's VERSION to the new RCSDM | observed | 1 |
 | event-mapping | f-5731b0851774a312b6aa05af | PTCS_ISCOMPSERVICE level codes: C Component, R Page, P Record, F Record Field (PSXLATITEM's labels mislead) | observed | 1 |

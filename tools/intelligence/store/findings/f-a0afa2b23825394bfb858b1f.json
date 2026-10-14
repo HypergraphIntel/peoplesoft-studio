@@ -1,0 +1,110 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-a0afa2b23825394bfb858b1f",
+  "fingerprint": "a0afa2b23825394bfb858b1f3781b4b5d3029189e313f71c56c6276ec571c88d",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "customization",
+    "objectType": "Page and Field Configurator configuration"
+  },
+  "assertion": {
+    "kind": "writer-save-matches-pia",
+    "facts": {
+      "table": "PSPTCSSRVCONF",
+      "sameShapeAsPia": true,
+      "runtimeApplied": true
+    }
+  },
+  "title": "PeopleSoft Studio's Page and Field Configurator writer saves what EOCC_CONFIGURE saves, and the configurator applies it at run time",
+  "statement": "The writer's save of a configuration change has the native save's shape -- configuration rows deleted and inserted, the type's mapping rows tombstoned and re-inserted with blank-language rows, SCNFM and SYS one step per row, RCSCM unmoved -- and PIA applies the configuration it wrote.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-14T04:39:20.264Z",
+      "method": "save-capture",
+      "experimentId": "pfcw01-add-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PeopleSoft Studio 0.8.6"
+      },
+      "observation": "Capture pfcw01-add-field (the writer giving JOB_CODE_TBL's configuration back its field): per content reference 2 rows tombstoned and 4 inserted, language rows replaced; 8 tracking rows inserted, 6 restamped; SCNFM +12, SYS +12. A later writer save hiding Short Job Title (1.JOBCODE_TBL.DESCRSHORT.14.1.P) removed it from Define Job Code in PIA.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSADSTRACKING",
+            "inserted": 8,
+            "deleted": 0,
+            "updated": 6
+          },
+          {
+            "table": "PSPTCSSRVCNFDEL",
+            "inserted": 4,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCSSRVCONF",
+            "inserted": 8,
+            "deleted": 4,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCSSRVCONFLG",
+            "inserted": 8,
+            "deleted": 4,
+            "updated": 0
+          },
+          {
+            "table": "PS_EOCC_CONFIG_FLD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PS_EOCC_CONFIG_SEQ",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SCNFM": 12,
+          "SYS": 12
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "pfcw01-add-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "src/providers/pfcWriter.ts"
+        }
+      ],
+      "digest": "8f41a1b59d2309a330d4e7468552df09edd42795331c36c6c5f04a9618cf1799"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-14T11:10:19.912Z",
+    "updatedAt": "2026-10-14T11:10:19.912Z",
+    "schemaVersion": 1
+  }
+}

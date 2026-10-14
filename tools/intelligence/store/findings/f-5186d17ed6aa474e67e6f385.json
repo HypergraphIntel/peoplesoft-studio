@@ -1,0 +1,109 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-5186d17ed6aa474e67e6f385",
+  "fingerprint": "5186d17ed6aa474e67e6f385a9ffc81073122fe314ad710b7323c23a64f1ce5b",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "customization",
+    "objectType": "Page and Field Configurator configuration"
+  },
+  "assertion": {
+    "kind": "first-save-mapping",
+    "facts": {
+      "table": "PSPTCSSRVCONF",
+      "everyTargetContentReference": true,
+      "PTCS_RCFRAMELOC": "S",
+      "languageRows": false,
+      "versionIsCounter": "SCNFM"
+    }
+  },
+  "title": "Saving a Page and Field Configurator configuration maps its EOCC services through Event Mapping on every content reference of the component",
+  "statement": "EOCC_CONFIGURE's save writes the PS_EOCC_CONFIG_* rows and, on each content reference of the component that is not a link, the Event Mapping the configuration needs: PSPTCS_SRVCFG for _PTCS_PTEVMAP when missing (frame location S, VERSION the next RCSCM), then one PSPTCSSRVCONF row per EOCC service, each at the next SCNFM. A first save writes no PSPTCSSRVCONFLG rows.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-14T03:29:11.760Z",
+      "method": "save-capture",
+      "experimentId": "pfc01-configure",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Capture pfc01-configure (JOB_CODE_TBL, one sequence requiring a level-1 field): on both content references PSPTCS_SRVCFG inserted (RCSCM 35, 36) and EOCC_POSTBUILD, EOCC_SAVEPRECHANGE, EOCC_ROWINIT1 and EOCC_ROWINSERT1 on JOBCODE_TBL inserted (SCNFM 87-94); HDR, SEQ and FLD rows inserted; no language rows.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSADSTRACKING",
+            "inserted": 12,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCSSRVCONF",
+            "inserted": 8,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_SRVCFG",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PS_EOCC_CONFIG_FLD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PS_EOCC_CONFIG_HDR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PS_EOCC_CONFIG_SEQ",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RCSCM": 2,
+          "SCNFM": 8,
+          "SYS": 10
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "pfc01-configure"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        }
+      ],
+      "digest": "106331ba1fb9a9f905937a4e32c69272fad8adde973e14cae174c50a627584c4"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-14T11:10:19.128Z",
+    "updatedAt": "2026-10-14T11:10:19.128Z",
+    "schemaVersion": 1
+  }
+}

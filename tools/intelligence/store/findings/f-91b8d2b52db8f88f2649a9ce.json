@@ -1,0 +1,66 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-91b8d2b52db8f88f2649a9ce",
+  "fingerprint": "91b8d2b52db8f88f2649a9ce60e15c5428b4c1ac04fcfc96dfb2f3428bd5e8b5",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "customization",
+    "objectType": "Page and Field Configurator configuration",
+    "tables": [
+      "PS_EOCC_CONFIG_FLD"
+    ]
+  },
+  "assertion": {
+    "kind": "required-checkbox-invisible",
+    "facts": {
+      "EOCC_IS_REQUIRED": "Y",
+      "FIELDTYPE": 7,
+      "visibleAtRunTime": false
+    }
+  },
+  "title": "Making a check box required with the Page and Field Configurator shows nothing at run time",
+  "statement": "A configured Required on a check box (FIELDTYPE 7) gives no asterisk or aria-required in PIA: a check box always has a value. Run-time checks of a configuration need a field whose change is visible, such as a hidden edit box.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-14T12:00:00Z",
+      "method": "manual-inspection",
+      "experimentId": "pfcw01-runtime",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "appFamily": "HCM",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Define Job Code (SETUP_HRMS) with JOB_CODE_TBL configured to require Key Job Code (1.JOBCODE_TBL.KEY_JOBCODE.180.1.P, a check box) and both content references' mappings in place: the check box showed no required marker; hiding Short Job Title in the same configuration removed it from the page.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "src/providers/pfcMapper.ts"
+        }
+      ],
+      "digest": "61088d4ce2e1507e3c7ce8608e0a819d1c43c4e65c7fe48162224cd35911ac5e"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-14T11:10:54.630Z",
+    "updatedAt": "2026-10-14T11:10:54.630Z",
+    "schemaVersion": 1
+  }
+}
