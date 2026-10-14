@@ -47,8 +47,9 @@ export function dataSetsOf(tracked: Set<string>, recname: string): string[] {
  * when not (an UPDATE, then an INSERT guarded by NOT EXISTS), so the plan
  * needs no read of PSADSTRACKING.
  */
-export function trackingUpsert(ads: string, recname: string, keys: TrackedKey, ts: string, operatorId: string): Statement[] {
-  const key = { a: ads, r: recname, h: adsKeyHash(keys) };
+export function trackingUpsert(ads: string, recname: string, keys: TrackedKey, ts: string, operatorId: string, hashKeys: TrackedKey = keys): Statement[] {
+  // hashKeys: the keys PIA hashed, when they are not the ones it lists (a drop zone's menu folder row, dz01).
+  const key = { a: ads, r: recname, h: adsKeyHash(hashKeys) };
   const binds: Record<string, unknown> = { ...key, ts, op: operatorId };
   for (let i = 0; i < 16; i++) {
     binds[`c${i + 1}`] = keys[i] ? keys[i][0] : ' ';
@@ -73,4 +74,12 @@ export function trackingUpsert(ads: string, recname: string, keys: TrackedKey, t
 /** The row's tracking removed (PIA drops a removed content reference's RCF_SERVICE_CREFS row [em07]). */
 export function trackingDelete(ads: string, recname: string, keys: TrackedKey): Statement {
   return { sql: 'DELETE FROM PSADSTRACKING WHERE PTADSNAME = :a AND RECNAME = :r AND PTKEYHASH = :h', binds: { a: ads, r: recname, h: adsKeyHash(keys) }, what: `Untracking ${recname} (${ads})` };
+}
+
+/** The row's tracking re-stamped, not inserted: PIA refreshes the rows of what a drop-zone removal deletes and keeps them [dz02]. */
+export function trackingRefresh(ads: string, recname: string, hashKeys: TrackedKey, ts: string, operatorId: string): Statement {
+  return {
+    sql: `UPDATE PSADSTRACKING SET LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op WHERE PTADSNAME = :a AND RECNAME = :r AND PTKEYHASH = :h`,
+    binds: { a: ads, r: recname, h: adsKeyHash(hashKeys), ts, op: operatorId }, what: `Tracking ${recname} (${ads})`
+  };
 }

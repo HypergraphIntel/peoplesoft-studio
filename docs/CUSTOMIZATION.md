@@ -224,6 +224,51 @@ adding one to a delivered page is itself a delivered-object customization.
 HRDMO: `JOB_CODE_TBL` 5 drop zones on 5 pages, `JOB_DATA_FL` 40 on 20,
 `USERMAINT` none.
 
+## Writing Drop Zones
+
+`DatabaseProvider.saveDropZoneConfiguration` (src/providers/dropZoneWriter.ts)
+sets drop zones' subpages as Configure Drop Zones saves them
+(`PTCS_SUBPNL_WRK.PTSAVE_CHANGE_SUOW` FieldChange), in one transaction,
+refused when the configuration changed since it was read (its token).
+Captured on HRDMO: `dz01-configure` (PIA sets the lab drop zone to
+`ZZ_PCODE_LAB_SUB`), `dz02-remove` (PIA clears it).
+
+Every save re-saves each owner's `PSPTCS_SRVCFG` at the next RCSCM (deleted
+and inserted when it exists). For a drop zone whose subpage changed:
+
+- **configured** [dz01]: the subpage's service when there is none
+  (`PSPTCSSRVDEFN`: id, name, description and `PNLNAME` the subpage, URL type
+  `UESP`, type `S`, escape Y, secure use-edit 1, attribute `GNRL`; VERSION the
+  next RCSDM); a `PSPTCSSRVCONF` row (type `P`, `PNLNAME` the page, URL
+  target `RCF`, embeddable and single unit of work `Y`, label the subpage,
+  random instance id; VERSION two SCNFM steps on); the `PTCS_MENUFIELD` map
+  (`PSPTCS_MAPFLDS`, type `PF`) to the drop zone's key; a field menu
+  (`PSPTCS_MENU_TBL`, type `FLDM`, id the drop zone's field id
+  `<page>.<pnlfldid>.`, two RCMTM steps on), its Root folder
+  (`PSPTCS_MNUFLDRS`, id `Hash(menuId|"-Root")` -- PeopleCode Hash(), SHA-1
+  of the UTF-16LE text, base64) and the link (`PSPTCS_MNULINKS`);
+- **removed** [dz02]: link, folder, menu (`PSPTCSMNUTBLDEL` at the next RCMTM),
+  map and configuration (`PSPTCSSRVCNFDEL` at the next SCNFM) deleted; the
+  service definition kept.
+
+A counter's next value is one past the larger of PSVERSION and PSLOCK and
+both are set to it (HRDMO RCSDM: 10 and 13 -> 14); SYS moves once per step.
+Data Migration Workbench tracking is kept as PIA keeps it, including its
+folder row that lists `PTCS_MENUID` twice and hashes the menu's keys; a
+removal re-stamps the configuration's, menu's and that folder row's
+tracking and keeps them. A changed subpage is a removal then a
+configuration. The write scope applies to the subpages configured or
+removed; a subpage must be a subpage (`PNLTYPE 1`).
+
+Proof: src/test/dropZoneWriter.test.ts replays dz01 and dz02 from their
+before-states -- every row, tracking row and counter. Live on the lab:
+`dzw01-writer-configure` and `dzw02-writer-remove` have PIA's shape (same
+tables and counter steps; tracking updated in place where PIA deleted and
+re-inserted), and the Configure Drop Zones page shows the writer's
+configuration. Not yet seen: a drop zone rendering its subpage at run time
+(the lab component `ZZ_PCODE_LAB_CMP` does not open: its record
+`ZZ_PCODE_LAB_T` is a view of a missing table).
+
 ## Writing Event Mapping
 
 `psft_event_mapping_get`, `_save` and `_remove` read and write a content

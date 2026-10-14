@@ -62,6 +62,8 @@ import { captureBaseline, readOwnershipEvidence, readRelease, resolveBaseline, t
 import { guardWrite, type WriteAction } from './writeGuard.js';
 import { discoverEventMapping } from './eventMappingReader.js';
 import { discoverDropZones } from './dropZoneReader.js';
+import { dropZoneToken, readDropZoneState, saveDropZones, type DropZoneOwner, type DropZoneSaveRequest, type DropZoneSaveResult } from './dropZoneWriter.js';
+import type { DropZone } from '../model/dropZones.js';
 import type { DropZoneDiscovery } from '../model/dropZones.js';
 import {
   configRowsOf, configurationToken, readStoredConfiguration, removeConfiguration, saveConfiguration,
@@ -1985,6 +1987,28 @@ export class DatabaseProvider implements DefinitionProvider {
       const dropZones = await discoverDropZones(c, key);
       return { ...(eventMapping ? { eventMapping } : {}), ...(dropZones ? { dropZones } : {}) };
     });
+  }
+
+  /** A component's drop zones as the Configure Drop Zones page lists them, each with its subpage, and the token a save checks (dropZoneWriter.ts). */
+  async readDropZoneConfiguration(component: string, market = 'GBL'): Promise<{ zones: DropZone[]; owners: DropZoneOwner[]; token: string }> {
+    return this.withConnection(async (c) => {
+      const state = await readDropZoneState(c, component.trim().toUpperCase(), market.trim().toUpperCase());
+      return { zones: state.zones, owners: state.owners, token: dropZoneToken(state) };
+    });
+  }
+
+  /**
+   * Sets drop zones' subpages ('' removes one) as Configure Drop Zones saves them (dropZoneWriter.ts), in one
+   * transaction, verified before and after COMMIT. No delivered-object guard: no definition changes; the write
+   * scope applies to the subpages configured or removed.
+   */
+  async saveDropZoneConfiguration(request: DropZoneSaveRequest): Promise<DropZoneSaveResult> {
+    const result = await this.withConnection((c) => saveDropZones(c, request));
+    if (result.written) {
+      const after = await this.withConnection((c) => readDropZoneState(c, request.component.trim().toUpperCase(), (request.market ?? 'GBL').trim().toUpperCase()));
+      if (dropZoneToken(after) !== result.token) throw new ProviderError(`After COMMIT ${request.component}'s drop-zone configuration is not what was written.`);
+    }
+    return result;
   }
 
   /** A content reference's Event Mapping configuration as the Configure Event Mapping page lists it, with its token (eventMappingWriter.ts). */

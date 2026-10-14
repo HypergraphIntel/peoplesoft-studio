@@ -9,6 +9,10 @@
   found as PeopleTools' Configure Drop Zones finds them, through subpages and
   secondary pages -- each with its page, label and key, and any custom subpage
   configured into it; or *verified unavailable* when its pages have none.
+- **Writing Drop Zones** (`DatabaseProvider.saveDropZoneConfiguration`): a
+  component's drop zones given a custom subpage, or cleared, saved as
+  PeopleTools' Configure Drop Zones page saves them -- replayed against PIA's
+  own saves captured on HRDMO, and read back by that page.
 - **Go to Definition** in PeopleCode (F12 / Ctrl-click): a qualified
   application class path (`PKG:SUB:CLASS`, as written in an import, an
   `extends`, a `create` or a type) opens that class; a definition reference
