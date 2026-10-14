@@ -4,6 +4,11 @@
 
 ### Added
 
+- **Page and Field Configurator discovery** (Customization Strategy view, MCP
+  `psft_customization_discover`): a component's configurations -- what each
+  sequence hides, requires, relabels, disables, defaults or masks, for whom --
+  and on which of its content references the Event Mapping that applies them
+  is in place; one saved but not applied is flagged.
 - **Drop Zones discovery** (Customization Strategy view, MCP
   `psft_customization_discover`): for a component or page, its drop zones --
   found as PeopleTools' Configure Drop Zones finds them, through subpages and

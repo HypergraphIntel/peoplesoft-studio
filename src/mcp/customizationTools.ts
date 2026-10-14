@@ -3,6 +3,7 @@ import * as z from 'zod/v4';
 
 import { decideWrite, OWNERSHIP_LABELS } from '../model/ownership.js';
 import { describeMapping, EVENT_LEVEL_LABELS, eventLabel, PROCESSING_LABELS, type EventLevel } from '../model/eventMapping.js';
+import { describeSequence, PFC_APPLY_TO_LABELS, PFC_CONFIG_TYPE_LABELS } from '../model/pageFieldConfigurator.js';
 import { DatabaseProvider } from '../providers/database.js';
 import { knowledgeFor } from '../intelligenceCommands.js';
 import { effectivePolicy } from '../providers/writeGuard.js';
@@ -60,7 +61,9 @@ export function registerCustomizationTools(server: McpServer, workspace: Workspa
       'components -- is registered as a content reference, VERIFIED_UNAVAILABLE when not, with the evidence and the configurations already there ' +
       '(level, event, service and its application class, processing sequence, sequence, enabled, who saved them). Drop Zones (custom subpages ' +
       'inserted into a page\'s drop zones): VERIFIED_AVAILABLE when the component\'s pages -- or the page, with its subpages and secondary pages -- have ' +
-      'drop zones, each with its page, label, key and any configured subpage; VERIFIED_UNAVAILABLE when none. Page and Field Configurator, ' +
+      'drop zones, each with its page, label, key and any configured subpage; VERIFIED_UNAVAILABLE when none. Page and Field Configurator: ' +
+      'VERIFIED_AVAILABLE when the component is registered (it applies through Event Mapping), with its configurations, what each sequence ' +
+      'changes, and on which content references the EOCC Event Mapping applies them; VERIFIED_UNAVAILABLE when not registered or not installed. ' +
       'Configurable Search and AE plug-ins are not discovered yet (UNKNOWN). Read only.',
     inputSchema: z.object({ connection: z.string().min(1), type: z.number().int(), parts: z.array(z.string()).min(1) }),
     annotations: READ_ONLY
@@ -88,7 +91,15 @@ export function registerCustomizationTools(server: McpServer, workspace: Workspa
           key: z.fieldName, configuredSubpage: z.subpage ?? null
         }))
       } : { state: 'NOT_APPLICABLE', evidence: ['Drop Zones are on pages: they apply to components, pages and their PeopleCode.'] },
-      notDiscoveredYet: ['Page and Field Configurator', 'Configurable Search', 'App Engine Plug-ins']
+      pageFieldConfigurator: r.pageFieldConfigurator ? {
+        state: r.pageFieldConfigurator.state, evidence: r.pageFieldConfigurator.evidence, contentReferences: r.pageFieldConfigurator.contentReferences,
+        appliedOn: r.pageFieldConfigurator.appliedOn,
+        configurations: r.pageFieldConfigurator.configurations.map((c) => ({
+          component: `${c.component}.${c.market}`, type: PFC_CONFIG_TYPE_LABELS[c.type] ?? c.type, description: c.description, active: c.active,
+          sequences: c.sequences.map((s) => ({ ...s, summary: describeSequence(s), applyToLabel: PFC_APPLY_TO_LABELS[s.applyTo] ?? s.applyTo }))
+        }))
+      } : { state: 'NOT_APPLICABLE', evidence: ['Page and Field Configurator configures components (and their pages).'] },
+      notDiscoveredYet: ['Configurable Search', 'App Engine Plug-ins']
     });
   });
 }

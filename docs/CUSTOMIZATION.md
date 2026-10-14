@@ -233,6 +233,30 @@ adding one to a delivered page is itself a delivered-object customization.
 HRDMO: `JOB_CODE_TBL` 5 drop zones on 5 pages, `JOB_DATA_FL` 40 on 20,
 `USERMAINT` none.
 
+## Page and Field Configurator discovery
+
+Page and Field Configurator is PeopleSoft Enterprise Components' configurator
+(`EOCC_COMPONENT_CONFIG.EOCC_CONFIGURE.GBL`): it hides, relabels, requires,
+disables, defaults, blanks or masks a component's fields and hides pages or
+makes them display only -- by role, user, form factor and field-value
+criteria -- without changing the component. Stored in `PS_EOCC_CONFIG_HDR`
+(one per component, market and type: Standard, Masking, Change Tracking),
+`_SEQ` (numbered sequences: description, status, apply to, role, form
+factors), `_PNL` (page rows), `_FLD` (field rows keyed
+`level.record.field.pnlfldid...`; `EOCC_LBL_OVERRIDE` is a Y/N flag, the label
+is `LBLTEXT`) and `_CRT` (criteria).
+
+It runs through Event Mapping -- the `EOCC_*` services
+(`EOCC_COMP_CONFIG:Services`) mapped on the component's content references --
+so a component must be registered, and a configuration only takes effect on
+the content references that carry that mapping (PeopleTools 8.62 maps every
+one when a configuration is saved; earlier releases needed Map to Portal
+Registry / Apply Configuration). Discovery reports the configurations, what
+each sequence changes, and where the mapping is. HRDMO: `JOB_DATA_FL` 26
+sequences, applied; `PERSONAL_DATA_FL` hides 5 fields but has no EOCC mapping
+-- it does nothing at run time; `DEPEND_BENEF` masking is applied on 1 of its 5
+content references; `JOB_CODE_TBL` is registered with none.
+
 ## Writing Drop Zones
 
 `DatabaseProvider.saveDropZoneConfiguration` (src/providers/dropZoneWriter.ts)

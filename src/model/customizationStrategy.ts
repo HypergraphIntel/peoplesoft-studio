@@ -2,6 +2,7 @@ import { DefinitionType, typeLabel } from './definitions.js';
 import { matchPrefix, OWNERSHIP_LABELS, type Classification, type NamingPrefix } from './ownership.js';
 import { describeMapping, type EventMappingDiscovery } from './eventMapping.js';
 import type { DropZoneDiscovery } from './dropZones.js';
+import { describeSequence, PFC_CONFIG_TYPE_LABELS, type PfcDiscovery } from './pageFieldConfigurator.js';
 
 export { OWNERSHIP_LABELS, type Ownership } from './ownership.js';
 
@@ -159,7 +160,7 @@ function ownershipRows(ctx: CustomizationContext, policy: CustomizationPolicy, o
 export type CapabilitiesState =
   | { state: 'pending' }
   | { state: 'unavailable'; message: string }
-  | { state: 'done'; eventMapping?: EventMappingDiscovery; dropZones?: DropZoneDiscovery; knowledge?: KnowledgeSummary };
+  | { state: 'done'; eventMapping?: EventMappingDiscovery; dropZones?: DropZoneDiscovery; pageFieldConfigurator?: PfcDiscovery; knowledge?: KnowledgeSummary };
 
 /** What recorded and verified knowledge says about Event Mapping on the connection's release (docs/intelligence, D18): information, never permission. */
 export interface KnowledgeSummary {
@@ -176,10 +177,11 @@ function capabilityRow(f: Framework, caps: CapabilitiesState | undefined, connec
   const info = FRAMEWORKS[f];
   const unknown: StrategyRow = { id: `capability.${f}`, label: info.label, description: DISCOVERY_LABELS.UNKNOWN, icon: 'circle-large-outline', muted: true,
     tooltip: `${info.purpose}.\nTo verify: ${info.mustVerify}.\n${PREVIEW}`, command: { id: 'psft.customization.discover', args: [info.label] } };
-  if (f !== 'EVENT_MAPPING' && f !== 'DROP_ZONES') return unknown;
+  if (f !== 'EVENT_MAPPING' && f !== 'DROP_ZONES' && f !== 'PAGE_FIELD_CONFIGURATOR') return unknown;
   if (!caps || caps.state === 'pending') return { ...unknown, description: 'Discovering…', icon: 'loading~spin', tooltip: `${info.purpose}.` };
   if (caps.state === 'unavailable') return { ...unknown, tooltip: `${info.purpose}.\n${caps.message}` };
   if (f === 'DROP_ZONES') return dropZoneRow(info, caps.dropZones, connectionId) ?? unknown;
+  if (f === 'PAGE_FIELD_CONFIGURATOR') return pfcRow(info, caps.pageFieldConfigurator) ?? unknown;
   const d = caps.eventMapping;
   if (!d) return unknown;
   return {
@@ -232,6 +234,27 @@ function dropZoneRow(info: FrameworkInfo, d: DropZoneDiscovery | undefined, conn
           (connectionId && z.component ? '\nChoose to set or clear its subpage, as Configure Drop Zones saves it.' : ''),
         ...(connectionId && z.component ? { command: { id: 'psft.customization.configureDropZone', args: [connectionId, z.component, z.market, z.page, z.fieldName] } } : {})
       }))
+    ]
+  };
+}
+
+/** The Page and Field Configurator row: the verdict, its evidence, and each configuration's sequences. */
+function pfcRow(info: FrameworkInfo, d: PfcDiscovery | undefined): StrategyRow | undefined {
+  if (!d) return undefined;
+  const sequences = d.configurations.reduce((n, c) => n + c.sequences.length, 0);
+  const notApplied = d.configurations.length > 0 && d.appliedOn.length < d.contentReferences.length;
+  return {
+    id: 'capability.PAGE_FIELD_CONFIGURATOR', label: info.label, icon: notApplied ? 'warning' : STATE_ICONS[d.state], muted: d.state !== 'VERIFIED_AVAILABLE',
+    description: `${DISCOVERY_LABELS[d.state]}${d.state === 'VERIFIED_AVAILABLE' ? ` · ${d.configurations.length ? `${sequences} sequence${sequences === 1 ? '' : 's'}${notApplied ? `, applied on ${d.appliedOn.length} of ${d.contentReferences.length}` : ''}` : 'none configured'}` : ''}`,
+    tooltip: `${info.purpose}.\n${d.evidence.join('\n')}`,
+    children: [
+      ...d.evidence.map((line, i) => ({ id: `capability.PAGE_FIELD_CONFIGURATOR.evidence.${i}`, label: line, icon: 'debug-stackframe-dot', muted: true, tooltip: line })),
+      ...d.configurations.flatMap((c, ci) => c.sequences.map((s, si) => ({
+        id: `capability.PAGE_FIELD_CONFIGURATOR.seq.${ci}.${si}`, label: describeSequence(s), icon: s.active ? 'list-filter' : 'circle-slash', muted: !s.active,
+        description: `${c.component}.${c.market} · ${PFC_CONFIG_TYPE_LABELS[c.type] ?? c.type}`,
+        tooltip: `${c.description || c.component} (${PFC_CONFIG_TYPE_LABELS[c.type] ?? c.type})\n${describeSequence(s)}` +
+          `${s.formFactors.length && s.formFactors.length < 4 ? `\nForm factors: ${s.formFactors.join(', ')}` : ''}`
+      })))
     ]
   };
 }

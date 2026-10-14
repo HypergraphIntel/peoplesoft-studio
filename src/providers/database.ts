@@ -62,6 +62,8 @@ import { captureBaseline, readOwnershipEvidence, readRelease, resolveBaseline, t
 import { guardWrite, type WriteAction } from './writeGuard.js';
 import { discoverEventMapping } from './eventMappingReader.js';
 import { discoverDropZones } from './dropZoneReader.js';
+import { discoverPageFieldConfigurator } from './pfcReader.js';
+import type { PfcDiscovery } from '../model/pageFieldConfigurator.js';
 import { dropZoneToken, readDropZoneState, saveDropZones, type DropZoneOwner, type DropZoneSaveRequest, type DropZoneSaveResult } from './dropZoneWriter.js';
 import type { DropZone } from '../model/dropZones.js';
 import type { DropZoneDiscovery } from '../model/dropZones.js';
@@ -1979,13 +1981,15 @@ export class DatabaseProvider implements DefinitionProvider {
    * database shows it (docs/CUSTOMIZATION.md): Event Mapping -- the
    * component's content references and the configurations on them -- and
    * Drop Zones -- the drop zones on its pages and any subpage configured into
-   * them. The other frameworks are not discovered yet.
+   * them -- and Page and Field Configurator -- its configurations and where
+   * their Event Mapping applies them. The other frameworks are not discovered yet.
    */
-  async discoverCapabilities(key: DefinitionKey): Promise<{ eventMapping?: EventMappingDiscovery; dropZones?: DropZoneDiscovery }> {
+  async discoverCapabilities(key: DefinitionKey): Promise<{ eventMapping?: EventMappingDiscovery; dropZones?: DropZoneDiscovery; pageFieldConfigurator?: PfcDiscovery }> {
     return this.withConnection(async (c) => {
       const eventMapping = await discoverEventMapping(c, key);
       const dropZones = await discoverDropZones(c, key);
-      return { ...(eventMapping ? { eventMapping } : {}), ...(dropZones ? { dropZones } : {}) };
+      const pageFieldConfigurator = await discoverPageFieldConfigurator(c, key);
+      return { ...(eventMapping ? { eventMapping } : {}), ...(dropZones ? { dropZones } : {}), ...(pageFieldConfigurator ? { pageFieldConfigurator } : {}) };
     });
   }
 
