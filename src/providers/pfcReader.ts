@@ -20,7 +20,9 @@ async function installed(c: Connection): Promise<boolean> {
 
 async function contentReferences(c: Connection, component: string, market: string): Promise<string[]> {
   const rows = await select<{ N: string }>(c,
-    `SELECT DISTINCT PORTAL_OBJNAME AS N FROM PSPRSMDEFN WHERE PORTAL_REFTYPE = 'C' AND PORTAL_URI_SEG2 = :c AND PORTAL_URI_SEG3 = :m ORDER BY 1`,
+    // Content reference links (PORTAL_CREF_USGT LINK) point at a target and get no EOCC mapping of their own [pfc01].
+    `SELECT DISTINCT PORTAL_OBJNAME AS N FROM PSPRSMDEFN WHERE PORTAL_REFTYPE = 'C' AND PORTAL_URI_SEG2 = :c AND PORTAL_URI_SEG3 = :m
+        AND PORTAL_CREF_USGT <> 'LINK' ORDER BY 1`,
     { c: component, m: market });
   return rows.map((r) => t(r.N));
 }

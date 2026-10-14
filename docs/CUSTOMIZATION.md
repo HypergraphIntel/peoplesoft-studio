@@ -255,7 +255,23 @@ Registry / Apply Configuration). Discovery reports the configurations, what
 each sequence changes, and where the mapping is. HRDMO: `JOB_DATA_FL` 26
 sequences, applied; `PERSONAL_DATA_FL` hides 5 fields but has no EOCC mapping
 -- it does nothing at run time; `DEPEND_BENEF` masking is applied on 1 of its 5
-content references; `JOB_CODE_TBL` is registered with none.
+content references; `JOB_CODE_TBL` is registered with none. Content reference
+links (`PORTAL_CREF_USGT` LINK) are not counted: they point at a target and
+get no mapping of their own.
+
+Captured on HRDMO (`pfc01-configure`, `pfc02-remove`, on JOB_CODE_TBL):
+saving a configuration writes its `PS_EOCC_CONFIG_*` rows (sequence and field
+rows deleted and re-inserted on a later save; an untouched blank grid row is
+saved) and **regenerates its Event Mapping on every save**: on each target
+content reference every EOCC configuration is deleted with a
+`PSPTCSSRVCNFDEL` tombstone and the ones the configuration now needs are
+inserted (`PSPTCSSRVCONFLG` language rows with them), each its own SCNFM step;
+`PSPTCS_SRVCFG` for `_PTCS_PTEVMAP` is added when missing (RCSCM, frame
+location S). Which services it maps follows the configuration: one required
+level-1 field gave component PostBuild and SavePreChange plus `EOCC_ROWINIT1`
+and `EOCC_ROWINSERT1` on its record; with no field left, PostBuild and
+SavePreChange only. Writing it is next: that choice is the configurator's
+PeopleCode, still to be read.
 
 ## Writing Drop Zones
 

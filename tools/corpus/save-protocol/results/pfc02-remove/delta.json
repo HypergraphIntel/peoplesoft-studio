@@ -1,0 +1,2318 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "pfc02-remove",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "all",
+ "markers": {
+  "before": {
+   "scn": "39362788212866",
+   "timestamp": "2026-10-13T22:39:59.212424000-05:00"
+  },
+  "after": {
+   "scn": "39362788229567",
+   "timestamp": "2026-10-13T22:49:51.839739000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-13T22:39:59.212424000-05:00",
+    "to": "2026-10-13T22:49:51.839739000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "SCNFM": {
+    "before": 94,
+    "after": 106,
+    "delta": 12
+   },
+   "SYS": {
+    "before": 2953,
+    "after": 2965,
+    "delta": 12
+   }
+  },
+  "pslock": {
+   "SCNFM": {
+    "before": 94,
+    "after": 106,
+    "delta": 12
+   }
+  },
+  "watchTablesChanged": {
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "otherTablesChanged": {
+   "PSADSTRACKING": {
+    "inserted": 4,
+    "deleted": 0,
+    "updated": 10
+   },
+   "PSAPMSGDSPSTAT": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 3
+   },
+   "PSIBNWSTATUS": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSIBOAUTH": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSPTCSSRVCNFDEL": {
+    "inserted": 8,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSPTCSSRVCONF": {
+    "inserted": 4,
+    "deleted": 8,
+    "updated": 0
+   },
+   "PSPTCSSRVCONFLG": {
+    "inserted": 4,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PS_EOCC_CONFIG_FLD": {
+    "inserted": 1,
+    "deleted": 1,
+    "updated": 0
+   },
+   "PS_EOCC_CONFIG_SEQ": {
+    "inserted": 1,
+    "deleted": 1,
+    "updated": 0
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "SCNFM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "94",
+       "after": "106"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2953",
+       "after": "2965"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "SCNFM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "94",
+       "after": "106"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSADSTRACKING": {
+   "columns": [
+    {
+     "name": "PTADSNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "RECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "PTSESSIONID",
+     "type": "VARCHAR2",
+     "length": 144,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYHASH",
+     "type": "VARCHAR2",
+     "length": 112,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL1",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL2",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL3",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL4",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL5",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL6",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL7",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL8",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL9",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL10",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL11",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL12",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL13",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL14",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL15",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL16",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE1",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE2",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE3",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE4",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE5",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE6",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE7",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE8",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE9",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE10",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE11",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE12",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE13",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE14",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE15",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE16",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "PTADSNAME": "RCF_SERVICE_CONFIGURATIONS",
+     "RECNAME": "PSPTCSSRVCONF",
+     "PTSESSIONID": " ",
+     "PTKEYHASH": "dWlDn6QLi6p6qdhbiEEQixKiJqg=",
+     "PTKEYCOL1": "PORTAL_NAME",
+     "PTKEYCOL2": "PORTAL_OBJNAME",
+     "PTKEYCOL3": "PTCS_SERVICEID",
+     "PTKEYCOL4": "PTCS_INSTANCEID",
+     "PTKEYCOL5": " ",
+     "PTKEYCOL6": " ",
+     "PTKEYCOL7": " ",
+     "PTKEYCOL8": " ",
+     "PTKEYCOL9": " ",
+     "PTKEYCOL10": " ",
+     "PTKEYCOL11": " ",
+     "PTKEYCOL12": " ",
+     "PTKEYCOL13": " ",
+     "PTKEYCOL14": " ",
+     "PTKEYCOL15": " ",
+     "PTKEYCOL16": " ",
+     "PTKEYVALUE1": "_PTCS_PTEVMAP",
+     "PTKEYVALUE2": "HC_C_JOB_CODE_TBL_GBL",
+     "PTKEYVALUE3": "EOCC_POSTBUILD",
+     "PTKEYVALUE4": "166744183",
+     "PTKEYVALUE5": " ",
+     "PTKEYVALUE6": " ",
+     "PTKEYVALUE7": " ",
+     "PTKEYVALUE8": " ",
+     "PTKEYVALUE9": " ",
+     "PTKEYVALUE10": " ",
+     "PTKEYVALUE11": " ",
+     "PTKEYVALUE12": " ",
+     "PTKEYVALUE13": " ",
+     "PTKEYVALUE14": " ",
+     "PTKEYVALUE15": " ",
+     "PTKEYVALUE16": " ",
+     "LASTUPDDTTM": "2026-10-13T22:49:21.052605000",
+     "LASTUPDOPRID": "JARED"
+    },
+    {
+     "PTADSNAME": "RCF_SERVICE_CONFIGURATIONS",
+     "RECNAME": "PSPTCSSRVCONF",
+     "PTSESSIONID": " ",
+     "PTKEYHASH": "kxtCHZcKmB+ZV+cSTKfhrnVlkrY=",
+     "PTKEYCOL1": "PORTAL_NAME",
+     "PTKEYCOL2": "PORTAL_OBJNAME",
+     "PTKEYCOL3": "PTCS_SERVICEID",
+     "PTKEYCOL4": "PTCS_INSTANCEID",
+     "PTKEYCOL5": " ",
+     "PTKEYCOL6": " ",
+     "PTKEYCOL7": " ",
+     "PTKEYCOL8": " ",
+     "PTKEYCOL9": " ",
+     "PTKEYCOL10": " ",
+     "PTKEYCOL11": " ",
+     "PTKEYCOL12": " ",
+     "PTKEYCOL13": " ",
+     "PTKEYCOL14": " ",
+     "PTKEYCOL15": " ",
+     "PTKEYCOL16": " ",
+     "PTKEYVALUE1": "_PTCS_PTEVMAP",
+     "PTKEYVALUE2": "HC_C_JOB_CODE_TBL_GBL",
+     "PTKEYVALUE3": "EOCC_SAVEPRECHANGE",
+     "PTKEYVALUE4": "886638264",
+     "PTKEYVALUE5": " ",
+     "PTKEYVALUE6": " ",
+     "PTKEYVALUE7": " ",
+     "PTKEYVALUE8": " ",
+     "PTKEYVALUE9": " ",
+     "PTKEYVALUE10": " ",
+     "PTKEYVALUE11": " ",
+     "PTKEYVALUE12": " ",
+     "PTKEYVALUE13": " ",
+     "PTKEYVALUE14": " ",
+     "PTKEYVALUE15": " ",
+     "PTKEYVALUE16": " ",
+     "LASTUPDDTTM": "2026-10-13T22:49:21.053435000",
+     "LASTUPDOPRID": "JARED"
+    },
+    {
+     "PTADSNAME": "RCF_SERVICE_CONFIGURATIONS",
+     "RECNAME": "PSPTCSSRVCONF",
+     "PTSESSIONID": " ",
+     "PTKEYHASH": "QJNHUW1s3An7hWueCfYnGtEWvjY=",
+     "PTKEYCOL1": "PORTAL_NAME",
+     "PTKEYCOL2": "PORTAL_OBJNAME",
+     "PTKEYCOL3": "PTCS_SERVICEID",
+     "PTKEYCOL4": "PTCS_INSTANCEID",
+     "PTKEYCOL5": " ",
+     "PTKEYCOL6": " ",
+     "PTKEYCOL7": " ",
+     "PTKEYCOL8": " ",
+     "PTKEYCOL9": " ",
+     "PTKEYCOL10": " ",
+     "PTKEYCOL11": " ",
+     "PTKEYCOL12": " ",
+     "PTKEYCOL13": " ",
+     "PTKEYCOL14": " ",
+     "PTKEYCOL15": " ",
+     "PTKEYCOL16": " ",
+     "PTKEYVALUE1": "_PTCS_PTEVMAP",
+     "PTKEYVALUE2": "HC_JOB_CODE_TBL_GBL2",
+     "PTKEYVALUE3": "EOCC_POSTBUILD",
+     "PTKEYVALUE4": "862530907",
+     "PTKEYVALUE5": " ",
+     "PTKEYVALUE6": " ",
+     "PTKEYVALUE7": " ",
+     "PTKEYVALUE8": " ",
+     "PTKEYVALUE9": " ",
+     "PTKEYVALUE10": " ",
+     "PTKEYVALUE11": " ",
+     "PTKEYVALUE12": " ",
+     "PTKEYVALUE13": " ",
+     "PTKEYVALUE14": " ",
+     "PTKEYVALUE15": " ",
+     "PTKEYVALUE16": " ",
+     "LASTUPDDTTM": "2026-10-13T22:49:21.056441000",
+     "LASTUPDOPRID": "JARED"
+    },
+    {
+     "PTADSNAME": "RCF_SERVICE_CONFIGURATIONS",
+     "RECNAME": "PSPTCSSRVCONF",
+     "PTSESSIONID": " ",
+     "PTKEYHASH": "LdizkVMzBxNpzh7cOdKkn862ZIE=",
+     "PTKEYCOL1": "PORTAL_NAME",
+     "PTKEYCOL2": "PORTAL_OBJNAME",
+     "PTKEYCOL3": "PTCS_SERVICEID",
+     "PTKEYCOL4": "PTCS_INSTANCEID",
+     "PTKEYCOL5": " ",
+     "PTKEYCOL6": " ",
+     "PTKEYCOL7": " ",
+     "PTKEYCOL8": " ",
+     "PTKEYCOL9": " ",
+     "PTKEYCOL10": " ",
+     "PTKEYCOL11": " ",
+     "PTKEYCOL12": " ",
+     "PTKEYCOL13": " ",
+     "PTKEYCOL14": " ",
+     "PTKEYCOL15": " ",
+     "PTKEYCOL16": " ",
+     "PTKEYVALUE1": "_PTCS_PTEVMAP",
+     "PTKEYVALUE2": "HC_JOB_CODE_TBL_GBL2",
+     "PTKEYVALUE3": "EOCC_SAVEPRECHANGE",
+     "PTKEYVALUE4": "50143293",
+     "PTKEYVALUE5": " ",
+     "PTKEYVALUE6": " ",
+     "PTKEYVALUE7": " ",
+     "PTKEYVALUE8": " ",
+     "PTKEYVALUE9": " ",
+     "PTKEYVALUE10": " ",
+     "PTKEYVALUE11": " ",
+     "PTKEYVALUE12": " ",
+     "PTKEYVALUE13": " ",
+     "PTKEYVALUE14": " ",
+     "PTKEYVALUE15": " ",
+     "PTKEYVALUE16": " ",
+     "LASTUPDDTTM": "2026-10-13T22:49:21.057053000",
+     "LASTUPDOPRID": "JARED"
+    }
+   ],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAOSoAHlAAAJuvAAL"
+     },
+     "changes": {
+      "LASTUPDDTTM": {
+       "before": "2026-10-13T22:28:41.387744000",
+       "after": "2026-10-13T22:49:21.053075000"
+      }
+     }
+    },
+    {
+     "key": {
+      "ROWID": "AAAOSoAHlAAAJuvAAN"
+     },
+     "changes": {
+      "LASTUPDDTTM": {
+       "before": "2026-10-13T22:28:41.385780000",
+       "after": "2026-10-13T22:49:21.048989000"
+      }
+     }
+    },
+    {
+     "key": {
+      "ROWID": "AAAOSoAHlAAAJuvAAO"
+     },
+     "changes": {
+      "LASTUPDDTTM": {
+       "before": "2026-10-13T22:28:41.386575000",
+       "after": "2026-10-13T22:49:21.049832000"
+      }
+     }
+    },
+    {
+     "key": {
+      "ROWID": "AAAOSoAHlAAAJuvAAP"
+     },
+     "changes": {
+      "LASTUPDDTTM": {
+       "before": "2026-10-13T22:28:41.387353000",
+       "after": "2026-10-13T22:49:21.050520000"
+      }
+     }
+    },
+    {
+     "key": {
+      "ROWID": "AAAOSoAHlAAAJuvAAQ"
+     },
+     "changes": {
+      "LASTUPDDTTM": {
+       "before": "2026-10-13T22:28:41.388137000",
+       "after": "2026-10-13T22:49:21.051318000"
+      }
+     }
+    },
+    {
+     "key": {
+      "ROWID": "AAAOSoAHlAAAJuvAAR"
+     },
+     "changes": {
+      "LASTUPDDTTM": {
+       "before": "2026-10-13T22:28:41.392053000",
+       "after": "2026-10-13T22:49:21.056742000"
+      }
+     }
+    },
+    {
+     "key": {
+      "ROWID": "AAAOSoAHlAAAJuvAAT"
+     },
+     "changes": {
+      "LASTUPDDTTM": {
+       "before": "2026-10-13T22:28:41.390209000",
+       "after": "2026-10-13T22:49:21.054054000"
+      }
+     }
+    },
+    {
+     "key": {
+      "ROWID": "AAAOSoAHlAAAJuvAAU"
+     },
+     "changes": {
+      "LASTUPDDTTM": {
+       "before": "2026-10-13T22:28:41.390844000",
+       "after": "2026-10-13T22:49:21.054660000"
+      }
+     }
+    },
+    {
+     "key": {
+      "ROWID": "AAAOSoAHlAAAJuvAAV"
+     },
+     "changes": {
+      "LASTUPDDTTM": {
+       "before": "2026-10-13T22:28:41.391650000",
+       "after": "2026-10-13T22:49:21.055246000"
+      }
+     }
+    },
+    {
+     "key": {
+      "ROWID": "AAAOSoAHlAAAJuvAAW"
+     },
+     "changes": {
+      "LASTUPDDTTM": {
+       "before": "2026-10-13T22:28:41.392393000",
+       "after": "2026-10-13T22:49:21.055827000"
+      }
+     }
+    }
+   ]
+  },
+  "PSAPMSGDSPSTAT": {
+   "columns": [
+    {
+     "name": "DISPATCHERNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "MACHINENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "APPSERVER_PATH",
+     "type": "VARCHAR2",
+     "length": 256,
+     "nullable": false
+    },
+    {
+     "name": "DSPSTATUS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "STATUSSTRING",
+     "type": "VARCHAR2",
+     "length": 20,
+     "nullable": false
+    },
+    {
+     "name": "IB_SLAVEMODE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DSPRESET",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "CLEANUP_DTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "DSPHEALTHDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAOT+AHbAAAAGLAAA"
+     },
+     "changes": {
+      "DSPHEALTHDTTM": {
+       "before": "2026-10-13T22:39:50.298830000",
+       "after": "2026-10-13T22:49:44.434553000"
+      }
+     }
+    },
+    {
+     "key": {
+      "ROWID": "AAAOT+AHbAAAAGMAAD"
+     },
+     "changes": {
+      "DSPHEALTHDTTM": {
+       "before": "2026-10-13T22:39:50.312890000",
+       "after": "2026-10-13T22:49:43.350533000"
+      }
+     }
+    },
+    {
+     "key": {
+      "ROWID": "AAAOT+AHbAAAAGNAAB"
+     },
+     "changes": {
+      "DSPHEALTHDTTM": {
+       "before": "2026-10-13T22:39:54.175345000",
+       "after": "2026-10-13T22:49:44.776413000"
+      }
+     }
+    }
+   ]
+  },
+  "PSIBNWSTATUS": {
+   "columns": [
+    {
+     "name": "APPSERVER_PATH",
+     "type": "VARCHAR2",
+     "length": 256,
+     "nullable": false
+    },
+    {
+     "name": "MACHINENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "IB_NWSTATUS_FLAG",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_NWSTATUS_OPTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_NWSTATUS_OPT_ST",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_NWSTATUS_DIAG",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_NWSTATUS_TIME",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_NWSTATUS_DAYS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_NWSTATUS_DTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "EMAIL_CC",
+     "type": "VARCHAR2",
+     "length": 1016,
+     "nullable": false
+    },
+    {
+     "name": "EMAIL_TO",
+     "type": "VARCHAR2",
+     "length": 1016,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAOpcAHlAAC34lAAA"
+     },
+     "changes": {
+      "LASTUPDDTTM": {
+       "before": "2026-10-13T22:39:33.727380000",
+       "after": "2026-10-13T22:49:34.364262000"
+      }
+     }
+    }
+   ]
+  },
+  "PSIBOAUTH": {
+   "columns": [
+    {
+     "name": "APPSERVER_PATH",
+     "type": "VARCHAR2",
+     "length": 256,
+     "nullable": false
+    },
+    {
+     "name": "MACHINENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTIB_OAUTH_FLAG",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTIB_OAUTH_TIME",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTIB_REFRESH_TIME",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTIB_OAUTH_DTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAOpiAHlAAAKlnAAA"
+     },
+     "changes": {
+      "PTIB_OAUTH_DTTM": {
+       "before": "2026-10-13T22:35:33.537882000",
+       "after": "2026-10-13T22:45:34.090038000"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-13T22:39:33.729215000",
+       "after": "2026-10-13T22:49:34.369362000"
+      }
+     }
+    }
+   ]
+  },
+  "PSPTCSSRVCNFDEL": {
+   "columns": [
+    {
+     "name": "PORTAL_NAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PORTAL_OBJNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_SERVICEID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_INSTANCEID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_C_JOB_CODE_TBL_GBL",
+     "PTCS_SERVICEID": "EOCC_POSTBUILD",
+     "PTCS_INSTANCEID": "662545568",
+     "VERSION": "95"
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_C_JOB_CODE_TBL_GBL",
+     "PTCS_SERVICEID": "EOCC_ROWINIT1",
+     "PTCS_INSTANCEID": "233371587",
+     "VERSION": "97"
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_C_JOB_CODE_TBL_GBL",
+     "PTCS_SERVICEID": "EOCC_ROWINSERT1",
+     "PTCS_INSTANCEID": "949590289",
+     "VERSION": "98"
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_C_JOB_CODE_TBL_GBL",
+     "PTCS_SERVICEID": "EOCC_SAVEPRECHANGE",
+     "PTCS_INSTANCEID": "8260530",
+     "VERSION": "96"
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_JOB_CODE_TBL_GBL2",
+     "PTCS_SERVICEID": "EOCC_POSTBUILD",
+     "PTCS_INSTANCEID": "199640291",
+     "VERSION": "101"
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_JOB_CODE_TBL_GBL2",
+     "PTCS_SERVICEID": "EOCC_ROWINIT1",
+     "PTCS_INSTANCEID": "591481222",
+     "VERSION": "103"
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_JOB_CODE_TBL_GBL2",
+     "PTCS_SERVICEID": "EOCC_ROWINSERT1",
+     "PTCS_INSTANCEID": "709870649",
+     "VERSION": "104"
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_JOB_CODE_TBL_GBL2",
+     "PTCS_SERVICEID": "EOCC_SAVEPRECHANGE",
+     "PTCS_INSTANCEID": "405430094",
+     "VERSION": "102"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPTCSSRVCONF": {
+   "columns": [
+    {
+     "name": "PORTAL_NAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PORTAL_OBJNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_SERVICEID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_INSTANCEID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_ISCOMPSERVICE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "SEQNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_HIDEFROMSRCH",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "IS_DEFAULT",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_MAPSECOPTIONS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "HANDLERNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_INSTANCELBL",
+     "type": "VARCHAR2",
+     "length": 200,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_URLTARGET",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_RCMENUOPT",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_MAINMENUOPT",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_SEQNUM_MMNU",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_SEQNUM_RMNU",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PACKAGEROOT",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "QUALIFYPATH",
+     "type": "VARCHAR2",
+     "length": 508,
+     "nullable": false
+    },
+    {
+     "name": "APPCLASSID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_INITMIN",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_ENABLE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_SRVOPENOPTION",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_EMBEDDABLE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_SUOWSERV",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_SRVCATTR",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "OPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_MASTERTMPL",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "RECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_CMPEVENT",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_PROCSEQ",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_CMPRECEVENT",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_ALLOWPERSONAL",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_C_JOB_CODE_TBL_GBL",
+     "PTCS_SERVICEID": "EOCC_SAVEPRECHANGE",
+     "PTCS_INSTANCEID": "886638264",
+     "PTCS_ISCOMPSERVICE": "C",
+     "PNLNAME": " ",
+     "SEQNUM": "0",
+     "PTCS_HIDEFROMSRCH": "N",
+     "IS_DEFAULT": "N",
+     "PTCS_MAPSECOPTIONS": "P",
+     "HANDLERNAME": " ",
+     "PTCS_INSTANCELBL": "SavePreChange Event",
+     "PTCS_URLTARGET": "RCF",
+     "PTCS_RCMENUOPT": "N",
+     "PTCS_MAINMENUOPT": "Y",
+     "PTCS_SEQNUM_MMNU": "0",
+     "PTCS_SEQNUM_RMNU": "0",
+     "PACKAGEROOT": " ",
+     "QUALIFYPATH": " ",
+     "APPCLASSID": " ",
+     "PTCS_INITMIN": " ",
+     "PTCS_ENABLE": "Y",
+     "PTCS_SRVOPENOPTION": " ",
+     "PTCS_EMBEDDABLE": " ",
+     "PTCS_SUOWSERV": " ",
+     "VERSION": "100",
+     "LASTUPDDTTM": "2026-10-13T22:49:20.629543000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "PTCS_SRVCATTR": " ",
+     "OPRID": " ",
+     "PTCS_MASTERTMPL": " ",
+     "RECNAME": " ",
+     "PTCS_CMPEVENT": "SPRE",
+     "PTCS_PROCSEQ": "POST",
+     "PTCS_CMPRECEVENT": " ",
+     "PTCS_ALLOWPERSONAL": " ",
+     "FIELDNAME": " "
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_C_JOB_CODE_TBL_GBL",
+     "PTCS_SERVICEID": "EOCC_POSTBUILD",
+     "PTCS_INSTANCEID": "166744183",
+     "PTCS_ISCOMPSERVICE": "C",
+     "PNLNAME": " ",
+     "SEQNUM": "0",
+     "PTCS_HIDEFROMSRCH": "N",
+     "IS_DEFAULT": "N",
+     "PTCS_MAPSECOPTIONS": "P",
+     "HANDLERNAME": " ",
+     "PTCS_INSTANCELBL": "PostBuild Event",
+     "PTCS_URLTARGET": "RCF",
+     "PTCS_RCMENUOPT": "N",
+     "PTCS_MAINMENUOPT": "Y",
+     "PTCS_SEQNUM_MMNU": "0",
+     "PTCS_SEQNUM_RMNU": "0",
+     "PACKAGEROOT": " ",
+     "QUALIFYPATH": " ",
+     "APPCLASSID": " ",
+     "PTCS_INITMIN": " ",
+     "PTCS_ENABLE": "Y",
+     "PTCS_SRVOPENOPTION": " ",
+     "PTCS_EMBEDDABLE": " ",
+     "PTCS_SUOWSERV": " ",
+     "VERSION": "99",
+     "LASTUPDDTTM": "2026-10-13T22:49:20.629349000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "PTCS_SRVCATTR": " ",
+     "OPRID": " ",
+     "PTCS_MASTERTMPL": " ",
+     "RECNAME": " ",
+     "PTCS_CMPEVENT": "POST",
+     "PTCS_PROCSEQ": "POST",
+     "PTCS_CMPRECEVENT": " ",
+     "PTCS_ALLOWPERSONAL": " ",
+     "FIELDNAME": " "
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_JOB_CODE_TBL_GBL2",
+     "PTCS_SERVICEID": "EOCC_POSTBUILD",
+     "PTCS_INSTANCEID": "862530907",
+     "PTCS_ISCOMPSERVICE": "C",
+     "PNLNAME": " ",
+     "SEQNUM": "0",
+     "PTCS_HIDEFROMSRCH": "N",
+     "IS_DEFAULT": "N",
+     "PTCS_MAPSECOPTIONS": "P",
+     "HANDLERNAME": " ",
+     "PTCS_INSTANCELBL": "PostBuild Event",
+     "PTCS_URLTARGET": "RCF",
+     "PTCS_RCMENUOPT": "N",
+     "PTCS_MAINMENUOPT": "Y",
+     "PTCS_SEQNUM_MMNU": "0",
+     "PTCS_SEQNUM_RMNU": "0",
+     "PACKAGEROOT": " ",
+     "QUALIFYPATH": " ",
+     "APPCLASSID": " ",
+     "PTCS_INITMIN": " ",
+     "PTCS_ENABLE": "Y",
+     "PTCS_SRVOPENOPTION": " ",
+     "PTCS_EMBEDDABLE": " ",
+     "PTCS_SUOWSERV": " ",
+     "VERSION": "105",
+     "LASTUPDDTTM": "2026-10-13T22:49:20.629628000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "PTCS_SRVCATTR": " ",
+     "OPRID": " ",
+     "PTCS_MASTERTMPL": " ",
+     "RECNAME": " ",
+     "PTCS_CMPEVENT": "POST",
+     "PTCS_PROCSEQ": "POST",
+     "PTCS_CMPRECEVENT": " ",
+     "PTCS_ALLOWPERSONAL": " ",
+     "FIELDNAME": " "
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_JOB_CODE_TBL_GBL2",
+     "PTCS_SERVICEID": "EOCC_SAVEPRECHANGE",
+     "PTCS_INSTANCEID": "50143293",
+     "PTCS_ISCOMPSERVICE": "C",
+     "PNLNAME": " ",
+     "SEQNUM": "0",
+     "PTCS_HIDEFROMSRCH": "N",
+     "IS_DEFAULT": "N",
+     "PTCS_MAPSECOPTIONS": "P",
+     "HANDLERNAME": " ",
+     "PTCS_INSTANCELBL": "SavePreChange Event",
+     "PTCS_URLTARGET": "RCF",
+     "PTCS_RCMENUOPT": "N",
+     "PTCS_MAINMENUOPT": "Y",
+     "PTCS_SEQNUM_MMNU": "0",
+     "PTCS_SEQNUM_RMNU": "0",
+     "PACKAGEROOT": " ",
+     "QUALIFYPATH": " ",
+     "APPCLASSID": " ",
+     "PTCS_INITMIN": " ",
+     "PTCS_ENABLE": "Y",
+     "PTCS_SRVOPENOPTION": " ",
+     "PTCS_EMBEDDABLE": " ",
+     "PTCS_SUOWSERV": " ",
+     "VERSION": "106",
+     "LASTUPDDTTM": "2026-10-13T22:49:20.629636000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "PTCS_SRVCATTR": " ",
+     "OPRID": " ",
+     "PTCS_MASTERTMPL": " ",
+     "RECNAME": " ",
+     "PTCS_CMPEVENT": "SPRE",
+     "PTCS_PROCSEQ": "POST",
+     "PTCS_CMPRECEVENT": " ",
+     "PTCS_ALLOWPERSONAL": " ",
+     "FIELDNAME": " "
+    }
+   ],
+   "deleted": [
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_C_JOB_CODE_TBL_GBL",
+     "PTCS_SERVICEID": "EOCC_POSTBUILD",
+     "PTCS_INSTANCEID": "662545568",
+     "PTCS_ISCOMPSERVICE": "C",
+     "PNLNAME": " ",
+     "SEQNUM": "0",
+     "PTCS_HIDEFROMSRCH": "N",
+     "IS_DEFAULT": "N",
+     "PTCS_MAPSECOPTIONS": "P",
+     "HANDLERNAME": " ",
+     "PTCS_INSTANCELBL": "PostBuild Event",
+     "PTCS_URLTARGET": "RCF",
+     "PTCS_RCMENUOPT": "N",
+     "PTCS_MAINMENUOPT": "Y",
+     "PTCS_SEQNUM_MMNU": "0",
+     "PTCS_SEQNUM_RMNU": "0",
+     "PACKAGEROOT": " ",
+     "QUALIFYPATH": " ",
+     "APPCLASSID": " ",
+     "PTCS_INITMIN": " ",
+     "PTCS_ENABLE": "Y",
+     "PTCS_SRVOPENOPTION": " ",
+     "PTCS_EMBEDDABLE": " ",
+     "PTCS_SUOWSERV": " ",
+     "VERSION": "87",
+     "LASTUPDDTTM": "2026-10-13T22:28:41.073911000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "PTCS_SRVCATTR": " ",
+     "OPRID": " ",
+     "PTCS_MASTERTMPL": " ",
+     "RECNAME": " ",
+     "PTCS_CMPEVENT": "POST",
+     "PTCS_PROCSEQ": "POST",
+     "PTCS_CMPRECEVENT": " ",
+     "PTCS_ALLOWPERSONAL": " ",
+     "FIELDNAME": " "
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_C_JOB_CODE_TBL_GBL",
+     "PTCS_SERVICEID": "EOCC_SAVEPRECHANGE",
+     "PTCS_INSTANCEID": "8260530",
+     "PTCS_ISCOMPSERVICE": "C",
+     "PNLNAME": " ",
+     "SEQNUM": "0",
+     "PTCS_HIDEFROMSRCH": "N",
+     "IS_DEFAULT": "N",
+     "PTCS_MAPSECOPTIONS": "P",
+     "HANDLERNAME": " ",
+     "PTCS_INSTANCELBL": "SavePreChange Event",
+     "PTCS_URLTARGET": "RCF",
+     "PTCS_RCMENUOPT": "N",
+     "PTCS_MAINMENUOPT": "Y",
+     "PTCS_SEQNUM_MMNU": "0",
+     "PTCS_SEQNUM_RMNU": "0",
+     "PACKAGEROOT": " ",
+     "QUALIFYPATH": " ",
+     "APPCLASSID": " ",
+     "PTCS_INITMIN": " ",
+     "PTCS_ENABLE": "Y",
+     "PTCS_SRVOPENOPTION": " ",
+     "PTCS_EMBEDDABLE": " ",
+     "PTCS_SUOWSERV": " ",
+     "VERSION": "88",
+     "LASTUPDDTTM": "2026-10-13T22:28:41.073947000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "PTCS_SRVCATTR": " ",
+     "OPRID": " ",
+     "PTCS_MASTERTMPL": " ",
+     "RECNAME": " ",
+     "PTCS_CMPEVENT": "SPRE",
+     "PTCS_PROCSEQ": "POST",
+     "PTCS_CMPRECEVENT": " ",
+     "PTCS_ALLOWPERSONAL": " ",
+     "FIELDNAME": " "
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_C_JOB_CODE_TBL_GBL",
+     "PTCS_SERVICEID": "EOCC_ROWINIT1",
+     "PTCS_INSTANCEID": "233371587",
+     "PTCS_ISCOMPSERVICE": "P",
+     "PNLNAME": " ",
+     "SEQNUM": "0",
+     "PTCS_HIDEFROMSRCH": "N",
+     "IS_DEFAULT": "N",
+     "PTCS_MAPSECOPTIONS": "P",
+     "HANDLERNAME": " ",
+     "PTCS_INSTANCELBL": "RowInit Event",
+     "PTCS_URLTARGET": "RCF",
+     "PTCS_RCMENUOPT": "N",
+     "PTCS_MAINMENUOPT": "N",
+     "PTCS_SEQNUM_MMNU": "0",
+     "PTCS_SEQNUM_RMNU": "0",
+     "PACKAGEROOT": " ",
+     "QUALIFYPATH": " ",
+     "APPCLASSID": " ",
+     "PTCS_INITMIN": "N",
+     "PTCS_ENABLE": "Y",
+     "PTCS_SRVOPENOPTION": " ",
+     "PTCS_EMBEDDABLE": " ",
+     "PTCS_SUOWSERV": " ",
+     "VERSION": "89",
+     "LASTUPDDTTM": "2026-10-13T22:28:41.073955000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "PTCS_SRVCATTR": " ",
+     "OPRID": " ",
+     "PTCS_MASTERTMPL": " ",
+     "RECNAME": "JOBCODE_TBL",
+     "PTCS_CMPEVENT": " ",
+     "PTCS_PROCSEQ": "POST",
+     "PTCS_CMPRECEVENT": "RINI",
+     "PTCS_ALLOWPERSONAL": " ",
+     "FIELDNAME": " "
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_C_JOB_CODE_TBL_GBL",
+     "PTCS_SERVICEID": "EOCC_ROWINSERT1",
+     "PTCS_INSTANCEID": "949590289",
+     "PTCS_ISCOMPSERVICE": "P",
+     "PNLNAME": " ",
+     "SEQNUM": "0",
+     "PTCS_HIDEFROMSRCH": "N",
+     "IS_DEFAULT": "N",
+     "PTCS_MAPSECOPTIONS": "P",
+     "HANDLERNAME": " ",
+     "PTCS_INSTANCELBL": "RowInsert Event",
+     "PTCS_URLTARGET": "RCF",
+     "PTCS_RCMENUOPT": "N",
+     "PTCS_MAINMENUOPT": "N",
+     "PTCS_SEQNUM_MMNU": "0",
+     "PTCS_SEQNUM_RMNU": "0",
+     "PACKAGEROOT": " ",
+     "QUALIFYPATH": " ",
+     "APPCLASSID": " ",
+     "PTCS_INITMIN": "N",
+     "PTCS_ENABLE": "Y",
+     "PTCS_SRVOPENOPTION": " ",
+     "PTCS_EMBEDDABLE": " ",
+     "PTCS_SUOWSERV": " ",
+     "VERSION": "90",
+     "LASTUPDDTTM": "2026-10-13T22:28:41.073961000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "PTCS_SRVCATTR": " ",
+     "OPRID": " ",
+     "PTCS_MASTERTMPL": " ",
+     "RECNAME": "JOBCODE_TBL",
+     "PTCS_CMPEVENT": " ",
+     "PTCS_PROCSEQ": "POST",
+     "PTCS_CMPRECEVENT": "RINS",
+     "PTCS_ALLOWPERSONAL": " ",
+     "FIELDNAME": " "
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_JOB_CODE_TBL_GBL2",
+     "PTCS_SERVICEID": "EOCC_POSTBUILD",
+     "PTCS_INSTANCEID": "199640291",
+     "PTCS_ISCOMPSERVICE": "C",
+     "PNLNAME": " ",
+     "SEQNUM": "0",
+     "PTCS_HIDEFROMSRCH": "N",
+     "IS_DEFAULT": "N",
+     "PTCS_MAPSECOPTIONS": "P",
+     "HANDLERNAME": " ",
+     "PTCS_INSTANCELBL": "PostBuild Event",
+     "PTCS_URLTARGET": "RCF",
+     "PTCS_RCMENUOPT": "N",
+     "PTCS_MAINMENUOPT": "Y",
+     "PTCS_SEQNUM_MMNU": "0",
+     "PTCS_SEQNUM_RMNU": "0",
+     "PACKAGEROOT": " ",
+     "QUALIFYPATH": " ",
+     "APPCLASSID": " ",
+     "PTCS_INITMIN": " ",
+     "PTCS_ENABLE": "Y",
+     "PTCS_SRVOPENOPTION": " ",
+     "PTCS_EMBEDDABLE": " ",
+     "PTCS_SUOWSERV": " ",
+     "VERSION": "91",
+     "LASTUPDDTTM": "2026-10-13T22:28:41.074003000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "PTCS_SRVCATTR": " ",
+     "OPRID": " ",
+     "PTCS_MASTERTMPL": " ",
+     "RECNAME": " ",
+     "PTCS_CMPEVENT": "POST",
+     "PTCS_PROCSEQ": "POST",
+     "PTCS_CMPRECEVENT": " ",
+     "PTCS_ALLOWPERSONAL": " ",
+     "FIELDNAME": " "
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_JOB_CODE_TBL_GBL2",
+     "PTCS_SERVICEID": "EOCC_SAVEPRECHANGE",
+     "PTCS_INSTANCEID": "405430094",
+     "PTCS_ISCOMPSERVICE": "C",
+     "PNLNAME": " ",
+     "SEQNUM": "0",
+     "PTCS_HIDEFROMSRCH": "N",
+     "IS_DEFAULT": "N",
+     "PTCS_MAPSECOPTIONS": "P",
+     "HANDLERNAME": " ",
+     "PTCS_INSTANCELBL": "SavePreChange Event",
+     "PTCS_URLTARGET": "RCF",
+     "PTCS_RCMENUOPT": "N",
+     "PTCS_MAINMENUOPT": "Y",
+     "PTCS_SEQNUM_MMNU": "0",
+     "PTCS_SEQNUM_RMNU": "0",
+     "PACKAGEROOT": " ",
+     "QUALIFYPATH": " ",
+     "APPCLASSID": " ",
+     "PTCS_INITMIN": " ",
+     "PTCS_ENABLE": "Y",
+     "PTCS_SRVOPENOPTION": " ",
+     "PTCS_EMBEDDABLE": " ",
+     "PTCS_SUOWSERV": " ",
+     "VERSION": "92",
+     "LASTUPDDTTM": "2026-10-13T22:28:41.074010000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "PTCS_SRVCATTR": " ",
+     "OPRID": " ",
+     "PTCS_MASTERTMPL": " ",
+     "RECNAME": " ",
+     "PTCS_CMPEVENT": "SPRE",
+     "PTCS_PROCSEQ": "POST",
+     "PTCS_CMPRECEVENT": " ",
+     "PTCS_ALLOWPERSONAL": " ",
+     "FIELDNAME": " "
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_JOB_CODE_TBL_GBL2",
+     "PTCS_SERVICEID": "EOCC_ROWINIT1",
+     "PTCS_INSTANCEID": "591481222",
+     "PTCS_ISCOMPSERVICE": "P",
+     "PNLNAME": " ",
+     "SEQNUM": "0",
+     "PTCS_HIDEFROMSRCH": "N",
+     "IS_DEFAULT": "N",
+     "PTCS_MAPSECOPTIONS": "P",
+     "HANDLERNAME": " ",
+     "PTCS_INSTANCELBL": "RowInit Event",
+     "PTCS_URLTARGET": "RCF",
+     "PTCS_RCMENUOPT": "N",
+     "PTCS_MAINMENUOPT": "N",
+     "PTCS_SEQNUM_MMNU": "0",
+     "PTCS_SEQNUM_RMNU": "0",
+     "PACKAGEROOT": " ",
+     "QUALIFYPATH": " ",
+     "APPCLASSID": " ",
+     "PTCS_INITMIN": "N",
+     "PTCS_ENABLE": "Y",
+     "PTCS_SRVOPENOPTION": " ",
+     "PTCS_EMBEDDABLE": " ",
+     "PTCS_SUOWSERV": " ",
+     "VERSION": "93",
+     "LASTUPDDTTM": "2026-10-13T22:28:41.074017000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "PTCS_SRVCATTR": " ",
+     "OPRID": " ",
+     "PTCS_MASTERTMPL": " ",
+     "RECNAME": "JOBCODE_TBL",
+     "PTCS_CMPEVENT": " ",
+     "PTCS_PROCSEQ": "POST",
+     "PTCS_CMPRECEVENT": "RINI",
+     "PTCS_ALLOWPERSONAL": " ",
+     "FIELDNAME": " "
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_JOB_CODE_TBL_GBL2",
+     "PTCS_SERVICEID": "EOCC_ROWINSERT1",
+     "PTCS_INSTANCEID": "709870649",
+     "PTCS_ISCOMPSERVICE": "P",
+     "PNLNAME": " ",
+     "SEQNUM": "0",
+     "PTCS_HIDEFROMSRCH": "N",
+     "IS_DEFAULT": "N",
+     "PTCS_MAPSECOPTIONS": "P",
+     "HANDLERNAME": " ",
+     "PTCS_INSTANCELBL": "RowInsert Event",
+     "PTCS_URLTARGET": "RCF",
+     "PTCS_RCMENUOPT": "N",
+     "PTCS_MAINMENUOPT": "N",
+     "PTCS_SEQNUM_MMNU": "0",
+     "PTCS_SEQNUM_RMNU": "0",
+     "PACKAGEROOT": " ",
+     "QUALIFYPATH": " ",
+     "APPCLASSID": " ",
+     "PTCS_INITMIN": "N",
+     "PTCS_ENABLE": "Y",
+     "PTCS_SRVOPENOPTION": " ",
+     "PTCS_EMBEDDABLE": " ",
+     "PTCS_SUOWSERV": " ",
+     "VERSION": "94",
+     "LASTUPDDTTM": "2026-10-13T22:28:41.074030000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "PTCS_SRVCATTR": " ",
+     "OPRID": " ",
+     "PTCS_MASTERTMPL": " ",
+     "RECNAME": "JOBCODE_TBL",
+     "PTCS_CMPEVENT": " ",
+     "PTCS_PROCSEQ": "POST",
+     "PTCS_CMPRECEVENT": "RINS",
+     "PTCS_ALLOWPERSONAL": " ",
+     "FIELDNAME": " "
+    }
+   ],
+   "updated": []
+  },
+  "PSPTCSSRVCONFLG": {
+   "columns": [
+    {
+     "name": "PORTAL_NAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PORTAL_OBJNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_SERVICEID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_INSTANCEID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LANGUAGE_CD",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_INSTANCELBL",
+     "type": "VARCHAR2",
+     "length": 200,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_C_JOB_CODE_TBL_GBL",
+     "PTCS_SERVICEID": "EOCC_POSTBUILD",
+     "PTCS_INSTANCEID": "166744183",
+     "LANGUAGE_CD": " ",
+     "PTCS_INSTANCELBL": "PostBuild Event"
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_C_JOB_CODE_TBL_GBL",
+     "PTCS_SERVICEID": "EOCC_SAVEPRECHANGE",
+     "PTCS_INSTANCEID": "886638264",
+     "LANGUAGE_CD": " ",
+     "PTCS_INSTANCELBL": "SavePreChange Event"
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_JOB_CODE_TBL_GBL2",
+     "PTCS_SERVICEID": "EOCC_POSTBUILD",
+     "PTCS_INSTANCEID": "862530907",
+     "LANGUAGE_CD": " ",
+     "PTCS_INSTANCELBL": "PostBuild Event"
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "HC_JOB_CODE_TBL_GBL2",
+     "PTCS_SERVICEID": "EOCC_SAVEPRECHANGE",
+     "PTCS_INSTANCEID": "50143293",
+     "LANGUAGE_CD": " ",
+     "PTCS_INSTANCELBL": "SavePreChange Event"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PS_EOCC_CONFIG_FLD": {
+   "columns": [
+    {
+     "name": "PNLGRPNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "MARKET",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_CONFIG_TYPE",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "SEQUENCE_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_SEQUENCE_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "RECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSLEVEL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "RECNAME1",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "FIELDNAME1",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "SECOCCURSLEVEL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LBLTEXT",
+     "type": "VARCHAR2",
+     "length": 240,
+     "nullable": false
+    },
+    {
+     "name": "PNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "STDPNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_PNLFLDNAME",
+     "type": "VARCHAR2",
+     "length": 1016,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_LBL_OVERRIDE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_IS_REQUIRED",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_SET_BLANK",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_DFLT_VALUE",
+     "type": "VARCHAR2",
+     "length": 160,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_VISIBLE_FLAG",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_MASK_FLAG",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_DISABLED",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "FIELDTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_FIELD_TYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_SBP_LEVEL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "RECNAME_BASE",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_FIELD_ORIGIN",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_MASK_ID",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "PTAI_SYSTEM_DATA",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_PROF_STATUS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_MASK_SEP",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_MASK_CHAR",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_MASK_TRAILNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_MASK_DAY",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_MASK_MONTH",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_MASK_YEAR",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_CHGTRK_FLAG",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_CHGNOT_FLAG",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_DFLTOVRD_FLAG",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_PROMPT_OVERR",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "PNLGRPNAME": "JOB_CODE_TBL",
+     "MARKET": "GBL",
+     "EOCC_CONFIG_TYPE": "STD",
+     "SEQUENCE_NBR": "1",
+     "EOCC_SEQUENCE_NBR": "1",
+     "RECNAME": " ",
+     "FIELDNAME": " ",
+     "OCCURSLEVEL": "0",
+     "RECNAME1": " ",
+     "FIELDNAME1": " ",
+     "SECOCCURSLEVEL": "0",
+     "LBLTEXT": " ",
+     "PNLNAME": " ",
+     "STDPNLNAME": " ",
+     "PTCS_PNLFLDNAME": " ",
+     "EOCC_LBL_OVERRIDE": " ",
+     "EOCC_IS_REQUIRED": "N",
+     "EOCC_SET_BLANK": "N",
+     "EOCC_DFLT_VALUE": " ",
+     "EOCC_VISIBLE_FLAG": "Y",
+     "EOCC_MASK_FLAG": "N",
+     "EOCC_DISABLED": "N",
+     "FIELDTYPE": "0",
+     "FIELDUSE": "0",
+     "EOCC_FIELD_TYPE": "0",
+     "EOCC_SBP_LEVEL": "0",
+     "RECNAME_BASE": " ",
+     "EOCC_FIELD_ORIGIN": "STD",
+     "EOCC_MASK_ID": " ",
+     "PTAI_SYSTEM_DATA": "N",
+     "EOCC_PROF_STATUS": "D",
+     "EOCC_MASK_SEP": " ",
+     "EOCC_MASK_CHAR": " ",
+     "EOCC_MASK_TRAILNUM": "0",
+     "EOCC_MASK_DAY": " ",
+     "EOCC_MASK_MONTH": " ",
+     "EOCC_MASK_YEAR": " ",
+     "EOCC_CHGTRK_FLAG": "Y",
+     "EOCC_CHGNOT_FLAG": " ",
+     "EOCC_DFLTOVRD_FLAG": "N",
+     "EOCC_PROMPT_OVERR": " "
+    }
+   ],
+   "deleted": [
+    {
+     "PNLGRPNAME": "JOB_CODE_TBL",
+     "MARKET": "GBL",
+     "EOCC_CONFIG_TYPE": "STD",
+     "SEQUENCE_NBR": "1",
+     "EOCC_SEQUENCE_NBR": "1",
+     "RECNAME": "JOBCODE_TBL",
+     "FIELDNAME": "KEY_JOBCODE",
+     "OCCURSLEVEL": "1",
+     "RECNAME1": " ",
+     "FIELDNAME1": " ",
+     "SECOCCURSLEVEL": "0",
+     "LBLTEXT": "Key Job Code",
+     "PNLNAME": "JOBCODE_TBL1_GBL",
+     "STDPNLNAME": "JOBCODE_TBL1_GBL",
+     "PTCS_PNLFLDNAME": "1.JOBCODE_TBL.KEY_JOBCODE.180.1.P",
+     "EOCC_LBL_OVERRIDE": " ",
+     "EOCC_IS_REQUIRED": "Y",
+     "EOCC_SET_BLANK": "N",
+     "EOCC_DFLT_VALUE": " ",
+     "EOCC_VISIBLE_FLAG": "Y",
+     "EOCC_MASK_FLAG": "N",
+     "EOCC_DISABLED": "N",
+     "FIELDTYPE": "7",
+     "FIELDUSE": "0",
+     "EOCC_FIELD_TYPE": "0",
+     "EOCC_SBP_LEVEL": "1",
+     "RECNAME_BASE": " ",
+     "EOCC_FIELD_ORIGIN": "STD",
+     "EOCC_MASK_ID": " ",
+     "PTAI_SYSTEM_DATA": "N",
+     "EOCC_PROF_STATUS": " ",
+     "EOCC_MASK_SEP": " ",
+     "EOCC_MASK_CHAR": " ",
+     "EOCC_MASK_TRAILNUM": "0",
+     "EOCC_MASK_DAY": " ",
+     "EOCC_MASK_MONTH": " ",
+     "EOCC_MASK_YEAR": " ",
+     "EOCC_CHGTRK_FLAG": "Y",
+     "EOCC_CHGNOT_FLAG": " ",
+     "EOCC_DFLTOVRD_FLAG": "N",
+     "EOCC_PROMPT_OVERR": " "
+    }
+   ],
+   "updated": []
+  },
+  "PS_EOCC_CONFIG_SEQ": {
+   "columns": [
+    {
+     "name": "PNLGRPNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "MARKET",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_CONFIG_TYPE",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_SEQUENCE_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SEQUENCE_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "STATUS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_APPLY_TO",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_MANDATORY_FLG",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "ROLENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_SMALL_FF",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_MEDIUM_FF",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_LARGE_FF",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EOCC_XLARGE_FF",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EONC_APPL_NOTIF_ID",
+     "type": "VARCHAR2",
+     "length": 200,
+     "nullable": false
+    },
+    {
+     "name": "PTAI_SYSTEM_DATA",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "COMMENTS",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "PNLGRPNAME": "JOB_CODE_TBL",
+     "MARKET": "GBL",
+     "EOCC_CONFIG_TYPE": "STD",
+     "EOCC_SEQUENCE_NBR": "1",
+     "SEQUENCE_NBR": "1",
+     "STATUS": "A",
+     "DESCR": " ",
+     "EOCC_APPLY_TO": "A",
+     "EOCC_MANDATORY_FLG": "Y",
+     "ROLENAME": " ",
+     "EOCC_SMALL_FF": "Y",
+     "EOCC_MEDIUM_FF": "Y",
+     "EOCC_LARGE_FF": "Y",
+     "EOCC_XLARGE_FF": "Y",
+     "EONC_APPL_NOTIF_ID": " ",
+     "PTAI_SYSTEM_DATA": "N",
+     "COMMENTS": null
+    }
+   ],
+   "deleted": [
+    {
+     "PNLGRPNAME": "JOB_CODE_TBL",
+     "MARKET": "GBL",
+     "EOCC_CONFIG_TYPE": "STD",
+     "EOCC_SEQUENCE_NBR": "1",
+     "SEQUENCE_NBR": "1",
+     "STATUS": "A",
+     "DESCR": "ZZ lab sequence",
+     "EOCC_APPLY_TO": "A",
+     "EOCC_MANDATORY_FLG": "Y",
+     "ROLENAME": " ",
+     "EOCC_SMALL_FF": "Y",
+     "EOCC_MEDIUM_FF": "Y",
+     "EOCC_LARGE_FF": "Y",
+     "EOCC_XLARGE_FF": "Y",
+     "EONC_APPL_NOTIF_ID": " ",
+     "PTAI_SYSTEM_DATA": "N",
+     "COMMENTS": null
+    }
+   ],
+   "updated": []
+  }
+ }
+}
