@@ -1,0 +1,44 @@
+/** HRDMO integration gate; fresh restricted custom registry entries are retained for inspection. */
+import assert from 'node:assert/strict';
+import { writeFileSync } from 'node:fs';
+import oracledb from 'oracledb';
+import { readPortalDocument, savePortalDocument } from '../../src/providers/portalWriter.js';
+import { portalInputForDocument, portalUrlChecksum } from '../../src/model/portalDocument.js';
+import type { DbConnection } from '../../src/db/connection.js';
+oracledb.outFormat = oracledb.OUT_FORMAT_OBJECT;
+const native = await oracledb.getConnection({ user: process.env.PSLAB_ACCESSID, password: process.env.PSLAB_ACCESSPSWD, connectString: process.env.PSLAB_ORACLE ?? '127.0.0.1:15210/hrdmo' });
+const c = native as unknown as DbConnection;
+const operatorId = process.env.PSLAB_OPRID ?? 'JARED', seed = String(Date.now() % 100000).padStart(5, '0');
+const folder = { portal: 'EMPLOYEE', refType: 'F' as const, name: 'ZZ_PORTAL_F_' + seed, parent: 'PORTAL_ROOT_OBJECT', label: 'Studio Portal Test', description: 'Registry writer integration test', sequence: 9999, owner: '', publicAccess: false, permissions: [{ type: 'P' as const, name: 'PTPT1000', cascade: true }] };
+const checks: string[] = [], check = (s: string) => { checks.push(s); console.log('PASS ' + s); };
+const save = (input: unknown, expectedToken: string, dryRun = false) => savePortalDocument(c, oracledb, { input, expectedToken, operatorId, dryRun });
+const read = (refType: 'F' | 'C', name: string) => readPortalDocument(c, oracledb, { portal: 'EMPLOYEE', refType, name });
+try {
+  assert.equal((await native.execute<{ DB: string }>("SELECT SYS_CONTEXT('USERENV','DB_NAME') AS DB FROM DUAL")).rows?.[0].DB, 'HRDMO');
+  const counters = async () => (await native.execute('SELECT OBJECTTYPENAME,VERSION FROM PSVERSION ORDER BY OBJECTTYPENAME')).rows;
+  const before = await counters();
+  await save(folder, 'absent', true); assert.equal(await read('F', folder.name), undefined); assert.deepEqual(await counters(), before); check('dry run rolls back entry, parent stamp and counters');
+  let f = await save(folder, 'absent'); assert.equal(f.row.PORTAL_REFTYPE, 'F'); assert.equal(f.permissions[0].PORTAL_ISCASCADE, 1); check('create folder with cascading permission-list grant');
+  const old = f.token;
+  f = await save({ ...portalInputForDocument(f), label: 'Updated Portal Folder' }, f.token); assert.equal(f.row.PORTAL_LABEL, 'Updated Portal Folder'); check('edit folder and preserve cascading grant');
+  await assert.rejects(save(folder, old), /changed/); check('stale token rejected');
+  await assert.rejects(save(folder, 'absent'), /changed/); check('create cannot overwrite existing folder');
+  const external = { ...folder, refType: 'C' as const, name: 'ZZ_PORTAL_C_' + seed, parent: folder.name, label: 'Studio External Test', permissions: [], target: { type: 'external' as const, url: 'https://example.invalid/studio' } };
+  let e = await save(external, 'absent'); assert.equal(e.row.PORTAL_URL_CHKSUM, portalUrlChecksum(external.target.url)); check('create external content reference with URL checksum');
+  assert.ok((await native.execute('SELECT * FROM PSPRSMNUI WHERE PORTAL_NAME=:p AND PORTAL_OBJNAME=:n', { p: external.portal, n: external.name })).rows?.length); check('content-reference display defaults created');
+  const storedTarget = e.row.PORTAL_URLTEXT;
+  e = await save({ ...portalInputForDocument(e), description: 'Saved from edit flow' }, e.token); assert.equal(e.row.PORTAL_URLTEXT, storedTarget); check('ordinary property edit preserves target');
+  e = await save({ ...portalInputForDocument(e), target: { type: 'external', url: 'https://example.invalid/updated' } }, e.token); assert.equal(e.row.PORTAL_URL_CHKSUM, portalUrlChecksum('https://example.invalid/updated')); check('target edit updates checksum');
+  const child = await save({ ...folder, name: 'ZZ_PORTAL_SUB_' + seed, parent: folder.name, label: 'Subfolder', permissions: [] }, 'absent');
+  f = (await read('F', folder.name))!;
+  await assert.rejects(save({ ...portalInputForDocument(f), parent: child.identity.name }, f.token), /cycle/); check('descendant move cycle rejected');
+  await assert.rejects(save({ ...portalInputForDocument(e), parent: 'NO_SUCH_FOLDER' }, e.token), /Parent folder/); check('missing parent rejected');
+  const component = { ...external, name: 'ZZ_PORTAL_COMP_' + seed, label: 'Studio Component Test', target: { type: 'component' as const, node: 'HRMS', menu: 'ZZ_PCODE_LAB_MENU', component: 'ZZ_PCODE_LAB_CMP', market: 'GBL' } };
+  const comp = await save(component, 'absent'); assert.equal(comp.row.PORTAL_CREF_URLT, 'UPGE'); assert.equal(comp.row.PORTAL_URLTEXT, 'c/ZZ_PCODE_LAB_MENU.ZZ_PCODE_LAB_CMP.GBL'); check('create component content reference with validated menu registration');
+  await assert.rejects(save({ ...portalInputForDocument(comp), target: { ...component.target, component: 'NO_SUCH_COMPONENT' } }, comp.token), /registered/); check('invalid component target rejected');
+  const after = await counters() as any[];
+  assert.deepEqual(after.filter(r => !['PRSM', 'SYS'].includes(r.OBJECTTYPENAME)), (before as any[]).filter(r => !['PRSM', 'SYS'].includes(r.OBJECTTYPENAME))); check('unrelated cache versions unchanged');
+  const urls = (await native.execute<{ PORTAL_URL_CHKSUM: number; PORTAL_URLTEXT: string }>("SELECT PORTAL_URL_CHKSUM,PORTAL_URLTEXT FROM PSPRSMDEFN WHERE PORTAL_REFTYPE='C' AND PORTAL_URLTEXT IS NOT NULL", {}, { fetchTypeHandler: m => m.dbType === oracledb.DB_TYPE_CLOB ? { type: oracledb.STRING } : undefined })).rows!;
+  assert.ok(urls.length > 17000); for (const r of urls) assert.equal(portalUrlChecksum(r.PORTAL_URLTEXT), r.PORTAL_URL_CHKSUM); check('checksum matches every stored content-reference URL (' + urls.length + ')');
+  writeFileSync('tools/lab/results/portal-e2e.json', JSON.stringify({ database: 'HRDMO', checks, entries: { folder: folder.name, external: external.name, component: component.name, child: child.identity.name } }, null, 2) + '\n');
+} finally { await native.close(); }

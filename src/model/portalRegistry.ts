@@ -35,7 +35,7 @@ export function renderPortalItem(view: PortalView): string {
   const labelOf = (r: Row) => str(r.PORTAL_LABEL) || str(r.LINK_LABEL) || str(r.PORTAL_OBJNAME);
   out.push(`${folder ? 'Folder' : 'Content Reference'} ${str(p.PORTAL_OBJNAME)} -- ${labelOf(p)}`);
   out.push(`  Portal: ${str(p.PORTAL_NAME)}   Parent: ${str(p.PORTAL_PRNTOBJNAME) || '(none)'}   Sequence: ${str(p.PORTAL_SEQ_NUM)}` +
-    `${str(p.PORTAL_ISPUBLIC) === 'Y' ? '   Public' : ''}${str(p.FLUIDMODE) === '1' ? '   Fluid' : ''}`);
+    `${['1', 'Y'].includes(str(p.PORTAL_ISPUBLIC)) ? '   Public' : ''}${str(p.FLUIDMODE) === '1' ? '   Fluid' : ''}`);
   if (view.path.length) out.push(`  Navigation: ${[...view.path].reverse().map(labelOf).join(' > ')} > ${labelOf(p)}`);
   if (str(p.PORTAL_LINKOBJNAME)) {
     out.push(`  Links to: ${str(p.PORTAL_LINKOBJNAME)}${str(p.PORTAL_LINK_PORTAL) ? ` in ${str(p.PORTAL_LINK_PORTAL)}` : ''}${str(p.LINK_LABEL) ? ` (${str(p.LINK_LABEL)})` : ''}`);

@@ -14,6 +14,7 @@ run_full.sh
 run_full_inventory.sh
 
 # Scratch / research artifacts
+artifacts/**
 *.patch
 AUDIT_REPORT.md
 863_MCP_SUPPORT.md

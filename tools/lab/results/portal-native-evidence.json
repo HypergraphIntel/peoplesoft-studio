@@ -1,0 +1,9 @@
+{
+  "peopleToolsRelease": "8.62.09",
+  "population": 17243,
+  "matches": 17243,
+  "mismatches": 0,
+  "selection": "Content references with non-null URL text, excluding Studio portal integration fixtures",
+  "checksum": "Sum of one-based character position multiplied by character value",
+  "script": "tools/lab/portal-evidence.mts"
+}

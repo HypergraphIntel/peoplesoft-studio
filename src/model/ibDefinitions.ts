@@ -9,6 +9,15 @@ export type Row = Record<string, unknown>;
 export type Translates = ReadonlyMap<string, ReadonlyMap<string, string>>;
 
 const str = (v: unknown) => String(v ?? '').trim();
+/** The service flag, never the operation's HTTP method, determines service kind. */
+export type ServiceKind = 'standard' | 'rest' | 'unknown';
+export function serviceKind(value: unknown): ServiceKind {
+  const flag = str(value);
+  return flag === '1' || flag === '2' ? 'rest' : flag === '0' ? 'standard' : 'unknown';
+}
+export function serviceRole(value: unknown): 'consumer' | 'provider' | undefined {
+  return str(value) === '1' ? 'consumer' : str(value) === '2' ? 'provider' : undefined;
+}
 const stamp = (r: Row) => str(r.LASTUPD) || str(r.LASTUPDDTTM);
 
 /** The coded columns these views show, each a PSXLATITEM field where it has one. */
@@ -80,7 +89,7 @@ export function renderService(name: string, view: ServiceView): string {
   const s = view.service;
   const out = header('Service', name, s);
   out.push(`  Namespace: ${str(s.IB_NAMESPACE) || '(none)'}${str(s.IB_ALIASNAME) ? `   Alias: ${str(s.IB_ALIASNAME)}` : ''}` +
-    `${str(s.IB_REST_SERVICE) === 'Y' ? '   REST' : ''}`, footer(s));
+    `   Service kind: ${serviceKind(s.IB_REST_SERVICE)}${serviceRole(s.IB_REST_SERVICE) ? ` (${serviceRole(s.IB_REST_SERVICE)})` : ''}`, footer(s));
   out.push('', `  Operations (${view.operations.length})`);
   for (const o of [...view.operations].sort((a, b) => str(a.IB_OPERATIONNAME).localeCompare(str(b.IB_OPERATIONNAME)))) {
     out.push(`    ${str(o.IB_OPERATIONNAME).padEnd(32)} ${label(view.translates, 'RTNGTYPE', o).padEnd(26)} ${str(o.DESCR)}`.trimEnd());
@@ -90,6 +99,7 @@ export function renderService(name: string, view: ServiceView): string {
 
 export interface OperationView {
   operation: Row;
+  service?: Row;
   versions: Row[];
   parameters: Row[];
   handlers: Row[];
@@ -102,8 +112,9 @@ export function renderOperation(name: string, view: OperationView): string {
   const o = view.operation;
   const t = view.translates;
   const out = header('Service Operation', name, o);
+  out.push(`  Service kind: ${serviceKind(view.service?.IB_REST_SERVICE)}${serviceRole(view.service?.IB_REST_SERVICE) ? ` (${serviceRole(view.service?.IB_REST_SERVICE)})` : ''}`);
   out.push(`  Service: ${str(o.IB_SERVICENAME) || '(none)'}   Type: ${label(t, 'RTNGTYPE', o)}   Default version: ${str(o.DEFAULTVER)}` +
-    `${str(o.IB_RESTMETHOD) ? `   REST method: ${label(t, 'IB_RESTMETHOD', o)}` : ''}`, footer(o));
+    `${serviceKind(view.service?.IB_REST_SERVICE) === 'rest' && str(o.IB_RESTMETHOD) ? `   REST method: ${label(t, 'IB_RESTMETHOD', o)}` : ''}`, footer(o));
   for (const v of [...view.versions].sort((a, b) => str(a.VERSIONNAME).localeCompare(str(b.VERSIONNAME)))) {
     const ver = str(v.VERSIONNAME);
     out.push('', `  Version ${ver}${ver === str(o.DEFAULTVER) ? ' (default)' : ''}   ${label(t, 'ACTIVE_FLAG', v)}${str(v.DESCR) ? ` -- ${str(v.DESCR)}` : ''}`);

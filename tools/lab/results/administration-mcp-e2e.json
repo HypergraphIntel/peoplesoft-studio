@@ -1,0 +1,19 @@
+{
+  "database": "HRDMO",
+  "checks": [
+    "administration tools advertised by production MCP server",
+    "message list through MCP",
+    "url list through MCP",
+    "text list through MCP",
+    "URL get returns exact concurrency token",
+    "MCP off gate blocks write",
+    "unsaved editor gate blocks write",
+    "MCP save confirms, writes and verifies",
+    "MCP stale token rejected"
+  ],
+  "entries": {
+    "messageSet": 30002,
+    "url": "ZZ_ADMIN_13888",
+    "text": "ZZ_ADMIN_13888"
+  }
+}

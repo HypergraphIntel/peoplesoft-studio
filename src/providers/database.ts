@@ -1,4 +1,8 @@
+import { readPortalDocument, savePortalDocument, type PortalSaveRequest } from './portalWriter.js';
+import { portalInput, portalKey, type PortalIdentity } from '../model/portalDocument.js';
 import { createHash } from 'node:crypto';
+import { listAdministration, readAdministration, saveAdministration, verifyAdministration, type AdminSaveRequest } from './administrationWriter.js';
+import { adminInputKey, validateAdminInput, type AdminKind } from '../model/administration.js';
 import { witnessedCreation, recordCreation, type CreationReceipt, type DefinitionStamp } from './creationProvenance.js';
 import type { DbConnection as Connection, DbPool, DbTypes } from '../db/connection.js';
 import { openDatabase, type DatabasePlatform } from '../db/open.js';
@@ -101,6 +105,12 @@ import { PORTAL_TRANSLATE_FIELDS, renderPortalItem } from '../model/portalRegist
 import { NODE_TRANSLATE_FIELDS, renderNode, renderUrl } from '../model/miscDefinitions.js';
 import type { ImageContent } from '../editors/imageHtml.js';
 import { IB_TRANSLATE_FIELDS, renderMessage as renderIbMessage, renderOperation, renderService } from '../model/ibDefinitions.js';
+import { listIb, readIb, validateIb } from './ibReader.js';
+import type { IbKind, IbDocument } from '../model/ibDocument.js';
+import { saveIb, type IbSaveRequest } from './ibWriter.js';
+import { ibDefinitionKey, IB_DEFINITION_TYPES, ibWriteInput } from '../model/ibOperations.js';
+import { newIbInput, type IbNewOptions } from '../model/ibNew.js';
+import { safeRows as ibSafeRows, rows as ibRows } from './ibReader.js';
 
 /** LASTUPDDTTM as text, for the page / component / menu views. */
 const UI_STAMP = `TO_CHAR(LASTUPDDTTM, 'YYYY-MM-DD HH24:MI:SS') AS LASTUPD`;
@@ -179,6 +189,8 @@ export class DatabaseProvider implements DefinitionProvider {
     DefinitionType.MessageChannel,
     DefinitionType.IbService,
     DefinitionType.IbServiceOperation,
+    DefinitionType.IbRouting,
+    DefinitionType.IbDocument,
     DefinitionType.Image,
     DefinitionType.PortalRegistry,
     DefinitionType.UrlDefinition,
@@ -472,6 +484,16 @@ export class DatabaseProvider implements DefinitionProvider {
         return this.searchSimple(
           `SELECT IB_OPERATIONNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PSOPERATION WHERE IB_OPERATIONNAME LIKE :n`,
           DefinitionType.IbServiceOperation, pattern, limit);
+      case DefinitionType.IbRouting:
+      case DefinitionType.IbDocument:
+        return this.withConnection(async c => {
+          const document = query.type === DefinitionType.IbDocument;
+          const sql = document ? `SELECT IB_PACKAGEID AS K1,IB_SCHEMANAME AS K2,IB_VARIANTNAME AS K3,DESCR FROM PSLSDEFN
+              WHERE IB_SCHEMANAME LIKE :n OR IB_PACKAGEID LIKE :n ORDER BY IB_PACKAGEID,IB_SCHEMANAME,IB_VARIANTNAME FETCH FIRST :lim ROWS ONLY`
+            : `SELECT ROUTINGDEFNNAME AS K1,TO_CHAR(EFFDT,'YYYY-MM-DD') AS K2,DESCR FROM PSIBRTNGDEFN WHERE ROUTINGDEFNNAME LIKE :n ORDER BY ROUTINGDEFNNAME,EFFDT FETCH FIRST :lim ROWS ONLY`;
+          const result = await c.execute<{K1:string;K2:string;K3?:string;DESCR:string}>(sql,{n:pattern,lim:limit});
+          return (result.rows??[]).map(r=>({key:makeKey(query.type!,...[r.K1,r.K2,...(document?[r.K3!]:[])].map(s=>s.trim())),description:r.DESCR?.trim()}));
+        });
       case DefinitionType.FileLayout:
         return this.searchSimple(
           `SELECT FLDDEFNNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PSFLDDEFN WHERE FLDDEFNNAME LIKE :n`,
@@ -1225,6 +1247,12 @@ export class DatabaseProvider implements DefinitionProvider {
       }
       case DefinitionType.IbService: return this.readIbService(key);
       case DefinitionType.IbServiceOperation: return this.readIbOperation(key);
+      case DefinitionType.IbRouting:
+      case DefinitionType.IbDocument: {
+        const doc = await this.readIntegrationBroker(key.type === DefinitionType.IbRouting ? 'routing' : 'document',[...key.parts]);
+        if (!doc) throw new ProviderError('Integration Broker definition not found.');
+        return JSON.stringify(doc,null,2)+'\n';
+      }
       case DefinitionType.Query: return this.readQuery(key);
       case DefinitionType.Role: return this.readRole(key);
       case DefinitionType.MessageCatalog: return this.readMessage(key);
@@ -1368,6 +1396,45 @@ export class DatabaseProvider implements DefinitionProvider {
     });
   }
 
+  async listIntegrationBroker(kind: IbKind, query = '', offset = 0, serviceKind?: 'standard' | 'rest', restRole?: 'consumer' | 'provider') {
+    return this.withConnection(c => listIb(c, this.types, kind, query, offset, serviceKind, restRole));
+  }
+
+  async readIntegrationBroker(kind: IbKind, key: string[]) {
+    return this.withConnection(c => readIb(c, this.types, kind, key));
+  }
+
+  async validateIntegrationBroker(doc: IbDocument) {
+    return this.withConnection(c => validateIb(c, this.types, doc));
+  }
+
+  async saveIntegrationBroker(request: IbSaveRequest) {
+    const input = ibWriteInput.parse(request.input);
+    const key = ibDefinitionKey(input.kind,input.key);
+    const previous = request.expectedToken === 'absent' ? undefined : await this.createdReceipt(key);
+    if (!request.dryRun && request.expectedToken !== 'absent') await this.guard(key,'save');
+    if (!request.dryRun && input.kind === 'operation' && request.expectedToken === 'absent') {
+      const service = String(input.properties.IB_SERVICENAME??'').trim();
+      if (service) await this.guard(ibDefinitionKey('service',[service]),'save');
+    }
+    const saved = await this.withConnection(c => saveIb(c,this.types,{...request,input}));
+    if (saved.written) {
+      const after = await this.readIntegrationBroker(input.kind,input.key);
+      if (!after || after.token !== saved.token) throw new ProviderError('After COMMIT the IB definition differs from the verified saved result.');
+      if (request.expectedToken === 'absent' || previous) await this.noteCreation(key,{version:Number(after.properties.VERSION),operator:String(after.properties.LASTUPDOPRID).trim(),updated:String(after.properties.LASTUPDDTTM)},previous);
+    }
+    return saved;
+  }
+
+  async newIntegrationBroker(kind: IbKind, key: string[], options: IbNewOptions = {}) {
+    return this.withConnection(async c => {
+      const [config] = await ibSafeRows(c,this.types,'PSIBSVCSETUP','1=1',{});
+      const [language] = await ibRows(c,this.types,'SELECT LANGUAGE_CD FROM PSOPTIONS');
+      const [service] = options.service ? await ibSafeRows(c,this.types,'PSSERVICE','IB_SERVICENAME=:n',{n:options.service}) : [];
+      return newIbInput(kind,key,options,config??{},String(language?.LANGUAGE_CD??'').trim(),service);
+    });
+  }
+
   private async readIbService(key: DefinitionKey): Promise<string> {
     const name = key.parts[0];
     return this.withConnection(async (c) => {
@@ -1391,6 +1458,7 @@ export class DatabaseProvider implements DefinitionProvider {
       if (!operation) throw new ProviderError(`No service operation named ${name}.`);
       return renderOperation(name, {
         operation,
+        service: (await this.uiRows(c, `SELECT IB_REST_SERVICE FROM PSSERVICE WHERE IB_SERVICENAME = :n`, { n: String(operation.IB_SERVICENAME).trim() }))[0],
         versions: await q(`SELECT * FROM PSOPRVERDFN WHERE IB_OPERATIONNAME = :n`),
         parameters: await q(`SELECT * FROM PSOPRVERDFNPARM WHERE IB_OPERATIONNAME = :n ORDER BY VERSIONNAME, PARAMETERNAME`),
         handlers: await q(`SELECT * FROM PSOPRHDLR WHERE IB_OPERATIONNAME = :n`),
@@ -1443,6 +1511,31 @@ export class DatabaseProvider implements DefinitionProvider {
         translates: await this.translates(c, NODE_TRANSLATE_FIELDS)
       });
     });
+  }
+
+  async readPortalDocument(identity: PortalIdentity) {
+    return this.withConnection(c => readPortalDocument(c, this.types, identity));
+  }
+
+  async savePortalDocument(request: PortalSaveRequest) {
+    const input = portalInput.parse(request.input);
+    if (request.expectedToken !== 'absent' && !request.dryRun) await this.guard(makeKey(DefinitionType.PortalRegistry, ...portalKey(input)), 'save');
+    const saved = await this.withConnection(c => savePortalDocument(c, this.types, request));
+    if (!request.dryRun) {
+      const after = await this.readPortalDocument(saved.identity);
+      if (!after || after.token !== saved.token) throw new ProviderError('After COMMIT the registry entry differs from the saved result.');
+    }
+    return saved;
+  }
+
+  /** All entries for one portal, in delivered sibling order; no search limit. */
+  async portalStructure(portal: string): Promise<UiRow[]> {
+    return this.withConnection(c => this.uiRows(c,
+      `SELECT P.PORTAL_REFTYPE, P.PORTAL_OBJNAME, P.PORTAL_PRNTOBJNAME, P.PORTAL_LABEL, P.PORTAL_SEQ_NUM,
+              (SELECT MAX(L.PORTAL_LABEL) FROM PSPRSMDEFN L WHERE L.PORTAL_OBJNAME = P.PORTAL_LINKOBJNAME
+               AND L.PORTAL_NAME = NVL(TRIM(P.PORTAL_LINK_PORTAL), P.PORTAL_NAME)) AS LINK_LABEL
+         FROM PSPRSMDEFN P WHERE P.PORTAL_NAME = :p
+         ORDER BY P.PORTAL_SEQ_NUM, P.PORTAL_LABEL, P.PORTAL_OBJNAME`, { p: portal }));
   }
 
   /** A portal registry folder or content reference, keyed portal, type (C / F), name. */
@@ -1611,6 +1704,42 @@ export class DatabaseProvider implements DefinitionProvider {
       const [setRow] = await this.uiRows(c, `SELECT * FROM PSMSGSETDEFN WHERE MESSAGE_SET_NBR = :s`, { s: binds.s });
       return renderMessage({ set: setRow, message });
     });
+  }
+
+  async listAdministration(kind: AdminKind, query: string, offset = 0) {
+    return this.withConnection(async c => {
+      if (kind === 'text' && !await c.catalog.tableExists(c, 'PS_HR_SSTEXT_TEXT')) throw new ProviderError('This environment does not have the HCM Text Catalog tables.');
+      return listAdministration(c, this.types, kind, query, offset);
+    });
+  }
+
+  async readAdministration(kind: AdminKind, key: string[]) {
+    return this.withConnection(c => readAdministration(c, this.types, kind, key));
+  }
+
+  async administrationChoices() {
+    return this.withConnection(async c => ({
+      languages: (await this.uiRows(c, 'SELECT LANGUAGE_CD,ISO_LOCALE FROM PSLANGUAGES ORDER BY LANGUAGE_CD', {}))
+        .map(r => ({ code: String(r.LANGUAGE_CD).trim(), description: String(r.ISO_LOCALE ?? '').trim() })),
+      configurations: await c.catalog.tableExists(c, 'PS_HR_SSTEXT_CFG')
+        ? (await this.uiRows(c, 'SELECT OBJECTOWNERID,HR_SSTEXT_SUB_ID,DESCR FROM PS_HR_SSTEXT_CFG ORDER BY OBJECTOWNERID,HR_SSTEXT_SUB_ID', {}))
+          .map(r => ({ owner: String(r.OBJECTOWNERID).trim(), subId: String(r.HR_SSTEXT_SUB_ID).trim(), description: String(r.DESCR ?? '').trim() })) : [],
+      usages: (await this.uiRows(c, "SELECT DISTINCT FIELDVALUE,XLATLONGNAME FROM PSXLATITEM WHERE FIELDNAME='HR_SSTEXT_USAGE' ORDER BY FIELDVALUE", {}))
+        .map(r => ({ code: String(r.FIELDVALUE).trim(), description: String(r.XLATLONGNAME ?? '').trim() }))
+    }));
+  }
+
+  async saveAdministration(request: AdminSaveRequest) {
+    const key = adminInputKey(request.kind, validateAdminInput(request.kind, request.input));
+    const urlKey = request.kind === 'url' ? makeKey(DefinitionType.UrlDefinition, key[0]) : undefined;
+    if (urlKey && request.expectedToken !== 'absent') await this.guard(urlKey, 'save');
+    const previous = urlKey && request.expectedToken !== 'absent' ? await this.createdReceipt(urlKey) : undefined;
+    const saved = await this.withConnection(c => saveAdministration(c, this.types, request));
+    await this.withConnection(c => verifyAdministration(c, this.types, saved));
+    if (urlKey && (request.expectedToken === 'absent' || previous)) await this.noteCreation(urlKey, {
+      version: Number(saved.row.VERSION), operator: request.operatorId, updated: String(saved.row.LASTUPDDTTM)
+    }, previous);
+    return saved;
   }
 
   private async readFileLayout(key: DefinitionKey): Promise<string> {
@@ -2253,7 +2382,7 @@ export class DatabaseProvider implements DefinitionProvider {
     return createHash('sha256').update(JSON.stringify([this.config.platform,this.config.connectString,this.config.schema??'',this.config.user,release])).digest('hex');
   }
   private async createdReceipt(key:DefinitionKey,evidence?:OwnershipEvidence):Promise<CreationReceipt|undefined> {
-    if(![DefinitionType.Field,DefinitionType.Record,DefinitionType.AppEngineProgram].includes(key.type))return;
+    if(![DefinitionType.Field,DefinitionType.Record,DefinitionType.AppEngineProgram,DefinitionType.UrlDefinition,...Object.values(IB_DEFINITION_TYPES)].includes(key.type))return;
     const e=evidence??await this.withConnection(c=>readOwnershipEvidence(c,key,[]));
     if(!e.exists || e.version===undefined || !e.operator || !e.updated)return;
     return witnessedCreation(await this.creationScope(),key,{version:e.version,operator:e.operator,updated:e.updated});

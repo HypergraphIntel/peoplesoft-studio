@@ -1,0 +1,32 @@
+{
+  "database": "HRDMO",
+  "checks": [
+    "create message set and message; preserve trailing spaces",
+    "update message with SYS cache version",
+    "set-only edit preserves message timestamp",
+    "stale message save rejected",
+    "adding sibling preserves set descriptions",
+    "reserved message set rejected",
+    "create URL with stamp and SYS cache version",
+    "update URL",
+    "stale URL save rejected",
+    "create text ID, effective date and base context",
+    "update Text Catalog",
+    "stale Text Catalog save rejected",
+    "create related-language text",
+    "fifth and sixth context keys are preserved",
+    "message search and pagination",
+    "url search and pagination",
+    "text search and pagination",
+    "base text includes translations",
+    "reopen matches saved URL",
+    "unrelated definition counters are unchanged",
+    "Text Catalog language picker query is valid"
+  ],
+  "entries": {
+    "messageSet": 30002,
+    "url": "ZZ_ADMIN_13888",
+    "text": "ZZ_ADMIN_13888"
+  },
+  "nativeRuntimeProbe": "PSAE probe blocked by missing 64-bit Oracle SQL library"
+}

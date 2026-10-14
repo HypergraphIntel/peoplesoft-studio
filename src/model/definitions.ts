@@ -49,6 +49,10 @@ export enum DefinitionType {
   IbService = 79,
   /** PSPROJECTITEM 80, OBJECTID1 139: a service operation (510 of 563 in PSOPERATION). */
   IbServiceOperation = 80,
+  /** HRDMO project 83 / IDs 142,21: routing name and effective date (500 current matches). */
+  IbRouting = 83,
+  /** HRDMO project 92 / IDs 157,158,159: package, document, version (249 current matches). */
+  IbDocument = 92,
   /** PSPROJECTITEM 12, OBJECTIDs 34 / 68 / 36 / 21: a tree -- SetID, set control value, name, effective date (84 of 84 in PSTREEDEFN). */
   Tree = 12,
   /** PSPROJECTITEM 20, OBJECTIDs 29 / 28: a process definition, by process type and name (269 of 307 in PS_PRCSDEFN). */
@@ -258,6 +262,8 @@ export const TYPE_LABELS: Readonly<Partial<Record<DefinitionType, string>>> = {
   [DefinitionType.MessageChannel]: 'Message Channels',
   [DefinitionType.IbService]: 'Services',
   [DefinitionType.IbServiceOperation]: 'Service Operations',
+  [DefinitionType.IbRouting]: 'Routings',
+  [DefinitionType.IbDocument]: 'Documents',
   [DefinitionType.Role]: 'Roles',
   [DefinitionType.MessageCatalog]: 'Message Catalog Entries',
   [DefinitionType.PermissionList]: 'Permission Lists',
@@ -322,6 +328,8 @@ export function fileExtension(type: DefinitionType): string {
     case DefinitionType.MessageNode: return '.psnode';
     case DefinitionType.IbService: return '.psservice';
     case DefinitionType.IbServiceOperation: return '.psoperation';
+    case DefinitionType.IbRouting: return '.psrouting';
+    case DefinitionType.IbDocument: return '.psdocument';
     case DefinitionType.Role: return '.psrole';
     case DefinitionType.MessageCatalog: return '.psmsg';
     case DefinitionType.PermissionList: return '.psperm';

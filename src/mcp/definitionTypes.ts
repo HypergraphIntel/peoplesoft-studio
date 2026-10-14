@@ -56,7 +56,9 @@ export const DEFINITION_TYPE_GUIDE: readonly DefinitionTypeGuide[] = [
   { type: DefinitionType.ApplicationClassPeopleCode, keyParts: ['package', '...subpackages', 'class'], databaseSearch: true, note: 'Searched by root package. psft_get_application_class reads a package\'s classes.' },
   { type: DefinitionType.Xslt, keyParts: ['SQL ID', '6'], databaseSearch: true },
   { type: DefinitionType.IbService, keyParts: ['service'], databaseSearch: true },
-  { type: DefinitionType.IbServiceOperation, keyParts: ['service operation'], databaseSearch: true }
+  { type: DefinitionType.IbServiceOperation, keyParts: ['service operation'], databaseSearch: true, note: 'Service kind and REST role are explicit in psft_ib_get.' },
+  { type: DefinitionType.IbRouting, keyParts: ['routing', 'effective date YYYY-MM-DD'], databaseSearch: true },
+  { type: DefinitionType.IbDocument, keyParts: ['package', 'document', 'version'], databaseSearch: true }
 ];
 
 /** "0 Records, 2 Fields, ..." for a tool description. */

@@ -1,6 +1,40 @@
 # Changelog
 
-## Unreleased
+## 0.8.9 — 2026-10-14
+
+### Added
+
+- **Integration Broker editors and MCP authoring** for messages, Document
+  Builder, services, service operations, nodes and routings. Search, inspect,
+  validate, create, preview and save through shared writers calibrated on
+  PeopleTools 8.62.09. Standard services, REST consumers and REST providers
+  are explicitly distinguished; unsupported structures require PIA.
+- **Administration editors and MCP tools** for Message Catalog, HCM Text
+  Catalog and URL Definitions, with typed inputs, concurrency checks,
+  write gates and readback verification.
+- **Portal Registry editing** in Structure & Content and MCP: create folders
+  and component/external content references, edit properties and security,
+  and preview writes. Native PIA navigation after Studio saves remains unverified.
+- **Studio migration packages** for fields, basic SQL Table/Derived Work
+  records and complete App Engine programs. Export, preview target changes,
+  import through guarded writers and retain verification receipts. Unsupported
+  members block export; saves commit independently and physical tables require
+  a separate build.
+- **Project migration review** with saveable reports, explicit dependencies,
+  optional target comparison and selected dependency insertion.
+
+### Fixed
+
+- Project comparison separates target read errors from verified absence,
+  compares modeled record/field metadata without local update stamps, and
+  normalizes packed AE PeopleCode identities.
+
+### Documentation
+
+- Updated capability tables and added administration and migration guides;
+  documented Integration Broker write boundaries and Portal Registry evidence.
+
+### Also included
 
 ### Added
 

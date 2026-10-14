@@ -23,21 +23,21 @@ export const CONFIGURATION_TOOLS: readonly ToolNode[] = [
     { label: 'Event Mapping', icon: 'symbol-event', command: 'psft.customization.configureEventMapping' },
     { label: 'Drop Zones', icon: 'inbox', planned: true }
   ] },
-  { label: 'Administration', icon: 'settings', planned: true, children: [
-    { label: 'Message Catalog', icon: 'comment', planned: true },
-    { label: 'Text Catalog', icon: 'symbol-text', planned: true },
-    { label: 'URL Definitions', icon: 'link', planned: true }
+  { label: 'Administration', icon: 'settings', children: [
+    { label: 'Message Catalog', icon: 'comment', command: 'psft.administration.messages' },
+    { label: 'Text Catalog', icon: 'symbol-text', command: 'psft.administration.text' },
+    { label: 'URL Definitions', icon: 'link', command: 'psft.administration.urls' }
   ] },
-  { label: 'Portal Registry', icon: 'globe', planned: true, children: [
-    { label: 'Structure & Content', icon: 'list-tree', planned: true }
+  { label: 'Portal Registry', icon: 'globe', children: [
+    { label: 'Structure & Content', icon: 'list-tree', command: 'psft.portal.structure' }
   ] },
-  { label: 'Integration Broker', icon: 'radio-tower', planned: true, children: [
-    { label: 'Message Definitions', icon: 'mail', planned: true },
-    { label: 'Document Definitions', icon: 'file-code', planned: true },
-    { label: 'Service', icon: 'server', planned: true },
-    { label: 'Service Operation', icon: 'arrow-swap', planned: true },
-    { label: 'Nodes', icon: 'server-environment', planned: true },
-    { label: 'Routes', icon: 'git-merge', planned: true }
+  { label: 'Integration Broker', icon: 'radio-tower', children: [
+    { label: 'Message Definitions', icon: 'mail', command: 'psft.ib.message' },
+    { label: 'Document Definitions', icon: 'file-code', command: 'psft.ib.document' },
+    { label: 'Service', icon: 'server', command: 'psft.ib.service' },
+    { label: 'Service Operation', icon: 'arrow-swap', command: 'psft.ib.operation' },
+    { label: 'Nodes', icon: 'server-environment', command: 'psft.ib.node' },
+    { label: 'Routes', icon: 'git-merge', command: 'psft.ib.routing' }
   ] },
   { label: 'Security', icon: 'shield', planned: true, children: [
     { label: 'OAuth', icon: 'key', planned: true },

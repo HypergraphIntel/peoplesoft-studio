@@ -1,3 +1,4 @@
+import { registerPortalTools } from './portalTools.js';
 import { registerStructureTools } from './structureTools.js';
 import {
   createServer,
@@ -37,6 +38,8 @@ import { registerEventMappingTools } from './eventMappingTools.js';
 import { registerDropZoneTools } from './dropZoneTools.js';
 import { registerPageFieldConfiguratorTools } from './pfcTools.js';
 import { registerDiscoveryTools } from './discoveryTools.js';
+import { registerAdministrationTools } from './administrationTools.js';
+import { registerIbTools } from './ibTools.js';
 import { runToolsAsAgent } from './agentOrigin.js';
 
 import {
@@ -215,6 +218,9 @@ export async function startPeopleSoftMcpServer(
         registerDropZoneTools(server, workspace, writeHost);
         registerPageFieldConfiguratorTools(server, workspace, writeHost);
         registerDiscoveryTools(server, workspace, writeHost);
+        registerAdministrationTools(server, workspace, writeHost);
+        registerIbTools(server, workspace, writeHost);
+        registerPortalTools(server, workspace, writeHost);
 
         if (writeHost) {
           registerPeopleSoftWriteTools(

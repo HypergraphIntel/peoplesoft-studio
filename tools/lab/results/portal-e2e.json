@@ -1,0 +1,26 @@
+{
+  "database": "HRDMO",
+  "checks": [
+    "dry run rolls back entry, parent stamp and counters",
+    "create folder with cascading permission-list grant",
+    "edit folder and preserve cascading grant",
+    "stale token rejected",
+    "create cannot overwrite existing folder",
+    "create external content reference with URL checksum",
+    "content-reference display defaults created",
+    "ordinary property edit preserves target",
+    "target edit updates checksum",
+    "descendant move cycle rejected",
+    "missing parent rejected",
+    "create component content reference with validated menu registration",
+    "invalid component target rejected",
+    "unrelated cache versions unchanged",
+    "checksum matches every stored content-reference URL (17245)"
+  ],
+  "entries": {
+    "folder": "ZZ_PORTAL_F_75512",
+    "external": "ZZ_PORTAL_C_75512",
+    "component": "ZZ_PORTAL_COMP_75512",
+    "child": "ZZ_PORTAL_SUB_75512"
+  }
+}

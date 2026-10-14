@@ -1,0 +1,27 @@
+{
+  "database": "HRDMO",
+  "checks": [
+    "portal and administration tools advertised by production server",
+    "portal entry point lists installed portals",
+    "structure returns portal-scoped tree nodes",
+    "MCP off gate blocks registry write",
+    "unsaved editor gate blocks registry write",
+    "MCP dry run validates and rolls back without approval",
+    "MCP edit confirms and verifies saved registry entry",
+    "MCP stale token rejected",
+    "dedicated MCP create-folder route",
+    "dedicated MCP create-content-reference route",
+    "message catalog list/get return machine-editable input and token",
+    "message catalog save through typed MCP schema",
+    "url catalog list/get return machine-editable input and token",
+    "url catalog save through typed MCP schema",
+    "text catalog list/get return machine-editable input and token",
+    "text catalog save through typed MCP schema",
+    "Text Catalog configuration and language choices",
+    "MCP reference explains all three catalogs"
+  ],
+  "entries": {
+    "folder": "ZZ_PORTAL_MF_63071",
+    "cref": "ZZ_PORTAL_MC_63071"
+  }
+}

@@ -13,8 +13,7 @@ writing the same rows Application Designer writes.
 > is experimental: read the [Disclaimer](#disclaimer) before writing to any
 > database.
 
-Current release: **0.8.8**. See the [changelog](CHANGELOG.md) and
-[MCP authoring fixes and verification](docs/MCP_0_8_8.md).
+Current release: **0.8.9**. See the [changelog](CHANGELOG.md#089--2026-10-14).
 
 ## Why PeopleSoft Studio
 
@@ -134,13 +133,14 @@ definitions, outages or any other damage.
 
 Goal long-term: replace Application Designer. **Today it reads many common definition types and edits the supported kinds below** -- PeopleCode, records, fields, pages, components, App Engine, menus, Component Interfaces, message channels, SQL, HTML, style sheets, translates, projects and a bounded PS Query workflow. Saving is experimental. The tables distinguish working editors from read-only viewers and features still planned.
 
-In **0.8.8**, MCP can create SQL Table and Derived/Work records, set Character
-field format to Uppercase or Mixed Case, and add AE sections and AE PeopleCode
-as project members. Native project export accepts those members. New-definition
-ownership receipts prevent unnecessary Unknown-ownership prompts, and MCP
-approval waits stop after 60 seconds or cancellation. Valid PeopleCode quote
-and layout normalization passes the save gate only with an exact binary and
-name-row roundtrip. See [release verification](docs/MCP_0_8_8.md).
+In **0.8.9**, Integration Broker tools support bounded native creation and
+editing across six definition families on PeopleTools 8.62.09. Administration
+and Portal Registry have searchable editors and MCP tools. Studio migration
+packages export and import fields, basic records and App Engine, with target
+preview, dependency review and verified save receipts. See
+[Integration Broker](docs/INTEGRATION_BROKER.md),
+[Administration](docs/ADMINISTRATION.md), [Portal Registry](docs/PORTAL_REGISTRY.md)
+and [Project migration](docs/PROJECT_MIGRATION.md) for scope and limits.
 
 | Capability | Status | Notes |
 |------------|--------|-------|
@@ -148,7 +148,7 @@ name-row roundtrip. See [release verification](docs/MCP_0_8_8.md).
 | Connect to **Microsoft SQL Server** or **DB2** (LUW, z/OS) | Experimental | Everything above and below that reads, as on Oracle; writes are the same rows Oracle's App Designer captures proved, not yet captured on these platforms. DB2 needs *PeopleSoft: Install DB2 Driver*. Two-tier (App Designer 2 Tier) sign-on too. See [docs/DATABASES.md](docs/DATABASES.md) |
 | Open App Designer XML project export | Yes | |
 | Project tree & definition browser | Yes | |
-| **Configuration Tools** and **Data Migration Tools** panes | Partial | **PS Query** and **Event Mapping** open working editors. Standalone Page and Field Configurator and Drop Zones entries remain placeholders; their configuration actions are available in the Customization Strategy view. Administration, Portal Registry, Integration Broker, Security, Data Mover Scripts and Data Migration Workbench entries remain greyed *Coming soon* |
+| **Configuration Tools** and **Data Migration Tools** panes | Partial | **PS Query** and **Event Mapping** open working editors. Standalone Page and Field Configurator and Drop Zones entries remain placeholders; their configuration actions are available in the Customization Strategy view. Administration opens Message Catalog, Text Catalog and URL editors; Portal Registry opens a portal picker and editable Structure & Content tree. Integration Broker opens six searchable editors with New, Preview and Save. Security, Data Mover Scripts and Data Migration Workbench entries remain greyed *Coming soon* |
 | **Event Mapping** editor | Experimental | Configuration Tools > Customization > Event Mapping, or a component's content reference in the Customization Strategy view: the Configure Event Mapping page's configurations -- component, page, record and field level rows, their services, sequence and enabled flag -- and a new related content service with its application class, saved as PeopleTools' own page saves them, on Writable connections — see [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md) |
 | **Customization: ownership and the delivered-object policy** | Experimental | Delivered / Delivered modified / Partner / Custom / Unknown, with evidence from save stamps, projects, naming prefixes, delivered baselines and verified Studio creation receipts. Policies (block / requireApproval / allowWithAudit) apply to guarded definition saves, renames and deletes. User default: allow with audit; agent default: require approval for delivered, partner or Unknown definitions. New verified custom definitions retain their receipts across supported edits. MCP approval waits expire after 60 seconds or cancellation — see [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md) |
 | **Customization Strategy** view and **Customization Plan** editor | Experimental / Preview | The Strategy view follows the open definition and discovers Event Mapping, Drop Zones and Page and Field Configurator. Its configuration actions write the supported settings, including custom subpages and Standard/Masking field configurations. Other frameworks remain Unknown. The Plan editor previews Requirement, Discover, Strategy, Validate and Approval with its actions disabled — see [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md) |
@@ -175,15 +175,16 @@ name-row roundtrip. See [release verification](docs/MCP_0_8_8.md).
 | **App Engine programs** (App Engine Designer) | Experimental | App Designer's App Engine window: the **Definition** view (sections and their market / platform / effective-date variants, steps, actions) and **Program Flow**, with a property panel for the program (General, State Records, Temp Tables, Advanced), each section, step and action. On Writable connections: Insert Section / Step/Action / Action, change an action's type, rename, move, Cut / Copy / Paste, delete, every property App Designer stores, SQL, XSLT and PeopleCode in VS Code editors, undo / redo, validation (App Designer's Edit Validation plus references and PeopleCode compiled), Preview Save, and *New Definition > App Engine Program* — saved as App Designer saves it (85 of 88 captured App Designer saves replay row for row; the rest differ only where App Designer leaves a hash row stale). See [docs/APP_ENGINE.md](docs/APP_ENGINE.md) and [docs/APP_ENGINE_SEMANTICS.md](docs/APP_ENGINE_SEMANTICS.md) |
 | **File Layouts** | Read-Only | Format, segments and fields — see [docs/FILE_LAYOUTS_COMPONENT_INTERFACES.md](docs/FILE_LAYOUTS_COMPONENT_INTERFACES.md) |
 | **Component Interfaces** | Experimental | CI Designer and MCP tools: create, edit, save, copy, rename and delete; keys, properties, collections, standard methods, synchronization and Methods PeopleCode — see [docs/COMPONENT_INTERFACES.md](docs/COMPONENT_INTERFACES.md) |
-| **Permission Lists**, **Roles**, **Message Catalog** | Read-Only | A permission list's pages and actions, sign-on times, Web Libraries and more; a role's permission lists; a message's text and explanation — see [docs/SECURITY_MESSAGES.md](docs/SECURITY_MESSAGES.md) |
+| **Permission Lists**, **Roles** | Read-Only | A permission list's pages and actions, sign-on times, Web Libraries and more; a role's permission lists — see [docs/SECURITY_MESSAGES.md](docs/SECURITY_MESSAGES.md) |
 | **Queries** (Windows PS Query workflow) | Experimental | **Open PS Query** / **New PS Query**, also Configuration Tools > PS Query. Oracle / PeopleTools 8.62.09: open existing public or own private queries; create, edit, save and Save As for one SQL Table record with direct character fields and at most one equal-to constant/prompt criterion. Headings, ordering, prompts, SQL and bounded read-only results with Query access checks. Unsupported shapes remain readable, with a reason saving/running is refused — see [docs/PS_QUERY_WINDOWS.md](docs/PS_QUERY_WINDOWS.md) |
 | **Process Definitions** | Read-Only | Priority, run location, parameters, output, components and process groups — see [docs/PROCESS_DEFINITIONS.md](docs/PROCESS_DEFINITIONS.md) |
 | **Trees** | Read-Only | Settings, levels, and nodes as an outline with detail ranges — see [docs/TREES.md](docs/TREES.md) |
-| **Messages**, **Services**, **Service Operations** | Read-Only | Message versions and record structure; service operations with their messages, handlers and routings — see [docs/INTEGRATION_BROKER.md](docs/INTEGRATION_BROKER.md) |
+| **Integration Broker** | Experimental | Messages, Document Builder, services, service operations, nodes and routings: search, inspect, validate, create, preview and save through editors or MCP on PeopleTools 8.62.09; unsupported structures require PIA — see [docs/INTEGRATION_BROKER.md](docs/INTEGRATION_BROKER.md) |
 | **Images** | Read-Only | Shown in a panel (GIF, PNG, JPEG, SVG, BMP) — see [docs/IMAGES.md](docs/IMAGES.md) |
-| **Portal Registry** | Read-Only | Folders and content references: navigation path, component, URL, security — see [docs/PORTAL_REGISTRY.md](docs/PORTAL_REGISTRY.md) |
-| **URL Definitions**, **XSLT**, **Message Nodes** | Read-Only | A node's passwords are never shown — see [docs/URLS_NODES.md](docs/URLS_NODES.md) |
-| MCP server (AI clients) | Yes | Search/read supported definitions and bounded PeopleCode text search; `psft_list_definition_types` gives type codes and key parts. Experimental authoring tools cover PeopleCode, SQL, HTML, style sheets, pages, records, fields, translates, projects, packages, App Engine, menus, Component Interfaces and message channels. 0.8.8 adds record creation, Character field formats and AE section/PeopleCode project membership. Structured designers and tools share their models and writers, with validation and concurrency checks. Customization tools cover ownership, Event Mapping, Drop Zones and Page and Field Configurator; discovery tools read and record evidence. Default MCP write mode asks for approval in VS Code, with separate ownership checks for guarded definition changes. See [docs/MCP_WRITES.md](docs/MCP_WRITES.md) and [0.8.8 fixes](docs/MCP_0_8_8.md) |
+| **Message Catalog**, **HCM Text Catalog**, **URL Definitions** | Experimental | Search, create and edit through Configuration Tools > Administration or MCP; typed schemas, catalog reference, Text Catalog configuration/language choices, concurrency and write gates — see [docs/ADMINISTRATION.md](docs/ADMINISTRATION.md) |
+| **Portal Registry** | Experimental | Select a portal, browse its Structure & Content tree, create folders and component/external content references, and edit properties, parent, sequence and security through the UI or MCP — see [docs/PORTAL_REGISTRY.md](docs/PORTAL_REGISTRY.md) |
+| **XSLT** | Read-Only | Stylesheet text; node editing is covered by Integration Broker and node passwords are never shown — see [docs/URLS_NODES.md](docs/URLS_NODES.md) |
+| MCP server (AI clients) | Yes | Search/read supported definitions and bounded PeopleCode text search; `psft_list_definition_types` gives type codes and key parts. Experimental authoring tools cover PeopleCode, SQL, HTML, style sheets, pages, records, fields, translates, projects, packages, App Engine, menus, Component Interfaces, message channels, Portal Registry folders/content references, Message Catalog, HCM Text Catalog and URL definitions. 0.8.9 adds Integration Broker authoring plus project migration review, package export and import preview; imports apply through the UI. Structured designers and tools share their models and writers, with validation and concurrency checks. Customization tools cover ownership, Event Mapping, Drop Zones and Page and Field Configurator; discovery tools read and record evidence. Default MCP write mode asks for approval in VS Code, with separate ownership checks for guarded definition changes. See [docs/MCP_WRITES.md](docs/MCP_WRITES.md) and [0.8.8 fixes](docs/MCP_0_8_8.md) |
 | PeopleCode IntelliSense-lite | Yes | Completion, hover, outline, snippets |
 | PeopleCode syntax highlighting | Yes | |
 
@@ -212,25 +213,25 @@ reproducing App Designer's saves; **Read-only** = viewer, from the database;
 | HTML | Yes | Read, create and save — see [docs/HTML_SAVE.md](docs/HTML_SAVE.md) |
 | Image | Read-only | Shown in a panel (GIF, PNG, JPEG, SVG, BMP) |
 | Menu | Experimental | Menu Designer: create (Standard or Popup), edit, save, Save As, rename, delete as App Designer does — bars, items (component, PeopleCode with ItemSelected, separator, transfer), Menu Properties; see [docs/MENUS.md](docs/MENUS.md) |
-| Message | Read-only | Integration Broker message versions and record structure — see [docs/INTEGRATION_BROKER.md](docs/INTEGRATION_BROKER.md) |
+| Message | Experimental | Integration Broker inspection and bounded nonrowset message creation/editing — see [docs/INTEGRATION_BROKER.md](docs/INTEGRATION_BROKER.md) |
 | Message Channel | Experimental | Message Channel window: create, edit, save, Save As, rename, delete as App Designer does — Message Channel Properties, the messages on the channel, partition fields as App Designer lists them; see [docs/MESSAGE_CHANNELS.md](docs/MESSAGE_CHANNELS.md) |
 | Optimization Model | Not yet | Identified in project exports; no viewer yet |
 | Page | Experimental | Visual Layout editor with a property panel for every control type, saved as App Designer saves — see [docs/PAGE_SAVE.md](docs/PAGE_SAVE.md) |
 | Page (Fluid) | Experimental | The same editor; **New Page Fluid** creates one from a Layout Page |
-| Project | Yes | Browse, open XML exports, create and add supported members, including AE sections and AE PeopleCode. Export/copy remains in Application Designer |
+| Project | Yes | Browse, open XML exports, create and add supported members, including AE sections and AE PeopleCode. Studio migration packages support fields, basic records and App Engine; unsupported adapters are reported |
 | Record | Yes | Editor (Field / Use / Edits); editable; create; translate values; delete — see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md) |
 | SQL | Yes | Read, create and save |
 | Style Sheet | Yes | Freeform: read as CSS, create and save — see [docs/STYLESHEET_SAVE.md](docs/STYLESHEET_SAVE.md). Classic / sub: a read-only class list |
 
 ## What does **not** work yet
 
-- Copying or migrating a project between environments (compare works: *Compare Project*, *Compare With Environment...*)
+- Migration adapters for the remaining definition families (Studio packages currently cover fields, basic records and App Engine)
 - Editing record shapes and settings no App Designer save has been captured for (see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md))
 - Register Menu Item (portal registration) and menu translations
 - Component Interfaces: Test Component Interface, Java / C templates, CI references
 - Running App Engine programs (the designer and the MCP read, write and validate definitions; they never run them)
 - In the component editor: Default Search Action, the search-page link message numbers, the Custom style lists; component edits through the MCP
-- Build beyond SQL Tables (Alter Tables, indexes alone, views), project-level migrate/copy
+- Build beyond SQL Tables (Alter Tables, indexes alone, views); migration of definition families outside the supported Studio package adapters
 - Full language server and compile diagnostics as you type. F12 already resolves supported definition references, application class paths and declared PeopleCode functions in the connected environment; *Validate PeopleCode* checks on demand.
 - Full PS Query parity: joins, unions, subqueries, grouped/effective-date criteria, expression columns, numeric/date fields, aggregates, translate SQL, DISTINCT and row-security SQL are not yet editable/executable. Query rename, delete, Excel export and printing are also planned.
 
@@ -294,7 +295,10 @@ compile the program in Application Designer as well (see the Disclaimer). See
 - **Snippets** — `if`, `for`, `try`, `locs`, `msgbox`, `sqlexec`, …
 - **Validate PeopleCode** — compiles the program in the editor with PeopleSoft Studio's compiler (the one saves use) for the connection's PeopleTools release, and shows where it stops in Problems; Application Designer has the last word
 - **Find References** — where an identifier (a whole word) or any text occurs in every PeopleCode program of the connection, from the word at the cursor; on a database one search of the stored source, so every program is covered. Pick an occurrence to open it at that line
-- **Compare Project** (Projects view) — every definition of a project read from this connection and from another (a database or a project export), listed as different, missing there, same, or not compared (no text form); choosing a difference opens it side by side
+- **Compare Project** (Projects view) — text and modeled record/field metadata compared with another connection. Read failures remain errors; missing definitions require a successful absence check. Differences open as snapshots side by side.
+- **Administration tools** — Message Catalog, HCM Text Catalog and URL Definitions have searchable editors with create/edit, concurrency checks and readback verification. See [Administration](docs/ADMINISTRATION.md).
+- **Export Migration Package... / Import Migration Package...** — versioned Studio JSON packages, target preview, guarded writers, readback verification and a migration receipt. Fields, basic records and App Engine are supported.
+- **Review Project Migration...** (Projects view or command palette) — a saveable report of members, optional target comparison, explicit dependencies, and unresolved coverage. On Writable database connections, select dependencies to include through the existing project writer. Export/import uses Studio migration packages without Application Designer. See [Project migration](docs/PROJECT_MIGRATION.md).
 - **Compare With Environment** — a definition side by side with the same one in another connection (a database or a project export), in VS Code's diff editor. The other side is read once, without making that connection the active one
 
 SQL documents use language id `psft-sql` (basic highlighting). HTML definitions open as HTML; *Preview HTML* shows one as a page, with no script run and nothing fetched.
@@ -344,3 +348,13 @@ be installed together. `richardwood.peoplesoft-datamover` only claims `.dms` and
 3. Restart or reload the client if it was already running when you
    registered the server.
 
+
+### Integration Broker
+
+Messages, Document Builder, Services, Service Operations, Nodes and Routings now
+have search, inspection, validation, New, Preview and Save tools. The MCP
+explicitly distinguishes standard services, REST consumers and REST providers.
+Use `psft_ib_reference` for the workflow and
+[Integration Broker documentation](docs/INTEGRATION_BROKER.md) for supported native
+write paths and current PIA-only boundaries. Writes are calibrated on PeopleTools
+8.62.09.

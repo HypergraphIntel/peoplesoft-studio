@@ -45,7 +45,7 @@ export const INSERTABLE_TYPES: ReadonlySet<DefinitionType> = new Set([
   DefinitionType.Record, DefinitionType.Field, DefinitionType.Page, DefinitionType.Menu,
   DefinitionType.Component, DefinitionType.RecordPeopleCode, DefinitionType.AppEngineProgram, DefinitionType.AppEngineSection, DefinitionType.AppEnginePeopleCode,
   DefinitionType.HtmlDefinition, DefinitionType.SqlDefinition, DefinitionType.ApplicationPackage,
-  DefinitionType.ApplicationClassPeopleCode, DefinitionType.StyleSheet, DefinitionType.MessageChannel
+  DefinitionType.ApplicationClassPeopleCode, DefinitionType.StyleSheet, DefinitionType.MessageChannel, DefinitionType.UrlDefinition
 ]);
 
 export function canInsertIntoProject(type: DefinitionType): boolean {
@@ -63,6 +63,8 @@ function name(key: DefinitionKey): string {
 }
 
 const LAYOUTS: Readonly<Partial<Record<DefinitionType, (key: DefinitionKey) => ProjectItem>>> = {
+  // HRDMO project URL members: OBJECTTYPE 56 / OBJECTID 103 (docs/URLS_NODES.md).
+  [DefinitionType.UrlDefinition]: single(56, 103),
   [DefinitionType.Record]: single(0, 1),
   // A field listed under a record carries the record as a second part; the item is the field.
   [DefinitionType.Field]: single(2, 6),

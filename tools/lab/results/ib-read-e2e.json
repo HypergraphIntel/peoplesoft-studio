@@ -1,0 +1,104 @@
+{
+  "database": "HRDMO",
+  "peopleToolsRelease": "8.62.09",
+  "coverage": {
+    "message": {
+      "population": 4278,
+      "sampleKey": [
+        "ACCOM_TYPE_FULLSYNC"
+      ],
+      "sections": [
+        "versions",
+        "records",
+        "fields",
+        "parts",
+        "attributes",
+        "operations"
+      ]
+    },
+    "document": {
+      "population": 323,
+      "sampleKey": [
+        "ASF_SERVICE",
+        "BEN_CHATBOT_SVC",
+        "v1"
+      ],
+      "sections": [
+        "dependencies",
+        "physicalSchemas",
+        "messages",
+        "logicalSchema",
+        "xmlSchemas",
+        "jsonSchemas",
+        "physicalBodies"
+      ]
+    },
+    "service": {
+      "population": 1089,
+      "sampleKey": [
+        "ACCOM_TYPE_FULLSYNC"
+      ],
+      "sections": [
+        "operations"
+      ]
+    },
+    "operation": {
+      "population": 2166,
+      "sampleKey": [
+        "ACCOM_TYPE_FULLSYNC"
+      ],
+      "sections": [
+        "service",
+        "versions",
+        "parameters",
+        "handlers",
+        "applicationClassHandlers",
+        "applicationEngineHandlers",
+        "componentInterfaceHandlers",
+        "dataMoverHandlers",
+        "uriTemplates",
+        "uriMessages",
+        "uriRoots",
+        "contentTypes",
+        "queueParameters",
+        "generatedRoutings",
+        "routings"
+      ]
+    },
+    "node": {
+      "population": 66,
+      "sampleKey": [
+        "AIA"
+      ],
+      "sections": [
+        "connectorProperties",
+        "routings"
+      ]
+    },
+    "routing": {
+      "population": 2091,
+      "sampleKey": [
+        "ABS_SYNC",
+        "1900-01-01"
+      ],
+      "sections": [
+        "operation",
+        "service",
+        "directionalAliases",
+        "parameters",
+        "connectorProperties",
+        "properties"
+      ]
+    }
+  },
+  "documents": 323,
+  "checks": [
+    "production MCP advertisement",
+    "six-family paginated population",
+    "structured reads and validation",
+    "numeric standard/REST and consumer/provider filters",
+    "secret columns excluded",
+    "all document bodies decompressed with stored lengths verified"
+  ],
+  "writesTested": false
+}

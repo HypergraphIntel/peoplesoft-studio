@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.8.8",
+  "version": "0.8.9",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -142,6 +142,41 @@
       }
     ],
     "commands": [
+      {
+        "command": "psft.ib.message",
+        "title": "Integration Broker: Message Definitions",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.ib.document",
+        "title": "Integration Broker: Document Definitions",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.ib.service",
+        "title": "Integration Broker: Services",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.ib.operation",
+        "title": "Integration Broker: Service Operations",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.ib.node",
+        "title": "Integration Broker: Nodes",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.ib.routing",
+        "title": "Integration Broker: Routings",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.portal.structure",
+        "title": "Structure & Content",
+        "category": "PeopleSoft"
+      },
       {
         "command": "psft.query.open",
         "title": "Open PS Query",
@@ -451,6 +486,39 @@
         "category": "PeopleSoft"
       },
       {
+        "command": "psft.project.exportMigration",
+        "title": "Export Migration Package...",
+        "category": "PeopleSoft",
+        "icon": "$(export)"
+      },
+      {
+        "command": "psft.project.importMigration",
+        "title": "Import Migration Package...",
+        "category": "PeopleSoft",
+        "icon": "$(import)"
+      },
+      {
+        "command": "psft.administration.messages",
+        "title": "Message Catalog",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.administration.text",
+        "title": "Text Catalog",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.administration.urls",
+        "title": "URL Definitions",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.project.migrationReview",
+        "title": "Review Project Migration...",
+        "category": "PeopleSoft",
+        "icon": "$(package)"
+      },
+      {
         "command": "psft.project.compare",
         "title": "Compare Project",
         "icon": "$(diff)",
@@ -635,6 +703,16 @@
           "command": "psft.closeProject",
           "when": "view == psft.projects && viewItem == project.opened",
           "group": "inline"
+        },
+        {
+          "command": "psft.project.exportMigration",
+          "when": "view == psft.projects && viewItem =~ /^project/",
+          "group": "migration@2"
+        },
+        {
+          "command": "psft.project.migrationReview",
+          "when": "view == psft.projects && viewItem =~ /^project/",
+          "group": "migration@1"
         },
         {
           "command": "psft.project.compare",
@@ -947,7 +1025,7 @@
             "The MCP is read-only."
           ],
           "default": "confirm",
-          "description": "Whether AI clients may save PeopleSoft definitions through the MCP server (PeopleCode, SQL, HTML, style sheets, pages, records, fields, translates, projects, packages)."
+          "description": "Whether AI clients may save PeopleSoft definitions through the MCP server (PeopleCode, SQL, HTML, style sheets, pages, records, fields, translates, projects, packages, Integration Broker)."
         },
         "peoplesoft.sql.maxRows": {
           "type": "integer",

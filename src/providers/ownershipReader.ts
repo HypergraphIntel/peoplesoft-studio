@@ -32,7 +32,13 @@ const DEFINITION_ROWS: Readonly<Partial<Record<DefinitionType, DefinitionRow>>> 
   [DefinitionType.StyleSheet]: { table: 'PSSTYLSHEETDEFN', columns: ['STYLESHEETNAME'], values: (k) => [k.parts[0]] },
   [DefinitionType.ComponentInterface]: { table: 'PSBCDEFN', columns: ['BCNAME'], values: (k) => [k.parts[0]] },
   [DefinitionType.MessageChannel]: { table: 'PSCHNLDEFN', columns: ['CHNLNAME'], values: (k) => [k.parts[0]] },
-  [DefinitionType.IbMessage]: { table: 'PSMSGDEFN', columns: ['MSGNAME'], values: (k) => [k.parts[0]] }
+  [DefinitionType.IbMessage]: { table: 'PSMSGDEFN', columns: ['MSGNAME'], values: (k) => [k.parts[0]] },
+  [DefinitionType.IbService]: { table: 'PSSERVICE', columns: ['IB_SERVICENAME'], values: k => [k.parts[0]] },
+  [DefinitionType.IbServiceOperation]: { table: 'PSOPERATION', columns: ['IB_OPERATIONNAME'], values: k => [k.parts[0]] },
+  [DefinitionType.MessageNode]: { table: 'PSMSGNODEDEFN', columns: ['MSGNODENAME'], values: k => [k.parts[0]] },
+  [DefinitionType.IbRouting]: { table: 'PSIBRTNGDEFN', columns: ['ROUTINGDEFNNAME','EFFDT'], values: k => [...k.parts] },
+  [DefinitionType.IbDocument]: { table: 'PSLSDEFN', columns: ['IB_PACKAGEID','IB_SCHEMANAME','IB_VARIANTNAME'], values: k => [...k.parts] },
+  [DefinitionType.UrlDefinition]: { table: 'PSURLDEFN', columns: ['URL_ID'], values: (k) => [k.parts[0]] }
 };
 
 /** The baseline kinds: a definition table, or PSPCMPROG for PeopleCode. */
@@ -148,10 +154,10 @@ export async function readOwnershipEvidence(c: Connection, key: DefinitionKey, p
   if (!spec) return { exists: false };
   const values = spec.values(key);
   const binds = Object.fromEntries(values.map((v, i) => [`k${i}`, v]));
-  const hasVersion=[DefinitionType.Field,DefinitionType.Record,DefinitionType.AppEngineProgram].includes(key.type);
+  const hasVersion=[DefinitionType.Field,DefinitionType.Record,DefinitionType.AppEngineProgram,DefinitionType.UrlDefinition,DefinitionType.IbMessage,DefinitionType.IbService,DefinitionType.IbServiceOperation,DefinitionType.MessageNode,DefinitionType.IbRouting,DefinitionType.IbDocument].includes(key.type);
   const [row] = await select<{ OPRID: string; DTTM: string; VERSION?:number }>(c,
     `SELECT ${hasVersion?'VERSION, ':''}LASTUPDOPRID AS OPRID, TO_CHAR(LASTUPDDTTM, ${TIMESTAMP_FORMAT}) AS DTTM FROM ${spec.table}
-      WHERE ${spec.columns.map((col, i) => `${col} = :k${i}`).join(' AND ')}${spec.extra ? ` AND ${spec.extra}` : ''} FETCH FIRST 1 ROWS ONLY`, binds);
+      WHERE ${spec.columns.map((col, i) => `${col} = ${col === 'EFFDT' ? `TO_DATE(:k${i},'YYYY-MM-DD')` : `:k${i}`}`).join(' AND ')}${spec.extra ? ` AND ${spec.extra}` : ''} FETCH FIRST 1 ROWS ONLY`, binds);
   if (!row) return { exists: false };
   return {
     exists: true, operator: String(row.OPRID ?? '').trim(), updated: String(row.DTTM ?? ''), ...(hasVersion?{version:Number(row.VERSION)}:{}),

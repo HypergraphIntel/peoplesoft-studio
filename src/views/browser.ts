@@ -33,6 +33,8 @@ const BROWSABLE: DefinitionType[] = [
   DefinitionType.MessageChannel,
   DefinitionType.IbService,
   DefinitionType.IbServiceOperation,
+  DefinitionType.IbRouting,
+  DefinitionType.IbDocument,
   DefinitionType.Image,
   DefinitionType.PortalRegistry,
   DefinitionType.PermissionList,
@@ -197,6 +199,8 @@ function iconFor(type: DefinitionType): string {
     case DefinitionType.PortalRegistry: return 'globe';
     case DefinitionType.IbService: return 'server';
     case DefinitionType.IbServiceOperation: return 'arrow-swap';
+    case DefinitionType.IbRouting: return 'git-merge';
+    case DefinitionType.IbDocument: return 'file-code';
     case DefinitionType.MessageCatalog: return 'comment';
     case DefinitionType.HtmlDefinition: return 'code';
     case DefinitionType.StyleSheet: return 'symbol-color';

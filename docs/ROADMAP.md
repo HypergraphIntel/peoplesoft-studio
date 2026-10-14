@@ -3,6 +3,15 @@
 Ordered by what unblocks the most work, not by visibility. Full Application
 Designer parity is the goal; this is the path to it.
 
+## Current release: 0.8.9
+
+Integration Broker, administration catalogs and Portal Registry now have bounded
+editors and MCP authoring. Studio project migration packages cover fields, basic
+records and App Engine with dependency review and target preview. See the
+[README capability tables](../README.md#what-works-now) and
+[changelog](../CHANGELOG.md) for current scope; the entries below retain the
+historical implementation and research progression.
+
 ## Done
 
 - Provider abstraction with declared capabilities

@@ -1,3 +1,4 @@
+import { openPortalStructure } from './editors/portalPanel.js';
 import * as vscode from 'vscode';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -25,6 +26,9 @@ import { CREATABLE_FIELD_TYPES, FIXED_FIELD_LENGTH, FieldCreateRefusedError, fie
 import { toUri } from './util/uri.js';
 import { COMPARE_SCHEME, CompareContent } from './compareContent.js';
 import { compareProjectItems, type ProjectItemComparison, type ProjectItemOutcome } from './projectCompare.js';
+import { reviewProjectMigration, renderMigrationReview } from './projectMigration.js';
+import { exportMigrationPackage, parseMigrationPackage, previewMigrationImport, applyMigrationImport, migrationHash } from './migrationPackage.js';
+import { databaseMigrationTarget } from './providers/migrationTarget.js';
 
 /** Compare With Environment's snapshots, shared with Compare Project (set on activation). */
 let compareContentForProjects: CompareContent | undefined;
@@ -76,6 +80,9 @@ import type { ComponentDefinition } from './model/componentDefinition.js';
 import { componentPeopleCodeKey, eventsFor } from './model/componentPeopleCode.js';
 import { canInsertIntoProject, describeItem, ProjectSaveRefusedError } from './model/projectItems.js';
 import { DatabaseProvider } from './providers/database.js';
+import { openAdministrationPanel, ADMIN_TITLES } from './editors/administrationPanel.js';
+import { openIbPanel, hasUnsavedIb, refreshIbPanels } from './editors/ibPanel.js';
+import { ibKind, IB_TITLES } from './model/ibDocument.js';
 import { validateConnectString } from './settings/settingsModel.js';
 
 import {
@@ -375,11 +382,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (key.type === DefinitionType.Menu) return MenuDesignerPanel.sessionOf(connectionId, key.parts[0])?.dirty ?? false;
       if (key.type === DefinitionType.ComponentInterface) return CiDesignerPanel.sessionOf(connectionId, key.parts[0])?.dirty ?? false;
       if (key.type === DefinitionType.MessageChannel) return ChannelDesignerPanel.sessionOf(connectionId, key.parts[0])?.dirty ?? false;
+      const ibTypes:Partial<Record<DefinitionType, import('./model/ibDocument.js').IbKind>> = {[DefinitionType.IbMessage]:'message',[DefinitionType.IbDocument]:'document',[DefinitionType.IbService]:'service',[DefinitionType.IbServiceOperation]:'operation',[DefinitionType.MessageNode]:'node',[DefinitionType.IbRouting]:'routing'};
+      if(ibTypes[key.type] && hasUnsavedIb(connectionId,ibTypes[key.type]!))return true;
       const uri = toUri(connectionId, key).toString();
       return vscode.window.tabGroups.all.some((g) => g.tabs.some((t) => t.isDirty &&
         (t.input instanceof vscode.TabInputText || t.input instanceof vscode.TabInputCustom) && t.input.uri.toString() === uri));
     },
     saved: (connectionId, key, peopleCode) => {
+      refreshIbPanels(connectionId);
       if (peopleCode) {
         void writeSaveReport(key, connectionId, peopleCode).catch((error) => console.error('PeopleSoft Studio: could not write the save report:', error));
       }
@@ -591,6 +601,151 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
 
     vscode.commands.registerCommand('psft.project.build', (node?: unknown) => vscode.commands.executeCommand('psft.buildProject', node)),
+
+    vscode.commands.registerCommand('psft.portal.structure', () => withError('Structure & Content', async () => {
+      const connected = workspace.activeProviders.filter((p): p is DatabaseProvider => p.isConnected && p instanceof DatabaseProvider);
+      let provider = connected.find(p => p.id === workspace.selectedConnectionId);
+      if (!provider && connected.length === 1) provider = connected[0];
+      if (!provider && connected.length) provider = (await vscode.window.showQuickPick(connected.map(p => ({ label: p.displayName, provider: p })), { title: 'Structure & Content — connection' }))?.provider;
+      if (!provider) { if (!connected.length) vscode.window.showInformationMessage('Connect a PeopleSoft database to open Structure & Content.'); return; }
+      await openPortalStructure(workspace, provider);
+    })),
+
+    ...ibKind.options.map(kind => vscode.commands.registerCommand('psft.ib.' + kind, () => withError(IB_TITLES[kind], async () => {
+      const connected = workspace.activeProviders.filter((p): p is DatabaseProvider => p instanceof DatabaseProvider && p.isConnected);
+      let provider = connected.find(p => p.id === workspace.selectedConnectionId);
+      if (!provider && connected.length === 1) provider = connected[0];
+      if (!provider && connected.length) provider = (await vscode.window.showQuickPick(connected.map(p => ({ label: p.displayName, provider: p })), { title: 'Integration Broker — connection' }))?.provider;
+      if (!provider) { if (!connected.length) vscode.window.showInformationMessage('Connect a PeopleSoft database to open Integration Broker.'); return; }
+      openIbPanel(workspace, provider, kind);
+    }))),
+
+    ...([['messages', 'message'], ['text', 'text'], ['urls', 'url']] as const).map(([command, kind]) =>
+      vscode.commands.registerCommand('psft.administration.' + command, async () => {
+        await withError(ADMIN_TITLES[kind], async () => {
+          const provider = workspace.activeProviders.find(p => p.isConnected);
+          if (!(provider instanceof DatabaseProvider)) {
+            vscode.window.showInformationMessage('Connect a PeopleSoft database to open ' + ADMIN_TITLES[kind] + '.');
+            return;
+          }
+          openAdministrationPanel(workspace, provider, kind);
+        });
+      })),
+
+    vscode.commands.registerCommand('psft.project.migrationReview', async (node?: unknown) => {
+      await withError('Review Project Migration', async () => {
+        const n = node as { kind?: string; provider?: DefinitionProvider; project?: { name: string } } | undefined;
+        const source = n?.kind === 'project' && n.provider ? n.provider : workspace.activeProviders.find(p => p.isConnected);
+        if (!source) {
+          vscode.window.showInformationMessage('Connect an environment or open a project export to review a migration.');
+          return;
+        }
+        let project = n?.kind === 'project' ? n.project?.name : undefined;
+        if (!project) {
+          const projects = await source.listProjects();
+          project = (await vscode.window.showQuickPick(projects.map(p => ({ label: p.name, description: p.description })),
+            { title: 'Review migration for which project?' }))?.label;
+        }
+        if (!project) return;
+        const others = workspace.connections.filter(c => providerId(c) !== source.id);
+        const selected = await vscode.window.showQuickPick([
+          { label: 'Review without a target', config: undefined as ConnectionConfig | undefined },
+          ...others.map(config => ({ label: config.name, config }))
+        ], { title: 'Migration target', placeHolder: 'Target is read only during review' });
+        if (!selected) return;
+        const projectName = project;
+        const review = await vscode.window.withProgress(
+          { location: vscode.ProgressLocation.Notification, title: `Reviewing migration: ${projectName}` },
+          () => selected.config
+            ? workspace.readFromConnection(selected.config, target => reviewProjectMigration(source, projectName, target))
+            : reviewProjectMigration(source, projectName));
+        const document = await vscode.workspace.openTextDocument({ content: renderMigrationReview(review), language: 'markdown' });
+        await vscode.window.showTextDocument(document, { preview: false });
+        const candidates = review.dependencies.filter(d => !d.inProject && canInsertIntoProject(d.key.type));
+        if (!(source instanceof DatabaseProvider) || !workspace.isWritable(source.id) || !candidates.length) return;
+        const operatorId = workspace.configFor(source.id)?.peoplesoftOperatorId?.trim();
+        if (!operatorId) return;
+        const action = await vscode.window.showInformationMessage(
+          `${candidates.length} explicit dependencies are outside ${projectName}. Review which belong in this migration.`,
+          'Include Dependencies...');
+        if (action !== 'Include Dependencies...') return;
+        const selectedDependencies = await vscode.window.showQuickPick(candidates.map(dependency => ({
+          label: dependency.label, description: typeLabel(dependency.key.type),
+          detail: 'Required by ' + dependency.requiredBy.join(', '), dependency
+        })), { title: `Include dependencies in ${projectName}`, canPickMany: true,
+          placeHolder: 'Select only definitions you intend to migrate; delivered dependencies may already exist in the target.' });
+        if (!selectedDependencies?.length) return;
+        await source.saveProject({ project: projectName, operatorId, add: selectedDependencies.map(item => item.dependency.key) });
+        projects.refresh();
+        const updated = selected.config
+          ? await workspace.readFromConnection(selected.config, target => reviewProjectMigration(source, projectName, target))
+          : await reviewProjectMigration(source, projectName);
+        const updatedDocument = await vscode.workspace.openTextDocument({ content: renderMigrationReview(updated), language: 'markdown' });
+        await vscode.window.showTextDocument(updatedDocument, { preview: false });
+      });
+    }),
+
+    vscode.commands.registerCommand('psft.project.exportMigration', async (node?: unknown) => {
+      await withError('Export Migration Package', async () => {
+        const n = node as { kind?: string; provider?: DefinitionProvider; project?: { name: string } } | undefined;
+        const source = n?.kind === 'project' && n.provider ? n.provider : workspace.activeProviders.find(p => p.isConnected);
+        if (!(source instanceof DatabaseProvider)) {
+          vscode.window.showInformationMessage('Connect a database to export a Studio migration package.');
+          return;
+        }
+        const project = n?.project?.name ?? (await vscode.window.showQuickPick(
+          (await source.listProjects()).map(p => ({ label: p.name, description: p.description })),
+          { title: 'Export which project?' }))?.label;
+        if (!project) return;
+        const file = await vscode.window.showSaveDialog({ title: 'Export Studio Migration Package',
+          defaultUri: vscode.Uri.file(project + '.psft-migration.json'), filters: { 'Studio migration package': ['json'] } });
+        if (!file) return;
+        const pkg = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Exporting ${project}` },
+          () => exportMigrationPackage(source, project));
+        await vscode.workspace.fs.writeFile(file, Buffer.from(JSON.stringify(pkg, null, 2) + '\n'));
+        vscode.window.showInformationMessage(`Exported ${project}: ${pkg.assets.length} definitions, ${pkg.members.length} project members.`);
+      });
+    }),
+
+    vscode.commands.registerCommand('psft.project.importMigration', async () => {
+      await withError('Import Migration Package', async () => {
+        const files = await vscode.window.showOpenDialog({ title: 'Import Studio Migration Package',
+          canSelectMany: false, filters: { 'Studio migration package': ['json'] } });
+        if (!files?.[0]) return;
+        const pkg = parseMigrationPackage(Buffer.from(await vscode.workspace.fs.readFile(files[0])).toString('utf8'));
+        const targetConfig = (await vscode.window.showQuickPick(workspace.connections.filter(c => c.kind !== 'projectFile')
+          .map(config => ({ label: config.name, config })), { title: 'Import into which environment?' }))?.config;
+        if (!targetConfig) return;
+        const target = await workspace.require(providerId(targetConfig));
+        const operatorId = targetConfig.peoplesoftOperatorId?.trim();
+        if (!(target instanceof DatabaseProvider) || !workspace.isWritable(target.id) || !operatorId) {
+          vscode.window.showInformationMessage('Migration import requires a Writable database connection with a PeopleSoft Operator ID.');
+          return;
+        }
+        const backend = await databaseMigrationTarget(target, operatorId);
+        const plan = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Previewing import into ${target.displayName}` },
+          () => previewMigrationImport(pkg, backend));
+        const content = JSON.stringify({
+          project: pkg.project, target: target.displayName, ...plan,
+          notes: [
+            'Each definition is saved and verified independently. If a later save fails, completed saves remain; rerun the preview to resume.',
+            'SQL record metadata does not build physical tables or move application data.',
+            'Dependency checks cover explicit metadata references; dynamic and SQL/PeopleCode references require runtime validation.'
+          ]
+        }, null, 2);
+        await vscode.window.showTextDocument(await vscode.workspace.openTextDocument({ content, language: 'json' }), { preview: false });
+        if (plan.blockers.length) return;
+        if (await vscode.window.showInformationMessage(`Apply migration ${pkg.project} to ${target.displayName}?`, { modal: true }, 'Apply Migration') !== 'Apply Migration') return;
+        const receipt = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Importing ${pkg.project}` },
+          () => applyMigrationImport(pkg, plan, backend));
+        const receiptFile = await vscode.workspace.openTextDocument({ language: 'json',
+          content: JSON.stringify({ project: pkg.project, target: target.displayName, packageChecksum: pkg.checksum, previewHash: migrationHash(plan), ...receipt }, null, 2) });
+        await vscode.window.showTextDocument(receiptFile, { preview: false });
+        projects.refresh();
+        if (receipt.error) vscode.window.showErrorMessage(`Migration stopped after ${receipt.completed.length} verified definitions: ${receipt.error}`);
+        else { projects.openProject(target.id, pkg.project); vscode.window.showInformationMessage(`Imported ${pkg.project}: ${receipt.completed.length} definitions saved and verified.`); }
+      });
+    }),
 
     vscode.commands.registerCommand('psft.project.compare', async (node?: unknown) => {
       await withError('Compare Project', async () => {
@@ -1255,8 +1410,8 @@ async function installDb2Driver(dir: string): Promise<void> {
 /** Compare Project's results: differences first; choosing one opens its diff, and the list stays open for the next. */
 function showProjectComparison(here: DefinitionProvider, otherName: string, project: string, results: ProjectItemComparison[]): void {
   const order: Array<[ProjectItemOutcome, string, string]> = [
-    ['different', 'Different', '$(diff)'], ['missing', `Not in ${otherName}`, '$(question)'], ['error', 'Could not be read here', '$(error)'],
-    ['notCompared', 'Not compared (no text form)', '$(dash)'], ['same', 'Same', '$(check)']
+    ['different', 'Different', '$(diff)'], ['missing', `Not in ${otherName}`, '$(question)'], ['error', 'Could not be read', '$(error)'],
+    ['notCompared', 'Not compared', '$(dash)'], ['same', 'Same', '$(check)']
   ];
   type Item = vscode.QuickPickItem & { result?: ProjectItemComparison };
   const items: Item[] = [];
@@ -1278,7 +1433,8 @@ function showProjectComparison(here: DefinitionProvider, otherName: string, proj
     if (!r) return;
     if (r.outcome === 'different') {
       const rightUri = compareContentForProjects!.put(otherName, r.key, r.otherText ?? '');
-      await vscode.commands.executeCommand('vscode.diff', toUri(here.id, r.key), rightUri, `${r.label} (${here.displayName} ↔ ${otherName})`, { preview: true, preserveFocus: true });
+      const leftUri = r.sourceText === undefined ? toUri(here.id, r.key) : compareContentForProjects!.put(here.displayName, r.key, r.sourceText);
+      await vscode.commands.executeCommand('vscode.diff', leftUri, rightUri, `${r.label} (${here.displayName} ↔ ${otherName})`, { preview: true, preserveFocus: true });
     } else if (r.outcome === 'same' || r.outcome === 'missing') {
       await vscode.commands.executeCommand('psft.openDefinition', here.id, r.key);
     }

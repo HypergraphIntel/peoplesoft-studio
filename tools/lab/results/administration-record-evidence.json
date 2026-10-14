@@ -1,0 +1,766 @@
+{
+  "database": "HRDMO",
+  "toolsRelease": "8.62.09",
+  "records": [
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "PSMSGSETDEFN"
+        ]
+      },
+      "name": "PSMSGSETDEFN",
+      "description": "Message Sets",
+      "recordType": 0,
+      "fields": [
+        {
+          "name": "MESSAGE_SET_NBR",
+          "fieldNum": 1,
+          "type": 2,
+          "length": 5,
+          "decimalPositions": 0,
+          "useEdit": 16779553
+        },
+        {
+          "name": "VERSION",
+          "fieldNum": 2,
+          "type": 2,
+          "length": 10,
+          "decimalPositions": 0,
+          "useEdit": 0
+        },
+        {
+          "name": "DESCRSHORT",
+          "fieldNum": 3,
+          "type": 0,
+          "length": 10,
+          "decimalPositions": 0,
+          "useEdit": 0
+        },
+        {
+          "name": "DESCR",
+          "fieldNum": 4,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 32
+        }
+      ],
+      "version": 1
+    },
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "PSMSGCATDEFN"
+        ]
+      },
+      "name": "PSMSGCATDEFN",
+      "description": "Message Catalog",
+      "recordType": 0,
+      "fields": [
+        {
+          "name": "MESSAGE_SET_NBR",
+          "fieldNum": 1,
+          "type": 2,
+          "length": 5,
+          "decimalPositions": 0,
+          "useEdit": 2337
+        },
+        {
+          "name": "MESSAGE_NBR",
+          "fieldNum": 2,
+          "type": 2,
+          "length": 5,
+          "decimalPositions": 0,
+          "useEdit": 2337
+        },
+        {
+          "name": "MESSAGE_TEXT",
+          "fieldNum": 3,
+          "type": 0,
+          "length": 100,
+          "decimalPositions": 0,
+          "useEdit": 288
+        },
+        {
+          "name": "MSG_SEVERITY",
+          "fieldNum": 4,
+          "type": 0,
+          "length": 1,
+          "decimalPositions": 0,
+          "useEdit": 768
+        },
+        {
+          "name": "LAST_UPDATE_DTTM",
+          "fieldNum": 5,
+          "type": 6,
+          "length": 26,
+          "decimalPositions": 0,
+          "useEdit": 33024
+        },
+        {
+          "name": "DESCRLONG",
+          "fieldNum": 6,
+          "type": 1,
+          "length": 0,
+          "decimalPositions": 0,
+          "useEdit": 0
+        }
+      ],
+      "version": 1
+    },
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "PSURLDEFN"
+        ]
+      },
+      "name": "PSURLDEFN",
+      "description": "URL Table",
+      "recordType": 0,
+      "fields": [
+        {
+          "name": "URL_ID",
+          "fieldNum": 1,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 2337
+        },
+        {
+          "name": "VERSION",
+          "fieldNum": 2,
+          "type": 2,
+          "length": 10,
+          "decimalPositions": 0,
+          "useEdit": 0
+        },
+        {
+          "name": "DESCR",
+          "fieldNum": 3,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 304
+        },
+        {
+          "name": "URL",
+          "fieldNum": 4,
+          "type": 0,
+          "length": 254,
+          "decimalPositions": 0,
+          "useEdit": 256
+        },
+        {
+          "name": "ICLIENT_SERVERFLAG",
+          "fieldNum": 5,
+          "type": 0,
+          "length": 1,
+          "decimalPositions": 0,
+          "useEdit": 0
+        },
+        {
+          "name": "OBJECTOWNERID",
+          "fieldNum": 6,
+          "type": 0,
+          "length": 4,
+          "decimalPositions": 0,
+          "useEdit": 512
+        },
+        {
+          "name": "LASTUPDDTTM",
+          "fieldNum": 7,
+          "type": 6,
+          "length": 26,
+          "decimalPositions": 0,
+          "useEdit": 0
+        },
+        {
+          "name": "LASTUPDOPRID",
+          "fieldNum": 8,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 0
+        },
+        {
+          "name": "COMMENTS",
+          "fieldNum": 9,
+          "type": 1,
+          "length": 0,
+          "decimalPositions": 0,
+          "useEdit": 4194304
+        }
+      ],
+      "version": 1
+    },
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "PT_URL_PROPS"
+        ]
+      },
+      "name": "PT_URL_PROPS",
+      "description": "",
+      "recordType": 0,
+      "fields": [
+        {
+          "name": "URL_ID",
+          "fieldNum": 1,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 8390689
+        },
+        {
+          "name": "TRPROTOCOL",
+          "fieldNum": 2,
+          "type": 0,
+          "length": 5,
+          "decimalPositions": 0,
+          "useEdit": 8388640
+        },
+        {
+          "name": "PT_PROP_NAME",
+          "fieldNum": 3,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 8404993,
+          "editTable": "PT_URL_PRONAME"
+        },
+        {
+          "name": "PT_PROP_VALUE",
+          "fieldNum": 4,
+          "type": 0,
+          "length": 200,
+          "decimalPositions": 0,
+          "useEdit": 8388608,
+          "editTable": "PT_URL_PROVALUE"
+        }
+      ],
+      "version": 1
+    },
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "HR_SSTEXT_CFG"
+        ]
+      },
+      "name": "HR_SSTEXT_CFG",
+      "description": "HR Text Catalog Configuration",
+      "recordType": 0,
+      "fields": [
+        {
+          "name": "OBJECTOWNERID",
+          "fieldNum": 1,
+          "type": 0,
+          "length": 4,
+          "decimalPositions": 0,
+          "useEdit": 8390689
+        },
+        {
+          "name": "HR_SSTEXT_SUB_ID",
+          "fieldNum": 2,
+          "type": 0,
+          "length": 4,
+          "decimalPositions": 0,
+          "useEdit": 8388641
+        },
+        {
+          "name": "DESCR",
+          "fieldNum": 3,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 41943040
+        },
+        {
+          "name": "SYSTEM_DATA_FLG",
+          "fieldNum": 4,
+          "type": 0,
+          "length": 1,
+          "decimalPositions": 0,
+          "useEdit": 8397056
+        },
+        {
+          "name": "HR_SSTEXT_CACHE_SW",
+          "fieldNum": 5,
+          "type": 0,
+          "length": 1,
+          "decimalPositions": 0,
+          "useEdit": 8397056
+        },
+        {
+          "name": "HR_SSTEXT_SHOW_ID",
+          "fieldNum": 6,
+          "type": 0,
+          "length": 1,
+          "decimalPositions": 0,
+          "useEdit": 8397056
+        },
+        {
+          "name": "HR_SSTEXT_KEY1_REC",
+          "fieldNum": 7,
+          "type": 0,
+          "length": 15,
+          "decimalPositions": 0,
+          "useEdit": 8404992,
+          "editTable": "PSRECDEFN_VW1"
+        },
+        {
+          "name": "HR_SSTEXT_KEY1_FLD",
+          "fieldNum": 8,
+          "type": 0,
+          "length": 18,
+          "decimalPositions": 0,
+          "useEdit": 8404992,
+          "editTable": "HR_SSTEXT_K1_VW"
+        },
+        {
+          "name": "HR_SSTEXT_KEY2_REC",
+          "fieldNum": 9,
+          "type": 0,
+          "length": 15,
+          "decimalPositions": 0,
+          "useEdit": 8404992,
+          "editTable": "PSRECDEFN_VW1"
+        },
+        {
+          "name": "HR_SSTEXT_KEY2_FLD",
+          "fieldNum": 10,
+          "type": 0,
+          "length": 18,
+          "decimalPositions": 0,
+          "useEdit": 8404992,
+          "editTable": "HR_SSTEXT_K2_VW"
+        },
+        {
+          "name": "HR_SSTEXT_KEY3_REC",
+          "fieldNum": 11,
+          "type": 0,
+          "length": 15,
+          "decimalPositions": 0,
+          "useEdit": 8404992,
+          "editTable": "PSRECDEFN_VW1"
+        },
+        {
+          "name": "HR_SSTEXT_KEY3_FLD",
+          "fieldNum": 12,
+          "type": 0,
+          "length": 18,
+          "decimalPositions": 0,
+          "useEdit": 8404992,
+          "editTable": "HR_SSTEXT_K3_VW"
+        },
+        {
+          "name": "HR_SSTEXT_KEY4_REC",
+          "fieldNum": 13,
+          "type": 0,
+          "length": 15,
+          "decimalPositions": 0,
+          "useEdit": 8404992,
+          "editTable": "PSRECDEFN_VW1"
+        },
+        {
+          "name": "HR_SSTEXT_KEY4_FLD",
+          "fieldNum": 14,
+          "type": 0,
+          "length": 18,
+          "decimalPositions": 0,
+          "useEdit": 8404992,
+          "editTable": "HR_SSTEXT_K4_VW"
+        },
+        {
+          "name": "HR_SSTEXT_KEY5_REC",
+          "fieldNum": 15,
+          "type": 0,
+          "length": 15,
+          "decimalPositions": 0,
+          "useEdit": 8404992,
+          "editTable": "PSRECDEFN_VW1"
+        },
+        {
+          "name": "HR_SSTEXT_KEY5_FLD",
+          "fieldNum": 16,
+          "type": 0,
+          "length": 18,
+          "decimalPositions": 0,
+          "useEdit": 8404992,
+          "editTable": "HR_SSTEXT_K5_VW"
+        },
+        {
+          "name": "HR_SSTEXT_KEY6_REC",
+          "fieldNum": 17,
+          "type": 0,
+          "length": 15,
+          "decimalPositions": 0,
+          "useEdit": 8404992,
+          "editTable": "PSRECDEFN_VW1"
+        },
+        {
+          "name": "HR_SSTEXT_KEY6_FLD",
+          "fieldNum": 18,
+          "type": 0,
+          "length": 18,
+          "decimalPositions": 0,
+          "useEdit": 8404992,
+          "editTable": "HR_SSTEXT_K6_VW"
+        }
+      ],
+      "version": 1
+    },
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "HR_SSTEXT_MSGID"
+        ]
+      },
+      "name": "HR_SSTEXT_MSGID",
+      "description": "User Configurable Text - MsgId",
+      "recordType": 0,
+      "fields": [
+        {
+          "name": "OBJECTOWNERID",
+          "fieldNum": 1,
+          "type": 0,
+          "length": 4,
+          "decimalPositions": 0,
+          "useEdit": 8407329,
+          "editTable": "HR_SSTEXT_OO_VW"
+        },
+        {
+          "name": "HR_SSTEXT_SUB_ID",
+          "fieldNum": 2,
+          "type": 0,
+          "length": 4,
+          "decimalPositions": 0,
+          "useEdit": 8407073,
+          "editTable": "HR_SSTEXT_OS_VW"
+        },
+        {
+          "name": "TEXT_ID",
+          "fieldNum": 3,
+          "type": 0,
+          "length": 18,
+          "decimalPositions": 0,
+          "useEdit": 8390945
+        },
+        {
+          "name": "HR_SSTEXT_USAGE",
+          "fieldNum": 4,
+          "type": 0,
+          "length": 4,
+          "decimalPositions": 0,
+          "useEdit": 8389168
+        },
+        {
+          "name": "SYSTEM_DATA_FLG",
+          "fieldNum": 5,
+          "type": 0,
+          "length": 1,
+          "decimalPositions": 0,
+          "useEdit": 8397056
+        },
+        {
+          "name": "DESCR254_MIXED",
+          "fieldNum": 6,
+          "type": 0,
+          "length": 254,
+          "decimalPositions": 0,
+          "useEdit": 41943072
+        }
+      ],
+      "version": 1
+    },
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "HR_SSTEXT_EFFDT"
+        ]
+      },
+      "name": "HR_SSTEXT_EFFDT",
+      "description": "User Configurable Text - Effdt",
+      "recordType": 0,
+      "fields": [
+        {
+          "name": "OBJECTOWNERID",
+          "fieldNum": 1,
+          "type": 0,
+          "length": 4,
+          "decimalPositions": 0,
+          "useEdit": 8407329,
+          "editTable": "HR_TC_OO_VW"
+        },
+        {
+          "name": "HR_SSTEXT_SUB_ID",
+          "fieldNum": 2,
+          "type": 0,
+          "length": 4,
+          "decimalPositions": 0,
+          "useEdit": 8407073,
+          "editTable": "HR_SSTEXT_OS_VW"
+        },
+        {
+          "name": "TEXT_ID",
+          "fieldNum": 3,
+          "type": 0,
+          "length": 18,
+          "decimalPositions": 0,
+          "useEdit": 8390945
+        },
+        {
+          "name": "EFFDT",
+          "fieldNum": 4,
+          "type": 4,
+          "length": 10,
+          "decimalPositions": 0,
+          "useEdit": 8388705
+        },
+        {
+          "name": "SYSTEM_DATA_FLG",
+          "fieldNum": 5,
+          "type": 0,
+          "length": 1,
+          "decimalPositions": 0,
+          "useEdit": 8396800
+        }
+      ],
+      "version": 1
+    },
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "HR_SSTEXT_TEXT"
+        ]
+      },
+      "name": "HR_SSTEXT_TEXT",
+      "description": "User Configurable Text",
+      "recordType": 0,
+      "fields": [
+        {
+          "name": "OBJECTOWNERID",
+          "fieldNum": 1,
+          "type": 0,
+          "length": 4,
+          "decimalPositions": 0,
+          "useEdit": 8407329,
+          "editTable": "HR_TC_OO_VW"
+        },
+        {
+          "name": "HR_SSTEXT_SUB_ID",
+          "fieldNum": 2,
+          "type": 0,
+          "length": 4,
+          "decimalPositions": 0,
+          "useEdit": 8390689
+        },
+        {
+          "name": "TEXT_ID",
+          "fieldNum": 3,
+          "type": 0,
+          "length": 18,
+          "decimalPositions": 0,
+          "useEdit": 8390945
+        },
+        {
+          "name": "EFFDT",
+          "fieldNum": 4,
+          "type": 4,
+          "length": 10,
+          "decimalPositions": 0,
+          "useEdit": 8388929
+        },
+        {
+          "name": "HR_SSTEXT_KEY1",
+          "fieldNum": 5,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 8404993,
+          "editTable": "%EDITTABLE"
+        },
+        {
+          "name": "HR_SSTEXT_KEY2",
+          "fieldNum": 6,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 8404993,
+          "editTable": "%EDITTABLE2"
+        },
+        {
+          "name": "HR_SSTEXT_KEY3",
+          "fieldNum": 7,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 8404993,
+          "editTable": "%EDITTABLE3"
+        },
+        {
+          "name": "HR_SSTEXT_KEY4",
+          "fieldNum": 8,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 8404993,
+          "editTable": "%EDITTABLE4"
+        },
+        {
+          "name": "HR_SSTEXT_KEY5",
+          "fieldNum": 9,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 8404993,
+          "editTable": "%EDITTABLE5"
+        },
+        {
+          "name": "HR_SSTEXT_KEY6",
+          "fieldNum": 10,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 8404993,
+          "editTable": "%EDITTABLE6"
+        },
+        {
+          "name": "SYSTEM_DATA_FLG",
+          "fieldNum": 11,
+          "type": 0,
+          "length": 1,
+          "decimalPositions": 0,
+          "useEdit": 8397056
+        },
+        {
+          "name": "HR_SSTEXT_TEXT",
+          "fieldNum": 12,
+          "type": 1,
+          "length": 8095,
+          "decimalPositions": 0,
+          "useEdit": 41943040
+        }
+      ],
+      "version": 1
+    },
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "HR_SSTEXT_LANG"
+        ]
+      },
+      "name": "HR_SSTEXT_LANG",
+      "description": "User Configurable Text - Lang",
+      "recordType": 0,
+      "fields": [
+        {
+          "name": "OBJECTOWNERID",
+          "fieldNum": 1,
+          "type": 0,
+          "length": 4,
+          "decimalPositions": 0,
+          "useEdit": 8407329,
+          "editTable": "HR_TC_OO_LNG_VW"
+        },
+        {
+          "name": "HR_SSTEXT_SUB_ID",
+          "fieldNum": 2,
+          "type": 0,
+          "length": 4,
+          "decimalPositions": 0,
+          "useEdit": 8390689
+        },
+        {
+          "name": "TEXT_ID",
+          "fieldNum": 3,
+          "type": 0,
+          "length": 18,
+          "decimalPositions": 0,
+          "useEdit": 8390945
+        },
+        {
+          "name": "EFFDT",
+          "fieldNum": 4,
+          "type": 4,
+          "length": 10,
+          "decimalPositions": 0,
+          "useEdit": 8388929
+        },
+        {
+          "name": "HR_SSTEXT_KEY1",
+          "fieldNum": 5,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 8388609
+        },
+        {
+          "name": "HR_SSTEXT_KEY2",
+          "fieldNum": 6,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 8388609
+        },
+        {
+          "name": "HR_SSTEXT_KEY3",
+          "fieldNum": 7,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 8388609
+        },
+        {
+          "name": "HR_SSTEXT_KEY4",
+          "fieldNum": 8,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 8388609
+        },
+        {
+          "name": "HR_SSTEXT_KEY5",
+          "fieldNum": 9,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 8388609
+        },
+        {
+          "name": "HR_SSTEXT_KEY6",
+          "fieldNum": 10,
+          "type": 0,
+          "length": 30,
+          "decimalPositions": 0,
+          "useEdit": 8388609
+        },
+        {
+          "name": "LANGUAGE_CD",
+          "fieldNum": 11,
+          "type": 0,
+          "length": 3,
+          "decimalPositions": 0,
+          "useEdit": 8389377
+        },
+        {
+          "name": "HR_SSTEXT_TEXT",
+          "fieldNum": 12,
+          "type": 1,
+          "length": 8095,
+          "decimalPositions": 0,
+          "useEdit": 8388608
+        }
+      ],
+      "version": 1
+    }
+  ]
+}

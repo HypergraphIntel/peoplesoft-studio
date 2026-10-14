@@ -3,6 +3,10 @@ import {
 } from '@modelcontextprotocol/server';
 
 import * as z from 'zod/v4';
+import { reviewProjectMigration, renderMigrationReview } from '../projectMigration.js';
+import { exportMigrationPackage, parseMigrationPackage, previewMigrationImport } from '../migrationPackage.js';
+import { databaseMigrationTarget } from '../providers/migrationTarget.js';
+import { DatabaseProvider } from '../providers/database.js';
 
 import {
   DefinitionKey,
@@ -891,6 +895,44 @@ export function registerPeopleSoftTools(
       });
     }
   );
+
+  server.registerTool('psft_project_migration_review', {
+    title: 'Review PeopleSoft project migration',
+    description: 'Read-only migration review: project members, modeled target differences, explicit record and App Engine dependencies, and unresolved coverage. Export and import Studio packages with the migration commands; this review is not a complete dependency closure.',
+    inputSchema: z.object({
+      connection: z.string().min(1), project: z.string().min(1), target: z.string().min(1).optional()
+    }),
+    annotations: READ_ONLY
+  }, async ({ connection, project, target }) => {
+    const source = await requireProvider(workspace, connection);
+    const config = target ? workspace.configFor(resolveConnectionId(workspace, target)) : undefined;
+    if (target && !config) throw new Error('Migration target connection is not configured.');
+    const review = config
+      ? await workspace.readFromConnection(config, other => reviewProjectMigration(source, project, other))
+      : await reviewProjectMigration(source, project);
+    return jsonResult({ ...review, report: renderMigrationReview(review) });
+  });
+
+  server.registerTool('psft_project_export_migration', {
+    title: 'Export Studio migration package',
+    description: 'Export a project to a versioned Studio migration package, including supported fields, SQL Table/Derived Work records, and full App Engine documents with SQL and PeopleCode. Unsupported members block export. No App Designer is required.',
+    inputSchema: z.object({ connection: z.string().min(1), project: z.string().min(1) }), annotations: READ_ONLY
+  }, async ({ connection, project }) => {
+    const source = await requireProvider(workspace, connection);
+    if (!(source instanceof DatabaseProvider)) throw new Error('Migration export requires a database connection.');
+    return jsonResult(await exportMigrationPackage(source, project));
+  });
+
+  server.registerTool('psft_project_preview_migration', {
+    title: 'Preview Studio migration import',
+    description: 'Read-only target preview of a Studio migration package: creates, updates, unchanged definitions, dependencies and release blockers. Does not apply changes.',
+    inputSchema: z.object({ connection: z.string().min(1), packageJson: z.string().min(1).max(50000000) }), annotations: READ_ONLY
+  }, async ({ connection, packageJson }) => {
+    const target = await requireProvider(workspace, connection);
+    if (!(target instanceof DatabaseProvider)) throw new Error('Migration target must be a database connection.');
+    const pkg = parseMigrationPackage(packageJson);
+    return jsonResult(await previewMigrationImport(pkg, await databaseMigrationTarget(target, '')));
+  });
 
   server.registerTool(
     'psft_get_peoplecode',

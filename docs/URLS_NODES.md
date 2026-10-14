@@ -1,6 +1,6 @@
 # URL definitions, XSLT, message nodes
 
-Three small definition types on HRDMO (PeopleTools 8.62.09), read-only
+Three small definition types on HRDMO (PeopleTools 8.62.09). XSLT remains read-only. URL definitions now have [administration editors and MCP writes](ADMINISTRATION.md); nodes have bounded [Integration Broker editing](INTEGRATION_BROKER.md). Read models:
 (`src/model/miscDefinitions.ts`).
 
 | Type | Project OBJECTTYPE | Table | Shown |

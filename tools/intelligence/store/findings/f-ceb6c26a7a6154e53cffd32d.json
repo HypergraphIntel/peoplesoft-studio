@@ -1,0 +1,70 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-ceb6c26a7a6154e53cffd32d",
+  "fingerprint": "ceb6c26a7a6154e53cffd32d8cb469a7f36587dd25f509a685ed6d38b79a122d",
+  "type": "serialization",
+  "subject": {
+    "subsystem": "portal-registry",
+    "objectType": "Content reference",
+    "tables": [
+      "PSPRSMDEFN"
+    ],
+    "properties": [
+      "PORTAL_URL_CHKSUM",
+      "PORTAL_URLTEXT"
+    ]
+  },
+  "assertion": {
+    "kind": "url-checksum",
+    "facts": {
+      "algorithm": "Sum of one-based character position multiplied by character value",
+      "positionBase": 1,
+      "column": "PSPRSMDEFN.PORTAL_URL_CHKSUM"
+    }
+  },
+  "title": "Content reference URL checksums match a position-weighted character sum",
+  "statement": "The stored checksum equals the sum of each character value multiplied by its one-based position in the stored URL text across the inspected native content-reference population. Studio integration fixtures were excluded. This is population evidence on one release, not a claim about every release or unobserved character encoding.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-14T20:29:15.128275Z",
+      "method": "manual-inspection",
+      "experimentId": "portal-url-checksum-native-population",
+      "runId": "2026-10-14",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "SQL population comparison"
+      },
+      "observation": "All 17243 native content references with non-null URL text matched the position-weighted character sum; zero mismatches. Studio portal integration fixtures were excluded. No row values are retained in the evidence report.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "tools/lab/results/portal-native-evidence.json"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "tools/lab/portal-evidence.mts"
+        }
+      ],
+      "digest": "18c640fbc58e541ad87a7e07434fa3b3b0db4185f0ec06cddfde060d21586aeb"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-14T20:29:15.543Z",
+    "updatedAt": "2026-10-14T20:29:15.543Z",
+    "schemaVersion": 1
+  }
+}

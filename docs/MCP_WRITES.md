@@ -8,6 +8,16 @@ HTML, style sheets, projects, packages, pages). The tools are in
 `src/mcp/writeTools.ts`, and they register only when VS Code provides the
 write host (the setting, the approval dialog, and the editors' state).
 
+## Additional authoring tools in 0.8.9
+
+Integration Broker uses `src/mcp/ibTools.ts`; administration catalogs use
+`src/mcp/administrationTools.ts`; Portal Registry uses `src/mcp/portalTools.ts`.
+These share the connection, approval, dirty-editor and concurrency gates.
+See [Integration Broker](INTEGRATION_BROKER.md), [Administration](ADMINISTRATION.md)
+and [Portal Registry](PORTAL_REGISTRY.md) for supported writes and evidence limits.
+[Project migration](PROJECT_MIGRATION.md) adds read-only MCP review, package
+export and target preview; applying imports uses the extension UI.
+
 ## Gates
 
 A write goes ahead only when all of these hold:

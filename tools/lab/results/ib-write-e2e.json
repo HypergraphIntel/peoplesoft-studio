@@ -1,0 +1,56 @@
+{
+  "database": "HRDMO",
+  "checks": [
+    "service create/preview/read/edit/stale/no-op",
+    "message create/preview/read/edit/stale/no-op",
+    "node create/preview/read/edit/stale/no-op",
+    "document create/preview/read/edit/stale/no-op",
+    "operation create/preview/read/edit/stale/no-op",
+    "routing create/preview/read/edit/stale/no-op",
+    "off and unsaved editor gates",
+    "document element edit and all five schema readbacks",
+    "confirm gate called exactly once",
+    "native OnRequest application class handler creation"
+  ],
+  "names": {
+    "servicestandard": [
+      "ZZ_IB_API_5736828_S"
+    ],
+    "servicerest": [
+      "ZZ_IB_API_5736828_C"
+    ],
+    "messageundefined": [
+      "ZZ_IB_API_5736828_M"
+    ],
+    "nodeundefined": [
+      "ZZ_IB_API_5736828_N"
+    ],
+    "documentundefined": [
+      "ZZ_IB_API_5736828_P",
+      "Payload",
+      "V1"
+    ],
+    "operationundefined": [
+      "ZZ_IB_API_5736828_E"
+    ],
+    "routingundefined": [
+      "ZZ_IB_API_5736828_T",
+      "1900-01-01"
+    ],
+    "serviceRESTprovider": [
+      "ZZ_IB_API_5736828_R"
+    ],
+    "serviceRESTconsumer": [
+      "ZZ_IB_API_5736828_C"
+    ],
+    "operationStandard": [
+      "ZZ_IB_API_5736828_O"
+    ],
+    "operationRESTprovider": [
+      "ZZ_IB_API_5736828_G"
+    ],
+    "operationRESTconsumer": [
+      "ZZ_IB_API_5736828_E"
+    ]
+  }
+}

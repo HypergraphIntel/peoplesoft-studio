@@ -29,7 +29,7 @@ test('every leaf is a placeholder or runs a command, every entry has an icon, an
   }
   // PS Query now opens its definition viewer; Event Mapping opens its configuration editor.
   const built = all(CONFIGURATION_TOOLS).filter((n) => n.command).map((n) => `${n.label} -> ${n.command}`);
-  assert.deepEqual(built, ['PS Query -> psft.query.open', 'Event Mapping -> psft.customization.configureEventMapping']);
+  assert.deepEqual(built, ['PS Query -> psft.query.open', 'Event Mapping -> psft.customization.configureEventMapping', 'Message Catalog -> psft.administration.messages', 'Text Catalog -> psft.administration.text', 'URL Definitions -> psft.administration.urls', 'Structure & Content -> psft.portal.structure', 'Message Definitions -> psft.ib.message', 'Document Definitions -> psft.ib.document', 'Service -> psft.ib.service', 'Service Operation -> psft.ib.operation', 'Nodes -> psft.ib.node', 'Routes -> psft.ib.routing']);
   assert.ok(!CONFIGURATION_TOOLS.find((n) => n.label === 'Customization')!.planned);
   assert.deepEqual(Object.keys(TOOL_TREES), ['psft.configurationTools', 'psft.dataMigrationTools']);
 });

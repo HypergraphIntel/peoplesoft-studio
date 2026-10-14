@@ -4,6 +4,7 @@ import type { PropertiesInput } from '../model/properties.js';
 import type { FieldDefinition } from '../model/fieldDefinition.js';
 import type { RecordLayout, TranslateValue } from '../model/recordLayout.js';
 import type { ImageContent } from '../editors/imageHtml.js';
+import type { AeDocument } from '../model/aeDocument.js';
 
 export interface DefinitionSummary {
   key: DefinitionKey;
@@ -60,6 +61,9 @@ export interface DefinitionProvider {
 
   listProjects(): Promise<ProjectSummary[]>;
   listProjectItems(project: string): Promise<DefinitionSummary[]>;
+
+  /** Structured AE metadata, used to review explicit migration dependencies. */
+  readAppEngineDocument?(name: string): Promise<{ doc: AeDocument; token: string } | undefined>;
 
   search(query: SearchQuery): Promise<DefinitionSummary[]>;
 

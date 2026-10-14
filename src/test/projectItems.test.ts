@@ -26,6 +26,7 @@ test('the row App Designer inserted for a field (case p01) is the row planned fo
 
 test('each type takes the layout HRDMO\'s own project items use', () => {
   assert.deepEqual(item(DefinitionType.Record, 'JOB'), { objectType: 0, objectIds: [1], objectValues: ['JOB'] });
+  assert.deepEqual(item(DefinitionType.UrlDefinition, 'ZZ_URL'), { objectType: 56, objectIds: [103], objectValues: ['ZZ_URL'] });
   // A field under a record is still the field.
   assert.deepEqual(item(DefinitionType.Field, 'EMPLID', 'JOB'), { objectType: 2, objectIds: [6], objectValues: ['EMPLID'] });
   assert.deepEqual(item(DefinitionType.Page, 'JOB_DATA1'), { objectType: 5, objectIds: [9], objectValues: ['JOB_DATA1'] });
