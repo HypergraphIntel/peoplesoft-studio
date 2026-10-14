@@ -217,6 +217,15 @@ content reference -- or on `PT_DZ_UNREGCOMP`/<component> when the component
 is not registered -- with a `PTCS_MENUFIELD` map (`PSPTCS_MAPFLDS`) to the
 drop zone's key. HRDMO has none configured.
 
+Drop zones are Oracle's to place: PeopleTools 8.62's Application Designer
+guide ("Configuring Drop Zones") says they "are delivered by PeopleSoft
+application teams", that there is "really no reason" to add them to your own
+pages, and that adding one to an Oracle page is a customization. There is no
+implicit drop zone: a component whose pages have none is listed by Configure
+Drop Zones with "no drop zones are available". Classic drop zones are group
+boxes with *Drop Zone Group Box* (Use tab), fluid ones the *Related Content*
+group box type; both store GRPBOXTYPE 21.
+
 The Strategy view's **Drop Zones** row and MCP `psft_customization_discover`
 report `VERIFIED_AVAILABLE` with each drop zone (page, label, key,
 configured subpage), or `VERIFIED_UNAVAILABLE` when the pages have none --
@@ -261,13 +270,15 @@ configuration. The write scope applies to the subpages configured or
 removed; a subpage must be a subpage (`PNLTYPE 1`).
 
 Proof: src/test/dropZoneWriter.test.ts replays dz01 and dz02 from their
-before-states -- every row, tracking row and counter. Live on the lab:
-`dzw01-writer-configure` and `dzw02-writer-remove` have PIA's shape (same
+before-states -- every row, tracking row and counter. The writer's own saves
+(`dzw01-writer-configure`, `dzw02-writer-remove`) have PIA's shape (same
 tables and counter steps; tracking updated in place where PIA deleted and
 re-inserted), and the Configure Drop Zones page shows the writer's
-configuration. Not yet seen: a drop zone rendering its subpage at run time
-(the lab component `ZZ_PCODE_LAB_CMP` does not open: its record
-`ZZ_PCODE_LAB_T` is a view of a missing table).
+configuration. These captures used a drop zone added to the lab page
+`ZZ_PCODE_LAB_PG` -- not how drop zones are meant to be used (they are
+Oracle's), and since removed; the stored configuration does not depend on who
+placed the zone. Not yet seen: a delivered drop zone configured by the writer
+rendering its subpage at run time.
 
 ## Writing Event Mapping
 
