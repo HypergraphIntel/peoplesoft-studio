@@ -207,9 +207,35 @@ export async function pfcCatalogPages(c: Connection, component: string, market: 
   return out;
 }
 
-/** The fields the configurator offers on one page of the catalog (a component page "P" or a secondary page "S"). */
-export async function pfcCatalogFields(c: Connection, page: string, type: 'P' | 'S'): Promise<PfcCatalogField[]> {
-  return new Catalog(c).pageFieldsList(page, page, type);
+/**
+ * The fields the configurator offers on one page of the catalog (a component page "P" or a secondary page "S"). For a
+ * Masking configuration (EOCC_MSKFLD_DVW.LBLTEXT FieldFormula) long fields (PSDBFIELD.FIELDTYPE 1) are left out.
+ */
+export async function pfcCatalogFields(c: Connection, page: string, type: 'P' | 'S', options: { mask?: boolean } = {}): Promise<PfcCatalogField[]> {
+  const fields = await new Catalog(c).pageFieldsList(page, page, type);
+  if (!options.mask || !fields.length) return fields;
+  const names = [...new Set(fields.map((f) => f.field))];
+  const long = new Set<string>();
+  for (let i = 0; i < names.length; i += 500) {
+    const chunk = names.slice(i, i + 500);
+    const rows = await select<{ F: string }>(c, `SELECT FIELDNAME AS F FROM PSDBFIELD WHERE FIELDTYPE = 1 AND FIELDNAME IN (${chunk.map((_, j) => `:f${j}`).join(', ')})`,
+      Object.fromEntries(chunk.map((n, j) => [`f${j}`, n])));
+    for (const r of rows) long.add(t(r.F));
+  }
+  return fields.filter((f) => !long.has(f.field));
+}
+
+/** A mask profile (PS_EOCC_MASK_PROF): how a masked field is shown. */
+export interface PfcMaskProfile { id: string; label: string; description: string; type: string; isDefault: boolean }
+
+/** The mask profiles, and the profile each field group gives its fields (PS_EOCC_GRP_FIELDS, PS_EOCC_FLDGRP_TBL). */
+export async function pfcMaskProfiles(c: Connection): Promise<{ profiles: PfcMaskProfile[]; fieldDefaults: Record<string, string> }> {
+  const profiles = (await select<Record<string, unknown>>(c,
+    `SELECT EOCC_MASK_ID AS I, EOCC_MSK_SHRTDESCR AS S, EOCC_MASK_DESCR AS D, EOCC_MASK_TYPE AS T, DEFAULT_FLG AS F FROM PS_EOCC_MASK_PROF ORDER BY EOCC_MASK_ID`))
+    .map((r) => ({ id: t(r.I), label: t(r.S) || t(r.I), description: t(r.D), type: t(r.T), isDefault: t(r.F) === 'Y' }));
+  const groups = await select<{ F: string; M: string }>(c,
+    `SELECT A.FIELDNAME AS F, B.EOCC_MASK_ID AS M FROM PS_EOCC_GRP_FIELDS A, PS_EOCC_FLDGRP_TBL B WHERE B.EOCC_FLD_GRP_ID = A.EOCC_FLD_GRP_ID`);
+  return { profiles, fieldDefaults: Object.fromEntries(groups.map((g) => [t(g.F), t(g.M)])) };
 }
 
 /** The whole catalog: every page with its fields. */

@@ -412,8 +412,19 @@ blank row [pfc02]; adding fills it. A registered component with no Standard
 configuration gets a *Create a configuration…* row: a description, sequence 1
 (applying to everyone on every form factor -- the record defaults) and its
 first field, saved as the page's first save [pfc01] (Event Mapping configured
-on each content reference). Text longer than its column is refused. Masking
-settings, default values and "set to blank" are not offered yet. At run time: Job Title (`JOBCODE_TBL.DESCR`) saved display only
+on each content reference). Text longer than its column is refused.
+
+**Masking** (a MASK configuration; *Mask a field…*, *Create a masking
+configuration…*): the field list is the Standard one less long fields
+(`PSDBFIELD.FIELDTYPE` 1, `EOCC_MSKFLD_DVW.LBLTEXT` FieldFormula); a masked
+row is `EOCC_MASK_FLAG` Y with a profile in `EOCC_MASK_ID` from
+`PS_EOCC_MASK_PROF` (its mask character, separator, trailing count and date
+parts live there, not on the row) and `EOCC_PROF_STATUS` D; the profile
+offered first is the field group's (`PS_EOCC_GRP_FIELDS`,
+`PS_EOCC_FLDGRP_TBL`) else the default profile, as `EOCC_MASK_WRK.EOCC_ADD_PB`
+picks it. Every masked field on HRDMO (PERSONAL_DATA, DEPEND_BENEF,
+PYE_BANKACCT) is in that list, with the profile that rule gives. Default values
+and "set to blank" are not offered yet. At run time: Job Title (`JOBCODE_TBL.DESCR`) saved display only
 through these rules showed display only on Define Job Code.
 
 Proof: src/test/pfcWriter.test.ts replays pfc01 and pfc02 from their

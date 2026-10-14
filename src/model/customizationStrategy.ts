@@ -257,14 +257,18 @@ function pfcRow(info: FrameworkInfo, d: PfcDiscovery | undefined, connectionId?:
           (connectionId && c.type !== 'TRK' ? '\nChoose to activate or deactivate it or the configuration, as the configurator saves it.' : ''),
         ...(connectionId && c.type !== 'TRK' ? { command: { id: 'psft.customization.configurePageFieldConfigurator', args: [connectionId, c.component, c.market, c.type, s.number] } } : {})
       }))),
-      // A registered component with no Standard configuration yet: create one, as the configurator's Add a New Value does.
-      ...(connectionId && d.installed ? (d.components ?? []).filter((x) => !d.configurations.some((c) => c.component === x.component && c.market === x.market && c.type === 'STD'))
-        .map((x) => ({
-          id: `capability.PAGE_FIELD_CONFIGURATOR.create.${x.component}.${x.market}`, label: 'Create a configuration…', icon: 'add',
-          description: `${x.component}.${x.market} · Standard`,
-          tooltip: `Create a Standard Page and Field Configurator configuration of ${x.component}.${x.market}: hide, require, relabel or make display only its fields, as the configurator saves it.`,
-          command: { id: 'psft.customization.createPageFieldConfiguration', args: [connectionId, x.component, x.market] }
-        })) : [])
+      // A registered component without a Standard or a Masking configuration: create one, as the configurator's Add a New Value does.
+      ...(connectionId && d.installed ? (d.components ?? []).flatMap((x) => (['STD', 'MASK'] as const)
+        .filter((type) => !d.configurations.some((c) => c.component === x.component && c.market === x.market && c.type === type))
+        .map((type) => ({
+          id: `capability.PAGE_FIELD_CONFIGURATOR.create.${x.component}.${x.market}${type === 'MASK' ? '.MASK' : ''}`,
+          label: type === 'MASK' ? 'Create a masking configuration…' : 'Create a configuration…', icon: 'add',
+          description: `${x.component}.${x.market} · ${type === 'MASK' ? 'Masking' : 'Standard'}`,
+          tooltip: type === 'MASK'
+            ? `Create a Masking Page and Field Configurator configuration of ${x.component}.${x.market}: show its sensitive fields masked, as the configurator saves it.`
+            : `Create a Standard Page and Field Configurator configuration of ${x.component}.${x.market}: hide, require, relabel or make display only its fields, as the configurator saves it.`,
+          command: { id: 'psft.customization.createPageFieldConfiguration', args: [connectionId, x.component, x.market, type] }
+        }))) : [])
     ]
   };
 }

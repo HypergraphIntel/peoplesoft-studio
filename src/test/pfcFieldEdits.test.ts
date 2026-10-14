@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  checkFieldSettings, describeFieldSettings, fieldRowKey, fieldSettingsOf, withFieldRow, withFieldSettings, withoutFieldRow
+  checkFieldSettings, defaultMaskFor, describeFieldSettings, fieldRowKey, fieldSettingsOf, maskOf, withFieldRow, withFieldSettings, withMask, withoutFieldRow
 } from '../model/pfcFieldEdits.js';
 
 /*
@@ -59,4 +59,16 @@ test('removing a sequence\'s last field leaves one blank row, as the page does [
   assert.deepEqual(rows, [{ SEQUENCE_NBR: 1, EOCC_SEQUENCE_NBR: 1 }]);
   const kept = withoutFieldRow([KEY_JOBCODE, SHORT_TITLE], SEQ, fieldRowKey(KEY_JOBCODE));
   assert.deepEqual(kept.map((r) => r.FIELDNAME), ['DESCRSHORT']);
+});
+
+test('masking: the field group\'s profile, else the default; a masked row as Oracle\'s rows are [PERSONAL_DATA, PYE_BANKACCT]', () => {
+  const profiles = [{ id: 'DATE_YR_MASK', isDefault: false }, { id: 'FULL', isDefault: true }, { id: 'PARTIAL_4CHAR', isDefault: false }];
+  const groups = { BIRTHDATE: 'DATE_YR_MASK', ACCOUNT_EC_ID: 'PARTIAL_4CHAR' };
+  assert.equal(defaultMaskFor('BIRTHDATE', profiles, groups), 'DATE_YR_MASK');
+  assert.equal(defaultMaskFor('MAR_STATUS', profiles, groups), 'FULL');
+  assert.equal(defaultMaskFor('X', [], {}), undefined);
+  const masked = withMask({ ...SEQ, RECNAME: 'PERSON', FIELDNAME: 'BIRTHDATE' }, 'DATE_YR_MASK');
+  assert.deepEqual([masked.EOCC_MASK_FLAG, masked.EOCC_MASK_ID, masked.EOCC_PROF_STATUS], ['Y', 'DATE_YR_MASK', 'D']);
+  assert.equal(maskOf(masked), 'DATE_YR_MASK');
+  assert.equal(maskOf(withMask(masked, undefined)), undefined);
 });

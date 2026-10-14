@@ -10,6 +10,12 @@
   sequence and its first field (hidden, display only, required or
   relabelled), saved as the configurator's first save, Event Mapping included
   (previewed, then confirmed).
+- **Masking with the Page and Field Configurator**: *Mask a field…* on a
+  masking configuration's sequence (and *Create a masking configuration…*) --
+  the field picked from the component's pages (long fields left out) and
+  shown masked with a mask profile, the field group's offered first, as the
+  configurator's Add picks it. Agents pass `mask` to
+  `psft_page_field_config_fields`.
 
 ## 0.8.7 — 2026-10-14
 

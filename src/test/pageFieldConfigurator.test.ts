@@ -66,9 +66,10 @@ test('the Strategy view offers to create a Standard configuration where a regist
   const key = { type: DefinitionType.Component, name: 'JOB_CODE_TBL', connectionId: 'oracle:HRDMO' };
   const create = all(strategySections(key, policy, false, undefined, { state: 'done', pageFieldConfigurator: none }))
     .find((r) => r.id === 'capability.PAGE_FIELD_CONFIGURATOR.create.JOB_CODE_TBL.GBL');
-  assert.deepEqual(create?.command, { id: 'psft.customization.createPageFieldConfiguration', args: ['oracle:HRDMO', 'JOB_CODE_TBL', 'GBL'] });
-  // Not when it has one, nor without a connection to save on.
+  assert.deepEqual(create?.command, { id: 'psft.customization.createPageFieldConfiguration', args: ['oracle:HRDMO', 'JOB_CODE_TBL', 'GBL', 'STD'] });
+  // Not a type it has (a Masking one is still offered), nor without a connection to save on.
   const has = { ...none, configurations: [config([seq()], { component: 'JOB_CODE_TBL', type: 'STD' })] };
-  assert.ok(!all(strategySections(key, policy, false, undefined, { state: 'done', pageFieldConfigurator: has })).some((r) => r.id.includes('.create.')));
+  const ids = all(strategySections(key, policy, false, undefined, { state: 'done', pageFieldConfigurator: has })).map((r) => r.id).filter((id) => id.includes('.create.'));
+  assert.deepEqual(ids, ['capability.PAGE_FIELD_CONFIGURATOR.create.JOB_CODE_TBL.GBL.MASK']);
   assert.ok(!all(strategySections({ type: DefinitionType.Component, name: 'JOB_CODE_TBL' }, policy, false, undefined, { state: 'done', pageFieldConfigurator: none })).some((r) => r.id.includes('.create.')));
 });

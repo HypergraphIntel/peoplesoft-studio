@@ -81,3 +81,21 @@ export function withoutFieldRow(fields: readonly Row[], sequence: Row, key: stri
   if (!out.some((r) => inSequence(r, seq))) out.push({ SEQUENCE_NBR: Number(sequence.SEQUENCE_NBR), EOCC_SEQUENCE_NBR: seq });
   return out;
 }
+
+/** The mask profile a masked field row uses; undefined when the row is not masked. */
+export function maskOf(r: Row): string | undefined {
+  return s(r.EOCC_MASK_FLAG) === 'Y' ? s(r.EOCC_MASK_ID) || undefined : undefined;
+}
+
+/**
+ * The profile the configurator's Add gives a field (EOCC_MASK_WRK.EOCC_ADD_PB): its field group's, else the default
+ * profile (DEFAULT_FLG Y).
+ */
+export function defaultMaskFor(field: string, profiles: ReadonlyArray<{ id: string; isDefault: boolean }>, fieldDefaults: Readonly<Record<string, string>>): string | undefined {
+  return fieldDefaults[field] || profiles.find((p) => p.isDefault)?.id;
+}
+
+/** The row masked with the profile (EOCC_MASK_FLAG Y, the profile in EOCC_MASK_ID, EOCC_PROF_STATUS D as Oracle's rows have it), or unmasked. */
+export function withMask(r: Row, maskId: string | undefined): Row {
+  return maskId ? { ...r, EOCC_MASK_FLAG: 'Y', EOCC_MASK_ID: maskId, EOCC_PROF_STATUS: 'D' } : { ...r, EOCC_MASK_FLAG: 'N' };
+}

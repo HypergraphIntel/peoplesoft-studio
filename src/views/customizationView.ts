@@ -9,7 +9,8 @@ import {
 import { DatabaseProvider } from '../providers/database.js';
 import { catalogFieldRow } from '../providers/pfcCatalog.js';
 import {
-  checkFieldSettings, describeFieldSettings, fieldRowKey, fieldSettingsOf, isBlankFieldRow, withFieldRow, withFieldSettings, withoutFieldRow, type PfcFieldSettings
+  checkFieldSettings, defaultMaskFor, describeFieldSettings, fieldRowKey, fieldSettingsOf, isBlankFieldRow, maskOf, withFieldRow, withFieldSettings, withMask, withoutFieldRow,
+  type PfcFieldSettings
 } from '../model/pfcFieldEdits.js';
 import { knowledgeFor } from '../intelligenceCommands.js';
 import { CustomizationPlanPanel } from '../editors/customizationPlanPanel.js';
@@ -384,10 +385,13 @@ export async function configurePageFieldConfigurator(workspace: Workspace, conne
   const seqFields = config.fields.filter((r) => Number(r.EOCC_SEQUENCE_NBR) === sequence && !isBlankFieldRow(r));
   type Choice = vscode.QuickPickItem & { act: 'seq' | 'config' | 'add' | 'field'; row?: Record<string, unknown> };
   const items: Choice[] = [
-    ...(type === 'STD' ? [{ label: '$(add) Configure a field…', description: 'hide it, make it display only or required, relabel it', act: 'add' as const }] : []),
+    type === 'MASK'
+      ? { label: '$(add) Mask a field…', description: 'show it masked with a mask profile', act: 'add' as const }
+      : { label: '$(add) Configure a field…', description: 'hide it, make it display only or required, relabel it', act: 'add' as const },
     ...seqFields.map((r) => ({
       label: `$(symbol-field) ${String(r.LBLTEXT ?? '') || `${String(r.RECNAME)}.${String(r.FIELDNAME)}`}`,
-      description: `${String(r.RECNAME)}.${String(r.FIELDNAME)} · ${describeFieldSettings(fieldSettingsOf(r))}`, act: 'field' as const, row: r
+      description: `${String(r.RECNAME)}.${String(r.FIELDNAME)} · ${type === 'MASK' ? (maskOf(r) ? `masked (${maskOf(r)})` : 'not masked') : describeFieldSettings(fieldSettingsOf(r))}`,
+      act: 'field' as const, row: r
     })),
     { label: '', kind: vscode.QuickPickItemKind.Separator, act: 'seq' },
     { label: seqActive ? '$(circle-slash) Deactivate this sequence' : '$(pass) Activate this sequence', description: `sequence ${sequence}${seq.DESCR ? ` · ${String(seq.DESCR)}` : ''}`, act: 'seq' },
@@ -407,7 +411,7 @@ export async function configurePageFieldConfigurator(workspace: Workspace, conne
     let row = picked.row;
     let pageLabel: string | undefined;
     if (picked.act === 'add') {
-      const field = await pickCatalogField(provider, component, market, seq, seqFields);
+      const field = await pickCatalogField(provider, component, market, seq, seqFields, type === 'MASK');
       if (!field) return;
       ({ row, pageLabel } = field);
     } else {
@@ -420,7 +424,7 @@ export async function configurePageFieldConfigurator(workspace: Workspace, conne
       }
     }
     if (!what) {
-      const set = await pickFieldSettings(row!, pageLabel);
+      const set = type === 'MASK' ? await pickMask(provider, row!) : await pickFieldSettings(row!, pageLabel);
       if (!set) return;
       fields = withFieldRow(fields, set.row);
       what = `${String(row!.RECNAME)}.${String(row!.FIELDNAME)} in sequence ${sequence}: ${set.description}`;
@@ -435,12 +439,12 @@ type PfcRow = Record<string, unknown>;
 type PfcInput = Parameters<DatabaseProvider['savePageFieldConfiguration']>[0]['configuration'];
 
 /** A field chosen from the configurator's catalog (a page, then one of its fields) as a row of the sequence; the row already there when it is configured. */
-async function pickCatalogField(provider: DatabaseProvider, component: string, market: string, seq: PfcRow, seqFields: PfcRow[]): Promise<{ row: PfcRow; pageLabel: string } | undefined> {
+async function pickCatalogField(provider: DatabaseProvider, component: string, market: string, seq: PfcRow, seqFields: PfcRow[], mask = false): Promise<{ row: PfcRow; pageLabel: string } | undefined> {
   const pages = await provider.readPageFieldCatalogPages(component, market);
   const page = await vscode.window.showQuickPick(pages.map((p) => ({ label: p.label, description: `${p.page}${p.type === 'S' ? ` · secondary page, from ${p.from}` : ''}`, p })),
     { title: `Configure a field: the page (${component}.${market})`, matchOnDescription: true });
   if (!page) return undefined;
-  const catalog = await provider.readPageFieldCatalogFields(page.p.page, page.p.type);
+  const catalog = await provider.readPageFieldCatalogFields(page.p.page, page.p.type, { mask });
   const taken = new Set(seqFields.map(fieldRowKey));
   const field = await vscode.window.showQuickPick(catalog.map((f) => {
     const r = catalogFieldRow(f, { SEQUENCE_NBR: Number(seq.SEQUENCE_NBR), EOCC_SEQUENCE_NBR: Number(seq.EOCC_SEQUENCE_NBR) });
@@ -474,6 +478,22 @@ async function pickFieldSettings(row: PfcRow, pageLabel?: string): Promise<{ row
   return { row: withFieldSettings(row, settings, pageLabel), description: describeFieldSettings(settings) };
 }
 
+/** A masked field's profile chosen (its field group's, else the default profile, preselected), or masking taken away. */
+async function pickMask(provider: DatabaseProvider, row: PfcRow): Promise<{ row: PfcRow; description: string } | undefined> {
+  const { profiles, fieldDefaults } = await provider.readPageFieldMaskProfiles();
+  if (!profiles.length) { void vscode.window.showWarningMessage('This database has no mask profiles (PS_EOCC_MASK_PROF).'); return undefined; }
+  const now = maskOf(row);
+  const suggested = now ?? defaultMaskFor(String(row.FIELDNAME ?? ''), profiles, fieldDefaults);
+  type Pick = vscode.QuickPickItem & { id?: string };
+  const items: Pick[] = [
+    ...profiles.map((p) => ({ label: `${p.id === suggested ? '$(check) ' : ''}${p.label}`, description: `${p.id}${p.id === fieldDefaults[String(row.FIELDNAME ?? '')] ? ' · the field group\'s' : p.isDefault ? ' · default' : ''}`, detail: p.description, id: p.id })),
+    ...(now ? [{ label: '$(close) Not masked', description: 'take the masking away' }] : [])
+  ];
+  const picked = await vscode.window.showQuickPick(items, { title: `Mask profile for ${String(row.LBLTEXT ?? '')} (${String(row.RECNAME)}.${String(row.FIELDNAME)})`, matchOnDescription: true });
+  if (!picked) return undefined;
+  return { row: withMask(row, picked.id), description: picked.id ? `masked (${picked.id})` : 'not masked' };
+}
+
 /** The save previewed (a dry run) and, once confirmed, made; the view refreshed. */
 async function previewAndSave(provider: DatabaseProvider, request: Parameters<DatabaseProvider['savePageFieldConfiguration']>[0], what: string): Promise<void> {
   const { component, market, type } = request;
@@ -494,7 +514,7 @@ async function previewAndSave(provider: DatabaseProvider, request: Parameters<Da
  * a description, sequence 1 (applying to everyone, all form factors -- the record defaults) and its first field;
  * the Event Mapping generated on the component's content references.
  */
-export async function createPageFieldConfiguration(workspace: Workspace, connectionId: string, component: string, market: string): Promise<void> {
+export async function createPageFieldConfiguration(workspace: Workspace, connectionId: string, component: string, market: string, type: 'STD' | 'MASK' = 'STD'): Promise<void> {
   const provider = workspace.activeProviders.find((p) => p.id === connectionId);
   if (!(provider instanceof DatabaseProvider) || !provider.isConnected) throw new Error('Configurations are saved on a connected database.');
   const operatorId = workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim();
@@ -502,21 +522,22 @@ export async function createPageFieldConfiguration(workspace: Workspace, connect
     void vscode.window.showWarningMessage(`${provider.displayName} is read only here: configurations are saved on a Writable connection with an Operator ID (connection settings).`);
     return;
   }
-  const read = await provider.readPageFieldConfiguration(component, market, 'STD');
-  if (read.exists) { void vscode.window.showInformationMessage(`${component}.${market} already has a Standard configuration; refresh the view to edit it.`); return; }
+  const kind = type === 'MASK' ? 'Masking' : 'Standard';
+  const read = await provider.readPageFieldConfiguration(component, market, type);
+  if (read.exists) { void vscode.window.showInformationMessage(`${component}.${market} already has a ${kind} configuration; refresh the view to edit it.`); return; }
   const descr = (v: string) => (v.trim() ? (v.trim().length > 30 ? 'At most 30 characters.' : undefined) : 'A description is required.');
-  const description = await vscode.window.showInputBox({ title: `New Page and Field Configurator configuration of ${component}.${market}`, prompt: 'Its description', validateInput: descr });
+  const description = await vscode.window.showInputBox({ title: `New ${kind} Page and Field Configurator configuration of ${component}.${market}`, prompt: 'Its description', validateInput: descr });
   if (description === undefined) return;
   const seqDescr = await vscode.window.showInputBox({ title: 'Sequence 1', prompt: 'The first sequence\'s description (optional; it applies to everyone until criteria or roles are set in PIA)',
     validateInput: (v) => (v.trim().length > 30 ? 'At most 30 characters.' : undefined) });
   if (seqDescr === undefined) return;
   const seq: PfcRow = { SEQUENCE_NBR: 1, EOCC_SEQUENCE_NBR: 1, ...(seqDescr.trim() ? { DESCR: seqDescr.trim() } : {}) };
-  const field = await pickCatalogField(provider, component, market, seq, []);
+  const field = await pickCatalogField(provider, component, market, seq, [], type === 'MASK');
   if (!field) return;
-  const set = await pickFieldSettings(field.row, field.pageLabel);
+  const set = type === 'MASK' ? await pickMask(provider, field.row) : await pickFieldSettings(field.row, field.pageLabel);
   if (!set) return;
   const configuration: PfcInput = { header: { DESCR: description.trim() }, sequences: [seq], fields: [set.row] };
-  await previewAndSave(provider, { component, market, type: 'STD', configuration, openedToken: 'absent', operatorId },
+  await previewAndSave(provider, { component, market, type, configuration, openedToken: 'absent', operatorId },
     `create it: ${String(field.row.RECNAME)}.${String(field.row.FIELDNAME)} ${set.description}`);
 }
 
@@ -542,8 +563,8 @@ export function registerCustomizationStrategy(context: vscode.ExtensionContext, 
       try { await configureDropZone(workspace, connectionId, component, market, page, fieldName); }
       catch (error) { void vscode.window.showErrorMessage(`Drop zone: ${error instanceof Error ? error.message : String(error)}`); }
     }),
-    vscode.commands.registerCommand('psft.customization.createPageFieldConfiguration', async (connectionId: string, component: string, market: string) => {
-      try { await createPageFieldConfiguration(workspace, connectionId, component, market); }
+    vscode.commands.registerCommand('psft.customization.createPageFieldConfiguration', async (connectionId: string, component: string, market: string, type?: 'STD' | 'MASK') => {
+      try { await createPageFieldConfiguration(workspace, connectionId, component, market, type ?? 'STD'); }
       catch (error) { void vscode.window.showErrorMessage(`Page and Field Configurator: ${error instanceof Error ? error.message : String(error)}`); }
     }),
     vscode.commands.registerCommand('psft.customization.configurePageFieldConfigurator', async (connectionId: string, component: string, market: string, type: string, sequence: number) => {

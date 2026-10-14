@@ -65,7 +65,7 @@ import { discoverDropZones } from './dropZoneReader.js';
 import { discoverPageFieldConfigurator } from './pfcReader.js';
 import type { PfcDiscovery } from '../model/pageFieldConfigurator.js';
 import { derivePfcMappings, pfcContentReferences, type PfcMapping } from './pfcMapper.js';
-import { pfcCatalogFields, pfcCatalogPages, type PfcCatalogField, type PfcCatalogPage } from './pfcCatalog.js';
+import { pfcCatalogFields, pfcCatalogPages, pfcMaskProfiles, type PfcCatalogField, type PfcCatalogPage, type PfcMaskProfile } from './pfcCatalog.js';
 import {
   compactRow, isTypeService, mappingSignature, pfcToken, readPfcColumns, readPfcConfiguration, savePfcConfiguration, storedSignature,
   type PfcSaveRequest, type PfcSaveResult
@@ -2056,8 +2056,13 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   /** The fields the configurator offers on a page of that list, each with the values its field row takes (pfcCatalog.ts). */
-  async readPageFieldCatalogFields(page: string, type: 'P' | 'S'): Promise<PfcCatalogField[]> {
-    return this.withConnection((c) => pfcCatalogFields(c, page.trim().toUpperCase(), type));
+  async readPageFieldCatalogFields(page: string, type: 'P' | 'S', options: { mask?: boolean } = {}): Promise<PfcCatalogField[]> {
+    return this.withConnection((c) => pfcCatalogFields(c, page.trim().toUpperCase(), type, options));
+  }
+
+  /** The configurator's mask profiles and the profile each field group gives its fields. */
+  async readPageFieldMaskProfiles(): Promise<{ profiles: PfcMaskProfile[]; fieldDefaults: Record<string, string> }> {
+    return this.withConnection((c) => pfcMaskProfiles(c));
   }
 
   /**

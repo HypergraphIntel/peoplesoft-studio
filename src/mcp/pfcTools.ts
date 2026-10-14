@@ -4,6 +4,7 @@ import * as z from 'zod/v4';
 import { DefinitionType, type DefinitionKey } from '../model/definitions.js';
 import { DatabaseProvider } from '../providers/database.js';
 import { catalogFieldRow } from '../providers/pfcCatalog.js';
+import { defaultMaskFor, withMask } from '../model/pfcFieldEdits.js';
 import { Workspace } from '../workspace.js';
 import { jsonResult, requireProvider } from './tools.js';
 import { approve, READ_ONLY, WRITE, writable, type McpWriteHost } from './writeTools.js';
@@ -52,23 +53,28 @@ export function registerPageFieldConfiguratorTools(server: McpServer, workspace:
       'pages and the secondary pages reached from them (type P or S). With page and type: that page\'s fields (subpages walked, invisible fields ' +
       'left out), each with its label and the field row to put in psft_page_field_config_save\'s fields (add SEQUENCE_NBR and EOCC_SEQUENCE_NBR, ' +
       'and the settings: EOCC_VISIBLE_FLAG N hides it, EOCC_DISABLED Y makes it display only, EOCC_IS_REQUIRED Y requires it, EOCC_LBL_OVERRIDE Y ' +
-      'with LBLTEXT relabels it). Read only.',
+      'with LBLTEXT relabels it; for a Masking configuration EOCC_MASK_FLAG Y with a profile in EOCC_MASK_ID). Read only.',
     inputSchema: z.object({
       connection: z.string().min(1), component: z.string().min(1), market: z.string().optional().describe('Default GBL.'),
       page: z.string().optional(), type: z.enum(['P', 'S']).optional().describe('P: a component page (default); S: a secondary page.'),
-      filter: z.string().optional().describe('Only fields whose label or record.field contains this (case-insensitive).')
+      filter: z.string().optional().describe('Only fields whose label or record.field contains this (case-insensitive).'),
+      mask: z.boolean().optional().describe('For a Masking (MASK) configuration: long fields left out, each row given its default mask profile, and the profiles listed.')
     }),
     annotations: READ_ONLY
-  }, async ({ connection, component, market, page, type, filter }) => {
+  }, async ({ connection, component, market, page, type, filter, mask }) => {
     const p = await databaseProvider(workspace, connection);
     if (!page) return jsonResult({ connection: p.displayName, component: `${component.toUpperCase()}.${(market ?? 'GBL').toUpperCase()}`, pages: await p.readPageFieldCatalogPages(component, market ?? 'GBL') });
     const f = (filter ?? '').toLowerCase();
-    const fields = (await p.readPageFieldCatalogFields(page, type ?? 'P'))
+    const masks = mask ? await p.readPageFieldMaskProfiles() : undefined;
+    const fields = (await p.readPageFieldCatalogFields(page, type ?? 'P', { mask: !!mask }))
       .filter((x) => !f || x.label.toLowerCase().includes(f) || `${x.record}.${x.field}`.toLowerCase().includes(f));
     return jsonResult({
       page: page.toUpperCase(), type: type ?? 'P', count: fields.length,
       fields: fields.slice(0, 300).map((x) => ({ label: x.label, recordField: `${x.record}.${x.field}`, level: x.level, ...(x.page !== x.componentPage ? { onSubpage: x.page } : {}),
-        row: (({ SEQUENCE_NBR: _a, EOCC_SEQUENCE_NBR: _b, ...rest }) => rest)(catalogFieldRow(x, { SEQUENCE_NBR: 0, EOCC_SEQUENCE_NBR: 0 })) })),
+        row: (({ SEQUENCE_NBR: _a, EOCC_SEQUENCE_NBR: _b, ...rest }) => rest)(masks
+          ? withMask(catalogFieldRow(x, { SEQUENCE_NBR: 0, EOCC_SEQUENCE_NBR: 0 }), defaultMaskFor(x.field, masks.profiles, masks.fieldDefaults))
+          : catalogFieldRow(x, { SEQUENCE_NBR: 0, EOCC_SEQUENCE_NBR: 0 })) })),
+      ...(masks ? { maskProfiles: masks.profiles } : {}),
       ...(fields.length > 300 ? { note: 'First 300 shown; pass filter to narrow.' } : {})
     });
   });
