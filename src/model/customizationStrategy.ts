@@ -181,7 +181,7 @@ function capabilityRow(f: Framework, caps: CapabilitiesState | undefined, connec
   if (!caps || caps.state === 'pending') return { ...unknown, description: 'Discovering…', icon: 'loading~spin', tooltip: `${info.purpose}.` };
   if (caps.state === 'unavailable') return { ...unknown, tooltip: `${info.purpose}.\n${caps.message}` };
   if (f === 'DROP_ZONES') return dropZoneRow(info, caps.dropZones, connectionId) ?? unknown;
-  if (f === 'PAGE_FIELD_CONFIGURATOR') return pfcRow(info, caps.pageFieldConfigurator) ?? unknown;
+  if (f === 'PAGE_FIELD_CONFIGURATOR') return pfcRow(info, caps.pageFieldConfigurator, connectionId) ?? unknown;
   const d = caps.eventMapping;
   if (!d) return unknown;
   return {
@@ -239,7 +239,7 @@ function dropZoneRow(info: FrameworkInfo, d: DropZoneDiscovery | undefined, conn
 }
 
 /** The Page and Field Configurator row: the verdict, its evidence, and each configuration's sequences. */
-function pfcRow(info: FrameworkInfo, d: PfcDiscovery | undefined): StrategyRow | undefined {
+function pfcRow(info: FrameworkInfo, d: PfcDiscovery | undefined, connectionId?: string): StrategyRow | undefined {
   if (!d) return undefined;
   const sequences = d.configurations.reduce((n, c) => n + c.sequences.length, 0);
   const notApplied = d.configurations.length > 0 && d.appliedOn.length < d.contentReferences.length;
@@ -253,7 +253,9 @@ function pfcRow(info: FrameworkInfo, d: PfcDiscovery | undefined): StrategyRow |
         id: `capability.PAGE_FIELD_CONFIGURATOR.seq.${ci}.${si}`, label: describeSequence(s), icon: s.active ? 'list-filter' : 'circle-slash', muted: !s.active,
         description: `${c.component}.${c.market} · ${PFC_CONFIG_TYPE_LABELS[c.type] ?? c.type}`,
         tooltip: `${c.description || c.component} (${PFC_CONFIG_TYPE_LABELS[c.type] ?? c.type})\n${describeSequence(s)}` +
-          `${s.formFactors.length && s.formFactors.length < 4 ? `\nForm factors: ${s.formFactors.join(', ')}` : ''}`
+          `${s.formFactors.length && s.formFactors.length < 4 ? `\nForm factors: ${s.formFactors.join(', ')}` : ''}` +
+          (connectionId && c.type !== 'TRK' ? '\nChoose to activate or deactivate it or the configuration, as the configurator saves it.' : ''),
+        ...(connectionId && c.type !== 'TRK' ? { command: { id: 'psft.customization.configurePageFieldConfigurator', args: [connectionId, c.component, c.market, c.type, s.number] } } : {})
       })))
     ]
   };

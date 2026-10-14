@@ -229,6 +229,11 @@
         "category": "PeopleSoft"
       },
       {
+        "command": "psft.customization.configurePageFieldConfigurator",
+        "title": "Configure Page and Field Configurator Sequence",
+        "category": "PeopleSoft"
+      },
+      {
         "command": "psft.intelligence.showDiscoveries",
         "title": "Show Discoveries",
         "category": "PeopleSoft"
@@ -725,6 +730,10 @@
         },
         {
           "command": "psft.customization.configureDropZone",
+          "when": "false"
+        },
+        {
+          "command": "psft.customization.configurePageFieldConfigurator",
           "when": "false"
         },
         {

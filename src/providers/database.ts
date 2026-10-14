@@ -64,6 +64,11 @@ import { discoverEventMapping } from './eventMappingReader.js';
 import { discoverDropZones } from './dropZoneReader.js';
 import { discoverPageFieldConfigurator } from './pfcReader.js';
 import type { PfcDiscovery } from '../model/pageFieldConfigurator.js';
+import { derivePfcMappings, pfcContentReferences, type PfcMapping } from './pfcMapper.js';
+import {
+  compactRow, isTypeService, mappingSignature, pfcToken, readPfcColumns, readPfcConfiguration, savePfcConfiguration, storedSignature,
+  type PfcSaveRequest, type PfcSaveResult
+} from './pfcWriter.js';
 import { dropZoneToken, readDropZoneState, saveDropZones, type DropZoneOwner, type DropZoneSaveRequest, type DropZoneSaveResult } from './dropZoneWriter.js';
 import type { DropZone } from '../model/dropZones.js';
 import type { DropZoneDiscovery } from '../model/dropZones.js';
@@ -2011,6 +2016,48 @@ export class DatabaseProvider implements DefinitionProvider {
     if (result.written) {
       const after = await this.withConnection((c) => readDropZoneState(c, request.component.trim().toUpperCase(), (request.market ?? 'GBL').trim().toUpperCase()));
       if (dropZoneToken(after) !== result.token) throw new ProviderError(`After COMMIT ${request.component}'s drop-zone configuration is not what was written.`);
+    }
+    return result;
+  }
+
+  /**
+   * A component's Page and Field Configurator configuration of a type (STD, MASK, TRK): its rows (compact: what a save would fill in
+   * left out), the token a save checks, and per content reference whether its Event Mapping is what the configuration derives (pfcWriter.ts).
+   */
+  async readPageFieldConfiguration(component: string, market = 'GBL', type = 'STD'): Promise<{
+    exists: boolean; token: string; configuration?: { header: Record<string, unknown>; sequences: Record<string, unknown>[]; criteria: Record<string, unknown>[];
+      pages: Record<string, unknown>[]; fields: Record<string, unknown>[] };
+    derived: PfcMapping[]; contentReferences: Array<{ cref: string; menu: string; mappingRows: number; inSync: boolean }>;
+  }> {
+    const comp = component.trim().toUpperCase(), mkt = market.trim().toUpperCase(), t = type.trim().toUpperCase();
+    return this.withConnection(async (c) => {
+      const columns = await readPfcColumns(c);
+      const config = await readPfcConfiguration(c, columns, comp, mkt, t);
+      const active = config.header && String(config.header.EFF_STATUS).trim() === 'A';
+      const derived = active ? await derivePfcMappings(c, comp, mkt, t) : [];
+      const want = JSON.stringify(derived.map(mappingSignature).sort());
+      const contentReferences = [];
+      for (const { cref, menu } of await pfcContentReferences(c, comp, mkt)) {
+        const rows = (await readStoredConfiguration(c, cref, false)).configs.filter((r) => isTypeService(t, String(r.PTCS_SERVICEID).trim()));
+        contentReferences.push({ cref, menu, mappingRows: rows.length, inSync: JSON.stringify(rows.map(storedSignature).sort()) === want });
+      }
+      const compact = (table: 'sequences' | 'criteria' | 'pages' | 'fields') => config[table].map((r) => compactRow(columns, table, r));
+      return {
+        exists: !!config.header, token: pfcToken(config), derived, contentReferences,
+        ...(config.header ? { configuration: { header: compactRow(columns, 'header', config.header), sequences: compact('sequences'), criteria: compact('criteria'), pages: compact('pages'), fields: compact('fields') } } : {})
+      };
+    });
+  }
+
+  /**
+   * Saves a Page and Field Configurator configuration and regenerates its Event Mapping on the component's content references as
+   * EOCC_CONFIGURE saves it (pfcWriter.ts), in one transaction, verified before COMMIT and the token checked after.
+   */
+  async savePageFieldConfiguration(request: PfcSaveRequest): Promise<PfcSaveResult> {
+    const result = await this.withConnection((c) => savePfcConfiguration(c, request));
+    if (result.written) {
+      const after = await this.readPageFieldConfiguration(request.component, request.market ?? 'GBL', request.type);
+      if (after.token !== result.token) throw new ProviderError(`After COMMIT ${request.component}'s configuration is not what was written.`);
     }
     return result;
   }

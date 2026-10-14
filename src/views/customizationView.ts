@@ -355,6 +355,50 @@ export async function configureDropZone(workspace: Workspace, connectionId: stri
   void vscode.window.showInformationMessage(subpage ? `Drop zone ${where} now shows ${subpage}.` : `Drop zone ${where} no longer shows a subpage.`);
 }
 
+/**
+ * A Page and Field Configurator sequence, or its whole configuration, activated or deactivated as EOCC_CONFIGURE saves it
+ * (providers/pfcWriter.ts): the configuration's rows saved, its Event Mapping regenerated (or removed) on the component's
+ * content references. On a Writable connection with an Operator ID, previewed (a dry run) and confirmed first.
+ */
+export async function configurePageFieldConfigurator(workspace: Workspace, connectionId: string, component: string, market: string, type: string, sequence: number): Promise<void> {
+  const provider = workspace.activeProviders.find((p) => p.id === connectionId);
+  if (!(provider instanceof DatabaseProvider) || !provider.isConnected) throw new Error('Configurations are saved on a connected database.');
+  const read = await provider.readPageFieldConfiguration(component, market, type);
+  const config = read.configuration;
+  const seq = config?.sequences.find((r) => Number(r.EOCC_SEQUENCE_NBR) === sequence);
+  if (!config || !seq) throw new Error(`${component}.${market} has no ${type} sequence ${sequence} any more; refresh the view.`);
+  const operatorId = workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim();
+  if (!workspace.isWritable(provider.id) || !operatorId) {
+    void vscode.window.showWarningMessage(`${provider.displayName} is read only here: configurations are saved on a Writable connection with an Operator ID (connection settings).`);
+    return;
+  }
+  // A compact row leaves out a value equal to its default (STATUS A, EFF_STATUS A).
+  const seqActive = (seq.STATUS ?? 'A') !== 'I';
+  const configActive = (config.header.EFF_STATUS ?? 'A') !== 'I';
+  type Choice = vscode.QuickPickItem & { act: 'seq' | 'config' };
+  const items: Choice[] = [
+    { label: seqActive ? '$(circle-slash) Deactivate this sequence' : '$(pass) Activate this sequence', description: `sequence ${sequence}${seq.DESCR ? ` · ${seq.DESCR}` : ''}`, act: 'seq' },
+    { label: configActive ? '$(circle-slash) Deactivate the configuration' : '$(pass) Activate the configuration',
+      description: configActive ? 'its Event Mapping is removed' : 'its Event Mapping is generated', act: 'config' }
+  ];
+  const picked = await vscode.window.showQuickPick(items, { title: `${config.header.DESCR ?? component} (${component}.${market}, ${type})` });
+  if (!picked) return;
+  const configuration = {
+    ...config,
+    header: picked.act === 'config' ? { ...config.header, EFF_STATUS: configActive ? 'I' : 'A' } : config.header,
+    sequences: config.sequences.map((r) => (picked.act === 'seq' && r === seq ? { ...r, STATUS: seqActive ? 'I' : 'A' } : r))
+  } as Parameters<DatabaseProvider['savePageFieldConfiguration']>[0]['configuration'];
+  const request = { component, market, type, configuration, openedToken: read.token, operatorId };
+  const preview = await provider.savePageFieldConfiguration({ ...request, dryRun: true });
+  const changes = [...preview.rows.changes, ...(preview.mappings?.changes ?? []), ...preview.warnings.map((w) => `Warning: ${w}`)];
+  const ok = await vscode.window.showWarningMessage(`Save ${component}.${market}'s ${type} configuration on ${provider.displayName}?`,
+    { modal: true, detail: `${changes.join('\n')}\n\nAs the Page and Field Configurator saves it: no delivered definition changes.` }, 'Save');
+  if (ok !== 'Save') return;
+  await provider.savePageFieldConfiguration(request);
+  void vscode.commands.executeCommand('psft.customization.refresh');
+  void vscode.window.showInformationMessage(`${component}.${market}'s ${type} configuration saved; its Event Mapping was ${preview.mappings?.changes.length ? 'regenerated' : 'left as it was'}.`);
+}
+
 /** Registers the view, its commands and the Plan Designer. */
 export function registerCustomizationStrategy(context: vscode.ExtensionContext, workspace: Workspace): void {
   setEventMappingExtensionUri(context.extensionUri);
@@ -376,6 +420,10 @@ export function registerCustomizationStrategy(context: vscode.ExtensionContext, 
     vscode.commands.registerCommand('psft.customization.configureDropZone', async (connectionId: string, component: string, market: string, page: string, fieldName: string) => {
       try { await configureDropZone(workspace, connectionId, component, market, page, fieldName); }
       catch (error) { void vscode.window.showErrorMessage(`Drop zone: ${error instanceof Error ? error.message : String(error)}`); }
+    }),
+    vscode.commands.registerCommand('psft.customization.configurePageFieldConfigurator', async (connectionId: string, component: string, market: string, type: string, sequence: number) => {
+      try { await configurePageFieldConfigurator(workspace, connectionId, component, market, type, sequence); }
+      catch (error) { void vscode.window.showErrorMessage(`Page and Field Configurator: ${error instanceof Error ? error.message : String(error)}`); }
     }),
     vscode.commands.registerCommand('psft.customization.configureEventMapping', async (connectionId?: string, cref?: string, portal?: string) => {
       if (!connectionId || !cref) {

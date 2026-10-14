@@ -4,6 +4,15 @@
 
 ### Added
 
+- **Writing Page and Field Configurator** (`DatabaseProvider.savePageFieldConfiguration`):
+  a component's Standard or Masking configuration saved as PeopleTools'
+  configurator saves it -- its rows, then its Event Mapping regenerated on
+  every content reference of the component, derived by a port of the
+  configurator's own mapper (checked against every configuration on HRDMO)
+  and replayed against PIA's saves. Agents use MCP
+  `psft_page_field_config_get` / `psft_page_field_config_save`; in the
+  Customization Strategy view, choose a configuration's sequence to activate
+  or deactivate it or the configuration (previewed, then confirmed).
 - **Page and Field Configurator discovery** (Customization Strategy view, MCP
   `psft_customization_discover`): a component's configurations -- what each
   sequence hides, requires, relabels, disables, defaults or masks, for whom --

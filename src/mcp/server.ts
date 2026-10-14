@@ -35,6 +35,7 @@ import { registerChannelTools } from './channelTools.js';
 import { registerCustomizationTools } from './customizationTools.js';
 import { registerEventMappingTools } from './eventMappingTools.js';
 import { registerDropZoneTools } from './dropZoneTools.js';
+import { registerPageFieldConfiguratorTools } from './pfcTools.js';
 import { registerDiscoveryTools } from './discoveryTools.js';
 import { runToolsAsAgent } from './agentOrigin.js';
 
@@ -212,6 +213,7 @@ export async function startPeopleSoftMcpServer(
         registerCustomizationTools(server, workspace);
         registerEventMappingTools(server, workspace, writeHost);
         registerDropZoneTools(server, workspace, writeHost);
+        registerPageFieldConfiguratorTools(server, workspace, writeHost);
         registerDiscoveryTools(server, workspace, writeHost);
 
         if (writeHost) {

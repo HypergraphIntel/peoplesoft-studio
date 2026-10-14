@@ -270,8 +270,8 @@ inserted (`PSPTCSSRVCONFLG` language rows with them), each its own SCNFM step;
 location S). Which services it maps follows the configuration: one required
 level-1 field gave component PostBuild and SavePreChange plus `EOCC_ROWINIT1`
 and `EOCC_ROWINSERT1` on its record; with no field left, PostBuild and
-SavePreChange only. Writing it is next: that choice is the configurator's
-PeopleCode, still to be read.
+SavePreChange only. Which rows is the configurator's PeopleCode, ported in
+src/providers/pfcMapper.ts (see Writing Page and Field Configurator).
 
 ## Writing Drop Zones
 
@@ -324,6 +324,69 @@ content references the component is registered as -- Configure Drop Zones
 listed it, Define Job Code (SETUP_HRMS) showed the subpage at the bottom of
 the Job Code Profile data area, and after the writer cleared it the page
 showed it no more. No Oracle definition was changed.
+
+## Writing Page and Field Configurator
+
+`DatabaseProvider.savePageFieldConfiguration` (src/providers/pfcWriter.ts)
+saves a component's Standard or Masking configuration as `EOCC_CONFIGURE`
+saves it, in one transaction, refused when the configuration changed since it
+was read (its token). Agents use MCP `psft_page_field_config_get` /
+`psft_page_field_config_save`; in the Customization Strategy view a
+configuration's sequence row activates or deactivates that sequence or the
+whole configuration (previewed, then confirmed).
+
+The rows (`PS_EOCC_CONFIG_HDR`, `_SEQ`, `_CRT`, `_PNL`, `_FLD`) are saved as
+the component saves them: the header inserted or updated, a child row that
+changed deleted and inserted [pfc02]; a column left out takes the record
+field's default (`PSRECFIELDDB`), as a new grid row does. Reads leave out
+exactly the values a save would fill in, so a read-edit-save round trip
+changes nothing else.
+
+Then the component's SavePreChange (`AddEventMapping`, or
+`RemoveEventMapping` when the header is inactive) regenerates the type's
+Event Mapping on every content reference of the component that is not a link.
+What it maps is `EOCC_COMP_CONFIG:EventMapping:Mapper`, ported in
+src/providers/pfcMapper.ts and derived inside the transaction from the rows
+just written (the configurator derives it from the rows being saved):
+
+- component events: PostBuild and SavePreChange (Standard), PostBuild at
+  sequence 999 (Masking);
+- record events: each configured field's parent record RowInit and
+  RowInsert, a level-2/3 field's ancestor scrolls' records RowInit; numbered
+  `EOCC_ROWINITn`/`EOCC_ROWINSERTn` in order (Standard) or `EOCC_MASK_*`; a
+  derived record's parent is the scroll's primary record before it;
+- page events when the header's `EOCC_PAGE_EVENT` is Y, secondary pages
+  (key part 6 `S`), search and prompt fields (`Srch`/`Prmpt`: the record's
+  search keys, subrecords expanded), and FieldChange on the criteria fields
+  of active sequences (when `EOCC_CONFIGURE` has `EOCC_CONFIG_SEQ.
+  EOCC_SEQUENCE_NBR`, PeopleTools 8.56+).
+
+Checked against every configuration on HRDMO (tools/lab/pfc-mapper-check.mts):
+7 applied configurations match row for row; `JOB_DATA_FL` and `EE_HR_PROC_FL`
+were generated in 2020 and 2017, before services the current rules add were
+delivered (`EOCC_FIELDCHANGE` 2020-12, `EOCC_ROWINIT1` 2021-08), and lack
+only those.
+
+Per content reference [pfc01, pfc02]: `PSPTCS_SRVCFG` added when missing (its
+menu, ExpandFrame N, frame location S, the next RCSCM), or kept with its
+`RCF_SERVICES` tracking restamped; the type's services deleted in
+`DeleteUtilityServiceMapping`'s order, each row with its `PSPTCSSRVCNFDEL`
+tombstone at the next SCNFM and its tracking restamped; the derived rows
+inserted, each at the next SCNFM, a random instance id, the columns the
+ServiceHandler sets (component events in the main menu; all enabled). When
+`PSPTCS_SRVCFG` already existed, each new row also gets a
+`PSPTCSSRVCONFLG` row with a **blank** language code: the related-content API
+sets the language only on a new service. An inactive configuration deletes
+the type's rows, and a content reference left with no Event Mapping loses
+`PSPTCS_SRVCFG` (`PSPTCSSRVCFGDEL`, as the Event Mapping list's Remove
+[em07] -- not captured for the configurator). Not written: the
+`EOCC_ROWINITn`/`ROWINSERTn` service definitions the configurator clones when
+a configuration needs more than exist (refused: save once in PIA), and
+change-tracking (TRK) configurations (none on HRDMO to check against).
+
+Proof: src/test/pfcWriter.test.ts replays pfc01 and pfc02 from their
+before-states -- every configuration row, mapping row (instance ids drawn as
+PIA drew them), tombstone, language row, tracking row and counter.
 
 ## Writing Event Mapping
 

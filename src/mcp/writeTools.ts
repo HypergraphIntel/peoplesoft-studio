@@ -51,8 +51,11 @@ export const GATES =
 
 export interface Gate { provider: DatabaseProvider; operatorId: string }
 
-/** The connection may be written and the name is in the write scope; throws the reason otherwise. */
-export async function writable(workspace: Workspace, host: McpWriteHost, connection: string, name: string): Promise<Gate> {
+/**
+ * The connection may be written and the name is in the write scope; throws the reason otherwise. null: no name to scope -- the write
+ * is configuration data on a delivered object that changes no definition (a Page and Field Configurator configuration).
+ */
+export async function writable(workspace: Workspace, host: McpWriteHost, connection: string, name: string | null): Promise<Gate> {
   if (host.mode() === 'off') {
     throw new Error('Writes through the MCP are off (peoplesoft.mcp.writes). The user can turn them on in PeopleSoft Studio Settings.');
   }
@@ -62,7 +65,7 @@ export async function writable(workspace: Workspace, host: McpWriteHost, connect
   if (!workspace.isWritable(provider.id)) throw new Error(`${provider.displayName} is read-only (Access in PeopleSoft Studio Settings).`);
   const operatorId = workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim();
   if (!operatorId) throw new Error(`Set the Operator ID for ${provider.displayName} in PeopleSoft Studio Settings before writing.`);
-  const scope = writeScopeRefusal(name);
+  const scope = name === null ? undefined : writeScopeRefusal(name);
   if (scope) throw new Error(scope);
   return { provider: provider as DatabaseProvider, operatorId };
 }

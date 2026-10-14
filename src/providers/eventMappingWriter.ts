@@ -239,7 +239,7 @@ export function newInstanceId(used: Set<number>, random: () => number = Math.ran
 
 const sameRow = (a: EventMappingConfigRow, b: EventMappingConfigRow) => JSON.stringify(normalizeConfigRow(a)) === JSON.stringify(normalizeConfigRow(b));
 
-function insertRow(table: string, row: Row, ts: string | undefined): Statement {
+export function insertRow(table: string, row: Row, ts: string | undefined): Statement {
   const cols = Object.keys(row);
   const binds: Record<string, unknown> = {};
   cols.forEach((col, i) => { binds[`b${i}`] = row[col]; });
@@ -249,7 +249,7 @@ function insertRow(table: string, row: Row, ts: string | undefined): Statement {
 }
 
 /** PSVERSION set; PSLOCK moved by the same steps (its RCSDM runs ahead of PSVERSION on HRDMO [em01]); SYS has no PSLOCK row moved. */
-function counterStatements(from: Counters, to: Counters): Statement[] {
+export function counterStatements(from: Counters, to: Counters): Statement[] {
   const st: Statement[] = [];
   for (const n of COUNTERS) {
     if (to[n] === from[n]) continue;
@@ -259,9 +259,9 @@ function counterStatements(from: Counters, to: Counters): Statement[] {
   return st;
 }
 
-const confKeys = (cref: string, serviceId: string, instanceId: number): TrackedKey =>
+export const confKeys = (cref: string, serviceId: string, instanceId: number): TrackedKey =>
   [['PORTAL_NAME', EVENT_MAPPING_PORTAL], ['PORTAL_OBJNAME', cref], ['PTCS_SERVICEID', serviceId], ['PTCS_INSTANCEID', instanceId]];
-const cfgKeys = (cref: string): TrackedKey => [['PORTAL_NAME', EVENT_MAPPING_PORTAL], ['PORTAL_OBJNAME', cref]];
+export const cfgKeys = (cref: string): TrackedKey => [['PORTAL_NAME', EVENT_MAPPING_PORTAL], ['PORTAL_OBJNAME', cref]];
 
 /**
  * The statements that make the content reference's configuration the rows,
@@ -458,7 +458,7 @@ async function prepare(c: Connection, operatorId: string, serviceIds: readonly s
   if (!(await operatorExists(c, operatorId))) throw new EventMappingSaveRefusedError(`PeopleSoft operator ${operatorId} does not exist in this database (PSOPRDEFN).`);
 }
 
-async function now(c: Connection): Promise<string> {
+export async function now(c: Connection): Promise<string> {
   const [{ TS }] = await select<{ TS: string }>(c, `SELECT TO_CHAR(CAST(SYSTIMESTAMP AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM DUAL`);
   return TS;
 }
