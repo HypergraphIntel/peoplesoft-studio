@@ -387,6 +387,13 @@ change-tracking (TRK) configurations (none on HRDMO to check against).
 Proof: src/test/pfcWriter.test.ts replays pfc01 and pfc02 from their
 before-states -- every configuration row, mapping row (instance ids drawn as
 PIA drew them), tombstone, language row, tracking row and counter.
+The writer's own save on HRDMO (`pfcw01-add-field`, tools/lab/pfc-save.mts:
+JOB_CODE_TBL's lab configuration given back its required Key Job Code) has
+PIA's shape: sequence and field rows deleted and inserted; on each content
+reference 2 rows tombstoned and 4 inserted, language rows replaced; SCNFM and
+SYS +12, RCSCM unmoved; 8 tracking rows inserted and 6 restamped. Removing
+the field again returned both content references to PostBuild and
+SavePreChange, as pfc02 did. Not yet seen at run time in PIA.
 
 ## Writing Event Mapping
 
