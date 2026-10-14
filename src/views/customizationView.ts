@@ -4,7 +4,7 @@ import type { EventMappingConfigRow } from '../model/eventMapping.js';
 import { EventMappingPanel, setEventMappingExtensionUri } from '../editors/eventMappingPanel.js';
 import { SERVICE_NAME_MAX, validateServiceRequest } from '../providers/rcServiceWriter.js';
 import {
-  DESIGNER_TYPES, knowledgeSubsystem, nameFromTitle, strategySections, type CapabilitiesState, type CustomizationContext, type KnowledgeSummary, type CustomizationPolicy, type OwnershipState, type StrategyRow
+  DESIGNER_TYPES, knowledgeSubsystem, nameFromTitle, partsFromTitle, strategySections, type CapabilitiesState, type CustomizationContext, type KnowledgeSummary, type CustomizationPolicy, type OwnershipState, type StrategyRow
 } from '../model/customizationStrategy.js';
 import { DatabaseProvider } from '../providers/database.js';
 import { knowledgeFor } from '../intelligenceCommands.js';
@@ -189,7 +189,8 @@ export class CustomizationStrategyView implements vscode.TreeDataProvider<Strate
         const connected = this.workspace.activeProviders.filter((p) => p instanceof DatabaseProvider && p.isConnected);
         const one = connected.length === 1 ? connected[0] : undefined;
         const name = nameFromTitle(tab.label);
-        return { type: DESIGNER_TYPES[viewType] as DefinitionType, name, parts: [name], ...(one ? { connection: one.displayName, connectionId: one.id } : {}) };
+        const type = DESIGNER_TYPES[viewType] as DefinitionType;
+        return { type, name, parts: partsFromTitle(type, name), ...(one ? { connection: one.displayName, connectionId: one.id } : {}) };
       }
     }
     return undefined;

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DefinitionType } from '../model/definitions.js';
 import {
-  frameworksFor, nameFromTitle, singular, strategySections, type CustomizationPolicy, type StrategyRow
+  frameworksFor, nameFromTitle, partsFromTitle, singular, strategySections, type CustomizationPolicy, type StrategyRow
 } from '../model/customizationStrategy.js';
 
 /*
@@ -66,4 +66,10 @@ test('designer titles and type labels', () => {
   assert.equal(singular('Message Channels'), 'Message Channel');
   assert.equal(singular('Application Classes'), 'Application Class');
   assert.equal(singular('Message Catalog Entries'), 'Message Catalog Entry');
+});
+
+test('a designer panel\'s title gives its key parts: a component\'s NAME.MARKET is two parts', () => {
+  assert.deepEqual(partsFromTitle(DefinitionType.Component, 'JOB_CODE_TBL.GBL'), ['JOB_CODE_TBL', 'GBL']);
+  assert.deepEqual(partsFromTitle(DefinitionType.Component, 'JOB_CODE_TBL'), ['JOB_CODE_TBL']);
+  assert.deepEqual(partsFromTitle(DefinitionType.Page, 'JOBCODE_TBL1_GBL'), ['JOBCODE_TBL1_GBL']);
 });

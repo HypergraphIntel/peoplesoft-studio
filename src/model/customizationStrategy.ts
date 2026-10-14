@@ -320,5 +320,18 @@ export function nameFromTitle(title: string): string {
   return title.replace(/^●\s*/, '').trim().split(/[\s(]/)[0];
 }
 
+/**
+ * A designer panel's definition key parts from its title name: a component's title is NAME.MARKET (component names
+ * have no dot), so its parts are [NAME, MARKET], the key discovery and classification look it up by; any other
+ * definition's name is its one part.
+ */
+export function partsFromTitle(type: DefinitionType, name: string): string[] {
+  if (type === DefinitionType.Component) {
+    const dot = name.lastIndexOf('.');
+    if (dot > 0 && dot < name.length - 1) return [name.slice(0, dot), name.slice(dot + 1)];
+  }
+  return [name];
+}
+
 /** The plan editor's stages. */
 export const PLAN_STAGES = ['Requirement', 'Discover', 'Strategy', 'Validate', 'Approval'] as const;
