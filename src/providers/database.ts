@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { witnessedCreation, recordCreation, type CreationReceipt, type DefinitionStamp } from './creationProvenance.js';
 import type { DbConnection as Connection, DbPool, DbTypes } from '../db/connection.js';
 import { openDatabase, type DatabasePlatform } from '../db/open.js';
 import {
@@ -86,7 +88,13 @@ import type { AeDocument } from '../model/aeDocument.js';
 import type { AeReferenceLookup } from '../model/aeValidation.js';
 import { renderComponentInterface, renderFileLayout } from '../model/integrationDefinitions.js';
 import { renderMessage, renderPermissionList, renderRole } from '../model/adminDefinitions.js';
-import { renderQuery } from '../model/queryDefinition.js';
+import { renderQuery, type QueryView } from '../model/queryDefinition.js';
+import { prepareQueryExecution, validateQueryPromptValues } from './queryRunner.js';
+import type { QuerySqlPlan } from '../model/querySql.js';
+import {
+  readQueryForEdit as readEditableQuery, saveQuery as writeQuery, verifyQuerySave,
+  type QueryEdit, type QuerySaveRequest, type QuerySaveResult
+} from './queryWriter.js';
 import { PROCESS_TRANSLATE_FIELDS, renderProcessDefinition } from '../model/processDefinition.js';
 import { renderTree, TREE_TRANSLATE_FIELDS } from '../model/treeDefinition.js';
 import { PORTAL_TRANSLATE_FIELDS, renderPortalItem } from '../model/portalRegistry.js';
@@ -688,9 +696,12 @@ export class DatabaseProvider implements DefinitionProvider {
    * transaction, then verified again on another connection after COMMIT.
    */
   async saveRecord(request: RecordSaveRequest): Promise<RecordSaveResult> {
-    if (!request.edit.isNew) await this.guard(makeKey(DefinitionType.Record, request.edit.recname), 'save');
+    const key=makeKey(DefinitionType.Record,request.edit.recname);
+    if (!request.edit.isNew) await this.guard(key, 'save');
+    const previous=request.edit.isNew?undefined:await this.createdReceipt(key);
     const result = await this.withConnection((c) => saveRecord(c, request));
     await this.withConnection((c) => verifyRecordSave(c, request, result));
+    if(request.edit.isNew || previous)await this.noteCreation(key,{version:result.version,operator:request.operatorId,updated:result.lastupddttm},previous);
     return result;
   }
 
@@ -755,13 +766,23 @@ export class DatabaseProvider implements DefinitionProvider {
 
   /** Creates a field as App Designer's first save does (fieldWriter.ts), verified in the transaction. */
   async createField(request: FieldCreateRequest): Promise<{ version: number; lastupddttm: string }> {
-    return this.withConnection((c) => createFieldRows(c, request));
+    const result=await this.withConnection((c) => createFieldRows(c, request));
+    await this.noteCreation(makeKey(DefinitionType.Field,request.name),{version:result.version,operator:request.operatorId,updated:result.lastupddttm});
+    return result;
   }
 
   /** Saves a field as App Designer's field saves did (fieldWriter.ts saveField), verified in the transaction. */
   async saveField(request: FieldSaveRequest): Promise<{ version: number; lastupddttm: string; records: string[] }> {
-    await this.guard(makeKey(DefinitionType.Field, request.name), 'save');
-    return this.withConnection((c) => saveFieldRows(c, request));
+    const key=makeKey(DefinitionType.Field,request.name);
+    await this.guard(key, 'save');
+    const previous=await this.createdReceipt(key);
+    const related:Array<{key:DefinitionKey;receipt:CreationReceipt}>=[];
+    const refs=await this.withConnection(async c=>(await c.execute<{RECNAME:string}>('SELECT DISTINCT RECNAME FROM PSRECFIELDDB WHERE FIELDNAME=:f',{f:request.name})).rows??[]);
+    for(const r of refs){const k=makeKey(DefinitionType.Record,String(r.RECNAME).trim());const receipt=await this.createdReceipt(k);if(receipt)related.push({key:k,receipt});}
+    const result=await this.withConnection((c) => saveFieldRows(c, request));
+    for(const r of related)await this.noteCreation(r.key,{...r.receipt.stamp,version:result.version},r.receipt);
+    if(previous)await this.noteCreation(key,{version:result.version,operator:request.operatorId,updated:result.lastupddttm},previous);
+    return result;
   }
 
   /** Whether a field name is taken. */
@@ -1497,6 +1518,12 @@ export class DatabaseProvider implements DefinitionProvider {
 
   /** A query, keyed by name and owner (blank or absent: public). */
   private async readQuery(key: DefinitionKey): Promise<string> {
+    return renderQuery(key.parts[0], await this.readQueryDefinition(key));
+  }
+
+  /** Structured query rows for the Windows Query designer; retains every stored column. */
+  async readQueryDefinition(key: DefinitionKey): Promise<QueryView> {
+    if (key.type !== DefinitionType.Query) throw new ProviderError('Expected a Query definition.');
     const [name, owner] = key.parts;
     return this.withConnection(async (c) => {
       const binds = { n: name, o: owner?.trim() || ' ' };
@@ -1507,7 +1534,7 @@ export class DatabaseProvider implements DefinitionProvider {
       const [query] = await q(`SELECT D.*, ${UI_STAMP} FROM PSQRYDEFN D WHERE QRYNAME = :n AND OPRID = :o`);
       if (!query) throw new ProviderError(`No ${binds.o.trim() ? `private query ${name} of ${binds.o}` : `public query ${name}`}.`);
       const where = `WHERE QRYNAME = :n AND OPRID = :o`;
-      return renderQuery(name, {
+      return {
         query,
         selects: await q(`SELECT * FROM PSQRYSELECT ${where}`),
         records: await q(`SELECT * FROM PSQRYRECORD ${where}`),
@@ -1515,8 +1542,25 @@ export class DatabaseProvider implements DefinitionProvider {
         criteria: await q(`SELECT * FROM PSQRYCRITERIA ${where}`),
         expressions: await q(`SELECT * FROM PSQRYEXPR ${where}`),
         binds: await q(`SELECT * FROM PSQRYBIND ${where}`)
-      });
+      };
     });
+  }
+
+  async readQueryDocument(name: string, owner = ''): Promise<QueryEdit | undefined> {
+    return this.withConnection(async c=>{
+      try {
+        if(this.platform==='oracle')await c.execute('SET TRANSACTION READ ONLY');
+        return await readEditableQuery(c,this.types,name,owner);
+      } finally { await c.rollback(); }
+    });
+  }
+
+  async saveQueryDocument(request: QuerySaveRequest): Promise<QuerySaveResult> {
+    if (this.platform!=='oracle') throw new ProviderError('Query saves are currently calibrated on Oracle.');
+    await this.guard(makeKey(DefinitionType.Query,String(request.view.query.QRYNAME).trim(),String(request.view.query.OPRID).trim()),'save');
+    const result=await this.withConnection(c=>writeQuery(c,this.types,request));
+    if (result.written) await this.withConnection(c=>verifyQuerySave(c,this.types,result));
+    return result;
   }
 
   private async readPermissionList(key: DefinitionKey): Promise<string> {
@@ -1902,9 +1946,15 @@ export class DatabaseProvider implements DefinitionProvider {
    */
   async saveAppEngineDocument(request: AeSaveRequest): Promise<AeSaveResult> {
     if (!request.dryRun && request.openedToken !== 'absent') await this.guard(makeKey(DefinitionType.AppEngineProgram, request.doc.name), 'save');
+    const key=makeKey(DefinitionType.AppEngineProgram,request.doc.name);
+    const previous=request.dryRun || request.openedToken==='absent'?undefined:await this.createdReceipt(key);
     const types = this.types;
     const result = await this.withConnection((c) => saveAppEngine(c, types, request));
     await this.withConnection((c) => verifyAppEngineSave(c, types, result));
+    if(!request.dryRun && (request.openedToken==='absent' || previous)){
+      const e=await this.withConnection(c=>readOwnershipEvidence(c,key,[]));
+      if(e.version!==undefined && e.operator && e.updated)await this.noteCreation(key,{version:e.version,operator:e.operator,updated:e.updated},previous);
+    }
     return result;
   }
 
@@ -1918,9 +1968,13 @@ export class DatabaseProvider implements DefinitionProvider {
 
   async renameAppEngineProgram(from: string, to: string, token: string, operatorId: string): Promise<AeSaveResult> {
     await this.guard(makeKey(DefinitionType.AppEngineProgram, from), 'rename');
+    const previous=await this.createdReceipt(makeKey(DefinitionType.AppEngineProgram,from));
     const types = this.types;
     const result = await this.withConnection((c) => renameAppEngine(c, types, from, to, token, operatorId));
     await this.withConnection((c) => verifyAppEngineSave(c, types, result));
+    const key=makeKey(DefinitionType.AppEngineProgram,to);
+    const e=await this.withConnection(c=>readOwnershipEvidence(c,key,[]));
+    if(e.version!==undefined && e.operator && e.updated)await this.noteCreation(key,{version:e.version,operator:e.operator,updated:e.updated},previous);
     return result;
   }
 
@@ -1976,6 +2030,8 @@ export class DatabaseProvider implements DefinitionProvider {
     const release = await this.databaseRelease();
     const baseline = await resolveBaseline(release);
     const evidence = await this.withConnection((c) => readOwnershipEvidence(c, key, prefixes, baseline));
+    const receipt=await this.createdReceipt(evidence.judgedBy??key,evidence);
+    if(receipt)evidence.studioCreation={createdAt:receipt.createdAt};
     const classification = classifyOwnership(evidence);
     if (evidence.judgedBy) classification.evidence.unshift(`No program stored yet: judged by ${keyDisplayName(evidence.judgedBy)}, the definition it belongs to.`);
     return { classification, evidence, release };
@@ -2190,6 +2246,21 @@ export class DatabaseProvider implements DefinitionProvider {
 
   async captureDeliveredBaseline(onProgress?: (what: string) => void): Promise<BaselineFile> {
     return this.withConnection((c) => captureBaseline(c, onProgress));
+  }
+
+  private async creationScope():Promise<string> {
+    const release=await this.databaseRelease();
+    return createHash('sha256').update(JSON.stringify([this.config.platform,this.config.connectString,this.config.schema??'',this.config.user,release])).digest('hex');
+  }
+  private async createdReceipt(key:DefinitionKey,evidence?:OwnershipEvidence):Promise<CreationReceipt|undefined> {
+    if(![DefinitionType.Field,DefinitionType.Record,DefinitionType.AppEngineProgram].includes(key.type))return;
+    const e=evidence??await this.withConnection(c=>readOwnershipEvidence(c,key,[]));
+    if(!e.exists || e.version===undefined || !e.operator || !e.updated)return;
+    return witnessedCreation(await this.creationScope(),key,{version:e.version,operator:e.operator,updated:e.updated});
+  }
+  private async noteCreation(key:DefinitionKey,stamp:DefinitionStamp,previous?:CreationReceipt):Promise<void> {
+    try { await recordCreation(await this.creationScope(),key,stamp,previous); }
+    catch(e){console.error('PeopleSoft Studio: creation receipt could not be stored:',e instanceof Error?e.message:String(e));}
   }
 
   /** The delivered-object guard (writeGuard.ts) before a write to an existing definition. */
@@ -2673,6 +2744,38 @@ export class DatabaseProvider implements DefinitionProvider {
    * function that writes fails -- and at most `maxRows` rows come back (Oracle: the driver's maxRows, the
    * query untouched; elsewhere the query wrapped in FETCH FIRST).
    */
+  /** Public definitions plus the configured operator's private definitions. */
+  async searchQueries(pattern: string, operator: string): Promise<DefinitionSummary[]> {
+    return this.withConnection(async c=>{
+      const rows=(await c.execute<{QRYNAME:string;OPRID:string;DESCR:string}>(`SELECT QRYNAME,OPRID,DESCR FROM PSQRYDEFN
+        WHERE (OPRID=' ' OR OPRID=:o) AND QRYNAME LIKE :n ORDER BY QRYNAME,OPRID FETCH FIRST 500 ROWS ONLY`,{o:operator || ' ',n:pattern.toUpperCase()})).rows ?? [];
+      return rows.map(r=>({key:makeKey(DefinitionType.Query,String(r.QRYNAME).trim(),String(r.OPRID).trim()),description:`${String(r.OPRID).trim()?'Private':'Public'} · ${String(r.DESCR).trim()}`}));
+    });
+  }
+
+  async prepareQuery(view: QueryView, operatorId: string): Promise<QuerySqlPlan> {
+    if (this.platform !== 'oracle') throw new ProviderError('PS Query execution is currently calibrated on Oracle.');
+    return this.withConnection(c => prepareQueryExecution(c,view,operatorId));
+  }
+
+  /** Generates SQL on the host, checks Query access, validates prompts, and always rolls back. */
+  async runQuery(view: QueryView, operatorId: string, values: Record<string,string>, maxRows = 500): Promise<{
+    sql: string; rows: Array<Record<string,unknown>>; truncated: boolean; maxRows: number; ms: number;
+  }> {
+    if (this.platform !== 'oracle') throw new ProviderError('PS Query execution is currently calibrated on Oracle.');
+    if (!Number.isInteger(maxRows) || maxRows < 1 || maxRows > 10000) throw new ProviderError('Query row limit must be between 1 and 10000.');
+    return this.withConnection(async c => {
+      const started = Date.now();
+      try {
+        await c.execute('SET TRANSACTION READ ONLY');
+        const plan = await prepareQueryExecution(c,view,operatorId);
+        const binds = await validateQueryPromptValues(c,plan,operatorId,values);
+        const rows = (await c.execute<Record<string,unknown>>(plan.sql,binds,{outFormat:this.types.OUT_FORMAT_OBJECT,maxRows:maxRows+1})).rows ?? [];
+        return {sql:plan.sql,rows:rows.slice(0,maxRows),truncated:rows.length>maxRows,maxRows,ms:Date.now()-started};
+      } finally { await c.rollback(); }
+    });
+  }
+
   async runReadOnlyQuery(text: string, maxRows = 500): Promise<{ sql: string; rows: Array<Record<string, unknown>>; truncated: boolean; ms: number }> {
     const types = this.types;
     return this.withConnection(async (c) => {

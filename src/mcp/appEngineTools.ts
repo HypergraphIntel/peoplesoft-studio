@@ -149,6 +149,7 @@ export function registerAppEngineTools(server: McpServer, workspace: Workspace, 
   const saveDoc = async (gate: Awaited<ReturnType<typeof writable>>, doc: AeDocument, token: string, dryRun: boolean, action: string) => {
     const diagnostics = await deepValidate(gate.provider, doc);
     const errors = diagnostics.filter((d) => d.severity === 'error');
+    if(errors.length)return jsonResult({saved:false,reason:'validation errors',validation:brief(diagnostics),diagnostics:errors,explanation:explainProgram(doc)});
     const preview = await gate.provider.saveAppEngineDocument({ doc, openedToken: token, operatorId: gate.operatorId, dryRun: true });
     const planned = { changes: preview.plan.summary, counters: preview.plan.increments, statements: preview.plan.statements.length };
     if (dryRun || errors.length || preview.plan.empty) {

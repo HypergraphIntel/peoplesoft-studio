@@ -1,0 +1,258 @@
+{
+  "format": "query-property-capture/1",
+  "database": "HRDMO",
+  "release": "8.62.09",
+  "query": "ZZ_QRY_STUDIO01",
+  "owner": "JARED",
+  "markers": {
+    "before": {
+      "SCN": "39362789664663",
+      "CAPTURED_AT": "2026-10-14T11:03:07.127193-05:00"
+    },
+    "after": {
+      "SCN": "39362789669888",
+      "CAPTURED_AT": "2026-10-14T11:06:07.896417-05:00"
+    }
+  },
+  "tables": {
+    "PSQRYBIND": {
+      "inserted": [
+        {
+          "CAPTURE_ROWID": "AAAPHVAHlAAAMROAAx",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_STUDIO01",
+          "BNDNAME": "BIND1",
+          "BNDNUM": "1",
+          "FIELDNAME": "ESTABID",
+          "HDGTYPE": "4",
+          "HEADING": "Establishment ID",
+          "FIELDTYPE": "0",
+          "LENGTH": "12",
+          "DECIMALPOS": "0",
+          "FORMAT": "0",
+          "EDITTABLE": "ESTAB_TBL",
+          "USECOUNT": "1",
+          "USEEDIT": "16384",
+          "QRYREQUIREDPROMPT": "Y",
+          "QRYPROMPTDEFAULT": " "
+        }
+      ],
+      "deleted": [],
+      "updated": []
+    },
+    "PSQRYCRITERIA": {
+      "inserted": [
+        {
+          "CAPTURE_ROWID": "AAAPHaAHmAAAFoCAAA",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_STUDIO01",
+          "SELNUM": "1",
+          "CRTNUM": "1",
+          "COMBTYPE": "3",
+          "NEGATION": " ",
+          "LPARENLVL": "0",
+          "LCRTSELNUM": "1",
+          "LCRTFLDNUM": "1",
+          "CONDTYPE": "2",
+          "EXPRTYPE": "8",
+          "R1CRTSELNUM": "0",
+          "R1CRTFLDNUM": "0",
+          "R1CRTEXPNUM": "1",
+          "R2CRTSELNUM": "0",
+          "R2CRTFLDNUM": "0",
+          "R2CRTEXPNUM": "0",
+          "RPARENLVL": "0",
+          "QRYOJSELNUM": "0"
+        }
+      ],
+      "deleted": [],
+      "updated": []
+    },
+    "PSQRYDEFN": {
+      "inserted": [
+        {
+          "CAPTURE_ROWID": "AAAPHdAHXAACPc3AAA",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_STUDIO01",
+          "DESCR": " ",
+          "VERSION": "17",
+          "QRYTYPE": "1",
+          "SELCOUNT": "1",
+          "EXPCOUNT": "1",
+          "BNDCOUNT": "1",
+          "QRYVALID": "0",
+          "LASTUPDDTTM": "2026-10-14T11:03:11.282358000",
+          "LASTUPDOPRID": "JARED",
+          "QRYAPPROVED": "A",
+          "CREATEOPRID": "JARED",
+          "CREATEDTTM": "2026-10-14T11:03:11.000000000",
+          "APPROVEOPRID": " ",
+          "APPROVEDTTM": null,
+          "EXECLOGGING": " ",
+          "QRYDISABLED": " ",
+          "QRYFOLDER": " ",
+          "QRYJOINOPTIMIZE": "0",
+          "QRYIMGTYPE": "0",
+          "DESCRLONG": null
+        }
+      ],
+      "deleted": [],
+      "updated": []
+    },
+    "PSQRYEXPR": {
+      "inserted": [
+        {
+          "CAPTURE_ROWID": "AAAPHuAHXAACPiCAAA",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_STUDIO01",
+          "EXPNUM": "1",
+          "FIELDTYPE": "0",
+          "LENGTH": "0",
+          "DECIMALPOS": "0",
+          "USECOUNT": "1",
+          "EXPRESSIONTEXT": ":1"
+        }
+      ],
+      "deleted": [],
+      "updated": []
+    },
+    "PSQRYFIELD": {
+      "inserted": [
+        {
+          "CAPTURE_ROWID": "AAAPH0AHmAAAF2CAAB",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_STUDIO01",
+          "QRYFLDNAME": "A.DESCR",
+          "SELNUM": "1",
+          "FLDNUM": "2",
+          "RECNAME": "AAP_TBL",
+          "FIELDNAME": "DESCR",
+          "FLDRCDNUM": "1",
+          "FLDEXPNUM": "0",
+          "HDGTYPE": "3",
+          "HEADING": " ",
+          "COLUMNNUM": "2",
+          "GROUPBYNUM": "0",
+          "ORDERBYNUM": "0",
+          "ORDERBYDIR": " ",
+          "TTLTYPE": "1",
+          "SUBTTLNUM": "0",
+          "USECOUNT": "0",
+          "XLATTYPE": "1",
+          "XLATEXPRTYPE": "6",
+          "XLATFLDNUM": "0",
+          "XLATEXPNUM": "0",
+          "AGGREGATEFUNC": " "
+        },
+        {
+          "CAPTURE_ROWID": "AAAPH0AHmAAAF2CAAA",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_STUDIO01",
+          "QRYFLDNAME": "A.ESTABID",
+          "SELNUM": "1",
+          "FLDNUM": "1",
+          "RECNAME": "AAP_TBL",
+          "FIELDNAME": "ESTABID",
+          "FLDRCDNUM": "1",
+          "FLDEXPNUM": "0",
+          "HDGTYPE": "3",
+          "HEADING": " ",
+          "COLUMNNUM": "1",
+          "GROUPBYNUM": "0",
+          "ORDERBYNUM": "0",
+          "ORDERBYDIR": " ",
+          "TTLTYPE": "1",
+          "SUBTTLNUM": "0",
+          "USECOUNT": "1",
+          "XLATTYPE": "1",
+          "XLATEXPRTYPE": "6",
+          "XLATFLDNUM": "0",
+          "XLATEXPNUM": "0",
+          "AGGREGATEFUNC": " "
+        }
+      ],
+      "deleted": [],
+      "updated": []
+    },
+    "PSQRYRECORD": {
+      "inserted": [
+        {
+          "CAPTURE_ROWID": "AAAPIGAHlAAAMSNAAA",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_STUDIO01",
+          "SELNUM": "1",
+          "RCDNUM": "1",
+          "RECNAME": "AAP_TBL",
+          "JOINTYPE": "1",
+          "JOINRCDNUM": "0",
+          "JOINFLDNUM": "0",
+          "CORRNAME": "A",
+          "QRYRECPRUNABLE": " "
+        }
+      ],
+      "deleted": [],
+      "updated": []
+    },
+    "PSQRYSELECT": {
+      "inserted": [
+        {
+          "CAPTURE_ROWID": "AAAPIIAHlAAAMSkABq",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_STUDIO01",
+          "SELNUM": "1",
+          "SELECTTYPE": "1",
+          "PARENTSELNUM": "0",
+          "RCDCOUNT": "1",
+          "FLDCOUNT": "2",
+          "CRTCOUNT": "1",
+          "QRYDISTINCT": " ",
+          "HAVECRTCOUNT": "0"
+        }
+      ],
+      "deleted": [],
+      "updated": []
+    },
+    "PSVERSION": {
+      "inserted": [],
+      "deleted": [],
+      "updated": [
+        {
+          "before": {
+            "OBJECTTYPENAME": "QDM",
+            "VERSION": "16"
+          },
+          "after": {
+            "OBJECTTYPENAME": "QDM",
+            "VERSION": "17"
+          }
+        },
+        {
+          "before": {
+            "OBJECTTYPENAME": "SYS",
+            "VERSION": "3055"
+          },
+          "after": {
+            "OBJECTTYPENAME": "SYS",
+            "VERSION": "3056"
+          }
+        }
+      ]
+    },
+    "PSLOCK": {
+      "inserted": [],
+      "deleted": [],
+      "updated": [
+        {
+          "before": {
+            "OBJECTTYPENAME": "QDM",
+            "VERSION": "16"
+          },
+          "after": {
+            "OBJECTTYPENAME": "QDM",
+            "VERSION": "17"
+          }
+        }
+      ]
+    }
+  }
+}

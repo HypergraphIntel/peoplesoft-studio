@@ -17,7 +17,7 @@ export interface ToolNode {
 }
 
 export const CONFIGURATION_TOOLS: readonly ToolNode[] = [
-  { label: 'PS Query', icon: 'search', planned: true },
+  { label: 'PS Query', icon: 'search', command: 'psft.query.open' },
   { label: 'Customization', icon: 'wand', children: [
     { label: 'Page and Field Configurator', icon: 'layout', planned: true },
     { label: 'Event Mapping', icon: 'symbol-event', command: 'psft.customization.configureEventMapping' },

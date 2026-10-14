@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderQuery } from '../model/queryDefinition.js';
+import { readFileSync } from 'node:fs';
+import { queryAggregateLabel, renderQuery, type Row } from '../model/queryDefinition.js';
 
 const Q = { OPRID: ' ', QRYNAME: 'COMP_SRCH_TRW_CHILD1' };
 const fld = (sel: number, n: number, rcd: number, name: string, col = 0, exp = 0, heading = ' ') =>
@@ -45,4 +46,22 @@ test('a query: records and joins, columns, prompts, criteria in Query Manager\'s
 
 test('a private query names its owner', () => {
   assert.match(renderQuery('MYQ', { ...VIEW, query: { ...VIEW.query, OPRID: 'JARED' } }), /Private \(JARED\)/);
+});
+
+test('Windows Query capture replay: Count, Min and Max are stored in TTLTYPE while AGGREGATEFUNC stays blank', () => {
+  for (const [name, label] of [['qry04-count', 'Count'], ['qry05-min', 'Min'], ['qry06-max', 'Max']]) {
+    const capture = JSON.parse(readFileSync(`src/test/fixtures/query/${name}.json`, 'utf8')) as {
+      tables: Record<string, { inserted: Row[]; deleted: Row[] }>;
+    };
+    const field = capture.tables.PSQRYFIELD.inserted[0];
+    assert.equal(field.AGGREGATEFUNC, ' ');
+    assert.equal(queryAggregateLabel(field), label);
+    const view = { ...VIEW, fields: [{ ...field, HEADING: 'Lab Establishment' }] };
+    assert.match(renderQuery('ZZ_QRY_LAB01', view), new RegExp(`order 1 desc  ${label}`));
+  }
+});
+
+test('unknown aggregate codes remain explicit, and the captured no-aggregate mode stays empty', () => {
+  assert.equal(queryAggregateLabel({ TTLTYPE: '1', AGGREGATEFUNC: ' ' }), '');
+  assert.equal(queryAggregateLabel({ TTLTYPE: '99', AGGREGATEFUNC: ' ' }), 'aggregate type 99');
 });

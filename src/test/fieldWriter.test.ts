@@ -39,3 +39,10 @@ test('a subpackage\'s QUALIFYPATH: ":" at level 1, its parent\'s ID at level 2 (
   assert.equal(packageQualifyPath(['SUB1'], 1), ':');
   assert.equal(packageQualifyPath(['UI', 'Widgets'], 2), 'UI');
 });
+
+test('Character formats accept the native Uppercase/Mixed Case modes and reject guessed formats',()=>{
+ assert.equal(fieldCreateRefusal({...field({}),format:6}),undefined);
+ assert.equal(fieldCreateRefusal({...field({}),format:0}),undefined);
+ assert.match(fieldCreateRefusal({...field({}),format:14})!,/calibrated/);
+ assert.match(fieldCreateRefusal({...field({type:FieldType.Number}),format:6})!,/Character/);
+});

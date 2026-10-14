@@ -1,0 +1,18 @@
+{
+  "format": "query-property-capture/1",
+  "database": "HRDMO",
+  "release": "8.62.09",
+  "query": "ZZ_QRY_LAB02",
+  "owner": "",
+  "markers": {
+    "before": {
+      "SCN": "39362789617307",
+      "CAPTURED_AT": "2026-10-14T10:36:52.316818-05:00"
+    },
+    "after": {
+      "SCN": "39362789662838",
+      "CAPTURED_AT": "2026-10-14T11:02:04.262261-05:00"
+    }
+  },
+  "tables": {}
+}

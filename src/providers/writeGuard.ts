@@ -69,3 +69,24 @@ let policyReader: () => EffectivePolicy = () => ({
 
 export function setPolicyReader(r: () => EffectivePolicy): void { policyReader = r; }
 export function effectivePolicy(): EffectivePolicy { return policyReader(); }
+
+const requestSignal=new AsyncLocalStorage<AbortSignal|undefined>();
+export function withWriteRequest<T>(signal:AbortSignal|undefined,fn:()=>T):T {return requestSignal.run(signal,fn);}
+
+/** MCP approval cannot keep a tool alive indefinitely or authorize a cancelled request later. */
+export async function awaitWriteApproval<T>(pending:PromiseLike<T>,stage:string,timeoutMs=60_000):Promise<T> {
+  if(writeOrigin()!=='agent')return await pending;
+  const signal=requestSignal.getStore();
+  signal?.throwIfAborted();
+  let timer:ReturnType<typeof setTimeout>|undefined;
+  let fail:()=>void=()=>{};
+  try {
+    return await new Promise<T>((resolve,reject)=>{
+      fail=()=>reject(new Error(`${stage} was cancelled; nothing was written.`));
+      timer=setTimeout(()=>reject(new Error(`${stage} timed out after ${Math.ceil(timeoutMs/1000)} seconds. Approval is required in VS Code; nothing was written. Retry the tool after reviewing the request.`)),timeoutMs);
+      signal?.addEventListener('abort',fail,{once:true});
+      if(signal?.aborted)fail();
+      Promise.resolve(pending).then(resolve,reject);
+    });
+  } finally {if(timer)clearTimeout(timer);signal?.removeEventListener('abort',fail);}
+}

@@ -9,7 +9,7 @@ import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCo
  * (docs/FIELD_CREATE.md, case c01, ZZ_PCODE_LAB_C08):
  *
  *   PSDBFIELD    VERSION = the new PSVERSION RDM; FIELDTYPE, LENGTH, DECIMALPOS;
- *                FORMAT 0, DEFCNTRYYR 50, the other columns 0 / blank, no
+ *                FORMAT 0 or 6 for Character (ff01), DEFCNTRYYR 50, the other columns 0 / blank, no
  *                DESCRLONG (every field type's most common shape on HRDMO);
  *                stamped
  *   PSDBFLDLABL  one label, DEFAULT_LABEL 1
@@ -52,6 +52,8 @@ export interface FieldCreateRequest {
   type: FieldType;
   length: number;
   decimalPositions: number;
+  /** Captured Character format: 0 Uppercase, 6 Mixed Case. Omitted: 0. */
+  format?: number;
   label: { id: string; longName: string; shortName: string };
   operatorId: string;
 }
@@ -61,6 +63,7 @@ export function fieldCreateRefusal(r: Omit<FieldCreateRequest, 'operatorId'>): s
   if (!/^[A-Z0-9_]{1,18}$/.test(r.name)) return `${r.name} is not a valid field name (A-Z, 0-9, _; at most 18).`;
   const scope = writeScopeRefusal(r.name);
   if (scope) return scope;
+  if(r.format!==undefined && (r.type!==FieldType.Character || ![0,6].includes(r.format)))return 'Only Character Uppercase (0) and Mixed Case (6) formats are calibrated for writes.';
   if (!CREATABLE_FIELD_TYPES.includes(r.type)) return 'Only Character, Long Character, Number, Signed Number, Date, Time, DateTime and Image Reference fields can be created here yet.';
   const fixed = FIXED_FIELD_LENGTH[r.type];
   if (fixed !== undefined && r.length !== fixed) return `A field of this type is ${fixed} long.`;
@@ -112,8 +115,8 @@ export async function createField(c: Connection, request: FieldCreateRequest): P
       `INSERT INTO PSDBFIELD (FIELDNAME, VERSION, FIELDTYPE, LENGTH, DECIMALPOS, FORMAT, FORMATLENGTH, IMAGE_FMT, FORMATFAMILY,
                                      DISPFMTNAME, DEFCNTRYYR, IMEMODE, KBLAYOUT, OBJECTOWNERID, LASTUPDDTTM, LASTUPDOPRID, FLDNOTUSED,
                                      AUXFLAGMASK, DESCRLONG)
-       VALUES (:f, :v, :t, :len, :dec, 0, 0, 0, ' ', ' ', 50, 0, 0, ' ', TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), :op, 0, 0, NULL)`,
-      { f: name, v: next.rdm, t: request.type, len: request.length, dec: request.decimalPositions, ts: lastupddttm, op: request.operatorId },
+       VALUES (:f, :v, :t, :len, :dec, :fmt, 0, 0, ' ', ' ', 50, 0, 0, ' ', TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), :op, 0, 0, NULL)`,
+      { f: name, v: next.rdm, t: request.type, len: request.length, dec: request.decimalPositions, fmt:request.format??0, ts: lastupddttm, op: request.operatorId },
       1, 'Inserting PSDBFIELD');
     await expectRows(c,
       `INSERT INTO PSDBFLDLABL (FIELDNAME, LABEL_ID, LONGNAME, SHORTNAME, DEFAULT_LABEL) VALUES (:f, :id, :ln, :sn, 1)`,
@@ -140,11 +143,11 @@ export async function createField(c: Connection, request: FieldCreateRequest): P
       }
     }
 
-    const [d] = await select<{ VERSION: number; FIELDTYPE: number; LENGTH: number; TS: string }>(c,
-      `SELECT VERSION, FIELDTYPE, LENGTH, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM PSDBFIELD WHERE FIELDNAME = :f`,
+    const [d] = await select<{ VERSION: number; FIELDTYPE: number; LENGTH: number; FORMAT:number; TS: string }>(c,
+      `SELECT VERSION, FIELDTYPE, LENGTH, FORMAT, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM PSDBFIELD WHERE FIELDNAME = :f`,
       { f: name });
     const [{ N: labels }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSDBFLDLABL WHERE FIELDNAME = :f AND DEFAULT_LABEL = 1`, { f: name });
-    if (!d || Number(d.VERSION) !== next.rdm || Number(d.FIELDTYPE) !== request.type || Number(d.LENGTH) !== request.length ||
+    if (!d || Number(d.VERSION) !== next.rdm || Number(d.FIELDTYPE) !== request.type || Number(d.LENGTH) !== request.length || Number(d.FORMAT)!==(request.format??0) ||
         d.TS !== lastupddttm || Number(labels) !== 1) {
       throw new FieldCreateRefusedError('The field did not land as planned; rolled back.');
     }
@@ -180,6 +183,7 @@ export interface FieldSaveRequest {
   openedVersion: number;
   length?: number;
   decimalPositions?: number;
+  format?:number;
   /** DESCRLONG; '' clears it. */
   description?: string;
   /** The field's labels as they are to be, every one. */
@@ -194,13 +198,16 @@ export async function saveField(c: Connection, request: FieldSaveRequest): Promi
     if (operatorError) throw new FieldCreateRefusedError(operatorError);
     const scope = writeScopeRefusal(name);
     if (scope) throw new FieldCreateRefusedError(scope);
-    const [row] = await select<{ VERSION: number; FIELDTYPE: number; LENGTH: number; DECIMALPOS: number }>(c,
-      `SELECT VERSION, FIELDTYPE, LENGTH, DECIMALPOS FROM PSDBFIELD WHERE FIELDNAME = :f FOR UPDATE`, { f: name });
+    const [row] = await select<{ VERSION: number; FIELDTYPE: number; LENGTH: number; DECIMALPOS: number;FORMAT:number;FORMATLENGTH:number;FORMATFAMILY:string;DISPFMTNAME:string }>(c,
+      `SELECT VERSION, FIELDTYPE, LENGTH, DECIMALPOS, FORMAT, FORMATLENGTH, FORMATFAMILY, DISPFMTNAME FROM PSDBFIELD WHERE FIELDNAME = :f FOR UPDATE`, { f: name });
     if (!row) throw new FieldCreateRefusedError(`There is no field named ${name}.`);
     if (Number(row.VERSION) !== request.openedVersion) {
       throw new FieldCreateRefusedError(`${name} was saved since it was opened (version ${row.VERSION}, not ${request.openedVersion}). Reopen it.`);
     }
     const type = Number(row.FIELDTYPE) as FieldType;
+    if(request.format!==undefined && (type!==FieldType.Character || ![0,6].includes(request.format) || ![0,6].includes(Number(row.FORMAT))
+      || Number(row.FORMATLENGTH) || String(row.FORMATFAMILY??'').trim() || String(row.DISPFMTNAME??'').trim()))throw new FieldCreateRefusedError('Character format changes are calibrated only between standard Uppercase and Mixed Case fields.');
+    const format=request.format??Number(row.FORMAT);
     const length = request.length ?? Number(row.LENGTH);
     const decimalPositions = request.decimalPositions ?? Number(row.DECIMALPOS);
     if (!CREATABLE_FIELD_TYPES.includes(type)) throw new FieldCreateRefusedError('Only fields of the types New Field creates can be saved here yet.');
@@ -258,10 +265,11 @@ export async function saveField(c: Connection, request: FieldSaveRequest): Promi
 
     await expectRows(c,
       `UPDATE PSDBFIELD SET VERSION = :v, LENGTH = :len, DECIMALPOS = :dec, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
+              ${request.format!==undefined?', FORMAT = :fmt':''}
               ${request.description !== undefined ? ', DESCRLONG = :d' : ''}
         WHERE FIELDNAME = :f`,
       { v: rdm, len: length, dec: decimalPositions, ts: lastupddttm, op: request.operatorId, f: name,
-        ...(request.description !== undefined ? { d: request.description.trim() === '' ? null : request.description } : {}) },
+        ...(request.format!==undefined?{fmt:request.format}:{}), ...(request.description !== undefined ? { d: request.description.trim() === '' ? null : request.description } : {}) },
       1, 'Updating PSDBFIELD');
     await expectRows(c, `DELETE FROM PSDBFLDLABL WHERE FIELDNAME = :f`, { f: name }, stored.length, 'Deleting PSDBFLDLABL');
     for (const lb of labels) {
@@ -276,11 +284,11 @@ export async function saveField(c: Connection, request: FieldSaveRequest): Promi
     for (const [table, n, value] of counters) {
       await expectRows(c, `UPDATE ${table} SET VERSION = :v WHERE OBJECTTYPENAME = :n`, { v: value, n }, 1, `Updating ${table} ${n}`);
     }
-    const [d] = await select<{ VERSION: number; LENGTH: number; DECIMALPOS: number; TS: string }>(c,
-      `SELECT VERSION, LENGTH, DECIMALPOS, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM PSDBFIELD WHERE FIELDNAME = :f`, { f: name });
+    const [d] = await select<{ VERSION: number; LENGTH: number; DECIMALPOS: number;FORMAT:number; TS: string }>(c,
+      `SELECT VERSION, LENGTH, DECIMALPOS, FORMAT, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM PSDBFIELD WHERE FIELDNAME = :f`, { f: name });
     const [{ N: n, D: defaults }] = await select<{ N: number; D: number }>(c,
       `SELECT COUNT(*) AS N, SUM(DEFAULT_LABEL) AS D FROM PSDBFLDLABL WHERE FIELDNAME = :f`, { f: name });
-    if (!d || Number(d.VERSION) !== rdm || Number(d.LENGTH) !== length || Number(d.DECIMALPOS) !== decimalPositions || d.TS !== lastupddttm ||
+    if (!d || Number(d.VERSION) !== rdm || Number(d.LENGTH) !== length || Number(d.DECIMALPOS) !== decimalPositions || Number(d.FORMAT)!==format || d.TS !== lastupddttm ||
         Number(n) !== labels.length || Number(defaults) !== 1) {
       throw new FieldCreateRefusedError('The field did not land as planned; rolled back.');
     }

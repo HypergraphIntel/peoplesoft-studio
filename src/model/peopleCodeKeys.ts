@@ -1,5 +1,5 @@
 import { DefinitionType, type DefinitionKey } from './definitions.js';
-import { unpackPeopleCodeKey } from './appEngine.js';
+import { unpackPeopleCodeKey, PEOPLECODE_PLATFORM } from './appEngine.js';
 
 /**
  * A PeopleCode definition's PSPCMPROG key parts. PSPROJECTITEM holds at most
@@ -20,8 +20,14 @@ export function pcmProgKeyParts(key: DefinitionKey): readonly string[] {
   switch (key.type) {
     case DefinitionType.ApplicationClassPeopleCode:
       return key.parts.at(-1) === 'OnExecute' ? key.parts : [...key.parts, 'OnExecute'];
-    case DefinitionType.AppEnginePeopleCode:
-      return unpackPeopleCodeKey(key.parts);
+    case DefinitionType.AppEnginePeopleCode: {
+      const parts=unpackPeopleCodeKey(key.parts);
+      if(parts.length!==7)return parts;
+      const alias=parts[3].toUpperCase();
+      const platform=Object.values(PEOPLECODE_PLATFORM).find(p=>p.toUpperCase()===alias)
+        ?? (alias==='MICROSOFT'?'MICROSFT':alias==='DB2/UNIX'?'DB2UNIX':parts[3]);
+      return [...parts.slice(0,3),platform,...parts.slice(4)];
+    }
     case DefinitionType.ComponentRecordFieldPeopleCode:
       return key.parts.length === 4 && key.parts[3].length > 18
         ? [...key.parts.slice(0, 3), key.parts[3].slice(0, 18).trim(), key.parts[3].slice(18).trim()]

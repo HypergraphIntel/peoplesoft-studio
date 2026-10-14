@@ -5,6 +5,7 @@ import {
   describeItem, itemKeyColumns, MIN_PROJECT_ITEM_SLOTS, PROJECT_ITEM_DEFAULTS, projectItemFor,
   ProjectSaveRefusedError, type ProjectItem
 } from '../model/projectItems.js';
+import {pcmProgKeyParts} from '../model/peopleCodeKeys.js';
 import { writeScopeRefusal } from './writeScope.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT, VALUE_PREDICATE, valueBinds } from './peopleCodeWriter.js';
@@ -76,12 +77,16 @@ async function itemSlots(c: Connection): Promise<number> {
 
 /** Whether the definition itself exists, so a project never lists a missing one. */
 async function definitionExists(c: Connection, key: DefinitionKey): Promise<boolean> {
-  if (key.type === DefinitionType.RecordPeopleCode || key.type === DefinitionType.ApplicationClassPeopleCode) {
+  if (key.type === DefinitionType.RecordPeopleCode || key.type === DefinitionType.ApplicationClassPeopleCode || key.type===DefinitionType.AppEnginePeopleCode) {
     const parts = key.type === DefinitionType.ApplicationClassPeopleCode && key.parts.at(-1) !== 'OnExecute'
       ? [...key.parts, 'OnExecute'] : key.parts;
     const [r] = await select<{ N: number }>(c,
-      `SELECT COUNT(*) AS N FROM PSPCMPROG WHERE ${VALUE_PREDICATE}`, valueBinds(parts));
+      `SELECT COUNT(*) AS N FROM PSPCMPROG WHERE ${VALUE_PREDICATE}`, valueBinds(pcmProgKeyParts({...key,parts:[...parts]})));
     return Number(r?.N ?? 0) > 0;
+  }
+  if(key.type===DefinitionType.AppEngineSection){
+    const [r]=await select<{N:number}>(c,'SELECT COUNT(*) AS N FROM PSAESECTDEFN WHERE AE_APPLID=:p AND AE_SECTION=:s',{p:key.parts[0],s:key.parts[1]});
+    return Number(r?.N??0)>0;
   }
   const spec = PROPERTIES_SPECS[key.type];
   if (!spec) throw new ProjectSaveRefusedError(`${describeItem(key)}: no way to check that it exists; refusing to write.`);

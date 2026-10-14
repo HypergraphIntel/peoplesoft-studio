@@ -79,3 +79,20 @@ test('a project save plans one item per added definition and refuses what it can
     /listed twice/);
   assert.throws(() => planProjectSave({ ...base, add: [makeKey(DefinitionType.Project, 'P')] }), ProjectSaveRefusedError);
 });
+
+test('AE section and PeopleCode project members use the observed HRDMO layouts and packed variant key',()=>{
+ const section={type:DefinitionType.AppEngineSection,parts:['ZZ_MCP_AE','MAIN']};
+ assert.deepEqual(projectItemFor(section),{objectType:34,objectIds:[66,77],objectValues:['ZZ_MCP_AE','MAIN']});
+ const parts=['ZZ_MCP_AE','MAIN','GBL','default','1900-01-01','Step02','OnExecute'];
+ const item=projectItemFor({type:DefinitionType.AppEnginePeopleCode,parts});
+ assert.deepEqual(item,{objectType:43,objectIds:[66,77,78,12],objectValues:['ZZ_MCP_AE','MAIN    GBLdefault  1900-01-01','Step02','OnExecute']});
+ assert.deepEqual(projectItemFor({type:DefinitionType.AppEnginePeopleCode,parts:item.objectValues}),item);
+ assert.equal(canInsertIntoProject(DefinitionType.AppEngineSection),true);
+ assert.equal(canInsertIntoProject(DefinitionType.AppEnginePeopleCode),true);
+});
+
+
+test('AE project keys normalize the API platform label to its native PeopleCode key',()=>{
+ const item=projectItemFor({type:DefinitionType.AppEnginePeopleCode,parts:['ZZ_AE','ORACLE','GBL','Oracle','2000-01-01','Pc','OnExecute']});
+ assert.equal(item.objectValues[1],'ORACLE  GBLORACLE   2000-01-01');
+});

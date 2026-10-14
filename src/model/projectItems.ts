@@ -1,3 +1,4 @@
+import {pcmProgKeyParts} from './peopleCodeKeys.js';
 import { DefinitionKey, DefinitionType, displayName, typeLabel } from './definitions.js';
 
 /*
@@ -42,7 +43,7 @@ export const MIN_PROJECT_ITEM_SLOTS = 4;
 /** The definition types that can be inserted into a project. */
 export const INSERTABLE_TYPES: ReadonlySet<DefinitionType> = new Set([
   DefinitionType.Record, DefinitionType.Field, DefinitionType.Page, DefinitionType.Menu,
-  DefinitionType.Component, DefinitionType.RecordPeopleCode, DefinitionType.AppEngineProgram,
+  DefinitionType.Component, DefinitionType.RecordPeopleCode, DefinitionType.AppEngineProgram, DefinitionType.AppEngineSection, DefinitionType.AppEnginePeopleCode,
   DefinitionType.HtmlDefinition, DefinitionType.SqlDefinition, DefinitionType.ApplicationPackage,
   DefinitionType.ApplicationClassPeopleCode, DefinitionType.StyleSheet, DefinitionType.MessageChannel
 ]);
@@ -68,6 +69,17 @@ const LAYOUTS: Readonly<Partial<Record<DefinitionType, (key: DefinitionKey) => P
   [DefinitionType.Page]: single(5, 9),
   [DefinitionType.Menu]: single(6, 3),
   [DefinitionType.AppEngineProgram]: single(33, 66),
+  // HRDMO: all 970 section project members have IDs 66/77; they cover every variant.
+  [DefinitionType.AppEngineSection]: key=>{
+    if(key.parts.length!==2)throw new ProjectSaveRefusedError('An AE section project key is program, section.');
+    return {objectType:34,objectIds:[66,77],objectValues:[name(key),key.parts[1]]};
+  },
+  // All 1,047 AE PeopleCode members use four slots. Slot 2 packs section/market/platform/date.
+  [DefinitionType.AppEnginePeopleCode]: key=>{
+    const parts=pcmProgKeyParts(key);
+    if(parts.length!==7 || parts[1].length>8 || parts[2].length>3 || parts[3].length>9 || !/^\d{4}-\d{2}-\d{2}$/.test(parts[4]) || parts[6]!=='OnExecute')throw new ProjectSaveRefusedError('An AE PeopleCode key needs program, section, market, platform, effective date, step, OnExecute.');
+    return {objectType:43,objectIds:[66,77,78,12],objectValues:[name(key),parts[1].padEnd(8)+parts[2].padEnd(3)+parts[3].padEnd(9)+parts[4],parts[5],parts[6]]};
+  },
   // App Designer's Insert into Project: OBJECTID1 61 (CHNLNAME), the default statuses [chn16].
   [DefinitionType.MessageChannel]: single(36, 61),
   [DefinitionType.Component]: (key) =>

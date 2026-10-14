@@ -1,4 +1,4 @@
-import { runAsAgent } from '../providers/writeGuard.js';
+import { runAsAgent,withWriteRequest } from '../providers/writeGuard.js';
 
 /*
  * Every MCP tool call runs as an AI agent's (providers/writeGuard.ts), so the
@@ -13,6 +13,9 @@ interface ToolRegistrar { registerTool(name: string, config: never, callback: ne
 export function runToolsAsAgent<S extends ToolRegistrar>(server: S): S {
   const register = server.registerTool.bind(server) as (name: string, config: unknown, callback: unknown) => unknown;
   (server as { registerTool: unknown }).registerTool = (name: string, config: unknown, callback: (...args: unknown[]) => unknown) =>
-    register(name, config, (...args: unknown[]) => runAsAgent(() => callback(...args)));
+    register(name, config, (...args: unknown[]) => {
+      const context=args[1] as {signal?:AbortSignal}|undefined;
+      return withWriteRequest(context?.signal,()=>runAsAgent(() => callback(...args)));
+    });
   return server;
 }

@@ -1,0 +1,397 @@
+{
+  "database": "HRDMO",
+  "names": {
+    "text": "ZZ_M_TEXT85556",
+    "flag": "ZZ_M_FLAG85556",
+    "state": "ZZ_M_85556AET",
+    "stage": "ZZ_M_S85556",
+    "program": "ZZ_M88_85556",
+    "project": "ZZ_MCP_88_85556"
+  },
+  "checks": [
+    {
+      "name": "record creation is advertised",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "psft_create_field",
+      "ok": true,
+      "detail": true
+    },
+    {
+      "name": "psft_edit_field",
+      "ok": true,
+      "detail": true
+    },
+    {
+      "name": "psft_edit_field",
+      "ok": true,
+      "detail": true
+    },
+    {
+      "name": "psft_create_field",
+      "ok": true,
+      "detail": true
+    },
+    {
+      "name": "psft_edit_translate",
+      "ok": true,
+      "detail": true
+    },
+    {
+      "name": "psft_create_record",
+      "ok": true,
+      "detail": true
+    },
+    {
+      "name": "psft_create_record",
+      "ok": true,
+      "detail": true
+    },
+    {
+      "name": "psft_edit_record",
+      "ok": true,
+      "detail": true
+    },
+    {
+      "name": "missing AET returns structured diagnostics",
+      "ok": true,
+      "detail": {
+        "saved": false,
+        "reason": "validation errors",
+        "validation": {
+          "errors": [
+            "program.stateRecords: State record ZZ_MISSING_AET does not exist."
+          ],
+          "warnings": [
+            "MAIN.GBL.default.1900-01-01.Sql.SQL: %Bind / %Select names ZZ_M_FLAG85556, which no state record of the program has."
+          ],
+          "notes": []
+        },
+        "diagnostics": [
+          {
+            "severity": "error",
+            "code": "state-missing",
+            "path": "program.stateRecords",
+            "message": "State record ZZ_MISSING_AET does not exist."
+          }
+        ],
+        "explanation": "ZZ_BAD_85556: MCP release verification -- Standard program.\nRestart disabled. State records: ZZ_MISSING_AET (default).\n\nSection MAIN (MAIN.GBL.default.1900-01-01, Public):\n  1. Init -- Init description; on error: Abort; commit: Default.\n     - PeopleCode (1 lines); returning False: Abort.\n  2. Sql -- Sql description; on error: Abort; commit: Default.\n     - SQL: \"%Select(ZZ_M_FLAG85556) SELECT 'Y' FROM PS_INSTALLATION\"; if it affects or returns no row: Continue.\n  3. Call -- Call description; on error: Abort; commit: Default.\n     - Call Section DONE, then the step goes on.\n\nSection DONE (DONE.GBL.default.1900-01-01, Public):\n  1. Log -- Log description; on error: Abort; commit: Default.\n     - Log Message 1, 1 with %Bind(PROCESS_INSTANCE)."
+      }
+    },
+    {
+      "name": "psft_ae_create",
+      "ok": true,
+      "detail": {
+        "errors": [],
+        "warnings": [],
+        "notes": []
+      }
+    },
+    {
+      "name": "psft_ae_create",
+      "ok": true,
+      "detail": {
+        "errors": [],
+        "warnings": [],
+        "notes": []
+      }
+    },
+    {
+      "name": "psft_ae_verify",
+      "ok": true,
+      "detail": {
+        "errors": [],
+        "warnings": [],
+        "notes": []
+      }
+    },
+    {
+      "name": "psft_ae_edit",
+      "ok": true,
+      "detail": {
+        "errors": [],
+        "warnings": [],
+        "notes": []
+      }
+    },
+    {
+      "name": "psft_edit_field",
+      "ok": true,
+      "detail": true
+    },
+    {
+      "name": "psft_edit_record",
+      "ok": true,
+      "detail": true
+    },
+    {
+      "name": "PeopleCode quotes and same-line statements",
+      "ok": true,
+      "detail": {
+        "errors": [],
+        "warnings": [],
+        "notes": []
+      }
+    },
+    {
+      "name": "PeopleCode quoted apostrophe",
+      "ok": true,
+      "detail": {
+        "errors": [],
+        "warnings": [],
+        "notes": []
+      }
+    },
+    {
+      "name": "PeopleCode inline conditional",
+      "ok": true,
+      "detail": {
+        "errors": [],
+        "warnings": [],
+        "notes": []
+      }
+    },
+    {
+      "name": "PeopleCode arithmetic loop",
+      "ok": true,
+      "detail": {
+        "errors": [],
+        "warnings": [],
+        "notes": []
+      }
+    },
+    {
+      "name": "PeopleCode function",
+      "ok": true,
+      "detail": {
+        "errors": [],
+        "warnings": [],
+        "notes": []
+      }
+    },
+    {
+      "name": "PeopleCode SQLExec and conditional",
+      "ok": true,
+      "detail": {
+        "errors": [],
+        "warnings": [],
+        "notes": []
+      }
+    },
+    {
+      "name": "all standard actions and Oracle variant save",
+      "ok": true,
+      "detail": {
+        "errors": [],
+        "warnings": [],
+        "notes": []
+      }
+    },
+    {
+      "name": "SQL plus Call Section refused",
+      "ok": true,
+      "detail": "Operation 1 (add_action): Step Sql cannot have both SQL and Call Section actions."
+    },
+    {
+      "name": "application library save",
+      "ok": true,
+      "detail": {
+        "errors": [],
+        "warnings": [],
+        "notes": []
+      }
+    },
+    {
+      "name": "external Call Section save",
+      "ok": true,
+      "detail": {
+        "errors": [],
+        "warnings": [],
+        "notes": []
+      }
+    },
+    {
+      "name": "Transform/XSLT save",
+      "ok": true,
+      "detail": {
+        "errors": [],
+        "warnings": [],
+        "notes": []
+      }
+    },
+    {
+      "name": "Transform/XSLT verify",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "complex copy",
+      "ok": true,
+      "detail": "stored program matches"
+    },
+    {
+      "name": "copy preserves sections and PeopleCode",
+      "ok": true,
+      "detail": [
+        "MAIN",
+        "DONE",
+        "LOOPS",
+        "ORACLE"
+      ]
+    },
+    {
+      "name": "rename copied program",
+      "ok": true,
+      "detail": {
+        "from": "ZZ_C88_85556",
+        "to": "ZZ_R88_85556"
+      }
+    },
+    {
+      "name": "renamed copy remains editable",
+      "ok": true,
+      "detail": {
+        "errors": [],
+        "warnings": [],
+        "notes": []
+      }
+    },
+    {
+      "name": "psft_create_project",
+      "ok": true,
+      "detail": true
+    },
+    {
+      "name": "psft_add_to_project",
+      "ok": true,
+      "detail": true
+    },
+    {
+      "name": "project members read back",
+      "ok": true,
+      "detail": [
+        {
+          "key": {
+            "type": 0,
+            "parts": [
+              "ZZ_M_85556AET"
+            ]
+          }
+        },
+        {
+          "key": {
+            "type": 0,
+            "parts": [
+              "ZZ_M_S85556"
+            ]
+          }
+        },
+        {
+          "key": {
+            "type": 2,
+            "parts": [
+              "ZZ_M_FLAG85556"
+            ]
+          }
+        },
+        {
+          "key": {
+            "type": 2,
+            "parts": [
+              "ZZ_M_TEXT85556"
+            ]
+          }
+        },
+        {
+          "key": {
+            "type": 33,
+            "parts": [
+              "ZZ_M88_85556"
+            ]
+          }
+        },
+        {
+          "key": {
+            "type": 34,
+            "parts": [
+              "ZZ_M88_85556",
+              "DONE"
+            ]
+          }
+        },
+        {
+          "key": {
+            "type": 34,
+            "parts": [
+              "ZZ_M88_85556",
+              "LOOPS"
+            ]
+          }
+        },
+        {
+          "key": {
+            "type": 34,
+            "parts": [
+              "ZZ_M88_85556",
+              "MAIN"
+            ]
+          }
+        },
+        {
+          "key": {
+            "type": 34,
+            "parts": [
+              "ZZ_M88_85556",
+              "ORACLE"
+            ]
+          }
+        },
+        {
+          "key": {
+            "type": 43,
+            "parts": [
+              "ZZ_M88_85556",
+              "MAIN    GBLdefault  1900-01-01",
+              "Init",
+              "OnExecute"
+            ]
+          }
+        },
+        {
+          "key": {
+            "type": 43,
+            "parts": [
+              "ZZ_M88_85556",
+              "ORACLE  GBLORACLE   2000-01-01",
+              "Pc",
+              "OnExecute"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "no ownership approval for verified new definitions",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "Mixed Case readback",
+      "ok": true,
+      "detail": 6
+    },
+    {
+      "name": "creation receipt classifies Custom",
+      "ok": true,
+      "detail": {
+        "ownership": "CUSTOM",
+        "confidence": "HIGH",
+        "evidence": [
+          "Studio verified creation on 2026-10-14T17:31:26.299Z; its stored version and save stamp still match the receipt."
+        ]
+      }
+    }
+  ]
+}

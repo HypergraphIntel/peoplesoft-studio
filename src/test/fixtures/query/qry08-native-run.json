@@ -1,0 +1,19 @@
+{
+  "database": "HRDMO",
+  "release": "8.62.09",
+  "query": "ZZ_QRY_LAB01",
+  "owner": "JARED",
+  "sql": "SELECT A.ESTABID\nFROM PS_AAP_TBL A\nWHERE ( A.ESTABID = :1)\nORDER BY 1 DESC",
+  "prompts": {
+    "1": "KU001"
+  },
+  "headings": [
+    "Lab Establishment"
+  ],
+  "rows": [
+    {
+      "ESTABID": "KU001"
+    }
+  ],
+  "evidence": "Windows Query SQL and Results tabs inspected 2026-10-14; one row fetched"
+}

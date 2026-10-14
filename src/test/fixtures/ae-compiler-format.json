@@ -1,0 +1,31 @@
+{
+  "database": "HRDMO",
+  "toolsRelease": "8.62.09",
+  "requestedSource": "Local string &x; &x = 'Y';",
+  "storedSource": "Local string &x;\n\n&x = \"Y\";\n",
+  "programHex": "a0000000002900000000000000000000000000000000000000000000000000000085000000444073007400720069006e006700000001260078000000152d4f012600780000000616590000001507",
+  "names": [
+    {
+      "OBJECTID1": "66",
+      "OBJECTVALUE1": "ZZ_M88_72556",
+      "OBJECTID2": "77",
+      "OBJECTVALUE2": "MAIN",
+      "OBJECTID3": "39",
+      "OBJECTVALUE3": "GBL",
+      "OBJECTID4": "20",
+      "OBJECTVALUE4": "default",
+      "OBJECTID5": "21",
+      "OBJECTVALUE5": "1900-01-01",
+      "OBJECTID6": "78",
+      "OBJECTVALUE6": "Init",
+      "OBJECTID7": "12",
+      "OBJECTVALUE7": "OnExecute",
+      "NAMENUM": "1",
+      "RECNAME": " ",
+      "REFNAME": " ",
+      "PACKAGEROOT": " ",
+      "QUALIFYPATH": " ",
+      "APPCLASSMETHOD": " "
+    }
+  ]
+}

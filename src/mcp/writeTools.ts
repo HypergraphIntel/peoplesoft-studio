@@ -1,8 +1,9 @@
+import {awaitWriteApproval} from '../providers/writeGuard.js';
 import { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 
 import { DefinitionType, displayName, type DefinitionKey } from '../model/definitions.js';
-import { FieldType } from '../model/record.js';
+import { FieldType, RecordType } from '../model/record.js';
 import { layoutEditRefusal } from '../model/recordEdit.js';
 import { applyRecordOperations, type RecordOperation } from '../model/recordOperations.js';
 import { applyPageOperations, pageLayoutForAgent, type PageOperation } from '../model/pageOperations.js';
@@ -76,10 +77,10 @@ export async function approve(host: McpWriteHost, gate: Gate, key: DefinitionKey
     throw new Error(`${displayName(key)} is open in VS Code with unsaved changes; the user must save or revert them first.`);
   }
   if (host.mode() === 'allow') return;
-  const ok = await host.confirm({
+  const ok = await awaitWriteApproval(host.confirm({
     title: `An AI agent wants to ${action} on ${gate.provider.displayName}.`,
     detail: `${detail}\n\nSaved as operator ${gate.operatorId}, through the PeopleSoft Studio MCP.`
-  });
+  }), 'MCP write approval');
   if (!ok) throw new Error('The user declined this write in VS Code; nothing was saved.');
 }
 
@@ -308,6 +309,26 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
     return done(gate, key, { version: r.version, controls: r.fieldCount, inserted: r.inserted, updated: r.updated, deleted: r.deleted });
   });
 
+  server.registerTool('psft_create_record', {
+    title: 'Create a record',
+    description: 'Create an SQL Table or Derived/Work record definition using the same field and property operations as psft_edit_record. ' +
+      'Insert existing fields with insert_field, then set their keys/edits/defaults/labels and record properties. An AE state record name ends AET. ' +
+      'This creates metadata only; building a physical SQL table is a separate operation. ' + GATES,
+    inputSchema: z.object({connection:z.string().min(1),record:z.string().min(1),recordType:z.enum(['sqlTable','derivedWork']),operations:z.array(recordOperation).min(1)}),
+    annotations: WRITE
+  }, async ({connection,record,recordType,operations}) => {
+    const name=record.trim().toUpperCase();
+    if(!/^[A-Z0-9_]{1,15}$/.test(name))throw new Error('Record name must be 1 to 15 letters, digits or underscores.');
+    const key:DefinitionKey={type:DefinitionType.Record,parts:[name]};
+    const gate=await writable(workspace,host,connection,name);
+    if(await gate.provider.recordNameStatus(name)==='exists')throw new Error(`A record named ${name} already exists.`);
+    const type=recordType==='sqlTable'?RecordType.Table:RecordType.DerivedWork;
+    const edit=applyRecordOperations({recname:name,recordType:type,openedVersion:0,fields:[],isNew:true},type,operations as RecordOperation[]);
+    await approve(host,gate,key,`create record ${name}`,`${recordType} definition:\n${operations.map(o=>describeOperation(o)).join('\n')}`);
+    const result=await gate.provider.saveRecord({edit,operatorId:gate.operatorId});
+    return done(gate,key,{created:true,version:result.version,recordType:edit.recordType,fields:edit.fields.map(f=>f.name)});
+  });
+
   server.registerTool('psft_edit_record', {
     title: 'Edit a record',
     description:
@@ -357,43 +378,44 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
       connection: z.string().min(1), name: z.string().min(1),
       type: z.enum(['character', 'longCharacter', 'number', 'signedNumber', 'date', 'time', 'dateTime', 'imageReference']),
       length: z.number().int(), decimalPositions: z.number().int().default(0),
+      format:z.enum(['uppercase','mixedCase']).optional().describe('Character format: uppercase (0, default) or mixedCase (6).'),
       longName: z.string().min(1).max(30), shortName: z.string().min(1).max(15)
     }),
     annotations: WRITE
-  }, async ({ connection, name, type, length, decimalPositions, longName, shortName }) => {
+  }, async ({ connection, name, type, length, decimalPositions, format, longName, shortName }) => {
     const field = name.trim().toUpperCase();
     const key: DefinitionKey = { type: DefinitionType.Field, parts: [field] };
-    const request = { name: field, type: FIELD_TYPES[type], length, decimalPositions, label: { id: field, longName, shortName } };
+    const request = { name: field, type: FIELD_TYPES[type], length, decimalPositions, ...(format!==undefined?{format:format==='mixedCase'?6:0}:{}), label: { id: field, longName, shortName } };
     const refusal = fieldCreateRefusal(request);
     if (refusal) throw new Error(refusal);
     const gate = await writable(workspace, host, connection, field);
-    await approve(host, gate, key, `create field ${field}`, `${type}, length ${length}${decimalPositions ? `, ${decimalPositions} decimals` : ''}; label "${longName}" / "${shortName}".`);
+    await approve(host, gate, key, `create field ${field}`, `${type}, length ${length}${decimalPositions ? `, ${decimalPositions} decimals` : ''}${type === 'character' ? `, format ${format ?? 'uppercase'}` : ''}; label "${longName}" / "${shortName}".`);
     const r = await gate.provider.createField({ ...request, operatorId: gate.operatorId });
-    return done(gate, key, { version: r.version });
+    return done(gate, key, { version: r.version,format:request.format??0 });
   });
 
   server.registerTool('psft_edit_field', {
     title: 'Edit a field',
     description:
-      'Change a field definition: its length / decimal positions, Description, and labels (send the whole list as it ' +
+      'Change a field definition: its character format (uppercase or mixedCase), length / decimal positions, Description, and labels (send the whole list as it ' +
       'is to be: id, longName, shortName, isDefault -- exactly one default). Records holding the field take its new ' +
       'version, as App Designer does. ' + GATES,
     inputSchema: z.object({
       connection: z.string().min(1), name: z.string().min(1), length: z.number().int().optional(), decimalPositions: z.number().int().optional(),
-      description: z.string().optional(),
+      description: z.string().optional(),format:z.enum(['uppercase','mixedCase']).optional(),
       labels: z.array(z.object({ id: z.string().min(1), longName: z.string().max(30), shortName: z.string().max(15), isDefault: z.boolean() })).optional()
     }),
     annotations: WRITE
-  }, async ({ connection, name, length, decimalPositions, description, labels }) => {
+  }, async ({ connection, name, length, decimalPositions, format, description, labels }) => {
     const key: DefinitionKey = { type: DefinitionType.Field, parts: [name.trim().toUpperCase()] };
     const gate = await writable(workspace, host, connection, key.parts[0]);
     const field = await gate.provider.readField(key);
     if (!field || field.version === undefined) throw new Error(`There is no field named ${key.parts[0]} on ${gate.provider.displayName}.`);
     const change = {
-      ...(length !== undefined ? { length } : {}), ...(decimalPositions !== undefined ? { decimalPositions } : {}),
+      ...(format!==undefined?{format:format==='mixedCase'?6:0}:{}), ...(length !== undefined ? { length } : {}), ...(decimalPositions !== undefined ? { decimalPositions } : {}),
       ...(description !== undefined ? { description } : {}), ...(labels ? { labels: labels as FieldLabelEdit[] } : {})
     };
-    if (Object.keys(change).length === 0) throw new Error('Nothing to change: give length, decimalPositions, description or labels.');
+    if (Object.keys(change).length === 0) throw new Error('Nothing to change: give format, length, decimalPositions, description or labels.');
     await approve(host, gate, key, `edit field ${key.parts[0]}`, describeOperation({ op: 'change', ...change }));
     const r = await gate.provider.saveField({ name: key.parts[0], openedVersion: field.version, operatorId: gate.operatorId, ...change });
     return done(gate, key, { version: r.version, records: r.records });
@@ -438,7 +460,9 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
 
   server.registerTool('psft_add_to_project', {
     title: 'Add definitions to a project',
-    description: 'Add definitions (type + key parts, as psft_search_definitions gives them) to a project as items. ' + GATES,
+    description: 'Add definitions (type + key parts, as psft_search_definitions gives them) to a project as items. ' +
+      'AE sections use type 34 with [program, section]. AE PeopleCode uses type 43 with ' +
+      '[program, section, market, platform, effectiveDate, step, OnExecute], or the packed key returned by search. ' + GATES,
     inputSchema: z.object({
       connection: z.string().min(1), project: z.string().min(1),
       items: z.array(z.object({ type: z.number().int(), parts: z.array(z.string()).min(1) })).min(1)

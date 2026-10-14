@@ -1,0 +1,201 @@
+{
+  "format": "query-property-capture/1",
+  "database": "HRDMO",
+  "release": "8.62.09",
+  "query": "ZZ_QRY_LAB02",
+  "owner": "",
+  "marker": {
+    "SCN": "39362789607744",
+    "CAPTURED_AT": "2026-10-14T10:31:20.782362-05:00"
+  },
+  "tables": {
+    "PSQRYBIND": [
+      {
+        "CAPTURE_ROWID": "AAAPHVAHlAAAMRIAAC",
+        "OPRID": " ",
+        "QRYNAME": "ZZ_QRY_LAB02",
+        "BNDNAME": "BIND1",
+        "BNDNUM": "1",
+        "FIELDNAME": "ESTABID",
+        "HDGTYPE": "4",
+        "HEADING": "Establishment ID",
+        "FIELDTYPE": "0",
+        "LENGTH": "12",
+        "DECIMALPOS": "0",
+        "FORMAT": "0",
+        "EDITTABLE": "ESTAB_TBL",
+        "USECOUNT": "0",
+        "USEEDIT": "16384",
+        "QRYREQUIREDPROMPT": "Y",
+        "QRYPROMPTDEFAULT": " "
+      },
+      {
+        "CAPTURE_ROWID": "AAAPHVAHlAAAMRIAAD",
+        "OPRID": " ",
+        "QRYNAME": "ZZ_QRY_LAB02",
+        "BNDNAME": "BIND2",
+        "BNDNUM": "2",
+        "FIELDNAME": "DESCR",
+        "HDGTYPE": "4",
+        "HEADING": "Description",
+        "FIELDTYPE": "0",
+        "LENGTH": "30",
+        "DECIMALPOS": "0",
+        "FORMAT": "6",
+        "EDITTABLE": " ",
+        "USECOUNT": "1",
+        "USEEDIT": "0",
+        "QRYREQUIREDPROMPT": "Y",
+        "QRYPROMPTDEFAULT": " "
+      }
+    ],
+    "PSQRYCRITERIA": [
+      {
+        "CAPTURE_ROWID": "AAAPHaAHmAAAFoKAAB",
+        "OPRID": " ",
+        "QRYNAME": "ZZ_QRY_LAB02",
+        "SELNUM": "1",
+        "CRTNUM": "1",
+        "COMBTYPE": "3",
+        "NEGATION": " ",
+        "LPARENLVL": "0",
+        "LCRTSELNUM": "1",
+        "LCRTFLDNUM": "2",
+        "CONDTYPE": "2",
+        "EXPRTYPE": "8",
+        "R1CRTSELNUM": "0",
+        "R1CRTFLDNUM": "0",
+        "R1CRTEXPNUM": "1",
+        "R2CRTSELNUM": "0",
+        "R2CRTFLDNUM": "0",
+        "R2CRTEXPNUM": "0",
+        "RPARENLVL": "0",
+        "QRYOJSELNUM": "0"
+      }
+    ],
+    "PSQRYDEFN": [
+      {
+        "CAPTURE_ROWID": "AAAPHdAHXAACPcyAAC",
+        "OPRID": " ",
+        "QRYNAME": "ZZ_QRY_LAB02",
+        "DESCR": " ",
+        "VERSION": "15",
+        "QRYTYPE": "1",
+        "SELCOUNT": "1",
+        "EXPCOUNT": "1",
+        "BNDCOUNT": "2",
+        "QRYVALID": "0",
+        "LASTUPDDTTM": "2026-10-14T10:31:08.137183000",
+        "LASTUPDOPRID": "JARED",
+        "QRYAPPROVED": "A",
+        "CREATEOPRID": "JARED",
+        "CREATEDTTM": "2026-10-14T10:12:46.000000000",
+        "APPROVEOPRID": " ",
+        "APPROVEDTTM": null,
+        "EXECLOGGING": " ",
+        "QRYDISABLED": " ",
+        "QRYFOLDER": " ",
+        "QRYJOINOPTIMIZE": "0",
+        "QRYIMGTYPE": "0",
+        "DESCRLONG": null
+      }
+    ],
+    "PSQRYEXPR": [
+      {
+        "CAPTURE_ROWID": "AAAPHuAHXAACPiKAAB",
+        "OPRID": " ",
+        "QRYNAME": "ZZ_QRY_LAB02",
+        "EXPNUM": "1",
+        "FIELDTYPE": "0",
+        "LENGTH": "0",
+        "DECIMALPOS": "0",
+        "USECOUNT": "1",
+        "EXPRESSIONTEXT": ":2"
+      }
+    ],
+    "PSQRYFIELD": [
+      {
+        "CAPTURE_ROWID": "AAAPH0AHmAAAF2KAAF",
+        "OPRID": " ",
+        "QRYNAME": "ZZ_QRY_LAB02",
+        "QRYFLDNAME": "A.DESCR",
+        "SELNUM": "1",
+        "FLDNUM": "2",
+        "RECNAME": "AAP_TBL",
+        "FIELDNAME": "DESCR",
+        "FLDRCDNUM": "1",
+        "FLDEXPNUM": "0",
+        "HDGTYPE": "3",
+        "HEADING": " ",
+        "COLUMNNUM": "1",
+        "GROUPBYNUM": "0",
+        "ORDERBYNUM": "0",
+        "ORDERBYDIR": " ",
+        "TTLTYPE": "1",
+        "SUBTTLNUM": "0",
+        "USECOUNT": "1",
+        "XLATTYPE": "1",
+        "XLATEXPRTYPE": "6",
+        "XLATFLDNUM": "0",
+        "XLATEXPNUM": "0",
+        "AGGREGATEFUNC": " "
+      },
+      {
+        "CAPTURE_ROWID": "AAAPH0AHmAAAF2KAAE",
+        "OPRID": " ",
+        "QRYNAME": "ZZ_QRY_LAB02",
+        "QRYFLDNAME": "A.ESTABID",
+        "SELNUM": "1",
+        "FLDNUM": "1",
+        "RECNAME": "AAP_TBL",
+        "FIELDNAME": "ESTABID",
+        "FLDRCDNUM": "1",
+        "FLDEXPNUM": "0",
+        "HDGTYPE": "1",
+        "HEADING": " ",
+        "COLUMNNUM": "0",
+        "GROUPBYNUM": "0",
+        "ORDERBYNUM": "0",
+        "ORDERBYDIR": "D",
+        "TTLTYPE": "1",
+        "SUBTTLNUM": "0",
+        "USECOUNT": "0",
+        "XLATTYPE": "1",
+        "XLATEXPRTYPE": "6",
+        "XLATFLDNUM": "0",
+        "XLATEXPNUM": "0",
+        "AGGREGATEFUNC": " "
+      }
+    ],
+    "PSQRYRECORD": [
+      {
+        "CAPTURE_ROWID": "AAAPIGAHlAAAMSLAAZ",
+        "OPRID": " ",
+        "QRYNAME": "ZZ_QRY_LAB02",
+        "SELNUM": "1",
+        "RCDNUM": "1",
+        "RECNAME": "AAP_TBL",
+        "JOINTYPE": "1",
+        "JOINRCDNUM": "0",
+        "JOINFLDNUM": "0",
+        "CORRNAME": "A",
+        "QRYRECPRUNABLE": " "
+      }
+    ],
+    "PSQRYSELECT": [
+      {
+        "CAPTURE_ROWID": "AAAPIIAHlAAAMSkABp",
+        "OPRID": " ",
+        "QRYNAME": "ZZ_QRY_LAB02",
+        "SELNUM": "1",
+        "SELECTTYPE": "1",
+        "PARENTSELNUM": "0",
+        "RCDCOUNT": "1",
+        "FLDCOUNT": "2",
+        "CRTCOUNT": "1",
+        "QRYDISTINCT": " ",
+        "HAVECRTCOUNT": "0"
+      }
+    ]
+  }
+}

@@ -1,3 +1,4 @@
+import {sameLexicalSource} from './sourceEquivalence.js';
 import { createHash } from 'node:crypto';
 import { encodeProgramArtifacts, type PeopleCodeReference } from '../encoder.js';
 import { decodeProgram } from '../decoder.js';
@@ -295,7 +296,15 @@ export function compileForSave(source: string, target: CompileTarget, toolsRelea
   }
   const names = referencesToNameRows(artifacts.references);
   const decoded = decodeProgram(artifacts.program, nameTable(names), { mode: 'strict', isApplicationClass: target.applicationClass });
-  if (decoded.unknownOpcodes.length > 0 || !sourcesMatch(source, decoded.text)) {
+  let exactReconstruction=sourcesMatch(source,decoded.text);
+  if(!exactReconstruction && decoded.unknownOpcodes.length===0 && sameLexicalSource(source,decoded.text)){
+    const reconstructed=encodeProgramArtifacts(prepareSourceForSave(decoded.text),{
+      owner:{recordName:target.recordName,fieldName:target.fieldName,...(target.packagePath?{packagePath:target.packagePath}:{})},
+      applicationClassDefinition:target.applicationClass,profile:compilerProfileForToolsRelease(toolsRelease)
+    });
+    exactReconstruction=artifacts.program.equals(reconstructed.program) && JSON.stringify(names)===JSON.stringify(referencesToNameRows(reconstructed.references));
+  }
+  if (decoded.unknownOpcodes.length > 0 || !exactReconstruction) {
     throw new SaveRefusedError('The compiled program does not decode back to the source being saved; refusing to write it.');
   }
   return { program: artifacts.program, names, progextends: progExtendsFor(source, target) };

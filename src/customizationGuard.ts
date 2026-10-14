@@ -1,10 +1,11 @@
+import {creationKey,setCreationStore,type CreationReceipt} from './providers/creationProvenance.js';
 import * as vscode from 'vscode';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { displayName } from './model/definitions.js';
 import { decideWrite, OWNERSHIP_LABELS, type Classification } from './model/ownership.js';
 import { DatabaseProvider } from './providers/database.js';
 import { BaselineIndex, setBaselineResolver, type BaselineFile, type DatabaseRelease } from './providers/ownershipReader.js';
-import { setPolicyReader, setWriteGuard, type GuardedWrite } from './providers/writeGuard.js';
+import { awaitWriteApproval, setPolicyReader, setWriteGuard, type GuardedWrite } from './providers/writeGuard.js';
 import { readCustomizationPolicy } from './views/customizationView.js';
 import type { Workspace } from './workspace.js';
 
@@ -27,6 +28,31 @@ export function installCustomizationGuard(context: vscode.ExtensionContext, work
   /** Approvals for the rest of the session: connection, type, key. */
   const sessionApprovals = new Set<string>();
   const cache = new Map<string, { mtime: number; index: BaselineIndex }>();
+
+  const receiptFile=vscode.Uri.joinPath(storage,'creation-receipts.json');
+  const receipts=new Map<string,CreationReceipt>();
+  const loaded=(async()=>{
+    let bytes:Uint8Array;
+    try{bytes=await vscode.workspace.fs.readFile(receiptFile);}catch(e){if((e as {code?:string}).code==='FileNotFound' || (e as Error).message?.includes('ENOENT'))return;throw e;}
+    const file=JSON.parse(Buffer.from(bytes).toString('utf8')) as {format:string;receipts:CreationReceipt[]};
+    if(file.format!=='psft-creation-receipts/1' || !Array.isArray(file.receipts))throw new Error('Invalid creation receipt file.');
+    for(const r of file.receipts){
+      if(typeof r.scope!=='string' || typeof r.createdAt!=='string' || !r.key || !Number.isInteger(r.key.type) || !Array.isArray(r.key.parts)
+        || r.key.parts.some(p=>typeof p!=='string') || !Number.isFinite(r.stamp?.version) || typeof r.stamp.operator!=='string' || typeof r.stamp.updated!=='string')throw new Error('Invalid creation receipt.');
+      receipts.set(creationKey(r.scope,r.key),r);
+    }
+  })();
+  // Observe rejected loads immediately; callers still fail closed rather than silently discarding a corrupt ledger.
+  void loaded.catch(e=>output.appendLine(`Creation receipts unavailable: ${e instanceof Error?e.message:String(e)}`));
+  let writes=Promise.resolve();
+  setCreationStore({
+    find:async(scope,key)=>{await loaded;return receipts.get(creationKey(scope,key));},
+    put:receipt=>{
+      const next=writes.then(async()=>{await loaded;receipts.set(creationKey(receipt.scope,receipt.key),receipt);await vscode.workspace.fs.createDirectory(storage);
+        await vscode.workspace.fs.writeFile(receiptFile,Buffer.from(JSON.stringify({format:'psft-creation-receipts/1',receipts:[...receipts.values()]})));});
+      writes=next.catch(()=>{});return next;
+    }
+  });
 
   setPolicyReader(() => readCustomizationPolicy());
 
@@ -97,10 +123,10 @@ export function installCustomizationGuard(context: vscode.ExtensionContext, work
     // A person's session approval does not cover an agent's writes, nor the other way round.
     const session = `${origin}\u0000${provider.id}\u0000${key.type}\u0000${key.parts.join('.')}`;
     if (sessionApprovals.has(session)) { await record('approved for the session'); return; }
-    const answer = await vscode.window.showWarningMessage(
+    const answer = await awaitWriteApproval(vscode.window.showWarningMessage(
       `${agent ? 'An AI agent wants to ' + action : VERBS[action]} ${name}${agent ? ' through the MCP' : ''}. ${decision.reason}`,
       { modal: true, detail: `${OWNERSHIP_LABELS[classification.ownership]} (${classification.confidence.toLowerCase()} confidence) on ${provider.displayName}:\n- ${classification.evidence.join('\n- ')}\n\nThis is the delivered-object approval (peoplesoft.customization.${policyName}); it covers this ${action} only, or this definition for the rest of the session${agent ? ' (agent writes only)' : ''}.` },
-      'Approve', 'Approve for This Session');
+      'Approve', 'Approve for This Session'), 'Delivered-object approval');
     if (!answer) {
       await record('declined');
       throw new Error(`${VERBS[action]} of ${name} not approved: nothing was written.`);
@@ -111,7 +137,7 @@ export function installCustomizationGuard(context: vscode.ExtensionContext, work
 
   context.subscriptions.push(
     output,
-    { dispose: () => { setWriteGuard(undefined); setBaselineResolver(undefined); } },
+    { dispose: () => { setWriteGuard(undefined); setBaselineResolver(undefined); setCreationStore(undefined); } },
     vscode.commands.registerCommand('psft.customization.showAuditLog', async () => {
       try {
         await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(auditFile));

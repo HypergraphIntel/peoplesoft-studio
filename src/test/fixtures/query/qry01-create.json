@@ -1,0 +1,819 @@
+{
+  "format": "save-protocol-delta/1",
+  "case": "qry01-create",
+  "database": "HRDMO",
+  "peopleToolsRelease": "8.62.09",
+  "markers": {
+    "before": {
+      "scn": "39362789511748",
+      "timestamp": "2026-10-14T09:41:47.881636000-05:00"
+    },
+    "after": {
+      "scn": "39362789513573",
+      "timestamp": "2026-10-14T09:42:54.617634000-05:00"
+    }
+  },
+  "summary": {
+    "psversion": {
+      "QDM": {
+        "before": 2,
+        "after": 3,
+        "delta": 1
+      },
+      "SYS": {
+        "before": 3041,
+        "after": 3042,
+        "delta": 1
+      }
+    },
+    "pslock": {
+      "QDM": {
+        "before": 2,
+        "after": 3,
+        "delta": 1
+      }
+    },
+    "incomplete": []
+  },
+  "watch": {
+    "PSVERSION": {
+      "columns": [
+        {
+          "name": "OBJECTTYPENAME",
+          "type": "VARCHAR2",
+          "length": 32,
+          "nullable": false
+        },
+        {
+          "name": "VERSION",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        }
+      ],
+      "inserted": [],
+      "deleted": [],
+      "updated": [
+        {
+          "key": {
+            "OBJECTTYPENAME": "QDM"
+          },
+          "changes": {
+            "VERSION": {
+              "before": "2",
+              "after": "3"
+            }
+          }
+        },
+        {
+          "key": {
+            "OBJECTTYPENAME": "SYS"
+          },
+          "changes": {
+            "VERSION": {
+              "before": "3041",
+              "after": "3042"
+            }
+          }
+        }
+      ]
+    },
+    "PSLOCK": {
+      "columns": [
+        {
+          "name": "OBJECTTYPENAME",
+          "type": "VARCHAR2",
+          "length": 32,
+          "nullable": false
+        },
+        {
+          "name": "VERSION",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        }
+      ],
+      "inserted": [],
+      "deleted": [],
+      "updated": [
+        {
+          "key": {
+            "OBJECTTYPENAME": "QDM"
+          },
+          "changes": {
+            "VERSION": {
+              "before": "2",
+              "after": "3"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "otherTables": {
+    "PSQRYCRITERIA": {
+      "columns": [
+        {
+          "name": "OPRID",
+          "type": "VARCHAR2",
+          "length": 120,
+          "nullable": false
+        },
+        {
+          "name": "QRYNAME",
+          "type": "VARCHAR2",
+          "length": 120,
+          "nullable": false
+        },
+        {
+          "name": "SELNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "CRTNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "COMBTYPE",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "NEGATION",
+          "type": "VARCHAR2",
+          "length": 4,
+          "nullable": false
+        },
+        {
+          "name": "LPARENLVL",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "LCRTSELNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "LCRTFLDNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "CONDTYPE",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "EXPRTYPE",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "R1CRTSELNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "R1CRTFLDNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "R1CRTEXPNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "R2CRTSELNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "R2CRTFLDNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "R2CRTEXPNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "RPARENLVL",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "QRYOJSELNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        }
+      ],
+      "inserted": [
+        {
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "SELNUM": "1",
+          "CRTNUM": "1",
+          "COMBTYPE": "3",
+          "NEGATION": " ",
+          "LPARENLVL": "0",
+          "LCRTSELNUM": "1",
+          "LCRTFLDNUM": "1",
+          "CONDTYPE": "2",
+          "EXPRTYPE": "1",
+          "R1CRTSELNUM": "0",
+          "R1CRTFLDNUM": "0",
+          "R1CRTEXPNUM": "1",
+          "R2CRTSELNUM": "0",
+          "R2CRTFLDNUM": "0",
+          "R2CRTEXPNUM": "0",
+          "RPARENLVL": "0",
+          "QRYOJSELNUM": "0"
+        }
+      ],
+      "deleted": [],
+      "updated": []
+    },
+    "PSQRYDEFN": {
+      "columns": [
+        {
+          "name": "OPRID",
+          "type": "VARCHAR2",
+          "length": 120,
+          "nullable": false
+        },
+        {
+          "name": "QRYNAME",
+          "type": "VARCHAR2",
+          "length": 120,
+          "nullable": false
+        },
+        {
+          "name": "DESCR",
+          "type": "VARCHAR2",
+          "length": 120,
+          "nullable": false
+        },
+        {
+          "name": "VERSION",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "QRYTYPE",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "SELCOUNT",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "EXPCOUNT",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "BNDCOUNT",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "QRYVALID",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "LASTUPDDTTM",
+          "type": "TIMESTAMP(6)",
+          "length": 11,
+          "nullable": true
+        },
+        {
+          "name": "LASTUPDOPRID",
+          "type": "VARCHAR2",
+          "length": 120,
+          "nullable": false
+        },
+        {
+          "name": "QRYAPPROVED",
+          "type": "VARCHAR2",
+          "length": 4,
+          "nullable": false
+        },
+        {
+          "name": "CREATEOPRID",
+          "type": "VARCHAR2",
+          "length": 120,
+          "nullable": false
+        },
+        {
+          "name": "CREATEDTTM",
+          "type": "TIMESTAMP(6)",
+          "length": 11,
+          "nullable": true
+        },
+        {
+          "name": "APPROVEOPRID",
+          "type": "VARCHAR2",
+          "length": 120,
+          "nullable": false
+        },
+        {
+          "name": "APPROVEDTTM",
+          "type": "TIMESTAMP(6)",
+          "length": 11,
+          "nullable": true
+        },
+        {
+          "name": "EXECLOGGING",
+          "type": "VARCHAR2",
+          "length": 4,
+          "nullable": false
+        },
+        {
+          "name": "QRYDISABLED",
+          "type": "VARCHAR2",
+          "length": 4,
+          "nullable": false
+        },
+        {
+          "name": "QRYFOLDER",
+          "type": "VARCHAR2",
+          "length": 72,
+          "nullable": false
+        },
+        {
+          "name": "QRYJOINOPTIMIZE",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "QRYIMGTYPE",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "DESCRLONG",
+          "type": "CLOB",
+          "length": 4000,
+          "nullable": true
+        }
+      ],
+      "inserted": [
+        {
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "DESCR": " ",
+          "VERSION": "3",
+          "QRYTYPE": "1",
+          "SELCOUNT": "1",
+          "EXPCOUNT": "1",
+          "BNDCOUNT": "0",
+          "QRYVALID": "0",
+          "LASTUPDDTTM": "2026-10-14T09:42:45.715236000",
+          "LASTUPDOPRID": "JARED",
+          "QRYAPPROVED": "A",
+          "CREATEOPRID": "JARED",
+          "CREATEDTTM": "2026-10-14T09:42:46.000000000",
+          "APPROVEOPRID": " ",
+          "APPROVEDTTM": null,
+          "EXECLOGGING": " ",
+          "QRYDISABLED": " ",
+          "QRYFOLDER": " ",
+          "QRYJOINOPTIMIZE": "0",
+          "QRYIMGTYPE": "0",
+          "DESCRLONG": null
+        }
+      ],
+      "deleted": [],
+      "updated": []
+    },
+    "PSQRYEXPR": {
+      "columns": [
+        {
+          "name": "OPRID",
+          "type": "VARCHAR2",
+          "length": 120,
+          "nullable": false
+        },
+        {
+          "name": "QRYNAME",
+          "type": "VARCHAR2",
+          "length": 120,
+          "nullable": false
+        },
+        {
+          "name": "EXPNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "FIELDTYPE",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "LENGTH",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "DECIMALPOS",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "USECOUNT",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "EXPRESSIONTEXT",
+          "type": "CLOB",
+          "length": 4000,
+          "nullable": true
+        }
+      ],
+      "inserted": [
+        {
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "EXPNUM": "1",
+          "FIELDTYPE": "0",
+          "LENGTH": "0",
+          "DECIMALPOS": "0",
+          "USECOUNT": "1",
+          "EXPRESSIONTEXT": " "
+        }
+      ],
+      "deleted": [],
+      "updated": []
+    },
+    "PSQRYFIELD": {
+      "columns": [
+        {
+          "name": "OPRID",
+          "type": "VARCHAR2",
+          "length": 120,
+          "nullable": false
+        },
+        {
+          "name": "QRYNAME",
+          "type": "VARCHAR2",
+          "length": 120,
+          "nullable": false
+        },
+        {
+          "name": "QRYFLDNAME",
+          "type": "VARCHAR2",
+          "length": 120,
+          "nullable": false
+        },
+        {
+          "name": "SELNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "FLDNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "RECNAME",
+          "type": "VARCHAR2",
+          "length": 60,
+          "nullable": false
+        },
+        {
+          "name": "FIELDNAME",
+          "type": "VARCHAR2",
+          "length": 72,
+          "nullable": false
+        },
+        {
+          "name": "FLDRCDNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "FLDEXPNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "HDGTYPE",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "HEADING",
+          "type": "VARCHAR2",
+          "length": 120,
+          "nullable": false
+        },
+        {
+          "name": "COLUMNNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "GROUPBYNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "ORDERBYNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "ORDERBYDIR",
+          "type": "VARCHAR2",
+          "length": 4,
+          "nullable": false
+        },
+        {
+          "name": "TTLTYPE",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "SUBTTLNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "USECOUNT",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "XLATTYPE",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "XLATEXPRTYPE",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "XLATFLDNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "XLATEXPNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "AGGREGATEFUNC",
+          "type": "VARCHAR2",
+          "length": 4,
+          "nullable": false
+        }
+      ],
+      "inserted": [
+        {
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "QRYFLDNAME": "A.ESTABID",
+          "SELNUM": "1",
+          "FLDNUM": "1",
+          "RECNAME": "AAP_TBL",
+          "FIELDNAME": "ESTABID",
+          "FLDRCDNUM": "1",
+          "FLDEXPNUM": "0",
+          "HDGTYPE": "3",
+          "HEADING": " ",
+          "COLUMNNUM": "1",
+          "GROUPBYNUM": "0",
+          "ORDERBYNUM": "0",
+          "ORDERBYDIR": " ",
+          "TTLTYPE": "1",
+          "SUBTTLNUM": "0",
+          "USECOUNT": "1",
+          "XLATTYPE": "1",
+          "XLATEXPRTYPE": "6",
+          "XLATFLDNUM": "0",
+          "XLATEXPNUM": "0",
+          "AGGREGATEFUNC": " "
+        }
+      ],
+      "deleted": [],
+      "updated": []
+    },
+    "PSQRYRECORD": {
+      "columns": [
+        {
+          "name": "OPRID",
+          "type": "VARCHAR2",
+          "length": 120,
+          "nullable": false
+        },
+        {
+          "name": "QRYNAME",
+          "type": "VARCHAR2",
+          "length": 120,
+          "nullable": false
+        },
+        {
+          "name": "SELNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "RCDNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "RECNAME",
+          "type": "VARCHAR2",
+          "length": 60,
+          "nullable": false
+        },
+        {
+          "name": "JOINTYPE",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "JOINRCDNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "JOINFLDNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "CORRNAME",
+          "type": "VARCHAR2",
+          "length": 20,
+          "nullable": false
+        },
+        {
+          "name": "QRYRECPRUNABLE",
+          "type": "VARCHAR2",
+          "length": 4,
+          "nullable": false
+        }
+      ],
+      "inserted": [
+        {
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "SELNUM": "1",
+          "RCDNUM": "1",
+          "RECNAME": "AAP_TBL",
+          "JOINTYPE": "1",
+          "JOINRCDNUM": "0",
+          "JOINFLDNUM": "0",
+          "CORRNAME": "A",
+          "QRYRECPRUNABLE": " "
+        }
+      ],
+      "deleted": [],
+      "updated": []
+    },
+    "PSQRYSELECT": {
+      "columns": [
+        {
+          "name": "OPRID",
+          "type": "VARCHAR2",
+          "length": 120,
+          "nullable": false
+        },
+        {
+          "name": "QRYNAME",
+          "type": "VARCHAR2",
+          "length": 120,
+          "nullable": false
+        },
+        {
+          "name": "SELNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "SELECTTYPE",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "PARENTSELNUM",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "RCDCOUNT",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "FLDCOUNT",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "CRTCOUNT",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        },
+        {
+          "name": "QRYDISTINCT",
+          "type": "VARCHAR2",
+          "length": 4,
+          "nullable": false
+        },
+        {
+          "name": "HAVECRTCOUNT",
+          "type": "NUMBER",
+          "length": 22,
+          "nullable": false
+        }
+      ],
+      "inserted": [
+        {
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "SELNUM": "1",
+          "SELECTTYPE": "1",
+          "PARENTSELNUM": "0",
+          "RCDCOUNT": "1",
+          "FLDCOUNT": "1",
+          "CRTCOUNT": "1",
+          "QRYDISTINCT": " ",
+          "HAVECRTCOUNT": "0"
+        }
+      ],
+      "deleted": [],
+      "updated": []
+    }
+  }
+}

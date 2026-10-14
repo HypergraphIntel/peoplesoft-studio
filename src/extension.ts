@@ -10,6 +10,10 @@ import { RecordEditorProvider } from './editors/recordEditor.js';
 import { RecordSaveRefusedError } from './model/recordEdit.js';
 import { FieldEditorProvider } from './editors/fieldEditor.js';
 import { OpenDefinitionPanel } from './editors/openDefinitionPanel.js';
+import { newQueryDocument, copyQueryDocument, type QueryFieldInfo } from './model/queryDocument.js';
+import { queryToken } from './model/querySavePlan.js';
+import type { QueryEdit } from './providers/queryWriter.js';
+import { QueryDesignerPanel } from './editors/queryDesignerPanel.js';
 import { DefinitionKey, DefinitionType, displayName, makeKey, typeLabel } from './model/definitions.js';
 import { setWriteNamePrefix, writeNamePrefix, writeScopeRefusal } from './providers/writeScope.js';
 import { RECORD_FIELD_EVENTS } from './model/recordEvents.js';
@@ -676,6 +680,39 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       refreshAll();
     }),
 
+    vscode.commands.registerCommand('psft.query.open', async () => {
+      await withError('Opening PS Query', async () => {
+        const connected = workspace.activeProviders.filter(p => p.isConnected && p instanceof DatabaseProvider);
+        const provider = connected.find(p => p.id === workspace.selectedConnectionId) ?? connected[0];
+        if (!(provider instanceof DatabaseProvider)) throw new Error('Connect to a PeopleSoft database to open PS Query.');
+        const pattern = await vscode.window.showInputBox({ title: `PS Query — ${provider.displayName}`, prompt: 'Public or your private query name (% matches any text)', value: '%', ignoreFocusOut: true });
+        if (pattern === undefined) return;
+        const found = await provider.searchQueries(pattern.trim() || '%', workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim() ?? '');
+        if (!found.length) { vscode.window.showInformationMessage('No queries match that name.'); return; }
+        const picked = await vscode.window.showQuickPick(found.map(q => ({ label: q.key.parts[0], description: q.description, key: q.key })),
+          { title: 'Open PS Query', placeHolder: 'Choose a query (up to 500 matches)', matchOnDescription: true });
+        if (picked) await showQueryDesigner(workspace, provider, picked.key);
+      });
+    }),
+
+    vscode.commands.registerCommand('psft.query.new', async () => {
+      await withError('Creating PS Query', async () => {
+        const provider=workspace.activeProviders.find(p=>p.id===workspace.selectedConnectionId && p.isConnected)
+          ?? workspace.activeProviders.find(p=>p.isConnected && p instanceof DatabaseProvider);
+        if(!(provider instanceof DatabaseProvider))throw new Error('Connect to a PeopleSoft database first.');
+        if(provider.platform!=='oracle')throw new Error('New Query is currently calibrated on Oracle.');
+        const operator=workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim();
+        if(!workspace.isWritable(provider.id) || !operator)throw new Error('New Query requires a Writable connection and PeopleSoft Operator ID.');
+        const target=await queryTarget(provider,operator);if(!target)return;
+        const record=await vscode.window.showInputBox({title:'New PS Query — Record',prompt:'SQL Table record name',value:'AAP_TBL',ignoreFocusOut:true});
+        if(!record)return;
+        const layout=await provider.readRecordLayout(makeKey(DefinitionType.Record,record.trim().toUpperCase()));
+        if(!layout || layout.recordType!==RecordType.Table || layout.fields.some(f=>f.isSubrecord))throw new Error('Choose a SQL Table record without subrecords for this first release.');
+        const doc=newQueryDocument(target.name,target.owner,layout.name);
+        await showQueryDesigner(workspace,provider,makeKey(DefinitionType.Query,target.name,target.owner),{view:doc,token:'absent'});
+      });
+    }),
+
     vscode.commands.registerCommand('psft.openDefinition',
       async (connectionId: string, key: DefinitionKey) => {
         await withError(`Opening ${displayName(key)}`, async () => {
@@ -699,6 +736,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           }
 
           const provider = await workspace.require(connectionId);
+          if (key.type === DefinitionType.Query && provider instanceof DatabaseProvider) {
+            await showQueryDesigner(workspace, provider, key);
+            return;
+          }
           if ((key.type === DefinitionType.AppEngineProgram || key.type === DefinitionType.AppEngineSection) && provider instanceof DatabaseProvider) {
             await showAeDesigner(workspace, provider, key.parts[0]);
             return;
@@ -1799,6 +1840,48 @@ async function saveAnyway<T>(save: (saveInvalid: boolean) => Promise<T>): Promis
     if (answer !== yes) throw new Error(`Not saved: ${err.problems.map((p) => p.text).join(' ')}`);
     return save(true);
   }
+}
+
+async function queryTarget(provider: DatabaseProvider, operator: string): Promise<{name:string;owner:string}|undefined> {
+  const name=await vscode.window.showInputBox({title:'Save PS Query As',prompt:'New query name',ignoreFocusOut:true,
+    validateInput:value=>!/^[A-Z][A-Z0-9_]*$/.test(value.trim().toUpperCase())?'Use letters, digits and underscores, starting with a letter.':writeScopeRefusal(value.trim().toUpperCase())});
+  if(!name)return;
+  const visibility=await vscode.window.showQuickPick(['Private','Public'],{title:'Query visibility'});if(!visibility)return;
+  const target={name:name.trim().toUpperCase(),owner:visibility==='Private'?operator:''};
+  if(await provider.readQueryDocument(target.name,target.owner))throw new Error('A query with that name and owner already exists.');
+  return target;
+}
+
+/** Host-owned Query document. Unsupported definitions retain their readable native grids. */
+async function showQueryDesigner(workspace: Workspace, provider: DatabaseProvider, key: DefinitionKey, initial?: QueryEdit): Promise<void> {
+  const edit=initial ?? (provider.platform==='oracle'?await provider.readQueryDocument(key.parts[0],key.parts[1] ?? ''):await provider.readQueryDefinition(key).then(view=>({view,token:queryToken(view)})));
+  if(!edit)throw new Error('Query not found.');
+  const operator=workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim() ?? '';
+  const metadata: Record<string,QueryFieldInfo & import('./editors/queryDesignerHtml.js').QueryFieldMetadata>={};
+  let basic=false;
+  if(edit.view.records.length===1){
+    const record=await provider.readRecordLayout(makeKey(DefinitionType.Record,String(edit.view.records[0].RECNAME).trim()));
+    if(record){
+      basic=record.recordType===RecordType.Table && !record.fields.some(f=>f.isSubrecord);
+      for(const f of record.fields)if(f.type!==undefined && f.length!==undefined)metadata[f.name]={
+        type:f.type,length:f.length,decimalPositions:f.decimalPositions??0,format:f.format??0,
+        shortName:f.shortName,longName:f.longName,editTable:f.editTable,useEdit:f.useEdit,labels:f.labels??[{id:'',shortName:f.shortName,longName:f.longName,isDefault:true}]};
+    }
+  }
+  if(edit.token!=='absent')try{await provider.prepareQuery(edit.view,operator);}catch{basic=false;}
+  const editable=basic && workspace.isWritable(provider.id) && !!operator && !writeScopeRefusal(key.parts[0]);
+  await QueryDesignerPanel.show(provider,edit,{
+    editable,metadata,
+    prepare:view=>provider.prepareQuery(view,operator),
+    run:(view,values,limit)=>provider.runQuery(view,operator,values,limit),
+    save:(view,token)=>provider.saveQueryDocument({view,openedToken:token,operatorId:operator}),
+    reload:()=>provider.platform==='oracle'?provider.readQueryDocument(key.parts[0],key.parts[1]??''):provider.readQueryDefinition(key).then(view=>({view,token:queryToken(view)})),
+    saveAs:async view=>{
+      const target=await queryTarget(provider,operator);if(!target)return;
+      const copy=copyQueryDocument(view,target.name,target.owner);
+      await showQueryDesigner(workspace,provider,makeKey(DefinitionType.Query,target.name,target.owner),{view:copy,token:'absent'});
+    }
+  });
 }
 
 /**

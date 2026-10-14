@@ -148,12 +148,13 @@ export async function readOwnershipEvidence(c: Connection, key: DefinitionKey, p
   if (!spec) return { exists: false };
   const values = spec.values(key);
   const binds = Object.fromEntries(values.map((v, i) => [`k${i}`, v]));
-  const [row] = await select<{ OPRID: string; DTTM: string }>(c,
-    `SELECT LASTUPDOPRID AS OPRID, TO_CHAR(LASTUPDDTTM, ${TIMESTAMP_FORMAT}) AS DTTM FROM ${spec.table}
+  const hasVersion=[DefinitionType.Field,DefinitionType.Record,DefinitionType.AppEngineProgram].includes(key.type);
+  const [row] = await select<{ OPRID: string; DTTM: string; VERSION?:number }>(c,
+    `SELECT ${hasVersion?'VERSION, ':''}LASTUPDOPRID AS OPRID, TO_CHAR(LASTUPDDTTM, ${TIMESTAMP_FORMAT}) AS DTTM FROM ${spec.table}
       WHERE ${spec.columns.map((col, i) => `${col} = :k${i}`).join(' AND ')}${spec.extra ? ` AND ${spec.extra}` : ''} FETCH FIRST 1 ROWS ONLY`, binds);
   if (!row) return { exists: false };
   return {
-    exists: true, operator: String(row.OPRID ?? '').trim(), updated: String(row.DTTM ?? '').slice(0, 19),
+    exists: true, operator: String(row.OPRID ?? '').trim(), updated: String(row.DTTM ?? ''), ...(hasVersion?{version:Number(row.VERSION)}:{}),
     ...(baseline?.covers(spec.table) ? { baseline: { label: baseline.label, contains: baseline.has(spec.table, values.join('.')) } } : {}),
     ...withPrefix(key.parts[0], prefixes),
     ...await deliveredProject(c, key, prefixes)

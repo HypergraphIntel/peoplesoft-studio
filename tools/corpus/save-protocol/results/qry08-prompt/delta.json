@@ -1,0 +1,348 @@
+{
+  "format": "query-property-capture/1",
+  "database": "HRDMO",
+  "release": "8.62.09",
+  "query": "ZZ_QRY_LAB01",
+  "owner": "JARED",
+  "markers": {
+    "before": {
+      "SCN": "39362789553393",
+      "CAPTURED_AT": "2026-10-14T10:03:10.890856-05:00"
+    },
+    "after": {
+      "SCN": "39362789555889",
+      "CAPTURED_AT": "2026-10-14T10:04:42.849820-05:00"
+    }
+  },
+  "tables": {
+    "PSQRYBIND": {
+      "inserted": [
+        {
+          "CAPTURE_ROWID": "AAAPHVAHlAAAMRIAAA",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "BNDNAME": "BIND1",
+          "BNDNUM": "1",
+          "FIELDNAME": "ESTABID",
+          "HDGTYPE": "4",
+          "HEADING": "Establishment ID",
+          "FIELDTYPE": "0",
+          "LENGTH": "12",
+          "DECIMALPOS": "0",
+          "FORMAT": "0",
+          "EDITTABLE": "ESTAB_TBL",
+          "USECOUNT": "1",
+          "USEEDIT": "16384",
+          "QRYREQUIREDPROMPT": "Y",
+          "QRYPROMPTDEFAULT": " "
+        }
+      ],
+      "deleted": [],
+      "updated": []
+    },
+    "PSQRYCRITERIA": {
+      "inserted": [
+        {
+          "CAPTURE_ROWID": "AAAPHaAHmAAAFoKAAB",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "SELNUM": "1",
+          "CRTNUM": "1",
+          "COMBTYPE": "3",
+          "NEGATION": " ",
+          "LPARENLVL": "0",
+          "LCRTSELNUM": "1",
+          "LCRTFLDNUM": "1",
+          "CONDTYPE": "2",
+          "EXPRTYPE": "8",
+          "R1CRTSELNUM": "0",
+          "R1CRTFLDNUM": "0",
+          "R1CRTEXPNUM": "1",
+          "R2CRTSELNUM": "0",
+          "R2CRTFLDNUM": "0",
+          "R2CRTEXPNUM": "0",
+          "RPARENLVL": "0",
+          "QRYOJSELNUM": "0"
+        }
+      ],
+      "deleted": [
+        {
+          "CAPTURE_ROWID": "AAAPHaAHmAAAFoKAAA",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "SELNUM": "1",
+          "CRTNUM": "1",
+          "COMBTYPE": "3",
+          "NEGATION": " ",
+          "LPARENLVL": "0",
+          "LCRTSELNUM": "1",
+          "LCRTFLDNUM": "1",
+          "CONDTYPE": "2",
+          "EXPRTYPE": "1",
+          "R1CRTSELNUM": "0",
+          "R1CRTFLDNUM": "0",
+          "R1CRTEXPNUM": "1",
+          "R2CRTSELNUM": "0",
+          "R2CRTFLDNUM": "0",
+          "R2CRTEXPNUM": "0",
+          "RPARENLVL": "0",
+          "QRYOJSELNUM": "0"
+        }
+      ],
+      "updated": []
+    },
+    "PSQRYDEFN": {
+      "inserted": [
+        {
+          "CAPTURE_ROWID": "AAAPHdAHXAACPcyAAB",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "DESCR": " ",
+          "VERSION": "10",
+          "QRYTYPE": "1",
+          "SELCOUNT": "1",
+          "EXPCOUNT": "1",
+          "BNDCOUNT": "1",
+          "QRYVALID": "0",
+          "LASTUPDDTTM": "2026-10-14T10:04:15.857091000",
+          "LASTUPDOPRID": "JARED",
+          "QRYAPPROVED": "A",
+          "CREATEOPRID": "JARED",
+          "CREATEDTTM": "2026-10-14T09:42:46.000000000",
+          "APPROVEOPRID": " ",
+          "APPROVEDTTM": null,
+          "EXECLOGGING": " ",
+          "QRYDISABLED": " ",
+          "QRYFOLDER": " ",
+          "QRYJOINOPTIMIZE": "0",
+          "QRYIMGTYPE": "0",
+          "DESCRLONG": null
+        }
+      ],
+      "deleted": [
+        {
+          "CAPTURE_ROWID": "AAAPHdAHXAACPcyAAA",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "DESCR": " ",
+          "VERSION": "9",
+          "QRYTYPE": "1",
+          "SELCOUNT": "1",
+          "EXPCOUNT": "1",
+          "BNDCOUNT": "0",
+          "QRYVALID": "0",
+          "LASTUPDDTTM": "2026-10-14T10:02:46.856345000",
+          "LASTUPDOPRID": "JARED",
+          "QRYAPPROVED": "A",
+          "CREATEOPRID": "JARED",
+          "CREATEDTTM": "2026-10-14T09:42:46.000000000",
+          "APPROVEOPRID": " ",
+          "APPROVEDTTM": null,
+          "EXECLOGGING": " ",
+          "QRYDISABLED": " ",
+          "QRYFOLDER": " ",
+          "QRYJOINOPTIMIZE": "0",
+          "QRYIMGTYPE": "0",
+          "DESCRLONG": null
+        }
+      ],
+      "updated": []
+    },
+    "PSQRYEXPR": {
+      "inserted": [
+        {
+          "CAPTURE_ROWID": "AAAPHuAHXAACPiKAAB",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "EXPNUM": "1",
+          "FIELDTYPE": "0",
+          "LENGTH": "0",
+          "DECIMALPOS": "0",
+          "USECOUNT": "1",
+          "EXPRESSIONTEXT": ":1"
+        }
+      ],
+      "deleted": [
+        {
+          "CAPTURE_ROWID": "AAAPHuAHXAACPiKAAA",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "EXPNUM": "1",
+          "FIELDTYPE": "0",
+          "LENGTH": "0",
+          "DECIMALPOS": "0",
+          "USECOUNT": "1",
+          "EXPRESSIONTEXT": " "
+        }
+      ],
+      "updated": []
+    },
+    "PSQRYFIELD": {
+      "inserted": [
+        {
+          "CAPTURE_ROWID": "AAAPH0AHmAAAF2KAAB",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "QRYFLDNAME": "A.ESTABID",
+          "SELNUM": "1",
+          "FLDNUM": "1",
+          "RECNAME": "AAP_TBL",
+          "FIELDNAME": "ESTABID",
+          "FLDRCDNUM": "1",
+          "FLDEXPNUM": "0",
+          "HDGTYPE": "2",
+          "HEADING": "Lab Establishment",
+          "COLUMNNUM": "1",
+          "GROUPBYNUM": "0",
+          "ORDERBYNUM": "1",
+          "ORDERBYDIR": "D",
+          "TTLTYPE": "1",
+          "SUBTTLNUM": "0",
+          "USECOUNT": "1",
+          "XLATTYPE": "1",
+          "XLATEXPRTYPE": "6",
+          "XLATFLDNUM": "0",
+          "XLATEXPNUM": "0",
+          "AGGREGATEFUNC": " "
+        }
+      ],
+      "deleted": [
+        {
+          "CAPTURE_ROWID": "AAAPH0AHmAAAF2KAAA",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "QRYFLDNAME": "A.ESTABID",
+          "SELNUM": "1",
+          "FLDNUM": "1",
+          "RECNAME": "AAP_TBL",
+          "FIELDNAME": "ESTABID",
+          "FLDRCDNUM": "1",
+          "FLDEXPNUM": "0",
+          "HDGTYPE": "2",
+          "HEADING": "Lab Establishment",
+          "COLUMNNUM": "1",
+          "GROUPBYNUM": "0",
+          "ORDERBYNUM": "1",
+          "ORDERBYDIR": "D",
+          "TTLTYPE": "1",
+          "SUBTTLNUM": "0",
+          "USECOUNT": "1",
+          "XLATTYPE": "1",
+          "XLATEXPRTYPE": "6",
+          "XLATFLDNUM": "0",
+          "XLATEXPNUM": "0",
+          "AGGREGATEFUNC": " "
+        }
+      ],
+      "updated": []
+    },
+    "PSQRYRECORD": {
+      "inserted": [
+        {
+          "CAPTURE_ROWID": "AAAPIGAHlAAAMSLAAY",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "SELNUM": "1",
+          "RCDNUM": "1",
+          "RECNAME": "AAP_TBL",
+          "JOINTYPE": "1",
+          "JOINRCDNUM": "0",
+          "JOINFLDNUM": "0",
+          "CORRNAME": "A",
+          "QRYRECPRUNABLE": " "
+        }
+      ],
+      "deleted": [
+        {
+          "CAPTURE_ROWID": "AAAPIGAHlAAAMSLAAX",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "SELNUM": "1",
+          "RCDNUM": "1",
+          "RECNAME": "AAP_TBL",
+          "JOINTYPE": "1",
+          "JOINRCDNUM": "0",
+          "JOINFLDNUM": "0",
+          "CORRNAME": "A",
+          "QRYRECPRUNABLE": " "
+        }
+      ],
+      "updated": []
+    },
+    "PSQRYSELECT": {
+      "inserted": [
+        {
+          "CAPTURE_ROWID": "AAAPIIAHlAAAMSkABo",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "SELNUM": "1",
+          "SELECTTYPE": "1",
+          "PARENTSELNUM": "0",
+          "RCDCOUNT": "1",
+          "FLDCOUNT": "1",
+          "CRTCOUNT": "1",
+          "QRYDISTINCT": " ",
+          "HAVECRTCOUNT": "0"
+        }
+      ],
+      "deleted": [
+        {
+          "CAPTURE_ROWID": "AAAPIIAHlAAAMSkABn",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_LAB01",
+          "SELNUM": "1",
+          "SELECTTYPE": "1",
+          "PARENTSELNUM": "0",
+          "RCDCOUNT": "1",
+          "FLDCOUNT": "1",
+          "CRTCOUNT": "1",
+          "QRYDISTINCT": " ",
+          "HAVECRTCOUNT": "0"
+        }
+      ],
+      "updated": []
+    },
+    "PSVERSION": {
+      "inserted": [],
+      "deleted": [],
+      "updated": [
+        {
+          "before": {
+            "OBJECTTYPENAME": "QDM",
+            "VERSION": "9"
+          },
+          "after": {
+            "OBJECTTYPENAME": "QDM",
+            "VERSION": "10"
+          }
+        },
+        {
+          "before": {
+            "OBJECTTYPENAME": "SYS",
+            "VERSION": "3048"
+          },
+          "after": {
+            "OBJECTTYPENAME": "SYS",
+            "VERSION": "3049"
+          }
+        }
+      ]
+    },
+    "PSLOCK": {
+      "inserted": [],
+      "deleted": [],
+      "updated": [
+        {
+          "before": {
+            "OBJECTTYPENAME": "QDM",
+            "VERSION": "9"
+          },
+          "after": {
+            "OBJECTTYPENAME": "QDM",
+            "VERSION": "10"
+          }
+        }
+      ]
+    }
+  }
+}

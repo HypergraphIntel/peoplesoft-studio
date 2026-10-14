@@ -1,0 +1,16 @@
+{
+  "format": "query-property-capture/1",
+  "database": "HRDMO",
+  "release": "8.62.09",
+  "query": "ZZ_QRY_LAB02",
+  "owner": "",
+  "marker": {
+    "SCN": "39362789569172",
+    "CAPTURED_AT": "2026-10-14T10:10:49.891007-05:00"
+  },
+  "tables": {
+    "PSQRYBIND": [],
+    "PSQRYCRITERIA": [],
+    "PSQRYEXPR": []
+  }
+}

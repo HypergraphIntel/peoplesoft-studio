@@ -67,6 +67,18 @@ A PeopleCode program not stored yet is judged by the definition it belongs to
 adding PeopleCode to a delivered record changes a delivered definition. A new
 definition of any other kind has no owner yet and is not judged.
 
+Starting in 0.8.8, Studio also keeps receipts for verified creation of fields,
+records and Application Engine programs. A receipt classifies the definition
+as Custom with high confidence while its database identity, version, operator
+and full save timestamp match. A delivered baseline that contains it and a
+configured partner prefix still take precedence. Subsequent Studio saves renew
+the receipt; a field save also renews receipts for custom records whose version
+it advances. AE copy and rename retain creation evidence for the resulting
+program. Receipts are stored in the extension's `creation-receipts.json`.
+They do not retroactively classify definitions created before this release.
+External changes invalidate the matching receipt; ordinary ownership evidence
+then applies.
+
 ## Naming prefixes are a list
 
 Organizations buy PeopleSoft bolt-ons that carry their own prefixes, so the
@@ -124,6 +136,11 @@ first, the delivered-object approval (level 2) after it, both in VS Code.
 Every refusal, approval, decline and recorded write is in the audit log
 (*PeopleSoft: Show Customization Audit Log*, a JSON line each with who wrote,
 and the *PeopleSoft Customization* output).
+
+MCP approval waits expire after 60 seconds and also stop when the request is
+cancelled. An expired or cancelled request writes nothing, and answering its
+dialog later cannot resume that request. Review the request in VS Code and
+retry when ready.
 
 Dry runs (Preview Save) and new definitions (a create, a Save As) are not
 judged.

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CONFIGURATION_TOOLS, DATA_MIGRATION_TOOLS, TOOL_TREES, type ToolNode } from '../model/toolTrees.js';
 
-/* The two placeholder panes hold the tools asked for, in order, every one still planned. */
+/* The two tools panes retain their ordering as individual tools become available. */
 
 const outline = (nodes: readonly ToolNode[]): unknown[] => nodes.map((n) => (n.children ? { [n.label]: outline(n.children) } : n.label));
 const all = (nodes: readonly ToolNode[]): ToolNode[] => nodes.flatMap((n) => [n, ...all(n.children ?? [])]);
@@ -27,9 +27,9 @@ test('every leaf is a placeholder or runs a command, every entry has an icon, an
     assert.ok(n.icon, n.label);
     if (!n.children?.length) assert.ok(n.planned !== !!n.command, `${n.label}: a leaf is either planned or built`);
   }
-  // Built so far: Event Mapping (the Configure Event Mapping editor); its group is no longer a placeholder.
+  // PS Query now opens its definition viewer; Event Mapping opens its configuration editor.
   const built = all(CONFIGURATION_TOOLS).filter((n) => n.command).map((n) => `${n.label} -> ${n.command}`);
-  assert.deepEqual(built, ['Event Mapping -> psft.customization.configureEventMapping']);
+  assert.deepEqual(built, ['PS Query -> psft.query.open', 'Event Mapping -> psft.customization.configureEventMapping']);
   assert.ok(!CONFIGURATION_TOOLS.find((n) => n.label === 'Customization')!.planned);
   assert.deepEqual(Object.keys(TOOL_TREES), ['psft.configurationTools', 'psft.dataMigrationTools']);
 });

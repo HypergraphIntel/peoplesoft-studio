@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.8.7",
+  "version": "0.8.8",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -142,6 +142,18 @@
       }
     ],
     "commands": [
+      {
+        "command": "psft.query.open",
+        "title": "Open PS Query",
+        "category": "PeopleSoft",
+        "icon": "$(search)"
+      },
+      {
+        "command": "psft.query.new",
+        "title": "New PS Query",
+        "category": "PeopleSoft",
+        "icon": "$(add)"
+      },
       {
         "command": "psft.openDefinitionDialog",
         "title": "Open Definition...",

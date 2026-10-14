@@ -17,6 +17,35 @@
   configurator's Add picks it. Agents pass `mask` to
   `psft_page_field_config_fields`.
 
+## 0.8.8 — 2026-10-14
+
+### Added
+
+- MCP `psft_create_record` for SQL Table and Derived/Work definitions,
+  including custom AE state records. Physical SQL table builds remain separate.
+- MCP project insertion for AE sections and AE PeopleCode, including
+  platform and effective-date variants. Native Application Designer export
+  verified with four section and two PeopleCode members.
+- Character field format on MCP create/edit: Uppercase and Mixed Case.
+- Windows PS Query designer workflows for existing queries and new query
+  creation; see `docs/PS_QUERY_WINDOWS.md` for the calibrated scope.
+
+### Fixed
+
+- Valid PeopleCode quote and statement-layout normalization no longer causes
+  a false save refusal when complete binary and name-row roundtrips are exact.
+- Missing AE state records return structured validation diagnostics.
+- Verified Studio-created fields, records and AE programs retain ownership
+  evidence across edits, related record version changes, AE copy and rename.
+- MCP approval waits expire after 60 seconds or cancellation; late approvals
+  cannot resume expired writes.
+- README capability tables reflect the implemented editors and 0.8.8 MCP
+  support, with PS Query limits and the planned 8.63 MCP integration stated.
+
+Validation: 38/38 HRDMO MCP authoring checks, native project export with zero
+errors or warnings, and the protected 430-definition EXACT regression gate.
+Details: `docs/MCP_0_8_8.md`.
+
 ## 0.8.7 — 2026-10-14
 
 ### Added

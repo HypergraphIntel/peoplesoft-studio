@@ -37,6 +37,9 @@ export interface NamingPrefix {
 export interface OwnershipEvidence {
   /** Whether the definition is stored at all (a new one has no owner yet). */
   exists: boolean;
+  /** Version/stamp-matched receipt of a verified Studio creation. */
+  studioCreation?: {createdAt:string};
+  version?:number;
   /** LASTUPDOPRID and LASTUPDDTTM of the definition (its program's, for PeopleCode). */
   operator?: string;
   updated?: string;
@@ -96,8 +99,14 @@ export function classifyOwnership(e: OwnershipEvidence): Classification {
     if (e.prefix?.owner === 'partner') return result('PARTNER', 'HIGH');
     if (e.prefix?.owner === 'organization') return result('CUSTOM', 'HIGH');
     // Stamped by Oracle but not in the baseline: delivered by a later update than the baseline's.
+    if(e.studioCreation){ev.push(`Studio verified creation on ${e.studioCreation.createdAt}; its version and stamp still match.`);return result('CUSTOM','HIGH');}
     if (oracle) return result('DELIVERED', 'MEDIUM');
     return result('CUSTOM', 'MEDIUM');
+  }
+
+  if(e.studioCreation && e.prefix?.owner!=='partner'){
+    ev.push(`Studio verified creation on ${e.studioCreation.createdAt}; its stored version and save stamp still match the receipt.`);
+    return result('CUSTOM','HIGH');
   }
 
   ev.push('No delivered baseline for this release: ownership rests on the stamp, projects and prefixes.');

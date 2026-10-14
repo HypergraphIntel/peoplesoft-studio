@@ -36,6 +36,16 @@ export const JOIN_TYPES: Readonly<Record<number, string>> = { 1: 'Standard', 5: 
 /** PSQRYDEFN.QRYTYPE, from the queries' names (_ROLE_ ..., _DBAG_ ..., ..._ARCHVE). */
 export const QUERY_TYPES: Readonly<Record<number, string>> = { 1: 'User', 3: 'Process', 4: 'Role', 5: 'Database Agent', 7: 'Archive' };
 
+/** Windows Query saves qry01/qry04/qry05/qry06: aggregates are TTLTYPE, not AGGREGATEFUNC. */
+export const QUERY_AGGREGATES: Readonly<Record<number, string>> = { 1: 'None', 3: 'Count', 4: 'Min', 5: 'Max' };
+
+export function queryAggregateLabel(field: Row): string {
+  const type = num(field.TTLTYPE);
+  if (type === 1) return '';
+  if (type) return QUERY_AGGREGATES[type] ?? `aggregate type ${type}`;
+  return str(field.AGGREGATEFUNC) === 'Y' ? 'aggregate' : '';
+}
+
 export interface QueryView {
   query: Row;
   selects: Row[];
@@ -46,17 +56,9 @@ export interface QueryView {
   binds: Row[];
 }
 
-export function renderQuery(name: string, view: QueryView): string {
-  const q = view.query;
-  const out: string[] = [];
-  const owner = str(q.OPRID);
-  out.push(`Query ${name}${str(q.DESCR) ? ` -- ${str(q.DESCR)}` : ''}`);
-  out.push(`  ${owner ? `Private (${owner})` : 'Public'}   Type: ${QUERY_TYPES[num(q.QRYTYPE)] ?? `type ${num(q.QRYTYPE)}`}` +
-    `${str(q.QRYFOLDER) ? `   Folder: ${str(q.QRYFOLDER)}` : ''}${str(q.QRYDISABLED) === 'Y' || num(q.QRYDISABLED) === 1 ? '   DISABLED' : ''}`);
-  out.push(`  Version: ${num(q.VERSION)}   Last updated: ${stamp(q)} by ${str(q.LASTUPDOPRID)}`);
-
+/** Shared reference resolution for the text view and Windows Query grids. */
+export function queryReferences(view: QueryView) {
   const rawExpression = new Map(view.expressions.map((e) => [num(e.EXPNUM), String(e.EXPRESSIONTEXT ?? '').trim()]));
-  const recordsOf = (sel: number) => view.records.filter((r) => num(r.SELNUM) === sel).sort((a, b) => num(a.RCDNUM) - num(b.RCDNUM));
   const alias = (sel: number, rcd: number) => str(view.records.find((r) => num(r.SELNUM) === sel && num(r.RCDNUM) === rcd)?.CORRNAME) || `R${rcd}`;
   const field = (sel: number, fld: number, depth = 0): string => {
     const f = view.fields.find((x) => num(x.SELNUM) === sel && num(x.FLDNUM) === fld);
@@ -88,6 +90,19 @@ export function renderQuery(name: string, view: QueryView): string {
     if (num(c.EXPRTYPE) === 6) return 'Current Date';
     return '';
   };
+  return { alias, field, expressionText, operand };
+}
+
+export function renderQuery(name: string, view: QueryView): string {
+  const q = view.query;
+  const out: string[] = [];
+  const owner = str(q.OPRID);
+  out.push(`Query ${name}${str(q.DESCR) ? ` -- ${str(q.DESCR)}` : ''}`);
+  out.push(`  ${owner ? `Private (${owner})` : 'Public'}   Type: ${QUERY_TYPES[num(q.QRYTYPE)] ?? `type ${num(q.QRYTYPE)}`}` +
+    `${str(q.QRYFOLDER) ? `   Folder: ${str(q.QRYFOLDER)}` : ''}${str(q.QRYDISABLED) === 'Y' || num(q.QRYDISABLED) === 1 ? '   DISABLED' : ''}`);
+  out.push(`  Version: ${num(q.VERSION)}   Last updated: ${stamp(q)} by ${str(q.LASTUPDOPRID)}`);
+  const { alias, field, expressionText, operand } = queryReferences(view);
+  const recordsOf = (sel: number) => view.records.filter((r) => num(r.SELNUM) === sel).sort((a, b) => num(a.RCDNUM) - num(b.RCDNUM));
 
   if (view.binds.length) {
     out.push('', '  Prompts');
@@ -113,7 +128,8 @@ export function renderQuery(name: string, view: QueryView): string {
       out.push('    Columns');
       for (const f of columns) {
         const order = num(f.ORDERBYNUM) ? `  order ${num(f.ORDERBYNUM)}${str(f.ORDERBYDIR) === 'D' ? ' desc' : ''}` : '';
-        const agg = str(f.AGGREGATEFUNC) === 'Y' ? '  aggregate' : '';
+        const aggregate = queryAggregateLabel(f);
+        const agg = aggregate ? `  ${aggregate}` : '';
         const heading = str(f.HEADING) ? ` "${str(f.HEADING)}"` : '';
         out.push(`      ${String(num(f.COLUMNNUM)).padStart(3)}  ${field(n, num(f.FLDNUM)).padEnd(30)}${heading}${order}${agg}`.trimEnd());
       }
