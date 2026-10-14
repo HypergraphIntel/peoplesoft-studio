@@ -277,8 +277,13 @@ re-inserted), and the Configure Drop Zones page shows the writer's
 configuration. These captures used a drop zone added to the lab page
 `ZZ_PCODE_LAB_PG` -- not how drop zones are meant to be used (they are
 Oracle's), and since removed; the stored configuration does not depend on who
-placed the zone. Not yet seen: a delivered drop zone configured by the writer
-rendering its subpage at run time.
+placed the zone. Run time, on a delivered drop zone (tools/lab/dz-delivered.mts):
+the writer configured JOB_CODE_TBL's "DZ-Bottom of Job Code And Profile"
+(JOBCODE_TBL1_GBL, level 1) with a ZZ_ classic custom subpage -- on all three
+content references the component is registered as -- Configure Drop Zones
+listed it, Define Job Code (SETUP_HRMS) showed the subpage at the bottom of
+the Job Code Profile data area, and after the writer cleared it the page
+showed it no more. No Oracle definition was changed.
 
 ## Writing Event Mapping
 
