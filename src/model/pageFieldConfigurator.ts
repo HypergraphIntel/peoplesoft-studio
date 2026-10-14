@@ -68,6 +68,8 @@ export interface PfcDiscovery {
   /** The content references carrying EOCC Event Mapping: where configurations take effect. */
   appliedOn: string[];
   configurations: PfcConfiguration[];
+  /** The registered components this covers (one, or a page's): where a new configuration can be created. */
+  components?: Array<{ component: string; market: string }>;
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;

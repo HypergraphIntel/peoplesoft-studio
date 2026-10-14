@@ -58,3 +58,17 @@ test('the Strategy view row: sequences listed, a partly applied configuration fl
   assert.equal(row.icon, 'warning');
   assert.equal(rows.filter((r) => r.id.startsWith('capability.PAGE_FIELD_CONFIGURATOR.seq.')).length, 1);
 });
+
+test('the Strategy view offers to create a Standard configuration where a registered component has none', () => {
+  const policy: CustomizationPolicy = { prefixes: [], defaultStrategy: 'configurationFirst', deliveredObjectPolicy: 'allowWithAudit', agentDeliveredObjectPolicy: 'requireApproval' };
+  const all = (rows: StrategyRow[]): StrategyRow[] => rows.flatMap((r) => [r, ...all(r.children ?? [])]);
+  const none = { ...pfcDiscoveryFor('JOB_CODE_TBL.GBL', true, ['HC_C_JOB_CODE_TBL_GBL'], [], []), components: [{ component: 'JOB_CODE_TBL', market: 'GBL' }] };
+  const key = { type: DefinitionType.Component, name: 'JOB_CODE_TBL', connectionId: 'oracle:HRDMO' };
+  const create = all(strategySections(key, policy, false, undefined, { state: 'done', pageFieldConfigurator: none }))
+    .find((r) => r.id === 'capability.PAGE_FIELD_CONFIGURATOR.create.JOB_CODE_TBL.GBL');
+  assert.deepEqual(create?.command, { id: 'psft.customization.createPageFieldConfiguration', args: ['oracle:HRDMO', 'JOB_CODE_TBL', 'GBL'] });
+  // Not when it has one, nor without a connection to save on.
+  const has = { ...none, configurations: [config([seq()], { component: 'JOB_CODE_TBL', type: 'STD' })] };
+  assert.ok(!all(strategySections(key, policy, false, undefined, { state: 'done', pageFieldConfigurator: has })).some((r) => r.id.includes('.create.')));
+  assert.ok(!all(strategySections({ type: DefinitionType.Component, name: 'JOB_CODE_TBL' }, policy, false, undefined, { state: 'done', pageFieldConfigurator: none })).some((r) => r.id.includes('.create.')));
+});

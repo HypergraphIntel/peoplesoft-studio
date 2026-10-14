@@ -234,6 +234,11 @@
         "category": "PeopleSoft"
       },
       {
+        "command": "psft.customization.createPageFieldConfiguration",
+        "title": "Create Page and Field Configurator Configuration",
+        "category": "PeopleSoft"
+      },
+      {
         "command": "psft.intelligence.showDiscoveries",
         "title": "Show Discoveries",
         "category": "PeopleSoft"
@@ -734,6 +739,10 @@
         },
         {
           "command": "psft.customization.configurePageFieldConfigurator",
+          "when": "false"
+        },
+        {
+          "command": "psft.customization.createPageFieldConfiguration",
           "when": "false"
         },
         {

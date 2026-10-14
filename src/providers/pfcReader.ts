@@ -86,7 +86,8 @@ export async function readPfcConfigurations(c: Connection, component: string, ma
 async function discoverComponent(c: Connection, component: string, market: string, isInstalled: boolean): Promise<PfcDiscovery> {
   const crefs = await contentReferences(c, component, market);
   const configs = isInstalled ? await readPfcConfigurations(c, component, market) : [];
-  return pfcDiscoveryFor(`${component}.${market}`, isInstalled, crefs, isInstalled ? await appliedOn(c, crefs) : [], configs);
+  const d = pfcDiscoveryFor(`${component}.${market}`, isInstalled, crefs, isInstalled ? await appliedOn(c, crefs) : [], configs);
+  return crefs.length ? { ...d, components: [{ component, market }] } : d;
 }
 
 /** Page and Field Configurator discovery for a definition; undefined when it does not apply (components and their pages). */
@@ -112,6 +113,7 @@ export async function discoverPageFieldConfigurator(c: Connection, key: Definiti
       for (const r of comps) parts.push(await discoverComponent(c, t(r.C), t(r.M), isInstalled));
       const merged = pfcDiscoveryFor(`${page}'s ${comps.length === 1 ? 'component' : `${comps.length} components`}`, isInstalled,
         parts.flatMap((d) => d.contentReferences), parts.flatMap((d) => d.appliedOn), parts.flatMap((d) => d.configurations));
+      merged.components = parts.flatMap((d) => d.components ?? []);
       merged.evidence.unshift(`${page} is in ${comps.map((r) => `${t(r.C)}.${t(r.M)}`).join(', ')}.`);
       return merged;
     }

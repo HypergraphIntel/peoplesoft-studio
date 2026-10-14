@@ -71,7 +71,7 @@ type ListTable = Exclude<PfcTable, 'header'>;
 const CHILDREN: readonly ListTable[] = ['criteria', 'pages', 'fields'];
 
 /** A table's columns as the database has them (they vary by release), with the record field's constant default. */
-export type PfcColumns = Record<PfcTable, Array<{ name: string; type: string; default?: string }>>;
+export type PfcColumns = Record<PfcTable, Array<{ name: string; type: string; default?: string; length?: number }>>;
 
 export interface PfcConfiguration {
   component: string;
@@ -100,13 +100,13 @@ export interface PfcConfigurationInput {
 export async function readPfcColumns(c: Connection): Promise<PfcColumns> {
   const out = {} as PfcColumns;
   for (const [table, name] of Object.entries(PFC_TABLES) as Array<[PfcTable, string]>) {
-    const cols = await select<{ N: string; T: string }>(c,
-      `SELECT COLUMN_NAME AS N, DATA_TYPE AS T FROM ALL_TAB_COLUMNS WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND TABLE_NAME = :t ORDER BY COLUMN_ID`, { t: name });
+    const cols = await select<{ N: string; T: string; L: number }>(c,
+      `SELECT COLUMN_NAME AS N, DATA_TYPE AS T, CHAR_LENGTH AS L FROM ALL_TAB_COLUMNS WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND TABLE_NAME = :t ORDER BY COLUMN_ID`, { t: name });
     if (!cols.length) throw new PfcSaveRefusedError(`${name} is not in this database: the Page and Field Configurator is not installed.`);
     const defaults = await select<{ F: string; D: string }>(c,
       `SELECT FIELDNAME AS F, DEFFIELDNAME AS D FROM PSRECFIELDDB WHERE RECNAME = :r AND DEFRECNAME = ' ' AND DEFFIELDNAME <> ' '`, { r: name.replace(/^PS_/, '') });
     const byField = new Map(defaults.map((x) => [s(x.F), s(x.D)]));
-    out[table] = cols.map((x) => ({ name: s(x.N), type: s(x.T), ...(byField.has(s(x.N)) ? { default: byField.get(s(x.N)) } : {}) }));
+    out[table] = cols.map((x) => ({ name: s(x.N), type: s(x.T), ...(Number(x.L) > 0 ? { length: Number(x.L) } : {}), ...(byField.has(s(x.N)) ? { default: byField.get(s(x.N)) } : {}) }));
   }
   return out;
 }
@@ -161,6 +161,9 @@ export function normalizeConfiguration(columns: PfcColumns, component: string, m
     for (const col of columns[table]) {
       if (col.type === 'NUMBER' && upper[col.name] !== undefined && s(upper[col.name]) !== '' && !Number.isFinite(Number(upper[col.name]))) {
         throw new PfcSaveRefusedError(`${table} row ${i + 1}: ${col.name} must be a number.`);
+      }
+      if (col.length && col.type.startsWith('VARCHAR') && typeof upper[col.name] === 'string' && (upper[col.name] as string).trimEnd().length > col.length) {
+        throw new PfcSaveRefusedError(`${table} row ${i + 1}: ${col.name} is at most ${col.length} characters.`);
       }
     }
     return normalizeRow(columns, table, { ...upper, PNLGRPNAME: component, MARKET: market, EOCC_CONFIG_TYPE: type });

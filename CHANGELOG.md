@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Added
+
+- **Create a Page and Field Configurator configuration** from the
+  Customization Strategy view: a registered component with no Standard
+  configuration offers *Create a configuration…* -- a description, the first
+  sequence and its first field (hidden, display only, required or
+  relabelled), saved as the configurator's first save, Event Mapping included
+  (previewed, then confirmed).
+
 ## 0.8.7 — 2026-10-14
 
 ### Added
