@@ -384,6 +384,33 @@ the type's rows, and a content reference left with no Event Mapping loses
 a configuration needs more than exist (refused: save once in PIA), and
 change-tracking (TRK) configurations (none on HRDMO to check against).
 
+**The field catalog** (src/providers/pfcCatalog.ts; MCP
+`psft_page_field_config_fields`) lists the fields a configuration can name as
+the configurator's Select Fields page does (`EOCC_PGFLDS_DVW.LBLTEXT`
+FieldFormula `PageFieldsList`, `GetPageFieldsList`, `SecondaryPageList`; the
+Add button `EOCC_CONFIG_WRK.EOCC_ADD_PB`): each component page's fields of
+the offered types, subpages walked (a field's level is the subpage
+control's plus its own; a subpage's primary record substituted, the original
+in `RECNAME_BASE`), invisible fields (`FIELDUSE` 0x2) left out, a related
+display field (0x10) carrying its control in `RECNAME1`/`FIELDNAME1`; the key
+`level.record.field.pnlfldid.ownLevel.P` (`S` on a secondary page); `PNLNAME`
+the (sub)page the field is on, `STDPNLNAME` the page chosen; the label the page
+field's text, its record field label by label type, or a message catalog
+text. Checked against every stored field row on HRDMO
+(tools/lab/pfc-catalog-check.mts): 460 of 477 page-field rows match on every
+column; the other 17 name fields their pages have since made invisible,
+removed or relabelled (EE_HR_PROC_FL's 2017 rows, `HR_JOBDATA_SUM_FL` changed
+2024-11 after its 2021 configuration). The row the catalog builds for Key Job
+Code equals PIA's pfc01 row.
+
+**Editing fields** (src/model/pfcFieldEdits.ts; the Customization Strategy
+view's sequence rows): a field is configured hidden (`EOCC_VISIBLE_FLAG` N),
+display only (`EOCC_DISABLED` Y), required (`EOCC_IS_REQUIRED` Y) or
+relabelled (`EOCC_LBL_OVERRIDE` Y, the label in `LBLTEXT`; taken away, the
+page's label is restored), or taken out. A sequence with no field keeps one
+blank row [pfc02]; adding fills it. Masking settings, default values and
+"set to blank" are not offered yet.
+
 Proof: src/test/pfcWriter.test.ts replays pfc01 and pfc02 from their
 before-states -- every configuration row, mapping row (instance ids drawn as
 PIA drew them), tombstone, language row, tracking row and counter.

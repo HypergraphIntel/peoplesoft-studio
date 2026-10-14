@@ -3,6 +3,7 @@ import * as z from 'zod/v4';
 
 import { DefinitionType, type DefinitionKey } from '../model/definitions.js';
 import { DatabaseProvider } from '../providers/database.js';
+import { catalogFieldRow } from '../providers/pfcCatalog.js';
 import { Workspace } from '../workspace.js';
 import { jsonResult, requireProvider } from './tools.js';
 import { approve, READ_ONLY, WRITE, writable, type McpWriteHost } from './writeTools.js';
@@ -42,6 +43,33 @@ export function registerPageFieldConfiguratorTools(server: McpServer, workspace:
       connection: p.displayName, component: `${component.toUpperCase()}.${(market ?? 'GBL').toUpperCase()}`, type: type ?? 'STD', ...r,
       derived: r.derived.map((m) => [m.serviceId, m.level, m.record ? `${m.record}${m.field ? `.${m.field}` : ''}` : m.page ?? '', m.event].filter(Boolean).join(' ')),
       ...(r.exists ? {} : { note: 'No configuration of this type; psft_page_field_config_save with expectedToken "absent" creates one.' })
+    });
+  });
+
+  server.registerTool('psft_page_field_config_fields', {
+    title: 'Page and Field Configurator: the fields a configuration can name',
+    description: 'The fields the configurator\'s Select Fields page offers for a component, as that page lists them. Without page: the component\'s ' +
+      'pages and the secondary pages reached from them (type P or S). With page and type: that page\'s fields (subpages walked, invisible fields ' +
+      'left out), each with its label and the field row to put in psft_page_field_config_save\'s fields (add SEQUENCE_NBR and EOCC_SEQUENCE_NBR, ' +
+      'and the settings: EOCC_VISIBLE_FLAG N hides it, EOCC_DISABLED Y makes it display only, EOCC_IS_REQUIRED Y requires it, EOCC_LBL_OVERRIDE Y ' +
+      'with LBLTEXT relabels it). Read only.',
+    inputSchema: z.object({
+      connection: z.string().min(1), component: z.string().min(1), market: z.string().optional().describe('Default GBL.'),
+      page: z.string().optional(), type: z.enum(['P', 'S']).optional().describe('P: a component page (default); S: a secondary page.'),
+      filter: z.string().optional().describe('Only fields whose label or record.field contains this (case-insensitive).')
+    }),
+    annotations: READ_ONLY
+  }, async ({ connection, component, market, page, type, filter }) => {
+    const p = await databaseProvider(workspace, connection);
+    if (!page) return jsonResult({ connection: p.displayName, component: `${component.toUpperCase()}.${(market ?? 'GBL').toUpperCase()}`, pages: await p.readPageFieldCatalogPages(component, market ?? 'GBL') });
+    const f = (filter ?? '').toLowerCase();
+    const fields = (await p.readPageFieldCatalogFields(page, type ?? 'P'))
+      .filter((x) => !f || x.label.toLowerCase().includes(f) || `${x.record}.${x.field}`.toLowerCase().includes(f));
+    return jsonResult({
+      page: page.toUpperCase(), type: type ?? 'P', count: fields.length,
+      fields: fields.slice(0, 300).map((x) => ({ label: x.label, recordField: `${x.record}.${x.field}`, level: x.level, ...(x.page !== x.componentPage ? { onSubpage: x.page } : {}),
+        row: (({ SEQUENCE_NBR: _a, EOCC_SEQUENCE_NBR: _b, ...rest }) => rest)(catalogFieldRow(x, { SEQUENCE_NBR: 0, EOCC_SEQUENCE_NBR: 0 })) })),
+      ...(fields.length > 300 ? { note: 'First 300 shown; pass filter to narrow.' } : {})
     });
   });
 

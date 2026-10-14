@@ -7,6 +7,10 @@ import {
   DESIGNER_TYPES, knowledgeSubsystem, nameFromTitle, partsFromTitle, strategySections, type CapabilitiesState, type CustomizationContext, type KnowledgeSummary, type CustomizationPolicy, type OwnershipState, type StrategyRow
 } from '../model/customizationStrategy.js';
 import { DatabaseProvider } from '../providers/database.js';
+import { catalogFieldRow } from '../providers/pfcCatalog.js';
+import {
+  checkFieldSettings, describeFieldSettings, fieldRowKey, fieldSettingsOf, isBlankFieldRow, withFieldRow, withFieldSettings, withoutFieldRow, type PfcFieldSettings
+} from '../model/pfcFieldEdits.js';
 import { knowledgeFor } from '../intelligenceCommands.js';
 import { CustomizationPlanPanel } from '../editors/customizationPlanPanel.js';
 import { SCHEME } from '../util/uri.js';
@@ -356,9 +360,11 @@ export async function configureDropZone(workspace: Workspace, connectionId: stri
 }
 
 /**
- * A Page and Field Configurator sequence, or its whole configuration, activated or deactivated as EOCC_CONFIGURE saves it
- * (providers/pfcWriter.ts): the configuration's rows saved, its Event Mapping regenerated (or removed) on the component's
- * content references. On a Writable connection with an Operator ID, previewed (a dry run) and confirmed first.
+ * A Page and Field Configurator sequence edited as the configurator's page edits it (providers/pfcWriter.ts): a
+ * field configured (hidden, display only, required, relabelled) or taken out, the sequence or the whole
+ * configuration activated or deactivated; the rows saved and the Event Mapping regenerated (or removed) on the
+ * component's content references. On a Writable connection with an Operator ID, previewed (a dry run) and
+ * confirmed first.
  */
 export async function configurePageFieldConfigurator(workspace: Workspace, connectionId: string, component: string, market: string, type: string, sequence: number): Promise<void> {
   const provider = workspace.activeProviders.find((p) => p.id === connectionId);
@@ -375,28 +381,90 @@ export async function configurePageFieldConfigurator(workspace: Workspace, conne
   // A compact row leaves out a value equal to its default (STATUS A, EFF_STATUS A).
   const seqActive = (seq.STATUS ?? 'A') !== 'I';
   const configActive = (config.header.EFF_STATUS ?? 'A') !== 'I';
-  type Choice = vscode.QuickPickItem & { act: 'seq' | 'config' };
+  const seqFields = config.fields.filter((r) => Number(r.EOCC_SEQUENCE_NBR) === sequence && !isBlankFieldRow(r));
+  type Choice = vscode.QuickPickItem & { act: 'seq' | 'config' | 'add' | 'field'; row?: Record<string, unknown> };
   const items: Choice[] = [
-    { label: seqActive ? '$(circle-slash) Deactivate this sequence' : '$(pass) Activate this sequence', description: `sequence ${sequence}${seq.DESCR ? ` · ${seq.DESCR}` : ''}`, act: 'seq' },
+    ...(type === 'STD' ? [{ label: '$(add) Configure a field…', description: 'hide it, make it display only or required, relabel it', act: 'add' as const }] : []),
+    ...seqFields.map((r) => ({
+      label: `$(symbol-field) ${String(r.LBLTEXT ?? '') || `${String(r.RECNAME)}.${String(r.FIELDNAME)}`}`,
+      description: `${String(r.RECNAME)}.${String(r.FIELDNAME)} · ${describeFieldSettings(fieldSettingsOf(r))}`, act: 'field' as const, row: r
+    })),
+    { label: '', kind: vscode.QuickPickItemKind.Separator, act: 'seq' },
+    { label: seqActive ? '$(circle-slash) Deactivate this sequence' : '$(pass) Activate this sequence', description: `sequence ${sequence}${seq.DESCR ? ` · ${String(seq.DESCR)}` : ''}`, act: 'seq' },
     { label: configActive ? '$(circle-slash) Deactivate the configuration' : '$(pass) Activate the configuration',
       description: configActive ? 'its Event Mapping is removed' : 'its Event Mapping is generated', act: 'config' }
   ];
-  const picked = await vscode.window.showQuickPick(items, { title: `${config.header.DESCR ?? component} (${component}.${market}, ${type})` });
+  const picked = await vscode.window.showQuickPick(items, { title: `${String(config.header.DESCR ?? component)} · sequence ${sequence} (${component}.${market}, ${type})` });
   if (!picked) return;
-  const configuration = {
-    ...config,
-    header: picked.act === 'config' ? { ...config.header, EFF_STATUS: configActive ? 'I' : 'A' } : config.header,
-    sequences: config.sequences.map((r) => (picked.act === 'seq' && r === seq ? { ...r, STATUS: seqActive ? 'I' : 'A' } : r))
-  } as Parameters<DatabaseProvider['savePageFieldConfiguration']>[0]['configuration'];
+
+  let fields = config.fields;
+  let header = config.header;
+  let sequences = config.sequences;
+  let what = '';
+  if (picked.act === 'config') { header = { ...header, EFF_STATUS: configActive ? 'I' : 'A' }; what = configActive ? 'deactivate the configuration' : 'activate the configuration'; }
+  else if (picked.act === 'seq') { sequences = sequences.map((r) => (r === seq ? { ...r, STATUS: seqActive ? 'I' : 'A' } : r)); what = `${seqActive ? 'deactivate' : 'activate'} sequence ${sequence}`; }
+  else {
+    let row = picked.row;
+    let pageLabel: string | undefined;
+    if (picked.act === 'add') {
+      const pages = await provider.readPageFieldCatalogPages(component, market);
+      const page = await vscode.window.showQuickPick(pages.map((p) => ({ label: p.label, description: `${p.page}${p.type === 'S' ? ` · secondary page, from ${p.from}` : ''}`, p })),
+        { title: `Configure a field: the page (${component}.${market})`, matchOnDescription: true });
+      if (!page) return;
+      const catalog = await provider.readPageFieldCatalogFields(page.p.page, page.p.type);
+      const taken = new Set(seqFields.map(fieldRowKey));
+      const field = await vscode.window.showQuickPick(catalog.map((f) => {
+        const r = catalogFieldRow(f, { SEQUENCE_NBR: Number(seq.SEQUENCE_NBR), EOCC_SEQUENCE_NBR: sequence });
+        return { label: f.label || `${f.record}.${f.field}`, description: `${f.record}.${f.field}${f.level ? ` · level ${f.level}` : ''}${f.page !== f.componentPage ? ` · ${f.page}` : ''}${taken.has(fieldRowKey(r)) ? ' · already configured' : ''}`, f, r };
+      }), { title: `Configure a field on ${page.p.label} (${page.p.page})`, matchOnDescription: true });
+      if (!field) return;
+      row = seqFields.find((r) => fieldRowKey(r) === fieldRowKey(field.r)) ?? field.r;
+      pageLabel = field.f.label;
+    } else {
+      const choice = await vscode.window.showQuickPick([{ label: '$(edit) Change its settings…', act: 'edit' }, { label: '$(trash) Take it out of the sequence', act: 'remove' }],
+        { title: `${String(row!.LBLTEXT ?? '')} (${String(row!.RECNAME)}.${String(row!.FIELDNAME)})` });
+      if (!choice) return;
+      if (choice.act === 'remove') {
+        fields = withoutFieldRow(fields, seq, fieldRowKey(row!));
+        what = `take ${String(row!.RECNAME)}.${String(row!.FIELDNAME)} out of sequence ${sequence}`;
+      }
+    }
+    if (!what) {
+      const now = fieldSettingsOf(row!);
+      type Setting = vscode.QuickPickItem & { key: 'hidden' | 'displayOnly' | 'required' | 'label' };
+      const options: Setting[] = [
+        { label: 'Hidden', key: 'hidden', picked: now.hidden },
+        { label: 'Display only', key: 'displayOnly', picked: now.displayOnly },
+        { label: 'Required', key: 'required', picked: now.required, description: 'a check box always has a value: required shows nothing on one' },
+        { label: 'Relabel…', key: 'label', picked: now.label !== undefined, ...(now.label !== undefined ? { description: `now "${now.label}"` } : {}) }
+      ];
+      const chosen = await vscode.window.showQuickPick(options, { canPickMany: true, title: `Settings for ${String(row!.LBLTEXT ?? '')} (${String(row!.RECNAME)}.${String(row!.FIELDNAME)})` });
+      if (!chosen) return;
+      const on = new Set(chosen.map((c) => c.key));
+      let label: string | undefined;
+      if (on.has('label')) {
+        label = await vscode.window.showInputBox({ title: 'The label to show', value: now.label ?? String(row!.LBLTEXT ?? ''), validateInput: (v) => (v.trim() ? undefined : 'A label cannot be blank.') });
+        if (label === undefined) return;
+      }
+      const settings: PfcFieldSettings = { hidden: on.has('hidden'), displayOnly: on.has('displayOnly'), required: on.has('required'), ...(label !== undefined ? { label } : {}) };
+      const problems = checkFieldSettings(settings);
+      if (problems.length) { void vscode.window.showWarningMessage(problems.join(' ')); return; }
+      fields = withFieldRow(fields, withFieldSettings(row!, settings, pageLabel));
+      what = `${String(row!.RECNAME)}.${String(row!.FIELDNAME)} in sequence ${sequence}: ${describeFieldSettings(settings)}`;
+    }
+  }
+
+  const configuration = { ...config, header, sequences, fields } as Parameters<DatabaseProvider['savePageFieldConfiguration']>[0]['configuration'];
   const request = { component, market, type, configuration, openedToken: read.token, operatorId };
   const preview = await provider.savePageFieldConfiguration({ ...request, dryRun: true });
+  if (preview.rows.empty) { void vscode.window.showInformationMessage('Nothing to save: the configuration already says that.'); return; }
   const changes = [...preview.rows.changes, ...(preview.mappings?.changes ?? []), ...preview.warnings.map((w) => `Warning: ${w}`)];
-  const ok = await vscode.window.showWarningMessage(`Save ${component}.${market}'s ${type} configuration on ${provider.displayName}?`,
+  const ok = await vscode.window.showWarningMessage(`Save ${component}.${market}'s ${type} configuration on ${provider.displayName}? (${what})`,
     { modal: true, detail: `${changes.join('\n')}\n\nAs the Page and Field Configurator saves it: no delivered definition changes.` }, 'Save');
   if (ok !== 'Save') return;
   await provider.savePageFieldConfiguration(request);
   void vscode.commands.executeCommand('psft.customization.refresh');
-  void vscode.window.showInformationMessage(`${component}.${market}'s ${type} configuration saved; its Event Mapping was ${preview.mappings?.changes.length ? 'regenerated' : 'left as it was'}.`);
+  void vscode.window.showInformationMessage(`${component}.${market} saved (${what}); its Event Mapping was ${preview.mappings?.changes.length ? 'regenerated' : 'left as it was'}.`);
 }
 
 /** Registers the view, its commands and the Plan Designer. */

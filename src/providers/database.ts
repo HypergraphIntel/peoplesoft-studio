@@ -65,6 +65,7 @@ import { discoverDropZones } from './dropZoneReader.js';
 import { discoverPageFieldConfigurator } from './pfcReader.js';
 import type { PfcDiscovery } from '../model/pageFieldConfigurator.js';
 import { derivePfcMappings, pfcContentReferences, type PfcMapping } from './pfcMapper.js';
+import { pfcCatalogFields, pfcCatalogPages, type PfcCatalogField, type PfcCatalogPage } from './pfcCatalog.js';
 import {
   compactRow, isTypeService, mappingSignature, pfcToken, readPfcColumns, readPfcConfiguration, savePfcConfiguration, storedSignature,
   type PfcSaveRequest, type PfcSaveResult
@@ -2047,6 +2048,16 @@ export class DatabaseProvider implements DefinitionProvider {
         ...(config.header ? { configuration: { header: compactRow(columns, 'header', config.header), sequences: compact('sequences'), criteria: compact('criteria'), pages: compact('pages'), fields: compact('fields') } } : {})
       };
     });
+  }
+
+  /** The pages a Page and Field Configurator configuration can name fields on (the component's, then secondary pages), as Select Fields offers them. */
+  async readPageFieldCatalogPages(component: string, market = 'GBL'): Promise<Array<Omit<PfcCatalogPage, 'fields'>>> {
+    return this.withConnection((c) => pfcCatalogPages(c, component.trim().toUpperCase(), market.trim().toUpperCase()));
+  }
+
+  /** The fields the configurator offers on a page of that list, each with the values its field row takes (pfcCatalog.ts). */
+  async readPageFieldCatalogFields(page: string, type: 'P' | 'S'): Promise<PfcCatalogField[]> {
+    return this.withConnection((c) => pfcCatalogFields(c, page.trim().toUpperCase(), type));
   }
 
   /**
