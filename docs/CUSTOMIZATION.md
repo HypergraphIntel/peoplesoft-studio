@@ -393,7 +393,12 @@ PIA's shape: sequence and field rows deleted and inserted; on each content
 reference 2 rows tombstoned and 4 inserted, language rows replaced; SCNFM and
 SYS +12, RCSCM unmoved; 8 tracking rows inserted and 6 restamped. Removing
 the field again returned both content references to PostBuild and
-SavePreChange, as pfc02 did. Not yet seen at run time in PIA.
+SavePreChange, as pfc02 did. At run time: with the writer's configuration
+hiding Short Job Title (`1.JOBCODE_TBL.DESCRSHORT.14.1.P`, `EOCC_VISIBLE_FLAG`
+N), Define Job Code (SETUP_HRMS) no longer shows it on the Job Code Profile --
+the configurator applied the writer's rows and mapping; no Oracle definition
+was changed. (Required on Key Job Code showed nothing: a check box always has
+a value.)
 
 ## Writing Event Mapping
 
