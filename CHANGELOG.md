@@ -12,7 +12,10 @@
 - **Writing Drop Zones** (`DatabaseProvider.saveDropZoneConfiguration`): a
   component's drop zones given a custom subpage, or cleared, saved as
   PeopleTools' Configure Drop Zones page saves them -- replayed against PIA's
-  own saves captured on HRDMO, and read back by that page.
+  own saves captured on HRDMO, and read back by that page. In the
+  Customization Strategy view, choose a drop zone to show a subpage in it or
+  clear it (previewed, then confirmed; a Writable connection with an Operator
+  ID); agents use MCP `psft_drop_zone_get` / `psft_drop_zone_save`.
 - **Go to Definition** in PeopleCode (F12 / Ctrl-click): a qualified
   application class path (`PKG:SUB:CLASS`, as written in an import, an
   `extends`, a `create` or a type) opens that class; a definition reference

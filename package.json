@@ -224,6 +224,11 @@
         "category": "PeopleSoft"
       },
       {
+        "command": "psft.customization.configureDropZone",
+        "title": "Configure Drop Zone",
+        "category": "PeopleSoft"
+      },
+      {
         "command": "psft.intelligence.showDiscoveries",
         "title": "Show Discoveries",
         "category": "PeopleSoft"
@@ -716,6 +721,10 @@
         },
         {
           "command": "psft.customization.configureEventMapping",
+          "when": "false"
+        },
+        {
+          "command": "psft.customization.configureDropZone",
           "when": "false"
         },
         {

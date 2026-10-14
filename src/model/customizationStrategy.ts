@@ -179,7 +179,7 @@ function capabilityRow(f: Framework, caps: CapabilitiesState | undefined, connec
   if (f !== 'EVENT_MAPPING' && f !== 'DROP_ZONES') return unknown;
   if (!caps || caps.state === 'pending') return { ...unknown, description: 'Discovering…', icon: 'loading~spin', tooltip: `${info.purpose}.` };
   if (caps.state === 'unavailable') return { ...unknown, tooltip: `${info.purpose}.\n${caps.message}` };
-  if (f === 'DROP_ZONES') return dropZoneRow(info, caps.dropZones) ?? unknown;
+  if (f === 'DROP_ZONES') return dropZoneRow(info, caps.dropZones, connectionId) ?? unknown;
   const d = caps.eventMapping;
   if (!d) return unknown;
   return {
@@ -215,7 +215,7 @@ function capabilityRow(f: Framework, caps: CapabilitiesState | undefined, connec
 }
 
 /** The Drop Zones capability row: the verdict, its evidence, and each drop zone (page, label, configured subpage). */
-function dropZoneRow(info: FrameworkInfo, d: DropZoneDiscovery | undefined): StrategyRow | undefined {
+function dropZoneRow(info: FrameworkInfo, d: DropZoneDiscovery | undefined, connectionId?: string): StrategyRow | undefined {
   if (!d) return undefined;
   const configured = d.dropZones.filter((z) => z.subpage).length;
   return {
@@ -228,7 +228,9 @@ function dropZoneRow(info: FrameworkInfo, d: DropZoneDiscovery | undefined): Str
         id: `capability.DROP_ZONES.zone.${i}`, label: z.label, icon: z.subpage ? 'pass-filled' : 'inbox',
         description: `${z.page}${z.container !== z.page ? ` › ${z.container}` : ''}${z.subpage ? ` · ${z.subpage}` : ' · empty'}`,
         tooltip: `Drop zone "${z.label}" on ${z.page}${z.container !== z.page ? ` (defined on subpage ${z.container})` : ''}, group box ${z.groupBoxId} at tab order ${z.tabOrder}` +
-          `${z.record ? ` (${z.record}.${z.field})` : ''}.\nKey: ${z.fieldName}\n${z.subpage ? `Configured with subpage ${z.subpage}.` : 'No custom subpage configured.'}`
+          `${z.record ? ` (${z.record}.${z.field})` : ''}.\nKey: ${z.fieldName}\n${z.subpage ? `Configured with subpage ${z.subpage}.` : 'No custom subpage configured.'}` +
+          (connectionId && z.component ? '\nChoose to set or clear its subpage, as Configure Drop Zones saves it.' : ''),
+        ...(connectionId && z.component ? { command: { id: 'psft.customization.configureDropZone', args: [connectionId, z.component, z.market, z.page, z.fieldName] } } : {})
       }))
     ]
   };

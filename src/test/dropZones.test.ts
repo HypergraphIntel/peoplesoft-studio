@@ -50,3 +50,14 @@ test('the Strategy view shows Drop Zones discovered, with one row per drop zone'
   assert.equal(zones.length, 2);
   assert.match(zones[1].description ?? '', /ZZ_SBP/);
 });
+
+test('on a connection, each drop zone row configures it (its component, page and key)', () => {
+  const dropZones = dropZoneDiscoveryFor('JOB_CODE_TBL.GBL', [zone()], 'PT_ERCSUBPAGE_STUB');
+  const policy: CustomizationPolicy = { prefixes: [], defaultStrategy: 'configurationFirst', deliveredObjectPolicy: 'allowWithAudit', agentDeliveredObjectPolicy: 'requireApproval' };
+  const all = (rows: StrategyRow[]): StrategyRow[] => rows.flatMap((r) => [r, ...all(r.children ?? [])]);
+  const rows = all(strategySections({ type: DefinitionType.Component, name: 'JOB_CODE_TBL', connectionId: 'oracle:HRDMO' }, policy, false, undefined, { state: 'done', dropZones }));
+  const z = rows.find((r) => r.id === 'capability.DROP_ZONES.zone.0')!;
+  assert.deepEqual(z.command, { id: 'psft.customization.configureDropZone', args: ['oracle:HRDMO', 'JOB_CODE_TBL', 'GBL', 'JOBCODE_TBL1_GBL', '1.HR_CLS_DZ_S_WRK.HR_DZ_GB01.198'] });
+  const offline = all(strategySections({ type: DefinitionType.Component, name: 'JOB_CODE_TBL' }, policy, false, undefined, { state: 'done', dropZones }));
+  assert.equal(offline.find((r) => r.id === 'capability.DROP_ZONES.zone.0')!.command, undefined);
+});

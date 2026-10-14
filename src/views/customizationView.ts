@@ -306,6 +306,54 @@ export async function showEventMapping(workspace: Workspace, connectionId: strin
   });
 }
 
+/**
+ * A drop zone's subpage set or cleared, as Configure Drop Zones saves it (providers/dropZoneWriter.ts): on a
+ * Writable connection with an Operator ID, previewed (a dry run) and confirmed before anything is written.
+ */
+export async function configureDropZone(workspace: Workspace, connectionId: string, component: string, market: string, page: string, fieldName: string): Promise<void> {
+  const provider = workspace.activeProviders.find((p) => p.id === connectionId);
+  if (!(provider instanceof DatabaseProvider) || !provider.isConnected) throw new Error('Drop zones are configured on a connected database.');
+  const read = await provider.readDropZoneConfiguration(component, market);
+  const zone = read.zones.find((z) => z.page === page && z.fieldName === fieldName);
+  if (!zone) throw new Error(`${component}.${market} has no drop zone ${fieldName} on ${page} any more; refresh the view.`);
+  const operatorId = workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim();
+  const where = `"${zone.label}" on ${zone.page}`;
+  type Choice = vscode.QuickPickItem & { act: 'set' | 'clear' | 'open' };
+  const items: Choice[] = [
+    { label: '$(edit) Show a subpage…', description: zone.subpage ? `now ${zone.subpage}` : 'none configured', act: 'set' },
+    ...(zone.subpage ? [{ label: '$(close) Clear', description: `stop showing ${zone.subpage}`, act: 'clear' as const },
+      { label: `$(go-to-file) Open ${zone.subpage}`, act: 'open' as const }] : [])
+  ];
+  const picked = await vscode.window.showQuickPick(items, { title: `Drop zone ${where} (${component}.${market})` });
+  if (!picked) return;
+  if (picked.act === 'open') {
+    await vscode.commands.executeCommand('psft.openDefinition', provider.id, makeKey(DefinitionType.Page, zone.subpage!));
+    return;
+  }
+  if (!workspace.isWritable(provider.id) || !operatorId) {
+    void vscode.window.showWarningMessage(`${provider.displayName} is read only here: drop zones are saved on a Writable connection with an Operator ID (connection settings).`);
+    return;
+  }
+  let subpage = '';
+  if (picked.act === 'set') {
+    const typed = await vscode.window.showInputBox({
+      title: `Subpage for drop zone ${where}`, value: zone.subpage ?? '', prompt: 'A subpage (page type 1) built on records the component can supply at level 0.',
+      validateInput: (v) => (/^[A-Za-z0-9_#$@]{1,18}$/.test(v.trim()) ? undefined : 'A page name: letters, digits and _ (at most 18).')
+    });
+    if (typed === undefined) return;
+    subpage = typed.trim().toUpperCase();
+  }
+  const request = { component, market, assignments: [{ page, fieldName, subpage }], openedToken: read.token, operatorId };
+  const preview = await provider.saveDropZoneConfiguration({ ...request, dryRun: true });
+  if (preview.plan.empty) { void vscode.window.showInformationMessage(`Drop zone ${where} already shows ${subpage || 'nothing'}.`); return; }
+  const ok = await vscode.window.showWarningMessage(`Save drop zone ${where} on ${provider.displayName}?`,
+    { modal: true, detail: `${preview.plan.changes.join('\n')}\n\nAs Configure Drop Zones saves it: no delivered definition changes.` }, 'Save');
+  if (ok !== 'Save') return;
+  await provider.saveDropZoneConfiguration(request);
+  void vscode.commands.executeCommand('psft.customization.refresh');
+  void vscode.window.showInformationMessage(subpage ? `Drop zone ${where} now shows ${subpage}.` : `Drop zone ${where} no longer shows a subpage.`);
+}
+
 /** Registers the view, its commands and the Plan Designer. */
 export function registerCustomizationStrategy(context: vscode.ExtensionContext, workspace: Workspace): void {
   setEventMappingExtensionUri(context.extensionUri);
@@ -323,6 +371,10 @@ export function registerCustomizationStrategy(context: vscode.ExtensionContext, 
     vscode.commands.registerCommand('psft.customization.refresh', () => { view.follow(); view.refresh(); }),
     vscode.commands.registerCommand('psft.customization.discover', (what?: string) => {
       void vscode.window.showInformationMessage(`${what ? `${what}: c` : 'C'}apability discovery is not available yet — Customization Intelligence is a preview.`);
+    }),
+    vscode.commands.registerCommand('psft.customization.configureDropZone', async (connectionId: string, component: string, market: string, page: string, fieldName: string) => {
+      try { await configureDropZone(workspace, connectionId, component, market, page, fieldName); }
+      catch (error) { void vscode.window.showErrorMessage(`Drop zone: ${error instanceof Error ? error.message : String(error)}`); }
     }),
     vscode.commands.registerCommand('psft.customization.configureEventMapping', async (connectionId?: string, cref?: string, portal?: string) => {
       if (!connectionId || !cref) {
