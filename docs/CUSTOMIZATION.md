@@ -409,7 +409,8 @@ display only (`EOCC_DISABLED` Y), required (`EOCC_IS_REQUIRED` Y) or
 relabelled (`EOCC_LBL_OVERRIDE` Y, the label in `LBLTEXT`; taken away, the
 page's label is restored), or taken out. A sequence with no field keeps one
 blank row [pfc02]; adding fills it. Masking settings, default values and
-"set to blank" are not offered yet.
+"set to blank" are not offered yet. At run time: Job Title (`JOBCODE_TBL.DESCR`) saved display only
+through these rules showed display only on Define Job Code.
 
 Proof: src/test/pfcWriter.test.ts replays pfc01 and pfc02 from their
 before-states -- every configuration row, mapping row (instance ids drawn as

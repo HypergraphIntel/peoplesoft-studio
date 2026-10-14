@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.8.7 — 2026-10-14
+
 ### Added
 
 - **Writing Page and Field Configurator** (`DatabaseProvider.savePageFieldConfiguration`):
