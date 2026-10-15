@@ -198,6 +198,11 @@
         "category": "PeopleSoft"
       },
       {
+        "command": "psft.dataMover.newScript",
+        "title": "New Data Mover Script…",
+        "category": "PeopleSoft"
+      },
+      {
         "command": "psft.process.open",
         "title": "Open Process Definition",
         "category": "PeopleSoft"

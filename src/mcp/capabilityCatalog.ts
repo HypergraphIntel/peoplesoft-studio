@@ -112,7 +112,7 @@ const CONFIGURATION_MEANINGS: Record<string, { purpose: string; relationships: s
   Routes: { purpose: MEANINGS[D.IbRouting].purpose, relationships: ['Effective date', 'Operation/version', 'Sending and receiving nodes', 'Transforms'] },
   OAuth: { purpose: 'Inspect OAuth public configuration and edit calibrated existing applications.', relationships: ['Application and authorization server', 'Application type and grant', 'Audiences', 'Roles', 'Secrets excluded'] },
   SAML: { purpose: 'Inspect legacy inbound web-service SAML mapping; browser SSO is outside current support.', relationships: ['Certificate alias', 'Issuer', 'Subject', 'Qualifier'] },
-  'Data Mover Scripts': { purpose: 'Planned workflow for PeopleSoft Data Mover scripts; no implementation or execution is exposed.', relationships: ['Application data migration; distinct from Studio definition packages'] },
+  'Data Mover Scripts': { purpose: 'Creates untitled Data Mover scripts from templates in Studio, with language support from RichardWood.peoplesoft-datamover when installed. Studio does not run Data Mover.', relationships: ['Application data migration; distinct from Studio definition packages'] },
   'Data Migration Workbench': { purpose: 'Planned workflow for Data Migration Workbench; no implementation is exposed.', relationships: ['Application configuration data migration; distinct from Studio definition packages'] }
 };
 const CONFIG_OPERATION_TOOLS: Partial<Record<Operation, string[]>> = {

@@ -5,6 +5,7 @@ import { DEFINITION_TYPE_GUIDE } from './definitionTypes.js';
 // Describe the current product, including unavailable features. Reuse the UI
 // inventory so adding a pane entry cannot silently hide it from MCP clients.
 export const CONFIGURATION_GUIDES: Record<string, { tools: string[]; limitation?: string }> = {
+  'Data Mover Scripts': { tools: [], limitation: 'Studio UI creates untitled scripts from templates. RichardWood.peoplesoft-datamover supplies language support when installed. No Data Mover execution or MCP authoring tool.' },
   'PS Query': { tools: ['psft_query_reference', 'psft_query_list', 'psft_query_get', 'psft_query_prepare', 'psft_query_run', 'psft_query_create', 'psft_query_save', 'psft_query_copy'], limitation: 'Bounded Oracle 8.62.09 character-field query authoring; Query access checks apply. No joins, rename or delete.' },
   'Process Definitions': { tools: ['psft_search_definitions', 'psft_process_reference', 'psft_process_get', 'psft_process_save'], limitation: 'Existing definitions only; Oracle saves and rollback previews. No scheduling or execution.' },
   'Page and Field Configurator': { tools: ['psft_page_field_config_get', 'psft_page_field_config_fields', 'psft_page_field_config_save'], limitation: 'Standard and Masking saves; Change Tracking is read only. Runtime application depends on EOCC Event Mapping.' },
@@ -49,7 +50,7 @@ export function studioReference() {
     projectMigration: {
       tools: ['psft_project_migration_review', 'psft_project_export_migration', 'psft_project_preview_migration'],
       scope: 'Studio versioned definition packages: supported fields, SQL Table/Derived Work records and full Application Engine documents. Unsupported members block export. Review is not complete dependency closure; preview does not apply changes.',
-      limits: 'No MCP import/apply tool. Studio project packages are distinct from Data Mover data scripts and Data Migration Workbench; both data migration pane entries are planned.'
+      limits: 'No MCP import/apply tool. Studio project packages are distinct from Data Mover data scripts and Data Migration Workbench; Studio creates Data Mover scripts from templates and uses RichardWood.peoplesoft-datamover for language support when installed; it does not run Data Mover. Data Migration Workbench remains planned.'
     },
     evidence: 'For release-specific claims use psft_knowledge_capability and psft_knowledge_evidence, and inspect the connected database. UNKNOWN and unsupported coverage must remain explicit.'
   };

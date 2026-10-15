@@ -17,10 +17,16 @@ test('every available configuration leaf routes to implemented MCP tools', () =>
   assert.ok(!catalog.includes('No dedicated MCP workflow documented'), 'New tool entries need explicit coverage');
 });
 
-test('orientation distinguishes planned data tools and definition packages', () => {
+test('orientation distinguishes Data Mover templates, planned Workbench and definition packages', () => {
   const reference = studioReference();
-  for (const entry of reference.dataMigrationTools as { studioStatus: string; tools: string[] }[]) {
-    assert.equal(entry.studioStatus, 'PLANNED');
+  const entries = reference.dataMigrationTools as { label: string; studioStatus: string; command?: string; tools: string[]; limitation: string }[];
+  assert.deepEqual(entries.map(entry => [entry.label, entry.studioStatus]), [
+    ['Data Mover Scripts', 'AVAILABLE'], ['Data Migration Workbench', 'PLANNED']
+  ]);
+  assert.equal(entries[0].command, 'psft.dataMover.newScript');
+  assert.match(entries[0].limitation, /RichardWood\.peoplesoft-datamover/);
+  assert.match(entries[0].limitation, /No Data Mover execution or MCP authoring tool/);
+  for (const entry of entries) {
     assert.deepEqual(entry.tools, []);
   }
   assert.match(reference.projectMigration.limits, /No MCP import\/apply tool/);

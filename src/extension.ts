@@ -72,6 +72,7 @@ import { AeDesignerPanel, setAeDesignerExtensionUri } from './editors/aeDesigner
 import { MenuDesignerPanel, setMenuDesignerExtensionUri } from './editors/menuDesignerPanel.js';
 import { CiDesignerPanel, setCiDesignerExtensionUri } from './editors/ciDesignerPanel.js';
 import { registerToolsViews } from './views/toolsViews.js';
+import { newDataMoverScript } from './dataMoverCommands.js';
 import { registerCustomizationStrategy } from './views/customizationView.js';
 import { registerIntelligenceCommands } from './intelligenceCommands.js';
 import { installCustomizationGuard } from './customizationGuard.js';
@@ -640,6 +641,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
 
     vscode.commands.registerCommand('psft.project.build', (node?: unknown) => vscode.commands.executeCommand('psft.buildProject', node)),
+
+    vscode.commands.registerCommand('psft.dataMover.newScript', () => withError('New Data Mover Script', newDataMoverScript)),
 
     vscode.commands.registerCommand('psft.portal.structure', () => withError('Structure & Content', async () => {
       const connected = workspace.activeProviders.filter((p): p is DatabaseProvider => p.isConnected && p instanceof DatabaseProvider);

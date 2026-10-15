@@ -4,6 +4,9 @@
 
 ### Added
 
+- Data Mover Scripts creates untitled export, import, replace-all, header or empty
+  scripts from templates. Language support uses RichardWood.peoplesoft-datamover
+  when installed, with an extension search offer otherwise. Studio does not run Data Mover.
 - Recent Projects remembers the last ten opened projects across restarts, by
   connection, with commands to reopen projects or clear the list.
 - Opening a deleted project definition explains that it is still listed in the
