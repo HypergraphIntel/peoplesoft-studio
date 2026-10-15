@@ -292,6 +292,27 @@ and `EOCC_ROWINSERT1` on its record; with no field left, PostBuild and
 SavePreChange only. Which rows is the configurator's PeopleCode, ported in
 src/providers/pfcMapper.ts (see Writing Page and Field Configurator).
 
+## Configurable Search discovery
+
+Configurable Search (PeopleTools > Portal > Manage Search Configuration,
+`PTS_MENU.PTS_SRCH_CONFIG`) configures a component's search page without
+changing its search record or search definition. Per content reference, an
+effective-dated configuration (`PS_PTS_SRCH_DEFN`) of type Standard Search
+(S, on a search record) or Keyword Search (E, on a search definition),
+assigned active or inactive (`PS_PTS_SRCH_ASGN.PTS_CONFIG_STATUS`), with a
+row per field (`PS_PTS_SRCH_DTL_S` / `_E`): relabelled, required, hidden,
+display only, a default, a criterion (Basic, Advanced or both), a result,
+shown on small screens. Discovery (src/providers/configurableSearchReader.ts;
+the Customization Strategy view, MCP `psft_customization_discover`) reports,
+for a component or a page's components, the configuration in effect on each
+content reference (the latest EFFDT not after today), whether it is active,
+and what its fields do. HRDMO: 16 configurations, all inactive -- 10 Keyword
+Searches on HR and benefits components (DEPEND_BENEF: 27 fields, 15
+criteria, 7 results) and 6 Standard Searches on the pay sheet components
+(PAY_SHEET_LINE on PAY_LINE_WORKX: 38 fields, 10 criteria, 12 results);
+JOB_CODE_TBL has none. Writing configurations is not built: it needs native
+captures of Manage Search Configuration's saves.
+
 ## Writing Drop Zones
 
 **Configuration Tools > Customization > Drop Zones** opens a searchable component

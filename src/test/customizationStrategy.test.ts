@@ -39,8 +39,8 @@ test('ownership: being read, not readable, or classified with its evidence; capa
   // The prefix shows, as supporting evidence; capability discovery is still unknown.
   const rows = all(strategySections(ctx, POLICY, false));
   assert.equal(rows.find((r) => r.id === 'identity.prefix')?.description, 'ZZ_ · organization');
-  // Event Mapping, Drop Zones and Page and Field Configurator are discovered; the frameworks not discovered yet stay unknown.
-  const discovered = ['capability.EVENT_MAPPING', 'capability.DROP_ZONES', 'capability.PAGE_FIELD_CONFIGURATOR'];
+  // Event Mapping, Drop Zones, Page and Field Configurator and Configurable Search are discovered; the frameworks not discovered yet stay unknown.
+  const discovered = ['capability.EVENT_MAPPING', 'capability.DROP_ZONES', 'capability.PAGE_FIELD_CONFIGURATOR', 'capability.CONFIGURABLE_SEARCH'];
   for (const r of rows.filter((x) => x.id.startsWith('capability.') && !discovered.some((d) => x.id.startsWith(d)))) assert.ok(r.muted && r.description === 'Unknown', r.id);
   assert.equal(all(strategySections({ type: DefinitionType.Component, name: 'JOB_DATA' }, POLICY, false)).find((r) => r.id === 'identity.prefix'), undefined);
 });

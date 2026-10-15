@@ -74,6 +74,8 @@ import { guardWrite, type WriteAction } from './writeGuard.js';
 import { discoverEventMapping } from './eventMappingReader.js';
 import { discoverDropZones } from './dropZoneReader.js';
 import { discoverPageFieldConfigurator } from './pfcReader.js';
+import { discoverConfigurableSearch } from './configurableSearchReader.js';
+import type { CsDiscovery } from '../model/configurableSearch.js';
 import type { PfcDiscovery } from '../model/pageFieldConfigurator.js';
 import { derivePfcMappings, pfcContentReferences, type PfcMapping } from './pfcMapper.js';
 import { pfcCatalogFields, pfcCatalogPages, pfcFieldTypes, pfcMaskProfiles, type PfcCatalogField, type PfcCatalogPage, type PfcMaskProfile } from './pfcCatalog.js';
@@ -2280,12 +2282,14 @@ export class DatabaseProvider implements DefinitionProvider {
    * them -- and Page and Field Configurator -- its configurations and where
    * their Event Mapping applies them. The other frameworks are not discovered yet.
    */
-  async discoverCapabilities(key: DefinitionKey): Promise<{ eventMapping?: EventMappingDiscovery; dropZones?: DropZoneDiscovery; pageFieldConfigurator?: PfcDiscovery }> {
+  async discoverCapabilities(key: DefinitionKey): Promise<{ eventMapping?: EventMappingDiscovery; dropZones?: DropZoneDiscovery; pageFieldConfigurator?: PfcDiscovery; configurableSearch?: CsDiscovery }> {
     return this.withConnection(async (c) => {
       const eventMapping = await discoverEventMapping(c, key);
       const dropZones = await discoverDropZones(c, key);
       const pageFieldConfigurator = await discoverPageFieldConfigurator(c, key);
-      return { ...(eventMapping ? { eventMapping } : {}), ...(dropZones ? { dropZones } : {}), ...(pageFieldConfigurator ? { pageFieldConfigurator } : {}) };
+      const configurableSearch = await discoverConfigurableSearch(c, key);
+      return { ...(eventMapping ? { eventMapping } : {}), ...(dropZones ? { dropZones } : {}), ...(pageFieldConfigurator ? { pageFieldConfigurator } : {}),
+        ...(configurableSearch ? { configurableSearch } : {}) };
     });
   }
 

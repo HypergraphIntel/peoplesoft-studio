@@ -3,6 +3,7 @@ import { matchPrefix, OWNERSHIP_LABELS, type Classification, type NamingPrefix }
 import { describeMapping, type EventMappingDiscovery } from './eventMapping.js';
 import type { DropZoneDiscovery } from './dropZones.js';
 import { describeSequence, PFC_CONFIG_TYPE_LABELS, type PfcDiscovery } from './pageFieldConfigurator.js';
+import { describeCsConfiguration, type CsDiscovery } from './configurableSearch.js';
 
 export { OWNERSHIP_LABELS, type Ownership } from './ownership.js';
 
@@ -160,7 +161,7 @@ function ownershipRows(ctx: CustomizationContext, policy: CustomizationPolicy, o
 export type CapabilitiesState =
   | { state: 'pending' }
   | { state: 'unavailable'; message: string }
-  | { state: 'done'; eventMapping?: EventMappingDiscovery; dropZones?: DropZoneDiscovery; pageFieldConfigurator?: PfcDiscovery; knowledge?: KnowledgeSummary };
+  | { state: 'done'; eventMapping?: EventMappingDiscovery; dropZones?: DropZoneDiscovery; pageFieldConfigurator?: PfcDiscovery; configurableSearch?: CsDiscovery; knowledge?: KnowledgeSummary };
 
 /** What recorded and verified knowledge says about Event Mapping on the connection's release (docs/intelligence, D18): information, never permission. */
 export interface KnowledgeSummary {
@@ -177,11 +178,12 @@ function capabilityRow(f: Framework, caps: CapabilitiesState | undefined, connec
   const info = FRAMEWORKS[f];
   const unknown: StrategyRow = { id: `capability.${f}`, label: info.label, description: DISCOVERY_LABELS.UNKNOWN, icon: 'circle-large-outline', muted: true,
     tooltip: `${info.purpose}.\nTo verify: ${info.mustVerify}.\n${PREVIEW}`, command: { id: 'psft.customization.discover', args: [info.label] } };
-  if (f !== 'EVENT_MAPPING' && f !== 'DROP_ZONES' && f !== 'PAGE_FIELD_CONFIGURATOR') return unknown;
+  if (f !== 'EVENT_MAPPING' && f !== 'DROP_ZONES' && f !== 'PAGE_FIELD_CONFIGURATOR' && f !== 'CONFIGURABLE_SEARCH') return unknown;
   if (!caps || caps.state === 'pending') return { ...unknown, description: 'Discovering…', icon: 'loading~spin', tooltip: `${info.purpose}.` };
   if (caps.state === 'unavailable') return { ...unknown, tooltip: `${info.purpose}.\n${caps.message}` };
   if (f === 'DROP_ZONES') return dropZoneRow(info, caps.dropZones, connectionId) ?? unknown;
   if (f === 'PAGE_FIELD_CONFIGURATOR') return pfcRow(info, caps.pageFieldConfigurator, connectionId) ?? unknown;
+  if (f === 'CONFIGURABLE_SEARCH') return csRow(info, caps.configurableSearch) ?? unknown;
   const d = caps.eventMapping;
   if (!d) return unknown;
   return {
@@ -269,6 +271,27 @@ function pfcRow(info: FrameworkInfo, d: PfcDiscovery | undefined, connectionId?:
             : `Create a Standard Page and Field Configurator configuration of ${x.component}.${x.market}: hide, require, relabel or make display only its fields, as the configurator saves it.`,
           command: { id: 'psft.customization.createPageFieldConfiguration', args: [connectionId, x.component, x.market, type] }
         }))) : [])
+    ]
+  };
+}
+
+/** The Configurable Search row: the verdict, its evidence, and each content reference's configuration in effect. */
+function csRow(info: FrameworkInfo, d: CsDiscovery | undefined): StrategyRow | undefined {
+  if (!d) return undefined;
+  const active = d.configurations.filter((c) => c.active).length;
+  return {
+    id: 'capability.CONFIGURABLE_SEARCH', label: info.label, icon: STATE_ICONS[d.state], muted: d.state !== 'VERIFIED_AVAILABLE',
+    description: `${DISCOVERY_LABELS[d.state]}${d.state === 'VERIFIED_AVAILABLE' ? ` · ${d.configurations.length ? `${d.configurations.length} configured, ${active} active` : 'none configured'}` : ''}`,
+    tooltip: `${info.purpose}.\n${d.evidence.join('\n')}`,
+    children: [
+      ...d.evidence.map((line, i) => ({ id: `capability.CONFIGURABLE_SEARCH.evidence.${i}`, label: line, icon: 'debug-stackframe-dot', muted: true, tooltip: line })),
+      ...d.configurations.map((c, i) => ({
+        id: `capability.CONFIGURABLE_SEARCH.config.${i}`, label: describeCsConfiguration(c), icon: c.active ? 'search' : 'circle-slash', muted: !c.active,
+        description: `${c.cref} · effective ${c.effdt}`,
+        tooltip: `${c.searchId}${c.pageLabel ? ` ("${c.pageLabel}")` : ''} on ${c.cref}, effective ${c.effdt}\n${describeCsConfiguration(c)}` +
+          `\n${c.fields.smallFormFactor} on small form factors, ${c.fields.keys} search keys` +
+          (c.active ? '' : '\nInactive: the search page is as delivered until it is activated in Manage Search Configuration.')
+      }))
     ]
   };
 }

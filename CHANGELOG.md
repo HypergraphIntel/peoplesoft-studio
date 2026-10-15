@@ -14,6 +14,12 @@
 - Find in Project searches readable text definitions with Match Case and Whole Word
   options, cancellable progress, skipped-definition counts, and results that open at the matching line.
 
+- **Configurable Search discovery** (Customization Strategy view, MCP
+  `psft_customization_discover`): for a component or page, the search
+  configuration in effect on each of its content references -- Standard or
+  Keyword Search, on which record or search definition, active or not -- and
+  what its fields do (criteria, results, relabelled, hidden, required, defaults).
+  Read only; configurations are not written yet.
 - **Page and Field Configurator page rules**: *Page rules…* on a sequence hides
   a page, shows it (one the component hides too) or makes it display only; the
   save warns, as the configurator does, about a required field on such a page

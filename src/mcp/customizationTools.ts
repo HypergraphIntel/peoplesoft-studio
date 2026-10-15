@@ -4,6 +4,7 @@ import * as z from 'zod/v4';
 import { decideWrite, OWNERSHIP_LABELS } from '../model/ownership.js';
 import { describeMapping, EVENT_LEVEL_LABELS, eventLabel, PROCESSING_LABELS, type EventLevel } from '../model/eventMapping.js';
 import { describeSequence, PFC_APPLY_TO_LABELS, PFC_CONFIG_TYPE_LABELS } from '../model/pageFieldConfigurator.js';
+import { CS_SEARCH_TYPE_LABELS, describeCsConfiguration } from '../model/configurableSearch.js';
 import { DatabaseProvider } from '../providers/database.js';
 import { knowledgeFor } from '../intelligenceCommands.js';
 import { effectivePolicy } from '../providers/writeGuard.js';
@@ -64,7 +65,7 @@ export function registerCustomizationTools(server: McpServer, workspace: Workspa
       'drop zones, each with its page, label, key and any configured subpage; VERIFIED_UNAVAILABLE when none. Page and Field Configurator: ' +
       'VERIFIED_AVAILABLE when the component is registered (it applies through Event Mapping), with its configurations, what each sequence ' +
       'changes, and on which content references the EOCC Event Mapping applies them; VERIFIED_UNAVAILABLE when not registered or not installed. ' +
-      'Configurable Search and AE plug-ins are not discovered yet (UNKNOWN). Read only.',
+      'Configurable Search is discovered (read only: its configurations, not yet written); AE plug-ins are not discovered yet (UNKNOWN). Read only.',
     inputSchema: z.object({ connection: z.string().min(1), type: z.number().int(), parts: z.array(z.string()).min(1) }),
     annotations: READ_ONLY
   }, async ({ connection, type, parts }) => {
@@ -99,7 +100,11 @@ export function registerCustomizationTools(server: McpServer, workspace: Workspa
           sequences: c.sequences.map((s) => ({ ...s, summary: describeSequence(s), applyToLabel: PFC_APPLY_TO_LABELS[s.applyTo] ?? s.applyTo }))
         }))
       } : { state: 'NOT_APPLICABLE', evidence: ['Page and Field Configurator configures components (and their pages).'] },
-      notDiscoveredYet: ['Configurable Search', 'App Engine Plug-ins']
+      configurableSearch: r.configurableSearch ? {
+        state: r.configurableSearch.state, evidence: r.configurableSearch.evidence, contentReferences: r.configurableSearch.contentReferences,
+        configurations: r.configurableSearch.configurations.map((c) => ({ ...c, typeLabel: CS_SEARCH_TYPE_LABELS[c.type] ?? c.type, summary: describeCsConfiguration(c) }))
+      } : { state: 'NOT_APPLICABLE', evidence: ['Configurable Search configures a component\'s search page (components and their pages).'] },
+      notDiscoveredYet: ['App Engine Plug-ins']
     });
   });
 }
