@@ -6,14 +6,15 @@ import {
 import { DefinitionType, displayName, typeLabel } from '../model/definitions.js';
 import { PackageNode, buildPackageTree, isPackageItem } from '../model/appPackages.js';
 import { toUri } from '../util/uri.js';
+import { addRecentProject, deserializeRecentProjects, RECENT_PROJECTS_KEY, serializeRecentProjects } from '../model/recentProjects.js';
 import { definitionContextValue } from './contextValue.js';
 
 type Node =
   | { kind: 'project'; provider: DefinitionProvider; project: ProjectSummary }
   | { kind: 'group'; provider: DefinitionProvider; project: string; type: DefinitionType; items: DefinitionSummary[] }
-  | { kind: 'packageGroup'; provider: DefinitionProvider; roots: PackageNode[]; count: number }
-  | { kind: 'packageNode'; provider: DefinitionProvider; node: PackageNode }
-  | { kind: 'item'; provider: DefinitionProvider; summary: DefinitionSummary };
+  | { kind: 'packageGroup'; provider: DefinitionProvider; project: string; roots: PackageNode[]; count: number }
+  | { kind: 'packageNode'; provider: DefinitionProvider; project: string; node: PackageNode }
+  | { kind: 'item'; provider: DefinitionProvider; project: string; summary: DefinitionSummary };
 
 /**
  * The project tree, which is how App Designer users actually navigate: a
@@ -34,14 +35,16 @@ export class ProjectsView implements vscode.TreeDataProvider<Node> {
    */
   private readonly opened = new Set<string>();
 
-  constructor(private readonly workspace: Workspace) {
+  constructor(private readonly workspace: Workspace, private readonly state: vscode.Memento) {
     workspace.onDidChange(() => this._onDidChangeTreeData.fire());
   }
 
   refresh(): void { this._onDidChangeTreeData.fire(); }
 
   /** Adds a project to the tree, as opening one from the dialog does. */
-  openProject(providerId: string, project: string): void {
+  async openProject(providerId: string, project: string): Promise<void> {
+    await this.state.update(RECENT_PROJECTS_KEY, serializeRecentProjects(addRecentProject(
+      deserializeRecentProjects(this.state.get(RECENT_PROJECTS_KEY)), { connectionId: providerId, project })));
     this.opened.add(`${providerId}\u0000${project}`);
     this._onDidChangeTreeData.fire();
   }
@@ -107,9 +110,9 @@ export class ProjectsView implements vscode.TreeDataProvider<Node> {
           // A package node is only openable when it is an item in its own
           // right; an interior node inferred from a class path is not.
           item.command = {
-            command: 'psft.openDefinition',
+            command: 'psft.openProjectDefinition',
             title: 'Open',
-            arguments: [node.provider.id, pkg.key]
+            arguments: [node.provider.id, pkg.key, node.project]
           };
         }
         if (!isClass) {
@@ -132,9 +135,9 @@ export class ProjectsView implements vscode.TreeDataProvider<Node> {
         item.contextValue = definitionContextValue(key);
         item.resourceUri = toUri(node.provider.id, key);
         item.command = {
-          command: 'psft.openDefinition',
+          command: 'psft.openProjectDefinition',
           title: 'Open',
-          arguments: [node.provider.id, key]
+          arguments: [node.provider.id, key, node.project]
         };
         return item;
       }
@@ -199,6 +202,7 @@ export class ProjectsView implements vscode.TreeDataProvider<Node> {
         groups.push({
           kind: 'packageGroup',
           provider: node.provider,
+          project: node.project.name,
           roots: buildPackageTree(packageItems),
           count: packageItems.length
         });
@@ -208,18 +212,18 @@ export class ProjectsView implements vscode.TreeDataProvider<Node> {
 
     if (node.kind === 'packageGroup') {
       return node.roots.map((root) => ({
-        kind: 'packageNode' as const, provider: node.provider, node: root
+        kind: 'packageNode' as const, provider: node.provider, project: node.project, node: root
       }));
     }
 
     if (node.kind === 'packageNode') {
       return node.node.children.map((child) => ({
-        kind: 'packageNode' as const, provider: node.provider, node: child
+        kind: 'packageNode' as const, provider: node.provider, project: node.project, node: child
       }));
     }
 
     if (node.kind === 'group') {
-      return node.items.map((summary) => ({ kind: 'item', provider: node.provider, summary }));
+      return node.items.map((summary) => ({ kind: 'item', provider: node.provider, project: node.project, summary }));
     }
 
     if (node.kind === 'item') {
@@ -227,7 +231,7 @@ export class ProjectsView implements vscode.TreeDataProvider<Node> {
       try {
         const children = await node.provider.listChildren(node.summary.key);
         return children.map((summary) => ({
-          kind: 'item' as const, provider: node.provider, summary
+          kind: 'item' as const, provider: node.provider, project: node.project, summary
         }));
       } catch (err) {
         vscode.window.showErrorMessage(

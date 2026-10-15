@@ -116,7 +116,7 @@
       },
       {
         "view": "psft.projects",
-        "contents": "Connect to an environment, then open a project by name.\n[Open Definition...](command:psft.openDefinitionDialog)\n[New Definition...](command:psft.newDefinition)"
+        "contents": "Connect to an environment, then open a project by name.\n[Open Definition...](command:psft.openDefinitionDialog)\n[Open Recent Project](command:psft.openRecentProject)\n[New Definition...](command:psft.newDefinition)"
       }
     ],
     "customEditors": [
@@ -213,6 +213,22 @@
         "title": "New PS Query",
         "category": "PeopleSoft",
         "icon": "$(add)"
+      },
+      {
+        "command": "psft.openProjectDefinition",
+        "title": "Open Project Definition",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.openRecentProject",
+        "title": "Open Recent Project",
+        "category": "PeopleSoft",
+        "icon": "$(history)"
+      },
+      {
+        "command": "psft.clearRecentProjects",
+        "title": "Clear Recent Projects",
+        "category": "PeopleSoft"
       },
       {
         "command": "psft.openDefinitionDialog",
@@ -675,6 +691,11 @@
     "menus": {
       "view/title": [
         {
+          "command": "psft.openRecentProject",
+          "when": "view == psft.projects",
+          "group": "navigation@5"
+        },
+        {
           "command": "psft.openDefinitionDialog",
           "when": "view == psft.projects || view == psft.browser",
           "group": "navigation@1"
@@ -881,6 +902,10 @@
         }
       ],
       "commandPalette": [
+        {
+          "command": "psft.openProjectDefinition",
+          "when": "false"
+        },
         {
           "command": "psft.plannedTool",
           "when": "false"

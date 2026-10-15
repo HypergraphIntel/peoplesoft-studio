@@ -1,3 +1,6 @@
+import { deserializeRecentProjects, RECENT_PROJECTS_KEY } from './model/recentProjects.js';
+import { isMissingProjectDefinition, missingProjectDefinitionMessage } from './model/projectOpening.js';
+import { PROPERTIES_SPECS } from './model/properties.js';
 import { setManualHistoryObserver } from './changeReview/manualHistory.js';
 import { databaseReviewAdapters } from './changeReview/adapters.js';
 import { ReviewStore } from './changeReview/store.js';
@@ -23,7 +26,7 @@ import { newQueryDocument, copyQueryDocument, type QueryFieldInfo } from './mode
 import { queryToken } from './model/querySavePlan.js';
 import type { QueryEdit } from './providers/queryWriter.js';
 import { QueryDesignerPanel } from './editors/queryDesignerPanel.js';
-import { DefinitionKey, DefinitionType, displayName, makeKey, typeLabel } from './model/definitions.js';
+import { DefinitionKey, DefinitionType, displayName, isPeopleCode, makeKey, typeLabel } from './model/definitions.js';
 import { setWriteNamePrefix, writeNamePrefix, writeScopeRefusal } from './providers/writeScope.js';
 import { RECORD_FIELD_EVENTS } from './model/recordEvents.js';
 import { FIELD_TYPE_LABELS, FieldType, RecordType } from './model/record.js';
@@ -390,7 +393,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   const connections = new ConnectionsView(workspace);
   const browser = new BrowserView(workspace);
-  const projects = new ProjectsView(workspace);
+  const projects = new ProjectsView(workspace, context.globalState);
 
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider('psft.connections', connections),
@@ -788,7 +791,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         await vscode.window.showTextDocument(receiptFile, { preview: false });
         projects.refresh();
         if (receipt.error) vscode.window.showErrorMessage(`Migration stopped after ${receipt.completed.length} verified definitions: ${receipt.error}`);
-        else { projects.openProject(target.id, pkg.project); vscode.window.showInformationMessage(`Imported ${pkg.project}: ${receipt.completed.length} definitions saved and verified.`); }
+        else { await projects.openProject(target.id, pkg.project); vscode.window.showInformationMessage(`Imported ${pkg.project}: ${receipt.completed.length} definitions saved and verified.`); }
       });
     }),
 
@@ -928,11 +931,66 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       });
     }),
 
+    vscode.commands.registerCommand('psft.clearRecentProjects', () =>
+      withError('Clearing recent projects', async () => {
+        await context.globalState.update(RECENT_PROJECTS_KEY, []);
+      })),
+
+    vscode.commands.registerCommand('psft.openRecentProject', () =>
+      withError('Opening recent project', async () => {
+        const recent = deserializeRecentProjects(context.globalState.get(RECENT_PROJECTS_KEY));
+        const items = recent.map((entry) => {
+          const config = workspace.configFor(entry.connectionId);
+          const provider = workspace.getProvider(entry.connectionId);
+          const status = !config ? 'connection no longer configured' : !provider?.isConnected ? 'not connected' : '';
+          return { label: entry.project, description: config?.name ?? entry.connectionId, detail: status, entry };
+        });
+        const picked = await vscode.window.showQuickPick([
+          ...items, { label: '$(clear-all) Clear Recent Projects', description: '', detail: '', entry: undefined }
+        ], { title: 'Open Recent Project', placeHolder: recent.length ? 'Choose a project' : 'No recent projects', matchOnDescription: true });
+        if (!picked) return;
+        if (!picked.entry) {
+          await vscode.commands.executeCommand('psft.clearRecentProjects');
+          return;
+        }
+        if (picked.detail) {
+          vscode.window.showInformationMessage(`${picked.entry.project}: ${picked.description} — ${picked.detail}. Connect the environment before opening this project.`);
+          return;
+        }
+        await vscode.commands.executeCommand('psft.openDefinition', picked.entry.connectionId,
+          makeKey(DefinitionType.Project, picked.entry.project));
+      })),
+
+    vscode.commands.registerCommand('psft.openProjectDefinition',
+      (connectionId: string, key: DefinitionKey, project: string) =>
+        withError(`Opening ${displayName(key)}`, async () => {
+          const provider = await workspace.require(connectionId);
+          if (provider instanceof DatabaseProvider) {
+            let missing = false;
+            if (PROPERTIES_SPECS[key.type]) {
+              missing = !(await provider.readProperties(key));
+            } else if (isPeopleCode(key.type)) {
+              missing = !(await provider.hasPeopleCode(key));
+            } else if (provider.canReadAsText(key.type)) {
+              try { await provider.readText(key); }
+              catch (error) {
+                if (!isMissingProjectDefinition(error)) throw error;
+                missing = true;
+              }
+            }
+            if (missing) {
+              vscode.window.showWarningMessage(missingProjectDefinitionMessage(key, provider.displayName, project));
+              return;
+            }
+          }
+          await vscode.commands.executeCommand('psft.openDefinition', connectionId, key);
+        })),
+
     vscode.commands.registerCommand('psft.openDefinition',
       async (connectionId: string, key: DefinitionKey) => {
         await withError(`Opening ${displayName(key)}`, async () => {
           if (key.type === DefinitionType.Project) {
-            projects.openProject(connectionId, key.parts[0]);
+            await projects.openProject(connectionId, key.parts[0]);
             await vscode.commands.executeCommand('psft.projects.focus');
             return;
           }

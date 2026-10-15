@@ -4,6 +4,11 @@
 
 ### Added
 
+- Recent Projects remembers the last ten opened projects across restarts, by
+  connection, with commands to reopen projects or clear the list.
+- Opening a deleted project definition explains that it is still listed in the
+  project and can be removed in Application Designer.
+
 - **Who a Page and Field Configurator configuration applies to**: in the
   configurator editor, *Applies to…* sets it for the whole configuration or,
   per sequence -- everyone but excluded roles and users, a single role,
