@@ -98,6 +98,10 @@ Release scope and acceptance evidence are tracked in
 
 ### Fixed
 
+- Older background review renders cannot reset a newer selected Change Set or
+  replace its preview and revision-bound actions. Deterministic overlap checks
+  cover both delayed list reads and delayed previews.
+
 - Completed direct continuations move the original partial application into
   History, with a follow-up link and its original outcome preserved. Unknown,
   incomplete or mismatched follow-ups remain pending.

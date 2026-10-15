@@ -251,3 +251,11 @@ and queue classification are in `release-0.9.1-readiness.json`. The original
 partial outcome is preserved. Source logic moves only its provably completed
 direct continuation into History; foreign/uncertain/incomplete cases stay
 pending. This is not native crash or lost-response certification.
+
+### Overlapping review renders
+
+HTTP/UI fixtures deliberately delay an older list read and, separately, an
+older diff read while selecting a newer proposal. Neither completion may
+change the new selection, replace its HTML or authorize any write. This covers
+the Node 20 CI Page-inverse selection failure; all 38 checks pass locally on
+Node 20.20.2 and 26.9.0 after the render-generation guard.

@@ -1,10 +1,10 @@
 {
   "version": "0.9.1",
-  "status": "ACCEPTED_FOR_V0_9_1_GIT_RELEASE",
+  "status": "POST_PUSH_RENDER_CORRECTION_LOCALLY_VERIFIED",
   "checkedAt": "2026-10-15T22:14:39.035999+00:00",
   "artifact": "peoplesoft-studio-0.9.1.vsix",
-  "sha256": "bbc523827b3db65d07811cd81d4341ae171ebc8c990e67f0bab1b7b26d1550dc",
-  "bundleSha256": "3dbb75d567e1b2507f1b4cf506b0e645aa3c785a1a471a53b673e52f2c2d8196",
+  "sha256": "f58c1d1b5617439c5834732975c77f8cd3c6aac6c7bca664991ea0a02d2b79cd",
+  "bundleSha256": "e8975a16f4dd3518386e572708f0cf97c7b2c2fc1006ae46d53cc8f598a24117",
   "packagedManifestAndBundleMatchSource": true,
   "manifestLockfileAndMcpHandshakeVersion": "0.9.1",
   "verify": {
@@ -13,7 +13,7 @@
     "fail": 0,
     "skipped": 1
   },
-  "fixtureHttpUiChecks": 36,
+  "fixtureHttpUiChecks": 38,
   "navigationCommands": 103,
   "activatedViews": 9,
   "nativeHarnessStrictTypecheck": "PASS",
@@ -241,9 +241,9 @@
     ],
     "mode": "Read-only native snapshot/token/checkpoint/approval/journal acceptance; no approval or writer calls."
   },
-  "finalCandidateInstalled": true,
-  "finalCandidateReloadVerified": true,
-  "installedBundleMatchesFinalArtifact": true,
+  "finalCandidateInstalled": false,
+  "finalCandidateReloadVerified": false,
+  "installedBundleMatchesFinalArtifact": false,
   "developerUiAcceptance": {
     "status": "PASS",
     "date": "2026-10-15",
@@ -264,5 +264,23 @@
     "completionEvidence": "Matching origin/main and refs/tags/v0.9.1"
   },
   "distributionPublicationPerformed": false,
-  "releaseNotesRepackageRuntimeUnchanged": true
+  "preCorrectionReleaseArtifact": {
+    "artifact": "peoplesoft-studio-0.9.1.vsix",
+    "sha256": "bbc523827b3db65d07811cd81d4341ae171ebc8c990e67f0bab1b7b26d1550dc",
+    "bundleSha256": "3dbb75d567e1b2507f1b4cf506b0e645aa3c785a1a471a53b673e52f2c2d8196"
+  },
+  "renderCorrection": {
+    "cause": "Obsolete list render reset a newer explicit selection; revision/selection guard refused approval",
+    "regressions": [
+      "Delayed list cannot reset selection or replace current review",
+      "Delayed preview cannot replace current revision-bound actions"
+    ],
+    "node20Version": "20.20.2",
+    "node26Version": "26.9.0",
+    "httpChecksPerNodeVersion": 38,
+    "fullVerify": "1915 pass, 1 skip, 0 fail",
+    "initialTagCommit": "f2ff499",
+    "existingTagUnchanged": true,
+    "remoteValidation": "GitHub CI on correction commit"
+  }
 }

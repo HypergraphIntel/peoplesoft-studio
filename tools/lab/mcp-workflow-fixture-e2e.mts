@@ -376,6 +376,31 @@ try{
  assert.equal(staged.status,'REVIEW_REQUIRED');assert.equal(nativeWrites,0);assert.equal(confirmed,confirmsBefore);
  assert.equal((await reviewCall('psft_validate_change_set',{changeSetId:set.id})).status,'READY_FOR_REVIEW');
  await reviewUi.show(set.id);const page=vscode._panels.at(-1);const current=await reviewService.store.get(set.id);
+ // An older store read must not undo a newer explicit navigation selection.
+ const originalList=reviewService.store.list;
+ let releaseList!:()=>void, listEntered!:()=>void, holdList=true;
+ const listGate=new Promise<void>(resolve=>{releaseList=resolve;}), listStarted=new Promise<void>(resolve=>{listEntered=resolve;});
+ reviewService.store.list=async()=>{const sets=await originalList.call(reviewService.store);if(!holdList)return sets;holdList=false;listEntered();await listGate;return sets.filter((s:any)=>s.id!==set.id);};
+ try {
+  const obsolete=reviewUi.show(autoStaged.changeSetId);await listStarted;await reviewUi.show(set.id);
+  const selectedHtml=page.webview.html;releaseList();await obsolete;
+  assert.equal(reviewUi.selected,set.id,'an obsolete list must not reset the current selection');
+  assert.equal(page.webview.html,selectedHtml,'an obsolete list must not replace the current review');
+ } finally {releaseList();reviewService.store.list=originalList;}
+ assert.equal(nativeWrites,0);assert.equal((await reviewService.store.get(set.id)).status,'READY_FOR_REVIEW');
+ check('overlapping review navigation ignores an obsolete list without changing selection, approvals or writes');
+ // A render that already selected its object can also finish its preview late.
+ const originalDiff=reviewService.diff;
+ let releaseDiff!:()=>void, diffEntered!:()=>void, holdDiff=true;
+ const diffGate=new Promise<void>(resolve=>{releaseDiff=resolve;}), diffStarted=new Promise<void>(resolve=>{diffEntered=resolve;});
+ reviewService.diff=async(...args:any[])=>{const result=await originalDiff.apply(reviewService,args);if(!holdDiff)return result;holdDiff=false;diffEntered();await diffGate;return result;};
+ try {
+  const obsolete=reviewUi.show(autoStaged.changeSetId);await diffStarted;await reviewUi.show(set.id);
+  const selectedHtml=page.webview.html;releaseDiff();await obsolete;
+  assert.equal(reviewUi.selected,set.id);assert.equal(page.webview.html,selectedHtml,'a late preview must not replace a newer review');
+ } finally {releaseDiff();reviewService.diff=originalDiff;}
+ assert.equal(nativeWrites,0);assert.equal((await reviewService.store.get(set.id)).status,'READY_FOR_REVIEW');
+ check('overlapping review previews cannot replace a newer selection or its revision-bound actions');
  assert.ok(page.webview.html.includes('NEW OBJECT'));
  const {ChangeReviewView}=require('./src/views/changeReviewView.ts');
  const reviewTree=new ChangeReviewView(reviewService);

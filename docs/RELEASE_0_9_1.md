@@ -1,6 +1,6 @@
 # 0.9.1 release verification
 
-Status: **all 0.9.1 acceptance gates passed; developer-authorized Git release snapshot**. Updated October 15, 2026.
+Status: **accepted release with a locally verified post-push render correction; remote CI/tag decision tracked below**. Updated October 15, 2026.
 
 Git release target: `main` and annotated tag `v0.9.1`. Their remote refs are
 the completion evidence for commit/tag/push. Marketplace publishing and a
@@ -32,7 +32,7 @@ crash test. Reversal of continued work still needs a combined recovery plan.
 | --- | --- | --- |
 | Package/lockfile version | Verified | Both are 0.9.1, matching MCP handshake and release tag |
 | Source/documentation audit | Candidate claims updated | Corrected adapter counts, Data Mover status, staged/legacy approval guidance and published-vs-candidate labels |
-| Full verify and HTTP/UI fixture suite | Passed for 0.9.1 candidate | 1,915 passed, one skipped, 36 HTTP/UI checks; handshake version checked against the manifest |
+| Full verify and HTTP/UI fixture suite | Passed for 0.9.1 candidate | 1,915 passed, one skipped, 38 HTTP/UI checks on Node 20.20.2 and 26.9.0; handshake version checked against the manifest |
 | Navigation reachability | Passed | 103 commands, nine views, primary-action limit; developer confirmed clear, uncluttered menu placement |
 | Installed candidate activation | Final candidate verified after reload | Active MCP handshake 0.9.1, all nine adapters, installed bundle matches final artifact; native closeout rechecked |
 | Native Query cycle | Reverified after 0.9.1 reload | Native current content/token, approval/checkpoint, reverse links and three verified timeline revisions match recorded redo |
@@ -168,3 +168,18 @@ Its runtime bundle matches the developer-accepted candidate exactly.
 Release VSIX SHA-256: `bbc523827b3db65d07811cd81d4341ae171ebc8c990e67f0bab1b7b26d1550dc`.
 The earlier fingerprint above identifies the installed acceptance candidate;
 the evidence JSON records both artifacts.
+
+## Post-push correction
+
+The initial Git release commit `f2ff499` exposed an overlapping-render race in
+Node 20 GitHub CI. The approval guard refused a stale selection. The correction
+prevents obsolete list/preview reads from replacing a newer review. Full verify
+and 38 HTTP/UI checks pass locally, including deterministic regressions and
+the exact CI Node version. Native writer behavior and menu placement are unchanged.
+The follow-up on main requires remote CI confirmation. The already-pushed
+`v0.9.1` tag remains unchanged unless the developer explicitly authorizes moving
+it to the correction. No Marketplace or GitHub Release publication occurred.
+
+Corrected VSIX SHA-256: `f58c1d1b5617439c5834732975c77f8cd3c6aac6c7bca664991ea0a02d2b79cd`. The corrected bundle and final
+README/CHANGELOG match source; earlier fingerprints are retained as acceptance
+history. The render correction is not yet installed/reloaded in the native host.

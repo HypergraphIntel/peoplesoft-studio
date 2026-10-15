@@ -5,11 +5,12 @@
 0.9.1 acceptance is complete. The developer authorized the Git release on `main` with annotated tag `v0.9.1`; remote refs provide completion evidence. Distribution publication remains separate. See the [release readiness tracker](../RELEASE_0_9_1.md) for current gates; historical session entries below retain their original evidence/status.
 
 Current closeout: version, lockfile and MCP handshake are 0.9.1. Full verify
-passed (1,915 passed, one skipped), 36 fixture HTTP/UI checks passed, and all
+passed (1,915 passed, one skipped), 38 fixture HTTP/UI checks passed, and all
 103 commands/nine views pass navigation/activation checks. The final candidate
 `peoplesoft-studio-0.9.1.vsix` is packaged, source/document/bundle audited and
-installed and reloaded. Activation, native closeout and developer menu/history
-display acceptance pass.
+the prior candidate was installed and reloaded. Native closeout and developer
+menu/history placement acceptance pass. The post-push render correction is
+locally verified on Node 20/26; it is not yet installed/reloaded.
 The earlier candidate was activated and verified with all nine adapters.
 
 Developer-approved native Page/Record/AE application and checkpoint inverse,
@@ -700,3 +701,24 @@ evidence. README/CHANGELOG now identify the dated 0.9.1 release. The release
 VSIX is rebuilt with those final notes and the unchanged accepted runtime
 bundle. The unrelated corpus capture remains excluded. Marketplace publishing
 and a GitHub Release/artifact upload are separate from this Git release.
+
+## Post-push CI exposed an overlapping-render selection race
+
+The first 0.9.1 push (`f2ff499`, initially tagged `v0.9.1`) passed unit tests
+and smoke in GitHub CI, but failed Page inverse approval in the HTTP/UI fixture
+twice under Node 20.20.2. This reproduced locally on the same Node version.
+Diagnostics showed “Select a current Change Set”: an older store-list render
+reset the newly selected inverse to the prior applied set. Revision/selection
+guards refused the approval; no wrong object was applied.
+
+The correction gives each render a generation and captures its requested
+selection/filter. Obsolete renders return before changing selection and before
+publishing a late diff/timeline. Two deterministic regressions cover delayed
+lists and delayed previews. The first fails on the original source even under
+Node 26; both pass with the correction. Full verify passes (1,915 passed, one
+skipped), and all 38 production HTTP/UI checks pass on Node 20.20.2 and 26.9.0.
+Native adapters, writer/approval policy and visual placement are unchanged.
+
+The follow-up commit is intended for main. Replacing the already-pushed release
+tag is a separate explicit developer decision; it is not silently rewritten.
+GitHub CI for the correction provides the remaining remote validation evidence.

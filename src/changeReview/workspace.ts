@@ -12,6 +12,7 @@ export class ReviewWorkspace implements vscode.Disposable {
     private object?: string;
     private listMode: ReviewList = 'all';
     private message = '';
+    private renderVersion = 0;
     private timelineCheck?: ObjectTimeline;
     private pageHistoryComparison?: { historyHash: string; revisionId: string };
     private readonly registration: vscode.Disposable;
@@ -163,14 +164,18 @@ export class ReviewWorkspace implements vscode.Disposable {
         const panel = this.panel;
         if (!panel)
             return;
+        const version = ++this.renderVersion;
+        const selection = this.selected, object = this.object, mode = this.listMode;
         const sets = await this.service.store.list();
-        const visibleSets = reviewList(sets, this.listMode);
-        let set: ChangeSet | undefined = visibleSets.find(s => s.id === this.selected);
+        // A background refresh may finish after navigation selected another set.
+        if (version !== this.renderVersion || this.panel !== panel) return;
+        const visibleSets = reviewList(sets, mode);
+        let set: ChangeSet | undefined = visibleSets.find(s => s.id === selection);
         if (!set) {
             set = visibleSets[0];
             this.selected = set?.id;
         }
-        const selected = set?.objects.find(c => c.id === this.object) ?? set?.objects[0];
+        const selected = set?.objects.find(c => c.id === object) ?? set?.objects[0];
         this.object = selected?.id;
         const diff = set && selected ? await this.service.diff(set.id, selected.id) : undefined;
         const timeline = set && selected ? await this.service.objectTimeline(set.id, selected.id) : undefined;
@@ -197,6 +202,8 @@ export class ReviewWorkspace implements vscode.Disposable {
           <ol reversed>${[...timeline.revisions].reverse().map(r => `<li><strong>${esc(r.title)}</strong> · ${esc(r.operation)} · ${esc(r.origin)} · ${esc(r.status)}<small>Readback verified ${esc(r.at)}${timeline.live.status === 'MATCHES_RECORDED' && timeline.live.matched === r.id ? ' · Live matched at the check above' : ''}${r.continuity === 'GAP' ? ' · GAP: preceding retained content/token does not match this checkpoint' : ''}${r.reverses ? ' · Reverses Change Set ' + esc(r.reverses) : ''}</small>${historyLink(r.changeSetId, r.objectId, 'Open recorded change')}<button data-action="timelineCompare" data-object="${esc(selected.id)}" data-timeline-revision="${esc(r.id)}">Compare with baseline</button></li>`).join('')}
           <li><strong>First retained baseline</strong><small>Proposal created ${esc(timeline.baseline.at)}${timeline.live.status === 'MATCHES_RECORDED' && timeline.live.matched === 'baseline' ? ' · Live matched at the check above' : ''}</small>${historyLink(timeline.baseline.changeSetId, timeline.baseline.objectId, 'Open baseline proposal')}</li></ol>
           <h4>Other proposals and uncertain outcomes</h4>${timeline.proposals.length ? timeline.proposals.map(p => `<p>${historyLink(p.changeSetId, p.objectId, p.title)} · ${esc(p.status)} · ${esc(p.review)} · ${esc(p.application)}${p.resultKnown ? '' : ' · After-state unknown'}</p>`).join('') : '<p>None recorded.</p>'}` : '';
+        // Diff/timeline reads can also finish after a newer render has started.
+        if (version !== this.renderVersion || this.panel !== panel) return;
         panel.webview.html = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'"><style>
   body{font-family:var(--vscode-font-family);color:var(--vscode-editor-foreground);background:var(--vscode-editor-background);padding:16px}main{display:grid;grid-template-columns:minmax(180px,23%) minmax(0,1fr);gap:20px}button{cursor:pointer;color:var(--vscode-button-secondaryForeground,var(--vscode-editor-foreground));background:var(--vscode-button-secondaryBackground,transparent);border:1px solid var(--vscode-panel-border);padding:7px;margin:3px}button:disabled{opacity:.45;cursor:default}.set{display:block;box-sizing:border-box;width:calc(100% - 6px);overflow-wrap:anywhere;text-align:left;background:transparent;color:var(--vscode-editor-foreground);border-color:transparent;border-radius:3px}.set[aria-current="true"]{background:var(--vscode-list-activeSelectionBackground);color:var(--vscode-list-activeSelectionForeground);border-color:var(--vscode-focusBorder)}button:hover:enabled{background:var(--vscode-button-secondaryHoverBackground)}button:focus-visible,summary:focus-visible{outline:1px solid var(--vscode-focusBorder);outline-offset:2px}button[data-action="apply"],body[data-review-status="READY_FOR_REVIEW"] .review-actions>button[data-action="approve"]{color:var(--vscode-button-foreground);background:var(--vscode-button-background)}small{display:block;margin-top:5px}pre{white-space:pre-wrap;overflow-wrap:anywhere;border:1px solid var(--vscode-panel-border);padding:10px}.compare{display:grid;grid-template-columns:1fr 1fr;gap:12px}h1,h2,h3{font-weight:500}.review-actions{display:flex;gap:6px;align-items:start;flex-wrap:wrap}.review-more{border:1px solid var(--vscode-panel-border);padding:8px;margin:3px}.review-more summary{cursor:pointer}.review-more>div{display:flex;flex-direction:column;max-width:340px}.review-more p{margin:4px}nav button[aria-pressed="true"]{outline:1px solid var(--vscode-focusBorder)}.notice{color:var(--vscode-errorForeground)}label{display:block;margin:8px}${PAGE_REVIEW_CSS}@media(max-width:760px){main{grid-template-columns:1fr}aside{max-height:240px;overflow:auto}.compare{grid-template-columns:1fr}}</style></head><body data-review-status="${esc(set?.status)}">
   <h1>PeopleSoft Change Review</h1><p>Proposals are staged locally. Only reviewed revisions can be applied. Writers commit independently; partial and uncertain outcomes require recovery.</p><p class="notice" role="status">${esc(this.message)}</p>
