@@ -20,6 +20,12 @@ export interface PfcFieldSettings {
   required: boolean;
   /** The label shown instead of the page's (EOCC_LBL_OVERRIDE with LBLTEXT). */
   label?: string;
+  /** A default value (EOCC_DFLT_VALUE): text in the field's format, or a system variable such as %Date. */
+  defaultValue?: string;
+  /** The default replaces a value already there, not only a blank one (EOCC_DFLTOVRD_FLAG). */
+  overrideDefault?: boolean;
+  /** The value is set to blank when the sequence applies (EOCC_SET_BLANK): a hidden or display-only field, with criteria. */
+  setBlank?: boolean;
 }
 
 const s = (v: unknown) => (v === null || v === undefined ? '' : String(v).trim());
@@ -36,7 +42,10 @@ export function fieldSettingsOf(r: Row): PfcFieldSettings {
     hidden: s(r.EOCC_VISIBLE_FLAG) === 'N',
     displayOnly: s(r.EOCC_DISABLED) === 'Y',
     required: s(r.EOCC_IS_REQUIRED) === 'Y',
-    ...(s(r.EOCC_LBL_OVERRIDE) === 'Y' ? { label: s(r.LBLTEXT) } : {})
+    ...(s(r.EOCC_LBL_OVERRIDE) === 'Y' ? { label: s(r.LBLTEXT) } : {}),
+    ...(s(r.EOCC_DFLT_VALUE) ? { defaultValue: s(r.EOCC_DFLT_VALUE) } : {}),
+    ...(s(r.EOCC_DFLTOVRD_FLAG) === 'Y' ? { overrideDefault: true } : {}),
+    ...(s(r.EOCC_SET_BLANK) === 'Y' ? { setBlank: true } : {})
   };
 }
 
@@ -47,6 +56,11 @@ export function checkFieldSettings(x: PfcFieldSettings): string[] {
   if (x.hidden && x.displayOnly) out.push('A hidden field is not shown; display only has no effect.');
   if (x.label !== undefined && !x.label.trim()) out.push('A replacement label cannot be blank.');
   if (x.label !== undefined && x.label.length > 100) out.push('A label is at most 100 characters.');
+  // EOCC_CONFIG_FLD.EOCC_DFLTOVRD_FLAG / EOCC_DFLT_VALUE FieldChange: no override to blank.
+  if (x.overrideDefault && !x.defaultValue?.trim()) out.push('A default cannot replace the value without a default value ("Can\'t Override to blank").');
+  // EOCC_CONFIG_FLD RowInit: Set to Blank only on a hidden or display-only field.
+  if (x.setBlank && !x.hidden && !x.displayOnly) out.push('Set to blank applies only to a hidden or display-only field.');
+  if (x.setBlank && x.defaultValue?.trim()) out.push('A field set to blank takes no default value.');
   return out;
 }
 
@@ -55,11 +69,18 @@ export function withFieldSettings(r: Row, x: PfcFieldSettings, pageLabel?: strin
   const out: Row = { ...r, EOCC_VISIBLE_FLAG: x.hidden ? 'N' : 'Y', EOCC_DISABLED: x.displayOnly ? 'Y' : 'N', EOCC_IS_REQUIRED: x.required ? 'Y' : 'N' };
   if (x.label !== undefined) { out.EOCC_LBL_OVERRIDE = 'Y'; out.LBLTEXT = x.label.trim(); }
   else if (s(r.EOCC_LBL_OVERRIDE) === 'Y') { out.EOCC_LBL_OVERRIDE = 'N'; if (pageLabel !== undefined) out.LBLTEXT = pageLabel; }
+  // Written only when they change: Oracle's rows hold blanks where these flags are off.
+  const was = fieldSettingsOf(r);
+  if ((x.defaultValue?.trim() ?? '') !== (was.defaultValue ?? '')) out.EOCC_DFLT_VALUE = x.defaultValue?.trim() ?? '';
+  const override = !!(x.overrideDefault && x.defaultValue?.trim());
+  if (override !== !!was.overrideDefault) out.EOCC_DFLTOVRD_FLAG = override ? 'Y' : 'N';
+  if (!!x.setBlank !== !!was.setBlank) out.EOCC_SET_BLANK = x.setBlank ? 'Y' : 'N';
   return out;
 }
 
 export function describeFieldSettings(x: PfcFieldSettings): string {
-  const parts = [x.hidden ? 'hidden' : '', x.displayOnly ? 'display only' : '', x.required ? 'required' : '', x.label !== undefined ? `labelled "${x.label}"` : ''].filter(Boolean);
+  const parts = [x.hidden ? 'hidden' : '', x.displayOnly ? 'display only' : '', x.required ? 'required' : '', x.label !== undefined ? `labelled "${x.label}"` : '',
+    x.defaultValue ? `default "${x.defaultValue}"${x.overrideDefault ? ' (replaces the value)' : ''}` : '', x.setBlank ? 'set to blank' : ''].filter(Boolean);
   return parts.length ? parts.join(', ') : 'no change';
 }
 

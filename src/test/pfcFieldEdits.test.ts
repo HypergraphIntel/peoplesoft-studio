@@ -72,3 +72,22 @@ test('masking: the field group\'s profile, else the default; a masked row as Ora
   assert.equal(maskOf(masked), 'DATE_YR_MASK');
   assert.equal(maskOf(withMask(masked, undefined)), undefined);
 });
+
+test('defaults and set to blank: written as the page writes them, refused where the page refuses them', () => {
+  const withDefault = withFieldSettings(SHORT_TITLE, { hidden: false, displayOnly: false, required: false, defaultValue: '%Date', overrideDefault: true });
+  assert.deepEqual([withDefault.EOCC_DFLT_VALUE, withDefault.EOCC_DFLTOVRD_FLAG], ['%Date', 'Y']);
+  assert.deepEqual(fieldSettingsOf(withDefault), { hidden: false, displayOnly: false, required: false, defaultValue: '%Date', overrideDefault: true });
+  assert.match(describeFieldSettings(fieldSettingsOf(withDefault)), /default "%Date" \(replaces the value\)/);
+  // EOCC_DFLTOVRD_FLAG FieldChange: "Can't Override to blank"; RowInit: set to blank only on a hidden or display-only field.
+  assert.equal(checkFieldSettings({ hidden: false, displayOnly: false, required: false, overrideDefault: true }).length, 1);
+  assert.equal(checkFieldSettings({ hidden: false, displayOnly: false, required: false, setBlank: true }).length, 1);
+  assert.deepEqual(checkFieldSettings({ hidden: false, displayOnly: true, required: false, setBlank: true }), []);
+  const blank = withFieldSettings(SHORT_TITLE, { hidden: false, displayOnly: true, required: false, setBlank: true });
+  assert.equal(blank.EOCC_SET_BLANK, 'Y');
+  // Changing only Hidden on an Oracle-style row (blank flags) leaves those columns alone.
+  const hidden = withFieldSettings(SHORT_TITLE, { hidden: true, displayOnly: false, required: false });
+  assert.ok(!('EOCC_SET_BLANK' in hidden) && !('EOCC_DFLT_VALUE' in hidden) && !('EOCC_DFLTOVRD_FLAG' in hidden));
+  // Taking the default away clears it.
+  const cleared = withFieldSettings(withDefault, { hidden: false, displayOnly: false, required: false });
+  assert.deepEqual([cleared.EOCC_DFLT_VALUE, cleared.EOCC_DFLTOVRD_FLAG], ['', 'N']);
+});

@@ -485,8 +485,19 @@ parts live there, not on the row) and `EOCC_PROF_STATUS` D; the profile
 offered first is the field group's (`PS_EOCC_GRP_FIELDS`,
 `PS_EOCC_FLDGRP_TBL`) else the default profile, as `EOCC_MASK_WRK.EOCC_ADD_PB`
 picks it. Every masked field on HRDMO (PERSONAL_DATA, DEPEND_BENEF,
-PYE_BANKACCT) is in that list, with the profile that rule gives. Default values
-and "set to blank" are not offered yet. At run time: Job Title (`JOBCODE_TBL.DESCR`) saved display only
+PYE_BANKACCT) is in that list, with the profile that rule gives.
+
+**Defaults and set to blank** (Standard): a default value (`EOCC_DFLT_VALUE`,
+text in the field's format or a system variable such as `%Date`) applies when
+the field is blank, or replaces the value too with `EOCC_DFLTOVRD_FLAG` Y,
+which needs a default ("Can't Override to blank", the flag's and the value's
+FieldChange); not offered on images (field types 8, 18) or prompt fields. Set
+to blank (`EOCC_SET_BLANK` Y) applies to a hidden or display-only field only
+(`EOCC_CONFIG_FLD` RowInit forces N otherwise), and the save warns when its
+sequence has no criteria. These columns are written only when they change:
+Oracle's rows hold blanks where the flags are off.
+
+At run time: Job Title (`JOBCODE_TBL.DESCR`) saved display only
 through these rules showed display only on Define Job Code.
 
 Proof: src/test/pfcWriter.test.ts replays pfc01 and pfc02 from their

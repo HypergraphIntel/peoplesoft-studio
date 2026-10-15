@@ -26,12 +26,17 @@ export async function pickCatalogField(provider: DatabaseProvider, component: st
 /** The field's settings chosen (hidden, display only, required, a label), applied to its row. */
 export async function pickFieldSettings(row: PfcRow, pageLabel?: string): Promise<{ row: PfcRow; description: string } | undefined> {
   const now = fieldSettingsOf(row);
-  type Setting = vscode.QuickPickItem & { key: 'hidden' | 'displayOnly' | 'required' | 'label' };
+  type Setting = vscode.QuickPickItem & { key: 'hidden' | 'displayOnly' | 'required' | 'label' | 'default' | 'blank' };
+  // Defaults are not offered on images (8, 18) nor on prompt fields (EOCC_CONFIG_FLD RowInit).
+  const kind = String(row.PTCS_PNLFLDNAME ?? '').split('.').pop();
+  const defaultable = ![8, 18].includes(Number(row.FIELDTYPE)) && kind !== 'Prmpt';
   const options: Setting[] = [
     { label: 'Hidden', key: 'hidden', picked: now.hidden },
     { label: 'Display only', key: 'displayOnly', picked: now.displayOnly },
     { label: 'Required', key: 'required', picked: now.required, description: 'a check box always has a value: required shows nothing on one' },
-    { label: 'Relabel…', key: 'label', picked: now.label !== undefined, ...(now.label !== undefined ? { description: `now "${now.label}"` } : {}) }
+    { label: 'Relabel…', key: 'label', picked: now.label !== undefined, ...(now.label !== undefined ? { description: `now "${now.label}"` } : {}) },
+    ...(defaultable ? [{ label: 'Default value…', key: 'default' as const, picked: now.defaultValue !== undefined, description: now.defaultValue !== undefined ? `now "${now.defaultValue}"` : 'a value, or a system variable such as %Date' }] : []),
+    { label: 'Set to blank', key: 'blank', picked: !!now.setBlank, description: 'when the sequence applies; a hidden or display-only field, in a sequence with criteria' }
   ];
   const chosen = await vscode.window.showQuickPick(options, { canPickMany: true, title: `Settings for ${String(row.LBLTEXT ?? '')} (${String(row.RECNAME)}.${String(row.FIELDNAME)})` });
   if (!chosen) return undefined;
@@ -41,7 +46,21 @@ export async function pickFieldSettings(row: PfcRow, pageLabel?: string): Promis
     label = await vscode.window.showInputBox({ title: 'The label to show', value: now.label ?? String(row.LBLTEXT ?? ''), validateInput: (v) => (v.trim() ? undefined : 'A label cannot be blank.') });
     if (label === undefined) return undefined;
   }
-  const settings: PfcFieldSettings = { hidden: on.has('hidden'), displayOnly: on.has('displayOnly'), required: on.has('required'), ...(label !== undefined ? { label } : {}) };
+  let defaultValue: string | undefined, overrideDefault = false;
+  if (on.has('default')) {
+    defaultValue = await vscode.window.showInputBox({ title: 'Default value', prompt: 'In the field\'s format (YYYY-MM-DD for a date), or a system variable such as %Date or %OperatorId',
+      value: now.defaultValue ?? '', validateInput: (v) => (v.trim() ? undefined : 'Enter a value, or uncheck Default value.') });
+    if (defaultValue === undefined) return undefined;
+    const when = await vscode.window.showQuickPick([
+      { label: 'Only when the field is blank', override: false }, { label: 'Replace the value already there', override: true }
+    ], { title: `Default ${defaultValue.trim()}: when does it apply?` });
+    if (!when) return undefined;
+    overrideDefault = when.override;
+  }
+  const settings: PfcFieldSettings = {
+    hidden: on.has('hidden'), displayOnly: on.has('displayOnly'), required: on.has('required'), ...(label !== undefined ? { label } : {}),
+    ...(defaultValue !== undefined ? { defaultValue, overrideDefault } : {}), ...(on.has('blank') ? { setBlank: true } : {})
+  };
   const problems = checkFieldSettings(settings);
   if (problems.length) { void vscode.window.showWarningMessage(problems.join(' ')); return undefined; }
   return { row: withFieldSettings(row, settings, pageLabel), description: describeFieldSettings(settings) };
