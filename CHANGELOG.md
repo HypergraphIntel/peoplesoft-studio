@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Added
+
+- **Who a Page and Field Configurator configuration applies to**: in the
+  configurator editor, *Applies to…* sets it for the whole configuration or,
+  per sequence -- everyone but excluded roles and users, a single role,
+  specific roles, or selected users (roles and users found by typing). Saved
+  as the configurator saves it, the lists it does not use kept as the page
+  keeps them; an added role or user must exist. Every configuration on HRDMO
+  reads and saves back unchanged.
+- **Configurable Search** in Configuration Tools > Customization, as a planned
+  entry.
+
 ### Change Review development
 
 - Durable Change Sets and a persistent VS Code review/history workspace,
