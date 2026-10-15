@@ -4,7 +4,8 @@ import type { Workspace } from '../workspace.js';
 import { DatabaseProvider } from '../providers/database.js';
 import { DefinitionType } from '../model/definitions.js';
 import { fieldSettingsOf, describeFieldSettings, isBlankFieldRow, maskOf, fieldRowKey, withFieldRow, withoutFieldRow } from '../model/pfcFieldEdits.js';
-import { describeCriterion, pickCatalogField, pickCriterion, pickFieldSettings, pickMask, pickTarget } from './pfcDialogs.js';
+import { describeCriterion, pickCatalogField, pickCriterion, pickFieldSettings, pickMask, pickPageRule, pickTarget } from './pfcDialogs.js';
+import { describePageRule, pageRulesOf } from '../model/pfcPages.js';
 import { criterionKey, withCriterion, withoutCriterion } from '../model/pfcCriteria.js';
 import { describeTarget, headerLevel, targetOf, withApplyLevel, withTarget } from '../model/pfcTargeting.js';
 import { pfcHtml } from './pfcHtml.js';
@@ -60,6 +61,7 @@ export async function openPageFieldConfigurator(workspace: Workspace, connection
     panel.title = `${dirty() ? '● ' : ''}Page and Field Configurator: ${name}.${market}`;
     await panel.webview.postMessage({ type: 'state', component: name, market, connection: db.displayName, configType: type, exists: read.exists, editable: editable(), dirty: dirty(), configuration: draft, contentReferences: read.contentReferences, message,
       criteriaRows: draft.criteria.map((row, index) => ({ index, sequence: row.EOCC_SEQUENCE_NBR, text: describeCriterion(row) })),
+      pageRules: draft.sequences.map((q) => pageRulesOf(draft.pages, q).map((r) => `${r.page}: ${describePageRule(r, false)}`)),
       headerLevel: headerLevel(draft), headerTarget: describeTarget(targetOf(draft)), sequenceTargets: draft.sequences.map((q) => describeTarget(targetOf(draft, q))),
       fields: draft.fields.map((row, index) => ({ index, sequence: row.EOCC_SEQUENCE_NBR, page: row.STDPNLNAME ?? row.PNLNAME, name: `${row.RECNAME}.${row.FIELDNAME}`, label: row.LBLTEXT, blank: isBlankFieldRow(row), settings: type === 'MASK' ? (maskOf(row) ? `Masked (${maskOf(row)})` : 'Not masked') : describeFieldSettings(fieldSettingsOf(row)) })) });
   };
@@ -81,7 +83,11 @@ export async function openPageFieldConfigurator(workspace: Workspace, connection
         if (description !== undefined) draft.header.DESCR = description.trim();
       } else if (m.type === 'active') draft.header.EFF_STATUS = (draft.header.EFF_STATUS ?? 'A') === 'I' ? 'A' : 'I';
       else if (m.type === 'applyLevel') draft = withApplyLevel(draft, headerLevel(draft) ? 'S' : 'H');
-      else if (m.type === 'addCriterion') {
+      else if (m.type === 'pageRules') {
+        const seq = draft.sequences[m.index ?? -1]; if (!seq) throw new Error('Unknown sequence.');
+        const pages = await pickPageRule(db, name, market, seq, draft.pages);
+        if (pages) draft.pages = pages;
+      } else if (m.type === 'addCriterion') {
         const seq = draft.sequences[m.index ?? -1]; if (!seq) throw new Error('Unknown sequence.');
         const picked = await pickCriterion(db, name, market, seq);
         if (picked) draft.criteria = withCriterion(draft.criteria, picked.row);

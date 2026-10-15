@@ -2354,6 +2354,14 @@ export class DatabaseProvider implements DefinitionProvider {
     return this.withConnection((c) => pfcCatalogFields(c, page.trim().toUpperCase(), type, options));
   }
 
+  /** A component's pages (PSPNLGROUP, in tab order) and whether the component hides each, for page rules. */
+  async readComponentPages(component: string, market = 'GBL'): Promise<Array<{ page: string; label: string; hidden: boolean }>> {
+    return this.withConnection(async (c) => (await select<{ P: string; L: string; H: number }>(c,
+      `SELECT PNLNAME AS P, ITEMLABEL AS L, HIDDEN AS H FROM PSPNLGROUP WHERE PNLGRPNAME = :c AND MARKET = :m ORDER BY SUBITEMNUM`,
+      { c: component.trim().toUpperCase(), m: market.trim().toUpperCase() }))
+      .map((r) => ({ page: String(r.P).trim(), label: String(r.L ?? '').trim().replace(/&/g, '') || String(r.P).trim(), hidden: Number(r.H) === 1 })));
+  }
+
   /** Fields' database types (PSDBFIELD.FIELDTYPE), for a criterion's value format. */
   async readFieldDatabaseTypes(fields: readonly string[]): Promise<Map<string, number>> {
     return this.withConnection((c) => pfcFieldTypes(c, fields.map((f) => f.trim().toUpperCase())));

@@ -458,6 +458,17 @@ configurations on HRDMO name demo users the database does not have. Every
 configuration on HRDMO, read and saved back unchanged, plans nothing
 (JOB_DATA_FL's two excluded roles and the masking user lists included).
 
+**Page rules** (the configurator editor's *Page rules…*; `PS_EOCC_CONFIG_PNL`):
+a row per page a sequence changes, any page of the component
+(`EOCC_PNLGRP_DVW`); `EOCC_VISIBLE_FLAG` N hides it (the record default), Y
+shows it -- also a page the component itself hides (`PSPNLGROUP.HIDDEN` 1,
+`EOCC_COMP_CONFIG:Utility:ConfigurePages`) -- and `DISPLAYONLY` 1 makes it
+display only; a page with no row is as the component has it. Like
+`EOCC_CONFIG_SEQ` SaveEdit, the save warns when a required field is on a page
+hidden or made display only, and when no page is left visible. Oracle's
+JOB_DATA_FL rules (13 pages for each of its 26 sequences) read and save back
+unchanged.
+
 **Criteria** (the configurator editor's *Add criterion*; `PS_EOCC_CONFIG_CRT`):
 the field values that decide whether a sequence applies; every criterion must
 hold (the page's own summary joins them with 'AND'). A criterion names a field

@@ -8,6 +8,7 @@ import { readCounterState, type CounterName, type CounterState } from './dropZon
 import { cfgKeys, confKeys, insertRow, newInstanceId, now, readStoredConfiguration, type StoredConfiguration } from './eventMappingWriter.js';
 import { operatorExists, select } from './peopleCodeWriter.js';
 import { derivePfcMappings, pfcContentReferences, type PfcMapping } from './pfcMapper.js';
+import { checkPageRules, pageRulesOf, type ComponentPage } from '../model/pfcPages.js';
 
 /*
  * Saving a Page and Field Configurator configuration as PeopleTools' page
@@ -576,6 +577,18 @@ export async function savePfcConfiguration(c: Connection, request: PfcSaveReques
       if (!x) check.errors.push(`There is no user ${oprid} (PSOPRDEFN).`);
     }
     if (check.errors.length) throw new PfcSaveRefusedError(check.errors.slice(0, 6).join('; '));
+    // EOCC_CONFIG_SEQ SaveEdit's warnings on page rules (a required field on a page hidden or display only; no page left visible).
+    if (type === 'STD' && next.pages.length) {
+      const componentPages: ComponentPage[] = (await select<{ P: string; L: string; H: number }>(c,
+        `SELECT PNLNAME AS P, ITEMLABEL AS L, HIDDEN AS H FROM PSPNLGROUP WHERE PNLGRPNAME = :c AND MARKET = :m ORDER BY SUBITEMNUM`, { c: component, m: market }))
+        .map((r) => ({ page: s(r.P), label: s(r.L), hidden: Number(r.H) === 1 }));
+      for (const q of next.sequences.filter((r) => s(r.STATUS) !== 'I')) {
+        const rules = pageRulesOf(next.pages, q);
+        if (!rules.length) continue;
+        const required = next.fields.filter((f) => seqKey(f) === seqKey(q) && s(f.EOCC_IS_REQUIRED) === 'Y').map((f) => s(f.STDPNLNAME));
+        check.warnings.push(...checkPageRules(Number(q.EOCC_SEQUENCE_NBR), componentPages, rules, required));
+      }
+    }
     const rows = planPfcRows(columns, stored, next);
     if (rows.empty) {
       await c.rollback();

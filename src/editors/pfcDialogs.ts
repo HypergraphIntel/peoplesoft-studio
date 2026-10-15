@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { DatabaseProvider } from '../providers/database.js';
 import { DefinitionType } from '../model/definitions.js';
+import { describePageRule, pageRulesOf, withPageRule, withoutPageRule } from '../model/pfcPages.js';
 import { APPLY_TO_LABELS, checkTarget, describeTarget, listsUsed, type ApplyTo, type PfcTarget } from '../model/pfcTargeting.js';
 import { catalogCriteriaRow, catalogFieldRow } from '../providers/pfcCatalog.js';
 import { CRITERIA_OPERATORS, checkCriterion, criterionKey, describeCriterion, withCriterionValue } from '../model/pfcCriteria.js';
@@ -199,3 +200,30 @@ export async function pickCriterion(provider: DatabaseProvider, component: strin
 }
 
 export { describeCriterion };
+
+/**
+ * A sequence's rule for one page chosen as the configurator's Pages grid offers it: a page of the component, then
+ * hidden, shown, shown display only, or as the component has it (no rule). Returns the sequence's page rows.
+ */
+export async function pickPageRule(provider: DatabaseProvider, component: string, market: string, seq: PfcRow, pages: PfcRow[]): Promise<PfcRow[] | undefined> {
+  const componentPages = await provider.readComponentPages(component, market);
+  const rules = pageRulesOf(pages, seq);
+  const page = await vscode.window.showQuickPick(componentPages.map((p) => ({
+    label: p.label, description: `${p.page} · ${describePageRule(rules.find((r) => r.page === p.page), p.hidden)}`, p
+  })), { title: `Page rules for sequence ${String(seq.EOCC_SEQUENCE_NBR)}: the page`, matchOnDescription: true });
+  if (!page) return undefined;
+  const rule = rules.find((r) => r.page === page.p.page);
+  type Act = vscode.QuickPickItem & { act: 'none' | 'hide' | 'show' | 'showReadOnly' };
+  const options: Act[] = [
+    { label: 'Hidden', act: 'hide' },
+    { label: page.p.hidden ? 'Shown (the component hides it)' : 'Shown', act: 'show' },
+    { label: 'Shown, display only', act: 'showReadOnly' },
+    { label: 'As the component has it', description: 'no rule for this page', act: 'none' }
+  ];
+  const now = !rule ? 'none' : rule.hidden ? 'hide' : rule.displayOnly ? 'showReadOnly' : 'show';
+  const picked = await vscode.window.showQuickPick(options.map((o) => ({ ...o, label: `${o.act === now ? '$(check) ' : ''}${o.label}` })),
+    { title: `${page.p.label} (${page.p.page}) in sequence ${String(seq.EOCC_SEQUENCE_NBR)}` });
+  if (!picked) return undefined;
+  if (picked.act === 'none') return withoutPageRule(pages, seq, page.p.page);
+  return withPageRule(pages, seq, { page: page.p.page, hidden: picked.act === 'hide', displayOnly: picked.act === 'showReadOnly' });
+}
