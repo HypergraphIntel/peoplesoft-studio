@@ -1,0 +1,35 @@
+{
+  "mode": "installed native MCP; developer review pending",
+  "connection": "oracle:HRDMO",
+  "changeSetId": "8cd54e34-9e5e-4322-9da5-f84a997053f4",
+  "query": "ZZ_QRY_MCP_MV8YENO1",
+  "checks": {
+    "reloadedReviewTools": true,
+    "allSixAdapters": true,
+    "liveRead": true,
+    "stagingReturnedReviewRequired": true,
+    "validationFindings": [],
+    "nativeTokenUnchangedAfterStaging": true,
+    "semanticChanges": [
+      {
+        "path": "$.query.DESCR",
+        "before": "MCP save verified",
+        "after": "Change Review validation"
+      }
+    ]
+  },
+  "baselineToken": "581b2fc13a36349e0c02432c57a196609adce91452e3b7148a309828c08788df",
+  "baselineSnapshotHash": "502e5357511cc6be2570c4c16c684e971976f3f113ad259f11d380339dc0b4b4",
+  "proposedSnapshotHash": "d3f99da903e881478bb58bc356786f636b5ffc07c6359215b3014b585d370bcb",
+  "status": "READY_FOR_REVIEW",
+  "issue": {
+    "connectionDisplayName": "create_change_set HRDMO fails; canonical oracle:HRDMO works",
+    "fix": "use shared requireProvider resolution; 16 HTTP/UI fixture checks passed; patched build pending activation"
+  },
+  "notVerified": [
+    "native developer approve/apply/readback",
+    "native checkpoint reversal/redo",
+    "native restart recovery",
+    "broader adapters"
+  ]
+}

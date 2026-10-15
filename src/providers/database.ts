@@ -1,3 +1,5 @@
+import { compileForSave as compileReviewedSource, compileTargetFor as reviewedCompileTarget, prepareSourceForSave as normalizeReviewedSource } from '../peoplecode/writeback/savePlan.js';
+import { observeManualHistory } from '../changeReview/manualHistory.js';
 import { saveOAuth, type OAuthSaveRequest } from './securityWriter.js';
 import { listSecurity, readSecurity, securityChoices } from './securityReader.js';
 import type { SecurityKind } from '../model/security.js';
@@ -225,6 +227,21 @@ export class DatabaseProvider implements DefinitionProvider {
 
   /** The schema the session reads and writes the PeopleTools tables in, once connected. */
   get schema(): string | undefined { return this.pool?.schema; }
+
+  /** Re-read for every review preflight; a friendly connection name is not an environment identity. */
+  async changeReviewIdentity(): Promise<string> {
+    if (this.platform !== 'oracle') throw new ProviderError('Reviewed application requires a calibrated Oracle environment identity.');
+    return this.withConnection(async c => {
+      const rows = (await c.execute<{ D: string; C: string; S: string; T: string }>(
+        "SELECT SYS_CONTEXT('USERENV','DB_UNIQUE_NAME') AS D, SYS_CONTEXT('USERENV','CON_NAME') AS C, SYS_CONTEXT('USERENV','CURRENT_SCHEMA') AS S, (SELECT TOOLSREL || '.' || TO_CHAR(PTPATCHREL) FROM PSSTATUS) AS T FROM DUAL"
+      )).rows ?? [];
+      const r = rows[0];
+      if (!r?.D?.trim() || !r?.S?.trim()) throw new ProviderError('Database/schema identity could not be established.');
+      // Digest connection address as well; never persist credentials or raw connect strings.
+      const { createHash } = await import('node:crypto');
+      return createHash('sha256').update(JSON.stringify([this.platform, this.config.connectString, r.D, r.C, r.S, r.T])).digest('hex');
+    });
+  }
 
   /** The database PeopleSoft runs on here. */
   get platform(): DatabasePlatform { return this.config.platform; }
@@ -909,9 +926,11 @@ export class DatabaseProvider implements DefinitionProvider {
    */
   async saveSqlDefinition(request: SqlSaveRequest): Promise<SqlSaveResult> {
     if (request.openedVersion !== undefined) await this.guard(makeKey(DefinitionType.SqlDefinition, request.sqlId, '0'), 'save');
+    return observeManualHistory(this.id, makeKey(DefinitionType.SqlDefinition, request.sqlId, '0'), async () => {
     const result = await this.withConnection((c) => saveSqlDefinitionRows(c, request));
     await this.withConnection((c) => verifySqlSave(c, request, result));
     return result;
+    });
   }
 
   /**
@@ -1177,10 +1196,12 @@ export class DatabaseProvider implements DefinitionProvider {
    */
   async saveStyleSheet(request: StyleSheetSaveRequest): Promise<StyleSheetSaveResult> {
     await this.guard(makeKey(DefinitionType.StyleSheet, request.name), 'save');
+    return observeManualHistory(this.id, makeKey(DefinitionType.StyleSheet, request.name), async () => {
     const types = this.types;
     const result = await this.withConnection((c) => saveStyleSheetRows(c, types.BLOB, request));
     await this.withConnection((c) => verifyStyleSheetSave(c, request, result));
     return result;
+    });
   }
 
   /** An HTML definition's text with the version a save must present; undefined when there is none. */
@@ -1194,21 +1215,52 @@ export class DatabaseProvider implements DefinitionProvider {
     });
   }
 
+  /** Editable text plus its native description, for exact scoped review snapshots. */
+  async readReviewContent(key: DefinitionKey): Promise<{ text: string; description: string; version: number } | undefined> {
+    if (![DefinitionType.HtmlDefinition, DefinitionType.StyleSheet].includes(key.type)) throw new ProviderError('Expected HTML or freeform style sheet.');
+    const read = key.type === DefinitionType.HtmlDefinition ? await this.readHtmlForEdit(key) : await this.readStyleSheetForEdit(key);
+    if (read === 'classic') throw new ProviderError('Classic style sheet review is unsupported.');
+    if (!read) return undefined;
+    const table = key.type === DefinitionType.HtmlDefinition ? 'PSCONTDEFN' : 'PSSTYLSHEETDEFN';
+    const column = key.type === DefinitionType.HtmlDefinition ? 'CONTNAME' : 'STYLESHEETNAME';
+    const extra = key.type === DefinitionType.HtmlDefinition ? ' AND CONTTYPE=4 AND ALTCONTNUM=1' : '';
+    const description = await this.withConnection(async c => {
+      const row = (await c.execute<{ DESCR: string }>(`SELECT DESCR FROM ${table} WHERE ${column}=:n${extra}`, { n: key.parts[0] })).rows?.[0];
+      if (!row) throw new ProviderError('Text definition changed while reading its review snapshot.');
+      return String(row.DESCR ?? '').trimEnd();
+    });
+    return { ...read, description };
+  }
+
   /**
    * Saves or creates an HTML definition as App Designer does (htmlWriter.ts):
    * one transaction, then verified again on another connection after COMMIT.
    */
   async saveHtmlDefinition(request: HtmlSaveRequest): Promise<HtmlSaveResult> {
     await this.guard(makeKey(DefinitionType.HtmlDefinition, request.name, '4'), 'save');
+    return observeManualHistory(this.id, makeKey(DefinitionType.HtmlDefinition, request.name, '4'), async () => {
     const types = this.types;
     const result = await this.withConnection((c) => saveHtmlRows(c, types.BLOB, request));
     await this.withConnection((c) => verifyHtmlSave(c, request, result));
     return result;
+    });
   }
 
   /** Whether a PeopleSoft operator exists here (PSOPRDEFN), read-only. */
   async operatorExists(operatorId: string): Promise<boolean> {
     return this.withConnection((c) => operatorExists(c, operatorId));
+  }
+
+  /** Use the existing compiler and the stored native key; never decode a fake baseline. */
+  async validateReviewedPeopleCode(key: DefinitionKey, source: string): Promise<void> {
+    const parts = pcmProgKeyParts(key);
+    const stored = await this.withConnection(c => readStoredProgram(c, this.types, parts, false));
+    if (!stored && key.type === DefinitionType.ApplicationClassPeopleCode) throw new ProviderError('New Application Class review needs package/class metadata snapshots; only existing class source is supported.');
+    if (!source.trim()) return;
+    const ids = stored?.key.objectIds ?? PEOPLECODE_OBJECTIDS[key.type];
+    if (!ids) throw new ProviderError('PeopleCode key shape is not calibrated for review.');
+    const release = await this.databaseRelease();
+    compileReviewedSource(normalizeReviewedSource(source), reviewedCompileTarget({ objectIds: ids, objectValues: stored?.key.objectValues ?? parts }), release.toolsRelease);
   }
 
   /**
@@ -1217,12 +1269,14 @@ export class DatabaseProvider implements DefinitionProvider {
    */
   async savePeopleCode(key: DefinitionKey, request: PeopleCodeSaveRequest): Promise<PeopleCodeSaveResult> {
     await this.guard(key, 'save');
+    return observeManualHistory(this.id, key, async () => {
     const types = this.types;
     const parts = pcmProgKeyParts(key);
     const objectIds = PEOPLECODE_OBJECTIDS[key.type];
     const result = await this.withConnection((c) => writePeopleCode(c, types, parts, { ...request, ...(objectIds ? { objectIds } : {}) }));
     await this.withConnection((c) => verifyCommitted(c, types, parts, result));
     return result;
+    });
   }
 
   async readText(key: DefinitionKey): Promise<string> {
@@ -1622,12 +1676,15 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   async saveProcessDocument(request: ProcessSaveRequest): Promise<ProcessView> {
+    if (!request.dryRun) await this.guard(makeKey(DefinitionType.ProcessDefinition, ...request.key), 'save');
+    const write = async () => {
     if (this.platform !== 'oracle') throw new ProviderError('Process definition saves are currently supported on Oracle.');
     const key = makeKey(DefinitionType.ProcessDefinition, ...request.key);
-    if (!request.dryRun) await this.guard(key, 'save');
     const saved = await this.withConnection(c => saveProcess(c, this.types, request, connection => this.readProcessRows(connection, key)));
     if (!request.dryRun && processToken(await this.readProcessDocument(key)) !== processToken(saved)) throw new ProviderError('Process save committed but subsequent readback differs. Reopen the definition to inspect it.');
     return saved;
+    };
+    return request.dryRun ? write() : observeManualHistory(this.id, makeKey(DefinitionType.ProcessDefinition, ...request.key), write);
   }
 
   /** A query, keyed by name and owner (blank or absent: public). */
@@ -1670,11 +1727,14 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   async saveQueryDocument(request: QuerySaveRequest): Promise<QuerySaveResult> {
-    if (this.platform!=='oracle') throw new ProviderError('Query saves are currently calibrated on Oracle.');
     if (!request.dryRun) await this.guard(makeKey(DefinitionType.Query,String(request.view.query.QRYNAME).trim(),String(request.view.query.OPRID).trim()),'save');
+    const write = async () => {
+    if (this.platform!=='oracle') throw new ProviderError('Query saves are currently calibrated on Oracle.');
     const result=await this.withConnection(c=>writeQuery(c,this.types,request));
     if (result.written) await this.withConnection(c=>verifyQuerySave(c,this.types,result));
     return result;
+    };
+    return request.dryRun ? write() : observeManualHistory(this.id, makeKey(DefinitionType.Query, String(request.view.query.QRYNAME).trim(), String(request.view.query.OPRID).trim()), write);
   }
 
   private async readPermissionList(key: DefinitionKey): Promise<string> {

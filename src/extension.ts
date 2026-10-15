@@ -1,3 +1,8 @@
+import { setManualHistoryObserver } from './changeReview/manualHistory.js';
+import { databaseReviewAdapters } from './changeReview/adapters.js';
+import { ReviewStore } from './changeReview/store.js';
+import { ReviewService } from './changeReview/service.js';
+import { ReviewWorkspace } from './changeReview/workspace.js';
 import { openSecurityPanel } from './editors/securityPanel.js';
 import { SECURITY_TITLES } from './model/security.js';
 import { openPortalStructure } from './editors/portalPanel.js';
@@ -309,6 +314,29 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     new McpServerController(
       workspace
     );
+
+  const reviewAdapters = databaseReviewAdapters(workspace, () => mcpController.writeHost);
+  let reviewWorkspace: ReviewWorkspace | undefined;
+  const reviewService = new ReviewService(new ReviewStore(path.join(context.globalStorageUri.fsPath, 'change-review')), {
+    environment: reviewAdapters.environment, changed: () => reviewWorkspace?.changed()
+  }, reviewAdapters.adapters);
+  reviewWorkspace = new ReviewWorkspace(reviewService);
+  mcpController.reviewService = reviewService;
+  setManualHistoryObserver((connection, key, write) => {
+    if ([8,9,42,43,44,46,47,48,58].includes(key.type)) return reviewService.captureManual(connection, 'peoplecode', { type: key.type, parts: [...key.parts] }, write);
+    if (key.type === DefinitionType.HtmlDefinition) return reviewService.captureManual(connection, 'html', key.parts[0], write);
+    if (key.type === DefinitionType.StyleSheet) return reviewService.captureManual(connection, 'stylesheet', key.parts[0], write);
+    if (key.type === DefinitionType.SqlDefinition) return reviewService.captureManual(connection, 'sql', key.parts[0], write);
+    if (key.type === DefinitionType.Query) return reviewService.captureManual(connection, 'query', [key.parts[0], key.parts[1] ?? ''], write);
+    if (key.type === DefinitionType.ProcessDefinition) return reviewService.captureManual(connection, 'process', [...key.parts], write);
+    return write();
+  });
+  context.subscriptions.push({ dispose: () => setManualHistoryObserver(undefined) });
+  context.subscriptions.push(reviewWorkspace);
+  for (const command of ['open', 'pending', 'history', 'compare', 'apply', 'revert', 'redo']) {
+    context.subscriptions.push(vscode.commands.registerCommand('psft.changeReview.' + command,
+      (id?: string) => command === 'compare' ? reviewWorkspace!.compareRevisions() : reviewWorkspace!.show(typeof id === 'string' ? id : undefined)));
+  }
 
   const mcpStatus =
     new McpStatus(

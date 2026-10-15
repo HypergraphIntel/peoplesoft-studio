@@ -21,6 +21,17 @@ See the [README capability tables](../README.md#what-works-now),
 scope. The sections below retain the historical research progression and are
 not a current capability inventory.
 
+## Major workflow initiative: Change Review and history
+
+A proposed redesign replaces repeated MCP object-approval dialogs with durable
+Change Sets, a persistent VS Code review workspace, approved application,
+semantic differences and durable history/undo/redo. A first development slice
+is implemented (six adapter families, fixture-verified); native reviewed
+acceptance and broader adapters remain open. Resume from
+[the progress tracker](change-review/PROGRESS.md); the
+[full user proposal](change-review/PROPOSAL.md) defines scope and acceptance.
+This is a separate architecture initiative beyond the 0.9.0 release.
+
 ## Done
 
 - Provider abstraction with declared capabilities

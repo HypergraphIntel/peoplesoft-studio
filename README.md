@@ -374,3 +374,11 @@ for definition types, configuration tools, customization strategy and migration
 coverage. Process Definition editing and bounded PS Query authoring/execution
 now have dedicated MCP tools. See [MCP reference](docs/MCP_REFERENCE.md) for
 inputs, operation limits, rollback previews and validation.
+
+### Change Review development initiative
+
+A development workflow adds durable Change Sets, persistent semantic review,
+checkpoint/history and reviewed reversal for bounded MCP paths. It is separate
+from released 0.9.0 behavior and does not yet cover every object type. Track
+verified implementation and remaining native acceptance in
+[Change Review progress](docs/change-review/PROGRESS.md).

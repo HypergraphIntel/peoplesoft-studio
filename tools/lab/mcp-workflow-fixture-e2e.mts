@@ -52,7 +52,7 @@ provider.saveQueryDocument = async (request: any) => {
   if (!request.dryRun) queries.set(key, after);
   return { view: after, token: queryToken(after), written: !request.dryRun, replaced: {} };
 };
-const workspace: any = { connections: [], activeProviders: [provider], require: async () => provider, isWritable: () => access, configFor: () => ({ peoplesoftOperatorId: operator }) };
+const workspace: any = { connections: [], activeProviders: [provider], require: async (id: string) => { assert.equal(id, provider.id, 'Workspace.require accepts canonical IDs, not connection names'); return provider; }, isWritable: () => access, configFor: () => ({ peoplesoftOperatorId: operator }) };
 const host = { mode: () => mode, hasUnsavedEditor: () => dirty, saved: () => { refreshed++; }, confirm: async () => { confirmed++; return accept; } };
 const server = await startPeopleSoftMcpServer(workspace, { port: 39519, writeHost: () => host });
 let id = 0;
@@ -190,5 +190,144 @@ assert.equal(doc.edit.properties.DESCR, 'External process save');
 doc.dispose(); processPanel.dispose();
 assert.equal(ProcessEditorProvider.hasUnsaved(provider.id, processKey), false);
 check('real Process editor registry protects dirty drafts and refreshes clean documents');
+
+
+// Staged workflow uses the production MCP wrapper and real review UI handlers.
+const { ReviewService } = require('./src/changeReview/service.ts');
+const { ReviewStore } = require('./src/changeReview/store.ts');
+const { ReviewWorkspace } = require('./src/changeReview/workspace.ts');
+const { databaseReviewAdapters } = require('./src/changeReview/adapters.ts');
+const { isReviewedWrite } = require('./src/changeReview/authorization.ts');
+const fs = await import('node:fs/promises');
+const os = await import('node:os');
+const reviewRoot = await fs.mkdtemp(join(os.tmpdir(),'psft-review-http-'));
+const sqlDefinitions = new Map<string,{text:string;version:number}>();
+let nativeWrites = 0;
+provider.changeReviewIdentity = async () => 'fixture-database-and-schema';
+provider.readSqlForEdit = async (key:any) => sqlDefinitions.get(key.parts[0]);
+provider.sqlIdTaken = async (name:string) => sqlDefinitions.has(name);
+provider.classifyDefinition = async () => ({ classification:{ownership:'CUSTOM',confidence:'HIGH',evidence:['Fixture ownership only']},evidence:{exists:true} });
+provider.saveSqlDefinition = async (request:any) => {
+ assert.ok(isReviewedWrite(provider.id,{type:30,parts:[request.sqlId,'0']}),'exact reviewed key must match the provider guard');
+ assert.equal(writeOrigin(),'agent');
+ const old = sqlDefinitions.get(request.sqlId);
+ assert.equal(request.openedVersion,old?.version);
+ sqlDefinitions.set(request.sqlId,{text:request.text,version:(old?.version??0)+1});nativeWrites++;
+ return {version:(old?.version??0)+1,created:!old};
+};
+workspace.isSqlWritable = () => true;
+let reviewUi:any;
+const nativeAdapters = databaseReviewAdapters(workspace,()=>host);
+const reviewService = new ReviewService(new ReviewStore(reviewRoot),{environment:nativeAdapters.environment,changed:()=>reviewUi?.changed()},nativeAdapters.adapters);
+reviewUi = new ReviewWorkspace(reviewService);
+const reviewServer = await startPeopleSoftMcpServer(workspace,{port:39521,writeHost:()=>host,reviewService});
+async function reviewRpc(method:string,params:unknown) {
+ const response=await fetch(reviewServer.url,{method:'POST',headers:{'content-type':'application/json',accept:'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:++id,method,params})});
+ const body=await response.text(),value=JSON.parse(body.startsWith('{')?body:body.split('\n').find(line=>line.startsWith('data:'))!.slice(5));
+ if(value.error)throw new Error(JSON.stringify(value.error));return value.result;
+}
+async function reviewCall(name:string,args:object){const r=await reviewRpc('tools/call',{name,arguments:args});assert.ok(!r.isError,r.content?.[0]?.text);return JSON.parse(r.content[0].text);}
+async function until(test:()=>Promise<boolean>){for(let n=0;n<200;n++){if(await test())return;await new Promise(resolve=>setTimeout(resolve,5));}throw new Error('Review UI did not reach expected state');}
+try{
+ mode='confirm';const confirmsBefore=confirmed;
+ const names=(await reviewRpc('tools/list',{})).tools.map((tool:any)=>tool.name);
+ assert.ok(names.includes('psft_stage_object_change'));
+ assert.ok(!names.includes('psft_approve_change_set')&&!names.includes('psft_apply_approved_change_set'));
+ assert.deepEqual(await nativeAdapters.environment('FIXTURE'),await nativeAdapters.environment(provider.id),'connection names and canonical IDs resolve to the same reviewed environment');
+ const autoStaged=await reviewCall('psft_save_text_definition',{connection:'FIXTURE',type:30,name:'ZZ_AUTO_REVIEW',text:'SELECT 1 FROM PS_INSTALLATION'});
+ assert.equal(autoStaged.status,'REVIEW_REQUIRED');assert.equal(autoStaged.persisted,false);assert.equal(nativeWrites,0);
+ await reviewService.cancel(autoStaged.changeSetId);
+ check('review environment resolves connection names and IDs; compatibility save creates a staged set without writes');
+ const set=await reviewCall('psft_create_change_set',{title:'HTTP staged SQL',connection:'FIXTURE'});
+ const staged=await reviewCall('psft_save_text_definition',{connection:'FIXTURE',type:30,name:'ZZ_REVIEW_SQL',text:'SELECT 1 FROM DUAL',changeSetId:set.id});
+ assert.equal(staged.status,'REVIEW_REQUIRED');assert.equal(nativeWrites,0);assert.equal(confirmed,confirmsBefore);
+ assert.equal((await reviewCall('psft_validate_change_set',{changeSetId:set.id})).status,'READY_FOR_REVIEW');
+ await reviewUi.show(set.id);const page=vscode._panels.at(-1);const current=await reviewService.store.get(set.id);
+ assert.ok(page.webview.html.includes('NEW OBJECT'));
+ page._receive({action:'approve',id:set.id,revision:current.revision-1});
+ await until(async()=>page.webview.html.includes('Review page is stale'));
+ assert.equal((await reviewService.store.get(set.id)).status,'READY_FOR_REVIEW');
+ page._receive({action:'approve',id:set.id,revision:current.revision});
+ await until(async()=>(await reviewService.store.get(set.id)).status==='APPROVED');
+ page._receive({action:'apply',id:set.id,revision:current.revision});
+ await until(async()=>(await reviewService.store.get(set.id)).status==='APPLIED');
+ assert.equal(nativeWrites,1);assert.equal(confirmed,confirmsBefore);
+ assert.equal(sqlDefinitions.get('ZZ_REVIEW_SQL')?.text,'SELECT 1 FROM DUAL');
+ assert.ok((await reviewService.store.get(set.id)).checkpoint);
+ check('production HTTP staging writes nothing; stale UI refused; trusted review/apply verifies SQL without modal approval');
+
+ const {installCustomizationGuard}=require('./src/customizationGuard.ts');
+ const {guardWrite,runAsAgent}=require('./src/providers/writeGuard.ts');
+ const {withReviewedWrite}=require('./src/changeReview/authorization.ts');
+ const guardContext={globalStorageUri:vscode.Uri.file(join(reviewRoot,'policy')),subscriptions:[] as any[]};
+ installCustomizationGuard(guardContext,workspace);
+ const originalClassification=provider.classifyDefinition;
+ provider.classifyDefinition=async()=>({classification:{ownership:'DELIVERED',confidence:'HIGH',evidence:['Fixture delivered definition']},evidence:{exists:true}});
+ const sqlKey={type:30,parts:['ZZ_REVIEW_SQL','0']};
+ const priorSaveSql=provider.saveSqlDefinition;
+ provider.saveSqlDefinition=async(request:any)=>{await guardWrite({provider,key:{type:30,parts:[request.sqlId,'0']},action:'save'});return priorSaveSql(request);};
+ const guardSet=await reviewCall('psft_create_change_set',{title:'Delivered SQL exact revision',connection:'FIXTURE'});
+ await reviewCall('psft_save_text_definition',{connection:'FIXTURE',type:30,name:'ZZ_REVIEW_SQL',text:'SELECT 2 FROM DUAL',changeSetId:guardSet.id});
+ const guarded=await reviewCall('psft_validate_change_set',{changeSetId:guardSet.id});assert.equal(guarded.status,'READY_FOR_REVIEW');
+ await reviewUi.show(guardSet.id);const guardPage=vscode._panels.at(-1);
+ guardPage._receive({action:'approve',id:guardSet.id,revision:guarded.revision});await until(async()=>(await reviewService.store.get(guardSet.id)).status==='APPROVED');
+ guardPage._receive({action:'apply',id:guardSet.id,revision:guarded.revision});await until(async()=>(await reviewService.store.get(guardSet.id)).status==='APPLIED');
+ await assert.rejects(withReviewedWrite(provider.id,sqlKey,()=>runAsAgent(()=>guardWrite({provider,key:sqlKey,action:'save'})),'outdated-proof'),/Ownership or policy changed/);
+ provider.classifyDefinition=originalClassification;
+ guardContext.subscriptions.forEach((d:any)=>d.dispose());
+ check('real delivered-object guard accepts exact reviewed revision and refuses changed proof without another modal');
+ const querySet=await reviewCall('psft_create_change_set',{title:'HTTP staged Query',connection:'FIXTURE'});
+ const stagedQuery=await reviewCall('psft_query_create',{connection:'FIXTURE',name:'ZZ_QRY_REVIEW',record:'AAP_TBL',operations:[{kind:'select',field:'DESCR',selected:true}],changeSetId:querySet.id});
+ assert.equal(stagedQuery.status,'REVIEW_REQUIRED');assert.equal(await provider.readQueryDocument('ZZ_QRY_REVIEW',''),undefined);
+ let validated=await reviewCall('psft_validate_change_set',{changeSetId:querySet.id});assert.equal(validated.status,'READY_FOR_REVIEW');
+ await reviewUi.show(querySet.id);const queryReviewPage=vscode._panels.at(-1);
+ queryReviewPage._receive({action:'approve',id:querySet.id,revision:validated.revision});
+ await until(async()=>(await reviewService.store.get(querySet.id)).status==='APPROVED');
+ queryReviewPage._receive({action:'apply',id:querySet.id,revision:validated.revision});
+ await until(async()=>(await reviewService.store.get(querySet.id)).status==='APPLIED');
+ assert.ok(await provider.readQueryDocument('ZZ_QRY_REVIEW',''));assert.equal(confirmed,confirmsBefore);
+ check('production Query create stages and trusted UI applies exact semantic snapshot without modal approvals');
+
+ const contentDefinitions=new Map<string,{text:string;description:string;version:number}>();
+ provider.readReviewContent=async(key:any)=>contentDefinitions.get(JSON.stringify(key));
+ const saveContent=async(type:number,request:any)=>{const key={type,parts:[request.name,...(type===51?['4']:[])]};assert.ok(isReviewedWrite(provider.id,key));const old=contentDefinitions.get(JSON.stringify(key));assert.equal(request.openedVersion,old?.version);contentDefinitions.set(JSON.stringify(key),{text:request.text,description:request.description,version:(old?.version??0)+1});return {version:(old?.version??0)+1};};
+ provider.saveHtmlDefinition=async(request:any)=>saveContent(51,request);
+ provider.saveStyleSheet=async(request:any)=>saveContent(50,request);
+ const contentSet=await reviewCall('psft_create_change_set',{title:'HTTP content dependency group',connection:'FIXTURE'});
+ await reviewCall('psft_save_text_definition',{connection:'FIXTURE',type:51,name:'ZZ_REVIEW_HTML',text:'<div>Review</div>\n',description:'Review HTML',changeSetId:contentSet.id});
+ const firstContent=await reviewCall('psft_get_change_set',{changeSetId:contentSet.id});
+ await reviewCall('psft_save_text_definition',{connection:'FIXTURE',type:50,name:'ZZ_REVIEW_CSS',text:'.review { color: blue; }\n',description:'Review CSS',changeSetId:contentSet.id,dependsOn:[firstContent.objects[0].id]});
+ assert.equal(contentDefinitions.size,0);validated=await reviewCall('psft_validate_change_set',{changeSetId:contentSet.id});assert.equal(validated.status,'READY_FOR_REVIEW');
+ await reviewUi.show(contentSet.id);const contentPage=vscode._panels.at(-1);
+ contentPage._receive({action:'approve',id:contentSet.id,revision:validated.revision});await until(async()=>(await reviewService.store.get(contentSet.id)).status==='APPROVED');
+ contentPage._receive({action:'apply',id:contentSet.id,revision:validated.revision});await until(async()=>(await reviewService.store.get(contentSet.id)).status==='APPLIED');assert.equal(contentDefinitions.size,2);
+ assert.equal((await reviewService.reversalSupport(await reviewService.store.get(contentSet.id))).supported,false);
+ check('HTML/style proposals share dependency-aware review, normalize before approval and disable unsupported creation reversal');
+ const codeDefinitions=new Map<string,{text:string;fingerprint:string}>();
+ const {compileForSave,compileTargetFor,prepareSourceForSave}=require('./src/peoplecode/writeback/savePlan.ts');
+ provider.readPeopleCodeForEdit=async(key:any)=>codeDefinitions.get(JSON.stringify(key));
+ provider.hasPeopleCode=async(key:any)=>codeDefinitions.has(JSON.stringify(key));
+ provider.validateReviewedPeopleCode=async(_key:any,source:string)=>{compileForSave(prepareSourceForSave(source),compileTargetFor({objectIds:[1,2,12],objectValues:['ZZ_CODE','FIELD','FieldChange']}),'8.62');};
+ provider.savePeopleCode=async(key:any,request:any)=>{
+   assert.ok(isReviewedWrite(provider.id,key));const id=JSON.stringify(key),before=codeDefinitions.get(id);assert.equal(request.openedFingerprint,before?.fingerprint??'absent');
+   if(request.source.trim())codeDefinitions.set(id,{text:prepareSourceForSave(request.source),fingerprint:String(Number(before?.fingerprint??0)+1)});else codeDefinitions.delete(id);
+   return {kind:request.source.trim()?'saved':'deleted',fingerprint:codeDefinitions.get(id)?.fingerprint??'absent',storedSource:request.source,version:1};
+ };
+ workspace.isPeopleCodeWritable=()=>true;
+ const codeSet=await reviewCall('psft_create_change_set',{title:'HTTP reviewed event PeopleCode',connection:'FIXTURE'});
+ await reviewCall('psft_save_peoplecode',{connection:'FIXTURE',type:8,parts:['ZZ_CODE','FIELD','FieldChange'],source:'WinMessage("Review");',changeSetId:codeSet.id});
+ assert.equal(codeDefinitions.size,0);validated=await reviewCall('psft_validate_change_set',{changeSetId:codeSet.id});assert.equal(validated.status,'READY_FOR_REVIEW');
+ await reviewUi.show(codeSet.id);const codePage=vscode._panels.at(-1);
+ codePage._receive({action:'approve',id:codeSet.id,revision:validated.revision});await until(async()=>(await reviewService.store.get(codeSet.id)).status==='APPROVED');
+ codePage._receive({action:'apply',id:codeSet.id,revision:validated.revision});await until(async()=>(await reviewService.store.get(codeSet.id)).status==='APPLIED');assert.equal(codeDefinitions.size,1);
+ let reversal=await reviewCall('psft_prepare_revert',{changeSetId:codeSet.id});reversal=await reviewCall('psft_validate_change_set',{changeSetId:reversal.id});
+ await reviewUi.show(reversal.id);codePage._receive({action:'approve',id:reversal.id,revision:reversal.revision,destructive:true});await until(async()=>(await reviewService.store.get(reversal.id)).status==='APPROVED');
+ codePage._receive({action:'apply',id:reversal.id,revision:reversal.revision});await until(async()=>(await reviewService.store.get(reversal.id)).status==='APPLIED');assert.equal(codeDefinitions.size,0);
+ assert.equal((await reviewService.store.get(codeSet.id)).status,'REVERTED');
+ const forward=await reviewCall('psft_prepare_redo',{changeSetId:codeSet.id});assert.equal(forward.status,'DRAFT');assert.equal(codeDefinitions.size,0);
+ check('authoritative event source stages, existing compiler validates, UI applies and checkpoint deletion/reversal prepares redo');
+
+
+}finally{reviewUi.dispose();await reviewServer.dispose();await fs.rm(reviewRoot,{recursive:true,force:true});}
 
 console.log(JSON.stringify({ mode: 'fixture-backed production HTTP MCP; no live database', checks: checks.length }));

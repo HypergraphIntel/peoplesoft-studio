@@ -1,3 +1,4 @@
+import { isReviewedWrite, reviewedPolicyIdentity } from './changeReview/authorization.js';
 import {creationKey,setCreationStore,type CreationReceipt} from './providers/creationProvenance.js';
 import * as vscode from 'vscode';
 import { gunzipSync, gzipSync } from 'node:zlib';
@@ -109,6 +110,7 @@ export function installCustomizationGuard(context: vscode.ExtensionContext, work
     const agent = origin === 'agent';
     const policyName = agent ? 'agentDeliveredObjectPolicy' : 'deliveredObjectPolicy';
     const decision = decideWrite(classification, agent ? policy.agentDeliveredObjectPolicy : policy.deliveredObjectPolicy, exists);
+    if (isReviewedWrite(provider.id, key) && !isReviewedWrite(provider.id, key, reviewedPolicyIdentity(policy, classification, exists))) throw new Error('Ownership or policy changed after Change Review; revalidate and review again.');
     if (decision.action === 'allow') return;
     const name = displayName(key);
     const record = (outcome: string) => audit({
@@ -120,6 +122,7 @@ export function installCustomizationGuard(context: vscode.ExtensionContext, work
       throw new Error(`${VERBS[action]} of ${name} refused: ${decision.reason} (peoplesoft.customization.${policyName} is "block".)`);
     }
     if (decision.action === 'audit') { await record('allowed with audit'); return; }
+    if (isReviewedWrite(provider.id, key, reviewedPolicyIdentity(policy, classification, exists))) { await record('approved exact Change Review revision'); return; }
     // A person's session approval does not cover an agent's writes, nor the other way round.
     const session = `${origin}\u0000${provider.id}\u0000${key.type}\u0000${key.parts.join('.')}`;
     if (sessionApprovals.has(session)) { await record('approved for the session'); return; }

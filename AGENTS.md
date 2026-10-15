@@ -102,3 +102,18 @@ knowledge between installations. Resume from `docs/intelligence/PROGRESS.md`
 directive in `CUSTOMIZATION_INTEL_SERVER.md`. Record new research findings
 with `npx tsx tools/intelligence/discovery.mts` (rules of evidence:
 `docs/intelligence/DISCOVERY_PROTOCOL.md`).
+
+## Major initiative: MCP Change Review, transactions and history
+
+The user proposal is preserved in `docs/change-review/PROPOSAL.md`. Resume
+from `docs/change-review/PROGRESS.md` for status, milestones, evidence and the
+next task. This is a major agent/MCP/user workflow redesign: durable Change Sets,
+persistent review, staged versus applied changes, semantic diffs, revision-bound
+approval, verified application, history and reviewed undo/redo. A first
+development slice exists (see the progress file's milestone tracker); do not
+assume capabilities beyond what it records as verified. Keep the progress
+tracker current as implementation proceeds.
+Preferred directions are in `docs/change-review/DESIGN_DECISIONS.md`: use
+checkpoint-based dependency-aware reversal with live-state verification, and
+plan for an eventual workspace revision timeline. Examples are illustrative,
+not actual history; cross-environment promotion remains future scope.

@@ -115,3 +115,15 @@ saves through the installed MCP's approval and ownership gates. This uses the
 existing HRDMO saved connection; no credentials are read into the script.
 Results and retained fixture names are recorded in
 `tools/lab/results/mcp-workflow-live-e2e.json`.
+
+## Change Review development (after 0.9.0)
+
+The development server can expose durable Change Set tools. On supported
+Oracle paths, SQL/HTML/freeform style sheet, Query, Process and PeopleCode
+mutations stage proposals and return `REVIEW_REQUIRED`, not immediate saves.
+Use the persistent **PeopleSoft: Open Change Review** workspace for developer
+approval/application and poll the Change Set status. Other paths retain legacy
+gates. Existing immediate-save lab scripts need adaptation for staged paths.
+See [contracts](change-review/CONTRACTS.md), [coverage](change-review/COVERAGE.md)
+and [progress](change-review/PROGRESS.md). New native reviewed-path acceptance
+is pending; 0.9.0's live evidence does not establish it.

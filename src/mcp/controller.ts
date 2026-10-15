@@ -1,3 +1,4 @@
+import type { ReviewService } from '../changeReview/service.js';
 import * as vscode from 'vscode';
 
 import {
@@ -78,6 +79,8 @@ export class McpServerController
    * The VS Code side of MCP writes, set once the editors exist; until then
    * (and in tests) the server registers only its read-only tools.
    */
+  reviewService?: ReviewService;
+
   writeHost:
     McpWriteHost | undefined;
 
@@ -186,7 +189,8 @@ export class McpServerController
           {
             port,
             writeHost:
-              () => this.writeHost
+              () => this.writeHost,
+            reviewService: this.reviewService
           }
         );
 

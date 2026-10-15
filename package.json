@@ -123,7 +123,11 @@
       {
         "viewType": "psft.processEditor",
         "displayName": "PeopleSoft Process Definition",
-        "selector": [{ "filenamePattern": "*.psprcs" }],
+        "selector": [
+          {
+            "filenamePattern": "*.psprcs"
+          }
+        ],
         "priority": "default"
       },
       {
@@ -148,8 +152,16 @@
       }
     ],
     "commands": [
-      { "command": "psft.security.oauth", "title": "OAuth2 Service Applications", "category": "PeopleSoft" },
-      { "command": "psft.security.saml", "title": "SAML Configuration", "category": "PeopleSoft" },
+      {
+        "command": "psft.security.oauth",
+        "title": "OAuth2 Service Applications",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.security.saml",
+        "title": "SAML Configuration",
+        "category": "PeopleSoft"
+      },
       {
         "command": "psft.ib.message",
         "title": "Integration Broker: Message Definitions",
@@ -616,6 +628,41 @@
       {
         "command": "psft.intelligence.checkKnowledgeUpdates",
         "title": "Check for Knowledge Updates",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.changeReview.open",
+        "title": "Open Change Review",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.changeReview.pending",
+        "title": "Show Pending Changes",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.changeReview.history",
+        "title": "Open Change History",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.changeReview.compare",
+        "title": "Compare Object Revisions",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.changeReview.apply",
+        "title": "Apply Approved Change Set",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.changeReview.revert",
+        "title": "Revert Change Set",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.changeReview.redo",
+        "title": "Redo Change Set",
         "category": "PeopleSoft"
       }
     ],

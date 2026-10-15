@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+### Change Review development
+
+- Durable Change Sets and a persistent VS Code review/history workspace,
+  separate optional approach approval, exact-revision object approval,
+  dependency-aware checkpoints, execution journals and reviewed reversal/redo.
+- Oracle MCP staging for supported SQL, HTML/freeform style sheets, Query,
+  Process Definition and PeopleCode source operations. Supported manual saves
+  feed the same history; remaining mutation families retain legacy gates.
+- Snapshot integrity/privacy checks, target/policy/operator drift checks,
+  partial/uncertain result reconciliation and retry protection. No multi-object
+  transaction or physical data/DDL undo is claimed.
+- This is an incremental development implementation. Native human-reviewed
+  acceptance and broader metadata adapters remain pending; see
+  [Change Review progress](docs/change-review/PROGRESS.md).
+
 ## 0.9.0 — 2026-10-14
 
 ### Added

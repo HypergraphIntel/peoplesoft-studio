@@ -1,3 +1,4 @@
+import { querySnapshot } from '../changeReview/query.js';
 import { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import { DefinitionType, makeKey } from '../model/definitions.js';
@@ -132,4 +133,23 @@ export function registerQueryTools(server: McpServer, workspace: Workspace, host
     const view = copyQueryDocument(source.view, targetName, targetOwner);
     return save(connection, String(view.query.QRYNAME), targetOwner, 'absent', operations, dryRun, view);
   });
+}
+
+/** Same host-read operation construction as the designer, without invoking a writer. */
+export async function prepareQueryReview(workspace:Workspace,tool:string,args:Record<string,unknown>) {
+ const connection=String(args.connection),name=String(args.name),owner=String(args.owner??'');
+ const {provider}=await context(workspace,connection,owner);
+ let view:QueryView,expectedToken:string;
+ if(tool==='psft_query_create'){view=newQueryDocument(name,owner,String(args.record));expectedToken='absent';}
+ else {
+  const source=await load(provider,name,owner);
+  const supplied=tool==='psft_query_copy'?args.expectedSourceToken:args.expectedToken;
+  if(source.token!==supplied)throw new Error('Query changed since it was read.');
+  if(tool==='psft_query_copy'){
+   await context(workspace,connection,String(args.targetOwner??''));view=copyQueryDocument(source.view,String(args.targetName),String(args.targetOwner??''));expectedToken='absent';
+  }else{view=source.view;expectedToken=source.token;}
+ }
+ const fields=await metadata(provider,view);
+ for(const op of (args.operations??[]) as QueryOp[])view=applyQueryOp(view,op,fields);
+ return {key:[String(view.query.QRYNAME).trim(),String(view.query.OPRID).trim()],after:querySnapshot(view),expectedToken};
 }
