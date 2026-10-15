@@ -11,7 +11,7 @@ test('Configuration Tools: the requested tree', () => {
   assert.deepEqual(outline(CONFIGURATION_TOOLS), [
     'PS Query',
     'Process Definitions',
-    { Customization: ['Page and Field Configurator', 'Event Mapping', 'Drop Zones'] },
+    { Customization: ['Page and Field Configurator', 'Event Mapping', 'Drop Zones', 'Configurable Search'] },
     { Administration: ['Message Catalog', 'Text Catalog', 'URL Definitions'] },
     { 'Portal Registry': ['Structure & Content'] },
     { 'Integration Broker': ['Message Definitions', 'Document Definitions', 'Service', 'Service Operation', 'Nodes', 'Routes'] },

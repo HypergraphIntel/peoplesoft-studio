@@ -22,7 +22,8 @@ export const CONFIGURATION_TOOLS: readonly ToolNode[] = [
   { label: 'Customization', icon: 'wand', children: [
     { label: 'Page and Field Configurator', icon: 'layout', command: 'psft.customization.openPageFieldConfigurator' },
     { label: 'Event Mapping', icon: 'symbol-event', command: 'psft.customization.configureEventMapping' },
-    { label: 'Drop Zones', icon: 'inbox', command: 'psft.customization.configureDropZones' }
+    { label: 'Drop Zones', icon: 'inbox', command: 'psft.customization.configureDropZones' },
+    { label: 'Configurable Search', icon: 'search-fuzzy', planned: true }
   ] },
   { label: 'Administration', icon: 'settings', children: [
     { label: 'Message Catalog', icon: 'comment', command: 'psft.administration.messages' },
