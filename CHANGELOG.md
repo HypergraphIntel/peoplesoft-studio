@@ -14,6 +14,10 @@
 - Find in Project searches readable text definitions with Match Case and Whole Word
   options, cancellable progress, skipped-definition counts, and results that open at the matching line.
 
+- **Page and Field Configurator page rules**: *Page rules…* on a sequence hides
+  a page, shows it (one the component hides too) or makes it display only; the
+  save warns, as the configurator does, about a required field on such a page
+  or no page left visible.
 - **Page and Field Configurator defaults and set to blank**: a field's default
   value (or a system variable such as %Date), applied when the field is blank
   or replacing its value, and *Set to blank* on a hidden or display-only field,
