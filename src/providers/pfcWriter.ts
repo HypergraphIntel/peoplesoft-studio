@@ -54,10 +54,18 @@ export class PfcSaveRefusedError extends SaveRefusedError {
 type Row = Record<string, unknown>;
 const s = (v: unknown) => (v === null || v === undefined ? '' : String(v).trim());
 
-export type PfcTable = 'header' | 'sequences' | 'criteria' | 'pages' | 'fields';
+export type PfcTable = 'header' | 'sequences' | 'criteria' | 'pages' | 'fields'
+  | 'seqUsers' | 'seqExcludedUsers' | 'seqRoles' | 'seqExcludedRoles' | 'users' | 'excludedUsers' | 'roles' | 'excludedRoles';
 export const PFC_TABLES: Record<PfcTable, string> = {
-  header: 'PS_EOCC_CONFIG_HDR', sequences: 'PS_EOCC_CONFIG_SEQ', criteria: 'PS_EOCC_CONFIG_CRT', pages: 'PS_EOCC_CONFIG_PNL', fields: 'PS_EOCC_CONFIG_FLD'
+  header: 'PS_EOCC_CONFIG_HDR', sequences: 'PS_EOCC_CONFIG_SEQ', criteria: 'PS_EOCC_CONFIG_CRT', pages: 'PS_EOCC_CONFIG_PNL', fields: 'PS_EOCC_CONFIG_FLD',
+  // Who a sequence applies to (EOCC_CONFIG_SEQ.EOCC_APPLY_TO): A all but the excluded roles and users, R one role (ROLENAME) but the
+  // excluded users, S the included roles but the excluded users, U the selected users (EOCC_APPLY_TO FieldChange).
+  seqUsers: 'PS_EOCC_SEQ_USRLST', seqExcludedUsers: 'PS_EOCC_SEQ_EXLST', seqRoles: 'PS_EOCC_SEQ_INCROL', seqExcludedRoles: 'PS_EOCC_SEQ_EXCROL',
+  // The same at the header, for every sequence, when EOCC_APPLY_LVL is H.
+  users: 'PS_EOCC_USER_LST', excludedUsers: 'PS_EOCC_EX_USR_LST', roles: 'PS_EOCC_HDR_INCROL', excludedRoles: 'PS_EOCC_HDR_EXCROL'
 };
+/** Tables a release may not have; a configuration on such a release has no rows in them. */
+const OPTIONAL: ReadonlySet<PfcTable> = new Set(['seqUsers', 'seqExcludedUsers', 'seqRoles', 'seqExcludedRoles', 'users', 'excludedUsers', 'roles', 'excludedRoles']);
 const CONFIG_KEYS = ['PNLGRPNAME', 'MARKET', 'EOCC_CONFIG_TYPE'] as const;
 /** Each table's keys after the configuration's (PSKEYDEFN). */
 export const PFC_ROW_KEYS: Record<PfcTable, readonly string[]> = {
@@ -65,10 +73,21 @@ export const PFC_ROW_KEYS: Record<PfcTable, readonly string[]> = {
   sequences: ['EOCC_SEQUENCE_NBR', 'SEQUENCE_NBR'],
   criteria: ['SEQUENCE_NBR', 'EOCC_SEQUENCE_NBR', 'RECNAME', 'FIELDNAME', 'PNLFLDID', 'EOCC_CRITERIA_SYM'],
   pages: ['SEQUENCE_NBR', 'EOCC_SEQUENCE_NBR', 'PNLNAME'],
-  fields: ['SEQUENCE_NBR', 'EOCC_SEQUENCE_NBR', 'RECNAME', 'FIELDNAME', 'OCCURSLEVEL', 'RECNAME1', 'FIELDNAME1']
+  fields: ['SEQUENCE_NBR', 'EOCC_SEQUENCE_NBR', 'RECNAME', 'FIELDNAME', 'OCCURSLEVEL', 'RECNAME1', 'FIELDNAME1'],
+  seqUsers: ['EOCC_SEQUENCE_NBR', 'SEQUENCE_NBR', 'OPRID'], seqExcludedUsers: ['EOCC_SEQUENCE_NBR', 'SEQUENCE_NBR', 'OPRID'],
+  seqRoles: ['EOCC_SEQUENCE_NBR', 'SEQUENCE_NBR', 'ROLENAME'], seqExcludedRoles: ['EOCC_SEQUENCE_NBR', 'SEQUENCE_NBR', 'ROLENAME'],
+  users: ['OPRID'], excludedUsers: ['OPRID'], roles: ['ROLENAME'], excludedRoles: ['ROLENAME']
 };
-type ListTable = Exclude<PfcTable, 'header'>;
-const CHILDREN: readonly ListTable[] = ['criteria', 'pages', 'fields'];
+export type ListTable = Exclude<PfcTable, 'header'>;
+/** A sequence's child rows. */
+const CHILDREN: readonly ListTable[] = ['criteria', 'pages', 'fields', 'seqUsers', 'seqExcludedUsers', 'seqRoles', 'seqExcludedRoles'];
+/** The header's child rows. */
+const HEADER_CHILDREN: readonly ListTable[] = ['users', 'excludedUsers', 'roles', 'excludedRoles'];
+export const PFC_LIST_TABLES: readonly ListTable[] = ['sequences', ...CHILDREN, ...HEADER_CHILDREN];
+/** The targeting lists (who a sequence, or the configuration, applies to). */
+export const PFC_TARGETING_TABLES: readonly ListTable[] = [...CHILDREN.slice(3), ...HEADER_CHILDREN];
+/** A configuration's rows of a table (the targeting lists are absent when a caller has none). */
+export const rowsOf = (c: { [K in ListTable]?: Row[] }, table: ListTable): Row[] => c[table] ?? [];
 
 /** A table's columns as the database has them (they vary by release), with the record field's constant default. */
 export type PfcColumns = Record<PfcTable, Array<{ name: string; type: string; default?: string; length?: number }>>;
@@ -83,6 +102,14 @@ export interface PfcConfiguration {
   criteria: Row[];
   pages: Row[];
   fields: Row[];
+  seqUsers?: Row[];
+  seqExcludedUsers?: Row[];
+  seqRoles?: Row[];
+  seqExcludedRoles?: Row[];
+  users?: Row[];
+  excludedUsers?: Row[];
+  roles?: Row[];
+  excludedRoles?: Row[];
 }
 
 /** What a caller passes: the configuration's rows by column name; the keys the configuration names are filled in. */
@@ -92,6 +119,14 @@ export interface PfcConfigurationInput {
   criteria?: Row[];
   pages?: Row[];
   fields?: Row[];
+  seqUsers?: Row[];
+  seqExcludedUsers?: Row[];
+  seqRoles?: Row[];
+  seqExcludedRoles?: Row[];
+  users?: Row[];
+  excludedUsers?: Row[];
+  roles?: Row[];
+  excludedRoles?: Row[];
 }
 
 // ---------------------------------------------------------------------------
@@ -102,6 +137,7 @@ export async function readPfcColumns(c: Connection): Promise<PfcColumns> {
   for (const [table, name] of Object.entries(PFC_TABLES) as Array<[PfcTable, string]>) {
     const cols = await select<{ N: string; T: string; L: number }>(c,
       `SELECT COLUMN_NAME AS N, DATA_TYPE AS T, CHAR_LENGTH AS L FROM ALL_TAB_COLUMNS WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND TABLE_NAME = :t ORDER BY COLUMN_ID`, { t: name });
+    if (!cols.length && OPTIONAL.has(table)) { out[table] = []; continue; }
     if (!cols.length) throw new PfcSaveRefusedError(`${name} is not in this database: the Page and Field Configurator is not installed.`);
     const defaults = await select<{ F: string; D: string }>(c,
       `SELECT FIELDNAME AS F, DEFFIELDNAME AS D FROM PSRECFIELDDB WHERE RECNAME = :r AND DEFRECNAME = ' ' AND DEFFIELDNAME <> ' '`, { r: name.replace(/^PS_/, '') });
@@ -116,19 +152,23 @@ const columnSql = (col: { name: string; type: string }) => (col.type === 'CLOB' 
 export async function readPfcConfiguration(c: Connection, columns: PfcColumns, component: string, market: string, type: string, forUpdate = false): Promise<PfcConfiguration> {
   const key = { c: component, m: market, t: type };
   const read = async (table: PfcTable) => {
+    if (!columns[table].length) return [];
     const order = [...CONFIG_KEYS, ...PFC_ROW_KEYS[table]].join(', ');
     const rows = await select<Row>(c, `SELECT ${columns[table].map(columnSql).join(', ')} FROM ${PFC_TABLES[table]}
       WHERE PNLGRPNAME = :c AND MARKET = :m AND EOCC_CONFIG_TYPE = :t ORDER BY ${order}${forUpdate && !columns[table].some((x) => x.type === 'CLOB') ? ' FOR UPDATE' : ''}`, key);
     return rows.map((r) => normalizeRow(columns, table, r));
   };
   const [header] = await read('header');
-  return { component, market, type, ...(header ? { header } : {}), sequences: await read('sequences'), criteria: await read('criteria'), pages: await read('pages'), fields: await read('fields') };
+  const lists = {} as Record<ListTable, Row[]>;
+  for (const table of PFC_LIST_TABLES) lists[table] = await read(table);
+  return { component, market, type, ...(header ? { header } : {}), ...lists };
 }
 
 /** The concurrency token: the configuration's rows. */
 export function pfcToken(config: PfcConfiguration): string {
   if (!config.header) return 'absent';
-  const body = JSON.stringify([config.header, config.sequences, config.criteria, config.pages, config.fields]);
+  const body = JSON.stringify([config.header, config.sequences, config.criteria, config.pages, config.fields,
+    ...PFC_TARGETING_TABLES.map((table) => rowsOf(config, table))]);
   return createHash('sha256').update(body).digest('hex').slice(0, 32);
 }
 
@@ -151,6 +191,7 @@ export function normalizeRow(columns: PfcColumns, table: PfcTable, row: Row): Ro
 /** The input as the configuration's rows; refused on an unknown column or a value that is not one. */
 export function normalizeConfiguration(columns: PfcColumns, component: string, market: string, type: string, input: PfcConfigurationInput): PfcConfiguration {
   const fix = (table: PfcTable, r: Row, i: number) => {
+    if (!columns[table].length) throw new PfcSaveRefusedError(`${PFC_TABLES[table]} is not in this database: its ${table} cannot be set here.`);
     const known = new Set(columns[table].map((x) => x.name));
     for (const k of Object.keys(r)) {
       if (!known.has(k.toUpperCase())) throw new PfcSaveRefusedError(`${PFC_TABLES[table]} has no column ${k} (${table} row ${i + 1}).`);
@@ -174,7 +215,8 @@ export function normalizeConfiguration(columns: PfcColumns, component: string, m
     sequences: input.sequences.map((r, i) => fix('sequences', r, i)),
     criteria: (input.criteria ?? []).map((r, i) => fix('criteria', r, i)),
     pages: (input.pages ?? []).map((r, i) => fix('pages', r, i)),
-    fields: (input.fields ?? []).map((r, i) => fix('fields', r, i))
+    fields: (input.fields ?? []).map((r, i) => fix('fields', r, i)),
+    ...Object.fromEntries(PFC_TARGETING_TABLES.map((table) => [table, (input[table] ?? []).map((r, i) => fix(table, r, i))]))
   };
 }
 
@@ -201,9 +243,9 @@ export function checkConfiguration(config: PfcConfiguration): { errors: string[]
   const h = config.header!;
   if (!['A', 'I'].includes(s(h.EFF_STATUS))) errors.push(`The header's EFF_STATUS must be A or I (${s(h.EFF_STATUS) || 'blank'}).`);
   if (!s(h.DESCR)) errors.push('The header needs a description (DESCR).');
-  for (const table of ['sequences', ...CHILDREN] as ListTable[]) {
+  for (const table of PFC_LIST_TABLES) {
     const seen = new Set<string>();
-    for (const r of config[table]) {
+    for (const r of rowsOf(config, table)) {
       const k = rowKey(table, r);
       if (seen.has(k)) errors.push(`${table}: two rows with the key ${k}.`);
       seen.add(k);
@@ -215,7 +257,21 @@ export function checkConfiguration(config: PfcConfiguration): { errors: string[]
     if (Number(r.SEQUENCE_NBR) < 1 || Number(r.EOCC_SEQUENCE_NBR) < 1) errors.push('Sequence numbers start at 1.');
   }
   for (const table of CHILDREN) {
-    for (const r of config[table]) if (!seqs.has(seqKey(r))) errors.push(`${table}: a row for sequence ${seqKey(r).replace('|', '/')}, which is not in the configuration.`);
+    for (const r of rowsOf(config, table)) if (!seqs.has(seqKey(r))) errors.push(`${table}: a row for sequence ${seqKey(r).replace('|', '/')}, which is not in the configuration.`);
+  }
+  // Who it applies to: a single role names it; specific roles or selected users with none apply to no one.
+  const targeting = (what: string, applyTo: string, role: string, included: number, users: number) => {
+    if (applyTo && !['A', 'R', 'S', 'U'].includes(applyTo)) errors.push(`${what}: EOCC_APPLY_TO must be A, R, S or U (${applyTo || 'blank'}).`);
+    if (applyTo === 'R' && !role) errors.push(`${what} applies to a single role but names none (ROLENAME).`);
+    if (applyTo === 'S' && !included) warnings.push(`${what} applies to specific roles but lists none: it applies to no one.`);
+    if (applyTo === 'U' && !users) warnings.push(`${what} applies to selected users but lists none: it applies to no one.`);
+  };
+  if (s(h.EOCC_APPLY_LVL) === 'H') targeting('The configuration', s(h.EOCC_APPLY_TO), s(h.ROLENAME), rowsOf(config, 'roles').length, rowsOf(config, 'users').length);
+  else {
+    for (const q of config.sequences) {
+      const mine = (table: ListTable) => rowsOf(config, table).filter((r) => seqKey(r) === seqKey(q)).length;
+      targeting(`Sequence ${Number(q.EOCC_SEQUENCE_NBR)}`, s(q.EOCC_APPLY_TO), s(q.ROLENAME), mine('seqRoles'), mine('seqUsers'));
+    }
   }
   if (config.type === 'STD') {
     // EOCC_CONFIGURE SavePreChange's warnings: page configuration with a level-1 criterion; "set to blank" without criteria.
@@ -251,9 +307,9 @@ export function planPfcRows(columns: PfcColumns, stored: PfcConfiguration, next:
   const same = (a: Row, b: Row) => JSON.stringify(a) === JSON.stringify(b);
   const inserts: Array<[ListTable, Row]> = [];
   // Children first on the way out, parents first on the way in.
-  for (const table of [...CHILDREN, 'sequences'] as ListTable[]) {
-    const want = new Map(next[table].map((r) => [rowKey(table, r), r]));
-    for (const r of stored[table]) {
+  for (const table of [...CHILDREN, ...HEADER_CHILDREN, 'sequences'] as ListTable[]) {
+    const want = new Map(rowsOf(next, table).map((r) => [rowKey(table, r), r]));
+    for (const r of rowsOf(stored, table)) {
       const w = want.get(rowKey(table, r));
       if (w && same(w, r)) continue;
       statements.push(deleteWhere(PFC_TABLES[table], r, keysOf(table)));
@@ -271,9 +327,9 @@ export function planPfcRows(columns: PfcColumns, stored: PfcConfiguration, next:
     });
     changes.push(`change the header${s(stored.header.EFF_STATUS) !== s(next.header!.EFF_STATUS) ? ` (${s(next.header!.EFF_STATUS) === 'A' ? 'active' : 'inactive'})` : ''}`);
   }
-  for (const table of ['sequences', ...CHILDREN] as ListTable[]) {
-    const had = new Map(stored[table].map((r) => [rowKey(table, r), r]));
-    for (const r of next[table]) {
+  for (const table of PFC_LIST_TABLES) {
+    const had = new Map(rowsOf(stored, table).map((r) => [rowKey(table, r), r]));
+    for (const r of rowsOf(next, table)) {
       const h = had.get(rowKey(table, r));
       if (h && same(h, r)) continue;
       inserts.push([table, r]);
@@ -501,6 +557,24 @@ export async function savePfcConfiguration(c: Connection, request: PfcSaveReques
     }
     const next = normalizeConfiguration(columns, component, market, type, request.configuration);
     const check = checkConfiguration(next);
+    // The roles and users it adds must exist, as the page's prompts require of a value entered; rows already stored are not
+    // rechecked (Oracle's delivered configurations name demo users a database may not have).
+    const named = (c: PfcConfiguration, field: 'ROLENAME' | 'OPRID', tables: ListTable[]) => new Set([
+      ...(field === 'ROLENAME' ? [s(c.header?.ROLENAME), ...c.sequences.map((r) => s(r.ROLENAME))] : []),
+      ...tables.flatMap((t) => rowsOf(c, t).map((r) => s(r[field])))].filter(Boolean));
+    const roleTables: ListTable[] = ['seqRoles', 'seqExcludedRoles', 'roles', 'excludedRoles'];
+    const userTables: ListTable[] = ['seqUsers', 'seqExcludedUsers', 'users', 'excludedUsers'];
+    const hadRoles = named(stored, 'ROLENAME', roleTables), hadUsers = named(stored, 'OPRID', userTables);
+    const roles = [...named(next, 'ROLENAME', roleTables)].filter((x) => !hadRoles.has(x));
+    for (const role of roles) {
+      const [x] = await select<Row>(c, `SELECT 'X' AS X FROM PSROLEDEFN WHERE ROLENAME = :r`, { r: role });
+      if (!x) check.errors.push(`There is no role ${role} (PSROLEDEFN).`);
+    }
+    const users = [...named(next, 'OPRID', userTables)].filter((x) => !hadUsers.has(x));
+    for (const oprid of users) {
+      const [x] = await select<Row>(c, `SELECT 'X' AS X FROM PSOPRDEFN WHERE OPRID = :o`, { o: oprid });
+      if (!x) check.errors.push(`There is no user ${oprid} (PSOPRDEFN).`);
+    }
     if (check.errors.length) throw new PfcSaveRefusedError(check.errors.slice(0, 6).join('; '));
     const rows = planPfcRows(columns, stored, next);
     if (rows.empty) {
@@ -545,9 +619,9 @@ export async function savePfcConfiguration(c: Connection, request: PfcSaveReques
 export async function verifyPfcSave(c: Connection, columns: PfcColumns, next: PfcConfiguration, type: string, plan: PfcMappingPlan): Promise<void> {
   const problems: string[] = [];
   const got = await readPfcConfiguration(c, columns, next.component, next.market, type);
-  for (const table of ['sequences', ...CHILDREN] as ListTable[]) {
-    const a = JSON.stringify(got[table].map((r) => rowKey(table, r) + JSON.stringify(r)).sort());
-    const b = JSON.stringify(next[table].map((r) => rowKey(table, r) + JSON.stringify(r)).sort());
+  for (const table of PFC_LIST_TABLES) {
+    const a = JSON.stringify(rowsOf(got, table).map((r) => rowKey(table, r) + JSON.stringify(r)).sort());
+    const b = JSON.stringify(rowsOf(next, table).map((r) => rowKey(table, r) + JSON.stringify(r)).sort());
     if (a !== b) problems.push(`the ${table} rows differ`);
   }
   if (JSON.stringify(got.header) !== JSON.stringify(next.header)) problems.push('the header differs');

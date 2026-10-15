@@ -8,7 +8,7 @@ import type { CounterState } from '../providers/dropZoneWriter.js';
 import type { StoredConfiguration } from '../providers/eventMappingWriter.js';
 import type { PfcMapping } from '../providers/pfcMapper.js';
 import {
-  checkConfiguration, maxEventNumber, normalizeConfiguration, normalizeRow, planPfcMappings, planPfcRows, pfcToken, utilityServices,
+  PFC_TARGETING_TABLES, checkConfiguration, maxEventNumber, normalizeConfiguration, normalizeRow, planPfcMappings, planPfcRows, pfcToken, utilityServices,
   type PfcColumns, type PfcConfiguration, type PfcTable
 } from '../providers/pfcWriter.js';
 
@@ -67,8 +67,9 @@ const DEFAULTS: Record<string, Record<string, string>> = {
 
 function columnsOf(c: string): PfcColumns {
   const d = delta(c).otherTables;
-  const tables: Record<PfcTable, string> = { header: 'PS_EOCC_CONFIG_HDR', sequences: 'PS_EOCC_CONFIG_SEQ', criteria: 'PS_EOCC_CONFIG_SEQ', pages: 'PS_EOCC_CONFIG_SEQ', fields: 'PS_EOCC_CONFIG_FLD' };
-  const out = {} as PfcColumns;
+  const tables: Partial<Record<PfcTable, string>> = { header: 'PS_EOCC_CONFIG_HDR', sequences: 'PS_EOCC_CONFIG_SEQ', criteria: 'PS_EOCC_CONFIG_SEQ', pages: 'PS_EOCC_CONFIG_SEQ', fields: 'PS_EOCC_CONFIG_FLD' };
+  // The targeting lists are not in these captures: as on a release without them.
+  const out = Object.fromEntries(PFC_TARGETING_TABLES.map((t) => [t, []])) as unknown as PfcColumns;
   for (const [k, name] of Object.entries(tables) as Array<[PfcTable, string]>) {
     out[k] = (d[name].columns as Array<{ name: string; type: string }>).map((x) => ({ name: x.name, type: x.type, ...(DEFAULTS[name]?.[x.name] !== undefined ? { default: DEFAULTS[name][x.name] } : {}) }));
   }
@@ -223,6 +224,7 @@ test('the services a save deletes follow DeleteUtilityServiceMapping', () => {
 test('configuration checks: keys, sequences, statuses; the page\'s warnings', () => {
   const cols = (names: string[]) => names.map((name) => ({ name, type: /NBR|LEVEL|PNLFLDID/.test(name) ? 'NUMBER' : 'VARCHAR2' }));
   const columns: PfcColumns = {
+    ...(Object.fromEntries(PFC_TARGETING_TABLES.map((t) => [t, []])) as unknown as PfcColumns),
     header: cols(['PNLGRPNAME', 'MARKET', 'EOCC_CONFIG_TYPE', 'DESCR', 'EFF_STATUS']),
     sequences: cols(['PNLGRPNAME', 'MARKET', 'EOCC_CONFIG_TYPE', 'EOCC_SEQUENCE_NBR', 'SEQUENCE_NBR', 'STATUS']),
     criteria: cols(['PNLGRPNAME', 'MARKET', 'EOCC_CONFIG_TYPE', 'SEQUENCE_NBR', 'EOCC_SEQUENCE_NBR', 'RECNAME', 'FIELDNAME', 'PNLFLDID', 'EOCC_CRITERIA_SYM', 'OCCURSLEVEL']),

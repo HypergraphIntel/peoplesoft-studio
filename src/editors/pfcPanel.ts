@@ -4,7 +4,8 @@ import type { Workspace } from '../workspace.js';
 import { DatabaseProvider } from '../providers/database.js';
 import { DefinitionType } from '../model/definitions.js';
 import { fieldSettingsOf, describeFieldSettings, isBlankFieldRow, maskOf, fieldRowKey, withFieldRow, withoutFieldRow } from '../model/pfcFieldEdits.js';
-import { pickCatalogField, pickFieldSettings, pickMask } from './pfcDialogs.js';
+import { pickCatalogField, pickFieldSettings, pickMask, pickTarget } from './pfcDialogs.js';
+import { describeTarget, headerLevel, targetOf, withApplyLevel, withTarget } from '../model/pfcTargeting.js';
 import { pfcHtml } from './pfcHtml.js';
 const panels = new Map<string, vscode.WebviewPanel>();
 export async function openPageFieldConfigurator(workspace: Workspace, connectionId?: string, component?: string, market = 'GBL'): Promise<void> {
@@ -16,7 +17,7 @@ export async function openPageFieldConfigurator(workspace: Workspace, connection
   if (!component) {
     const db = provider;
     const picker = vscode.window.createQuickPick<vscode.QuickPickItem & { parts: string[] }>();
-    picker.title = `Drop Zones on ${db.displayName}`;
+    picker.title = `Page and Field Configurator on ${db.displayName}`;
     picker.placeholder = 'Type at least two characters of a component name';
     let generation = 0;
     picker.onDidChangeValue(async value => {
@@ -57,6 +58,7 @@ export async function openPageFieldConfigurator(workspace: Workspace, connection
   const post = async (message = '') => {
     panel.title = `${dirty() ? '● ' : ''}Page and Field Configurator: ${name}.${market}`;
     await panel.webview.postMessage({ type: 'state', component: name, market, connection: db.displayName, configType: type, exists: read.exists, editable: editable(), dirty: dirty(), configuration: draft, contentReferences: read.contentReferences, message,
+      headerLevel: headerLevel(draft), headerTarget: describeTarget(targetOf(draft)), sequenceTargets: draft.sequences.map((q) => describeTarget(targetOf(draft, q))),
       fields: draft.fields.map((row, index) => ({ index, sequence: row.EOCC_SEQUENCE_NBR, page: row.STDPNLNAME ?? row.PNLNAME, name: `${row.RECNAME}.${row.FIELDNAME}`, label: row.LBLTEXT, blank: isBlankFieldRow(row), settings: type === 'MASK' ? (maskOf(row) ? `Masked (${maskOf(row)})` : 'Not masked') : describeFieldSettings(fieldSettingsOf(row)) })) });
   };
   const reload = async () => { read = await db.readPageFieldConfiguration(name, market, type); draft = structuredClone(read.configuration ?? fresh()); original = JSON.stringify(draft); };
@@ -76,6 +78,14 @@ export async function openPageFieldConfigurator(workspace: Workspace, connection
         const description = await vscode.window.showInputBox({ title: 'Configuration description', value: String(draft.header.DESCR ?? ''), validateInput: v => !v.trim() || v.trim().length > 30 ? 'Enter 1–30 characters.' : undefined });
         if (description !== undefined) draft.header.DESCR = description.trim();
       } else if (m.type === 'active') draft.header.EFF_STATUS = (draft.header.EFF_STATUS ?? 'A') === 'I' ? 'A' : 'I';
+      else if (m.type === 'applyLevel') draft = withApplyLevel(draft, headerLevel(draft) ? 'S' : 'H');
+      else if (m.type === 'target') {
+        // index -1: the configuration (header level); else a sequence.
+        const seq = (m.index ?? -1) >= 0 ? draft.sequences[m.index!] : undefined;
+        if ((m.index ?? -1) >= 0 && !seq) throw new Error('Unknown sequence.');
+        const t = await pickTarget(db, targetOf(draft, seq), seq ? `sequence ${String(seq.EOCC_SEQUENCE_NBR)}` : 'the configuration');
+        if (t) draft = withTarget(draft, seq, t);
+      }
       else if (m.type === 'addSequence') {
         const description = await vscode.window.showInputBox({ title: 'New sequence (everyone, all form factors)', validateInput: v => v.trim().length > 30 ? 'At most 30 characters.' : undefined });
         if (description !== undefined) {

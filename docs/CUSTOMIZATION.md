@@ -443,6 +443,21 @@ configuration gets a *Create a configuration…* row: a description, sequence 1
 first field, saved as the page's first save [pfc01] (Event Mapping configured
 on each content reference). Text longer than its column is refused.
 
+**Who it applies to** (the configurator editor's *Applies to…*, MCP rows):
+with the header's apply level H (the default) the header says it for every
+sequence, with S each sequence says it (`EOCC_APPLY_LVL` FieldChange). Apply
+To A is everyone but the excluded roles and users, R one role (`ROLENAME`)
+but the excluded users, S the included roles but the excluded users, U the
+selected users (`EOCC_APPLY_TO` FieldChange). The lists are
+`PS_EOCC_SEQ_EXCROL`, `_SEQ_EXLST`, `_SEQ_INCROL`, `_SEQ_USRLST` per sequence
+and `PS_EOCC_HDR_EXCROL`, `_EX_USR_LST`, `_HDR_INCROL`, `_USER_LST` at the
+header; switching Apply To keeps the lists it does not use, as the page only
+hides them. A role or user a save adds must exist (`PSROLEDEFN`,
+`PSOPRDEFN`); rows already stored are not rechecked -- Oracle's masking
+configurations on HRDMO name demo users the database does not have. Every
+configuration on HRDMO, read and saved back unchanged, plans nothing
+(JOB_DATA_FL's two excluded roles and the masking user lists included).
+
 **Masking** (a MASK configuration; *Mask a field…*, *Create a masking
 configuration…*): the field list is the Standard one less long fields
 (`PSDBFIELD.FIELDTYPE` 1, `EOCC_MSKFLD_DVW.LBLTEXT` FieldFormula); a masked

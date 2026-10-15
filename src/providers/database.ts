@@ -76,7 +76,7 @@ import type { PfcDiscovery } from '../model/pageFieldConfigurator.js';
 import { derivePfcMappings, pfcContentReferences, type PfcMapping } from './pfcMapper.js';
 import { pfcCatalogFields, pfcCatalogPages, pfcMaskProfiles, type PfcCatalogField, type PfcCatalogPage, type PfcMaskProfile } from './pfcCatalog.js';
 import {
-  compactRow, isTypeService, mappingSignature, pfcToken, readPfcColumns, readPfcConfiguration, savePfcConfiguration, storedSignature,
+  PFC_TARGETING_TABLES, compactRow, isTypeService, mappingSignature, pfcToken, rowsOf, type ListTable, readPfcColumns, readPfcConfiguration, savePfcConfiguration, storedSignature,
   type PfcSaveRequest, type PfcSaveResult
 } from './pfcWriter.js';
 import { dropZoneToken, readDropZoneState, saveDropZones, type DropZoneOwner, type DropZoneSaveRequest, type DropZoneSaveResult } from './dropZoneWriter.js';
@@ -2257,7 +2257,7 @@ export class DatabaseProvider implements DefinitionProvider {
    */
   async readPageFieldConfiguration(component: string, market = 'GBL', type = 'STD'): Promise<{
     exists: boolean; token: string; configuration?: { header: Record<string, unknown>; sequences: Record<string, unknown>[]; criteria: Record<string, unknown>[];
-      pages: Record<string, unknown>[]; fields: Record<string, unknown>[] };
+      pages: Record<string, unknown>[]; fields: Record<string, unknown>[] } & { [K in ListTable]?: Record<string, unknown>[] };
     derived: PfcMapping[]; contentReferences: Array<{ cref: string; menu: string; mappingRows: number; inSync: boolean }>;
   }> {
     const comp = component.trim().toUpperCase(), mkt = market.trim().toUpperCase(), t = type.trim().toUpperCase();
@@ -2272,10 +2272,14 @@ export class DatabaseProvider implements DefinitionProvider {
         const rows = (await readStoredConfiguration(c, cref, false)).configs.filter((r) => isTypeService(t, String(r.PTCS_SERVICEID).trim()));
         contentReferences.push({ cref, menu, mappingRows: rows.length, inSync: JSON.stringify(rows.map(storedSignature).sort()) === want });
       }
-      const compact = (table: 'sequences' | 'criteria' | 'pages' | 'fields') => config[table].map((r) => compactRow(columns, table, r));
+      const compact = (table: ListTable) => rowsOf(config, table).map((r) => compactRow(columns, table, r));
       return {
         exists: !!config.header, token: pfcToken(config), derived, contentReferences,
-        ...(config.header ? { configuration: { header: compactRow(columns, 'header', config.header), sequences: compact('sequences'), criteria: compact('criteria'), pages: compact('pages'), fields: compact('fields') } } : {})
+        ...(config.header ? { configuration: {
+          header: compactRow(columns, 'header', config.header), sequences: compact('sequences'), criteria: compact('criteria'), pages: compact('pages'), fields: compact('fields'),
+          // Who it applies to; a list left out when empty.
+          ...Object.fromEntries(PFC_TARGETING_TABLES.map((t) => [t, compact(t)]).filter(([, rows]) => (rows as unknown[]).length))
+        } } : {})
       };
     });
   }
@@ -2288,6 +2292,14 @@ export class DatabaseProvider implements DefinitionProvider {
   /** The fields the configurator offers on a page of that list, each with the values its field row takes (pfcCatalog.ts). */
   async readPageFieldCatalogFields(page: string, type: 'P' | 'S', options: { mask?: boolean } = {}): Promise<PfcCatalogField[]> {
     return this.withConnection((c) => pfcCatalogFields(c, page.trim().toUpperCase(), type, options));
+  }
+
+  /** PeopleSoft users (PSOPRDEFN) whose ID or description contains the text, for a configuration's user lists. */
+  async searchOperators(text: string, limit = 100): Promise<Array<{ oprid: string; description: string }>> {
+    const p = `%${text.trim().toUpperCase()}%`;
+    return this.withConnection(async (c) => (await select<{ O: string; D: string }>(c,
+      `SELECT OPRID AS O, OPRDEFNDESC AS D FROM PSOPRDEFN WHERE UPPER(OPRID) LIKE :p OR UPPER(OPRDEFNDESC) LIKE :p ORDER BY OPRID FETCH FIRST ${Math.max(1, Math.min(500, limit))} ROWS ONLY`,
+      { p })).map((r) => ({ oprid: String(r.O ?? '').trim(), description: String(r.D ?? '').trim() })));
   }
 
   /** The configurator's mask profiles and the profile each field group gives its fields. */

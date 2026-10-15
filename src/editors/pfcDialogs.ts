@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import { DatabaseProvider } from '../providers/database.js';
+import { DefinitionType } from '../model/definitions.js';
+import { APPLY_TO_LABELS, checkTarget, describeTarget, listsUsed, type ApplyTo, type PfcTarget } from '../model/pfcTargeting.js';
 import { catalogFieldRow } from '../providers/pfcCatalog.js';
 import { fieldRowKey, fieldSettingsOf, checkFieldSettings, withFieldSettings, describeFieldSettings, maskOf, defaultMaskFor, withMask, type PfcFieldSettings } from '../model/pfcFieldEdits.js';
 type PfcRow = Record<string, unknown>;
@@ -58,4 +60,70 @@ export async function pickMask(provider: DatabaseProvider, row: PfcRow): Promise
   const picked = await vscode.window.showQuickPick(items, { title: `Mask profile for ${String(row.LBLTEXT ?? '')} (${String(row.RECNAME)}.${String(row.FIELDNAME)})`, matchOnDescription: true });
   if (!picked) return undefined;
   return { row: withMask(row, picked.id), description: picked.id ? `masked (${picked.id})` : 'not masked' };
+}
+
+/** A role or user found by typing (two characters or more), as the page's prompts find them; undefined when dismissed. */
+async function searchOne(provider: DatabaseProvider, kind: 'role' | 'user', title: string): Promise<string | undefined> {
+  const picker = vscode.window.createQuickPick<vscode.QuickPickItem & { value: string }>();
+  picker.title = title;
+  picker.placeholder = kind === 'role' ? 'Type part of a role name' : 'Type part of a user ID or description';
+  let generation = 0;
+  picker.onDidChangeValue(async (text) => {
+    const current = ++generation;
+    if (text.trim().length < 2) { picker.items = []; return; }
+    picker.busy = true;
+    try {
+      const items = kind === 'role'
+        ? (await provider.search({ type: DefinitionType.Role, namePattern: `%${text.trim().toUpperCase()}%`, limit: 100 })).map((d) => ({ label: d.key.parts[0], description: d.description ?? '', value: d.key.parts[0] }))
+        : (await provider.searchOperators(text, 100)).map((u) => ({ label: u.oprid, description: u.description, value: u.oprid }));
+      if (current === generation) picker.items = items;
+    } finally { if (current === generation) picker.busy = false; }
+  });
+  const picked = await new Promise<string | undefined>((resolve) => {
+    picker.onDidAccept(() => { const item = picker.selectedItems[0]; if (item) { resolve(item.value); picker.hide(); } });
+    picker.onDidHide(() => resolve(undefined));
+    picker.show();
+  });
+  generation++;
+  picker.dispose();
+  return picked;
+}
+
+/** A list of roles or users edited: the entries checked to keep, and "Add…" to search for one more; undefined when dismissed. */
+async function editList(provider: DatabaseProvider, kind: 'role' | 'user', title: string, current: string[]): Promise<string[] | undefined> {
+  let list = [...current];
+  for (;;) {
+    type Item = vscode.QuickPickItem & { value?: string };
+    const add: Item = { label: `$(add) Add a ${kind}…`, alwaysShow: true };
+    const chosen = await vscode.window.showQuickPick<Item>([...list.map((v) => ({ label: v, value: v, picked: true })), add],
+      { canPickMany: true, title: `${title} (uncheck to take one out)` });
+    if (!chosen) return undefined;
+    list = chosen.filter((c) => c.value).map((c) => c.value!);
+    if (!chosen.includes(add)) return list;
+    const more = await searchOne(provider, kind, `${title}: add a ${kind}`);
+    if (more && !list.includes(more)) list.push(more);
+  }
+}
+
+/** Who a sequence (or the configuration) applies to, chosen as the page offers it: Apply To, then the lists it uses. */
+export async function pickTarget(provider: DatabaseProvider, current: PfcTarget, scope: string): Promise<PfcTarget | undefined> {
+  const picked = await vscode.window.showQuickPick((Object.keys(APPLY_TO_LABELS) as ApplyTo[]).map((a) => ({
+    label: `${a === current.applyTo ? '$(check) ' : ''}${APPLY_TO_LABELS[a]}`, applyTo: a, description: a === current.applyTo ? describeTarget(current) : undefined
+  })), { title: `Who ${scope} applies to` });
+  if (!picked) return undefined;
+  const next: PfcTarget = { ...current, applyTo: picked.applyTo, roles: [...current.roles], excludedRoles: [...current.excludedRoles], users: [...current.users], excludedUsers: [...current.excludedUsers] };
+  if (next.applyTo === 'R') {
+    const role = await searchOne(provider, 'role', `${scope}: the role it applies to${current.role ? ` (now ${current.role})` : ''}`);
+    if (!role && !current.role) return undefined;
+    next.role = role ?? current.role;
+  }
+  const titles: Record<string, string> = { roles: 'Roles it applies to', excludedRoles: 'Roles excluded', users: 'Users it applies to', excludedUsers: 'Users excluded' };
+  for (const key of listsUsed(next.applyTo)) {
+    const edited = await editList(provider, key === 'roles' || key === 'excludedRoles' ? 'role' : 'user', `${scope}: ${titles[key]}`, next[key]);
+    if (!edited) return undefined;
+    next[key] = edited;
+  }
+  const problems = checkTarget(next);
+  if (problems.length) { void vscode.window.showWarningMessage(problems.join(' ')); return undefined; }
+  return next;
 }
