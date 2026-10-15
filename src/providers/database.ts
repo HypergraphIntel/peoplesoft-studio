@@ -22,6 +22,7 @@ import type { RecordLayout, TranslateValue } from '../model/recordLayout.js';
 import type { DefinitionReference } from './provider.js';
 import { createProject as createProjectRow, saveProject, verifyProjectSave, type ProjectSaveRequest, type ProjectSaveResult } from './projectWriter.js';
 import { deleteRecord, saveRecord, verifyRecordSave, type RecordSaveRequest, type RecordSaveResult } from './recordWriter.js';
+import { readStructuredSnapshot, type StructuredFamily, type StructuredRead } from './structuredSnapshot.js';
 import { ddlPlatformFor, tableName, type DdlModel } from '../model/recordDdl.js';
 import { maskSql, prepareReadOnlyQuery } from '../sql/readOnlyQuery.js';
 import { saveTranslate as saveTranslateRows, type TranslateChange } from './translateWriter.js';
@@ -53,6 +54,7 @@ import { buildComponentDefinition, type ComponentDefinition } from '../model/com
 import { bufferRecords, peopleCodeObjects, type PeopleCodeObject } from '../model/componentPeopleCode.js';
 import { saveComponent, type ComponentSaveRequest, type ComponentSaveResult } from './componentWriter.js';
 import { createPage, savePage, verifyPageSave, type PageCreateRequest, type PageSaveRequest, type PageSaveResult } from './pageWriter.js';
+import { readPageSnapshot, type PageSnapshotRead } from './pageSnapshot.js';
 import type { PagePropertyChoices } from '../editors/pageHtml.js';
 import {
   appEngineToken, deleteAppEngine, documentOf, readStoredAppEngine, renameAppEngine, saveAppEngine, verifyAppEngineSave,
@@ -744,12 +746,27 @@ export class DatabaseProvider implements DefinitionProvider {
    */
   async saveRecord(request: RecordSaveRequest): Promise<RecordSaveResult> {
     const key=makeKey(DefinitionType.Record,request.edit.recname);
-    if (!request.edit.isNew) await this.guard(key, 'save');
-    const previous=request.edit.isNew?undefined:await this.createdReceipt(key);
-    const result = await this.withConnection((c) => saveRecord(c, request));
-    await this.withConnection((c) => verifyRecordSave(c, request, result));
-    if(request.edit.isNew || previous)await this.noteCreation(key,{version:result.version,operator:request.operatorId,updated:result.lastupddttm},previous);
-    return result;
+    if (this.platform !== 'oracle' && (request.captureSnapshots || request.expectedSnapshotToken)) throw new ProviderError('Reviewed Record snapshots require Oracle.');
+    if (!request.dryRun && !request.edit.isNew) await this.guard(key, 'save');
+    const write = async () => {
+      const previous=request.dryRun || request.edit.isNew?undefined:await this.createdReceipt(key);
+      const result = await this.withConnection((c) => saveRecord(c, request, request.captureSnapshots || request.expectedSnapshotToken ? this.types : undefined));
+      if (request.dryRun) return result;
+      await this.withConnection((c) => verifyRecordSave(c, request, result));
+      if(request.edit.isNew || previous)await this.noteCreation(key,{version:result.version,operator:request.operatorId,updated:result.lastupddttm},previous);
+      return result;
+    };
+    return request.dryRun ? write() : observeManualHistory(this.id, key, write);
+  }
+
+  /** Consistent native preservation scope for bounded Record/AE description edits. */
+  async readStructuredForReview(family: StructuredFamily, name: string): Promise<StructuredRead> {
+    if (this.platform !== 'oracle') throw new ProviderError('Structured review snapshots require Oracle.');
+    return this.withConnection(async c => {
+      await c.execute('SET TRANSACTION READ ONLY');
+      try { return await readStructuredSnapshot(c, this.types, family, name); }
+      finally { await c.rollback(); }
+    });
   }
 
   /**
@@ -1145,10 +1162,23 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   async savePage(request: PageSaveRequest): Promise<PageSaveResult> {
-    await this.guard(makeKey(DefinitionType.Page, request.pnlName), 'save');
-    const result = await this.withConnection((c) => savePage(c, request));
-    await this.withConnection((c) => verifyPageSave(c, request, result));
+    if ((request.captureSnapshots || request.expectedSnapshotToken) && this.platform !== 'oracle') throw new ProviderError('Page review snapshots are currently supported on Oracle only.');
+    if (!request.dryRun) await this.guard(makeKey(DefinitionType.Page, request.pnlName), 'save');
+    const write = async () => {
+    const result = await this.withConnection((c) => savePage(c, request, request.captureSnapshots || request.expectedSnapshotToken ? this.types : undefined));
+    if (!request.dryRun) await this.withConnection((c) => verifyPageSave(c, request, result));
     return result;
+    };
+    return request.dryRun ? write() : observeManualHistory(this.id, makeKey(DefinitionType.Page, request.pnlName), write);
+  }
+
+  async readPageForReview(name: string): Promise<PageSnapshotRead> {
+    if (this.platform !== 'oracle') throw new ProviderError('Page review snapshots are currently supported on Oracle only.');
+    return this.withConnection(async c => {
+      await c.execute('SET TRANSACTION READ ONLY');
+      try { return await readPageSnapshot(c, this.types, name); }
+      finally { await c.rollback(); }
+    });
   }
 
   /**
@@ -2181,17 +2211,21 @@ export class DatabaseProvider implements DefinitionProvider {
    * connection after COMMIT. A dry run returns the plan and writes nothing.
    */
   async saveAppEngineDocument(request: AeSaveRequest): Promise<AeSaveResult> {
+    if (this.platform !== 'oracle' && (request.captureSnapshots || request.expectedSnapshotToken)) throw new ProviderError('Reviewed Application Engine snapshots require Oracle.');
     if (!request.dryRun && request.openedToken !== 'absent') await this.guard(makeKey(DefinitionType.AppEngineProgram, request.doc.name), 'save');
     const key=makeKey(DefinitionType.AppEngineProgram,request.doc.name);
-    const previous=request.dryRun || request.openedToken==='absent'?undefined:await this.createdReceipt(key);
-    const types = this.types;
-    const result = await this.withConnection((c) => saveAppEngine(c, types, request));
-    await this.withConnection((c) => verifyAppEngineSave(c, types, result));
-    if(!request.dryRun && (request.openedToken==='absent' || previous)){
-      const e=await this.withConnection(c=>readOwnershipEvidence(c,key,[]));
-      if(e.version!==undefined && e.operator && e.updated)await this.noteCreation(key,{version:e.version,operator:e.operator,updated:e.updated},previous);
-    }
-    return result;
+    const write = async () => {
+      const previous=request.dryRun || request.openedToken==='absent'?undefined:await this.createdReceipt(key);
+      const types = this.types;
+      const result = await this.withConnection((c) => saveAppEngine(c, types, request));
+      await this.withConnection((c) => verifyAppEngineSave(c, types, result));
+      if(!request.dryRun && (request.openedToken==='absent' || previous)){
+        const e=await this.withConnection(c=>readOwnershipEvidence(c,key,[]));
+        if(e.version!==undefined && e.operator && e.updated)await this.noteCreation(key,{version:e.version,operator:e.operator,updated:e.updated},previous);
+      }
+      return result;
+    };
+    return request.dryRun ? write() : observeManualHistory(this.id, key, write);
   }
 
   async deleteAppEngineProgram(name: string, token: string, operatorId: string): Promise<void> {

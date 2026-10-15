@@ -21,7 +21,7 @@ test('orientation distinguishes Data Mover templates, planned Workbench and defi
   const reference = studioReference();
   const entries = reference.dataMigrationTools as { label: string; studioStatus: string; command?: string; tools: string[]; limitation: string }[];
   assert.deepEqual(entries.map(entry => [entry.label, entry.studioStatus]), [
-    ['Data Mover Scripts', 'AVAILABLE'], ['Data Migration Workbench', 'PLANNED']
+    ['Data Mover Scripts', 'AVAILABLE'], ['Import Migration Package…', 'AVAILABLE'], ['Data Migration Workbench', 'PLANNED']
   ]);
   assert.equal(entries[0].command, 'psft.dataMover.newScript');
   assert.match(entries[0].limitation, /RichardWood\.peoplesoft-datamover/);

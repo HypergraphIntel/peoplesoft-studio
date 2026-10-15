@@ -1,0 +1,207 @@
+{
+  "checkedAt": "2026-10-15T18:13:23.465Z",
+  "mode": "installed native rollback validation and durable staging only; no approval/apply",
+  "changeSetId": "e419a3b0-1438-41c6-bf4d-af9a90552178",
+  "revision": 4,
+  "status": "READY_FOR_REVIEW",
+  "environment": {
+    "connection": "oracle:HRDMO",
+    "identity": "9c585c10567fd0ba68800246978dba6ac89ce1f17c6baf3113490a052807bb85",
+    "label": "HRDMO"
+  },
+  "objects": [
+    {
+      "id": "0e259b41-1a50-48ee-b959-cce32ebbe54e",
+      "adapter": "page",
+      "key": "ZZ_PCODE_LAB_PG",
+      "before": "c4e40910bd158ae4149121497376cdbbed39c908ed6693febb728a303def1b11",
+      "after": "a2e78eeb91bec92262916c5fd8dc4e9d05a5c5aa2f3f7d0ca06ab2e87e63c805",
+      "baselineToken": "6d4de3e8dd6c08b0ce03fbf5a58df2f69f709ce53ef59ad9e608fc7977d90dbc",
+      "differences": [
+        {
+          "path": "$.tables.PSPNLFIELD[21].FIELDBOTTOM",
+          "kind": "MODIFY",
+          "before": 540,
+          "after": 552
+        },
+        {
+          "path": "$.tables.PSPNLFIELD[21].FIELDLEFT",
+          "kind": "MODIFY",
+          "before": 80,
+          "after": 88
+        },
+        {
+          "path": "$.tables.PSPNLFIELD[21].FIELDRIGHT",
+          "kind": "MODIFY",
+          "before": 208,
+          "after": 248
+        },
+        {
+          "path": "$.tables.PSPNLFIELD[21].FIELDSIZETYPE",
+          "kind": "MODIFY",
+          "before": 0,
+          "after": 2
+        },
+        {
+          "path": "$.tables.PSPNLFIELD[21].FIELDTOP",
+          "kind": "MODIFY",
+          "before": 520,
+          "after": 528
+        },
+        {
+          "path": "$.tables.PSPNLFIELD[21].LBLTEXT",
+          "kind": "MODIFY",
+          "before": "Added by MCP",
+          "after": "Review control validation"
+        },
+        {
+          "path": "$.tables.PSPNLFIELD[2].FIELDUSE",
+          "kind": "MODIFY",
+          "before": 0,
+          "after": 3
+        },
+        {
+          "path": "$.tables.PSPNLFIELD[2].SECUREINVISIBLE",
+          "kind": "MODIFY",
+          "before": "0",
+          "after": "1"
+        }
+      ]
+    },
+    {
+      "id": "2321f8b0-d1df-4cba-bec9-57538bf86603",
+      "adapter": "record",
+      "key": "ZZ_RPT_LINE",
+      "before": "0d5a6743fa5327f58dd9921b6dc1435500b1d0f2b573e20b0dfcbc9da4d5331f",
+      "after": "d74cc37bfb35e675423a2fc6d6a11754b406afde53ecc89a255e1bcb83ae7ea0",
+      "baselineToken": "a7290711d0a6eb42a603fc7c8d3b3208a0ce0304779cf5b81dbb761c20887cc1",
+      "differences": [
+        {
+          "path": "$.tables.PSRECDEFN.RECDESCR",
+          "kind": "MODIFY",
+          "before": "Inventory report detail work",
+          "after": "Record review validation"
+        }
+      ]
+    },
+    {
+      "id": "f8568493-b7ea-4d68-8b9a-f775d352e4c7",
+      "adapter": "ae",
+      "key": "ZZ_AE_LAB01",
+      "before": "3ea9e9865acffb1b828e251142bc48f742bb7012f15faae87506e854e234202d",
+      "after": "36262674cbd09462d10fa13790ed23c7b932d081760e96afb71e3c20a0d8504b",
+      "baselineToken": "d5ea4991ee223e2330f0e533c35d3ba849e8d81547f2b5597539036fe9a3ca3d",
+      "differences": [
+        {
+          "path": "$.tables.PSAEAPPLDEFN.DESCR",
+          "kind": "MODIFY",
+          "before": "AE lab program",
+          "after": "Change Review AE validation"
+        }
+      ]
+    }
+  ],
+  "scopedLiveBaselinesUnchanged": true,
+  "next": "Developer review, approve all, Apply one object then pause; independently verify before preparing fresh remaining work.",
+  "applied": {
+    "changeSetId": "e419a3b0-1438-41c6-bf4d-af9a90552178",
+    "status": "APPLIED",
+    "checkedAt": "2026-10-15T18:22:42.945Z",
+    "objects": [
+      {
+        "adapter": "page",
+        "key": "ZZ_PCODE_LAB_PG",
+        "snapshot": "a2e78eeb91bec92262916c5fd8dc4e9d05a5c5aa2f3f7d0ca06ab2e87e63c805",
+        "token": "9c939c8514e8dfa46a1ee6314e204ac75c1a043fabe2e798200b00fd0b02f207",
+        "checkedAt": "2026-10-15T18:22:41.331Z"
+      },
+      {
+        "adapter": "record",
+        "key": "ZZ_RPT_LINE",
+        "snapshot": "d74cc37bfb35e675423a2fc6d6a11754b406afde53ecc89a255e1bcb83ae7ea0",
+        "token": "acfc934d76d8a58980547992c05aca71ea346acc60f4ec270be60351e8cc0cf5",
+        "checkedAt": "2026-10-15T18:22:41.709Z"
+      },
+      {
+        "adapter": "ae",
+        "key": "ZZ_AE_LAB01",
+        "snapshot": "36262674cbd09462d10fa13790ed23c7b932d081760e96afb71e3c20a0d8504b",
+        "token": "aa2290176acfc55514af5cc2dbe3468924ab85975a67c7389252a6e81a989f63",
+        "checkedAt": "2026-10-15T18:22:42.031Z"
+      }
+    ],
+    "nativePageVersion": 564,
+    "mode": "Read-only full application/checkpoint inverse acceptance; controlled pause not exercised."
+  },
+  "revertProposal": {
+    "changeSetId": "8c52441a-d3b0-48f6-83d3-9712713c46b1",
+    "title": "Revert Native structured review \u2014 controlled pause",
+    "status": "READY_FOR_REVIEW",
+    "revision": 1,
+    "objects": [
+      {
+        "id": "dc516a16-2917-4977-ac24-2a9535c0694d",
+        "adapter": "page",
+        "key": "ZZ_PCODE_LAB_PG",
+        "before": "a2e78eeb91bec92262916c5fd8dc4e9d05a5c5aa2f3f7d0ca06ab2e87e63c805",
+        "after": "c4e40910bd158ae4149121497376cdbbed39c908ed6693febb728a303def1b11",
+        "dependencies": [
+          "a97f2ce2-2173-4aa8-b34b-c1de6f649956"
+        ]
+      },
+      {
+        "id": "a97f2ce2-2173-4aa8-b34b-c1de6f649956",
+        "adapter": "record",
+        "key": "ZZ_RPT_LINE",
+        "before": "d74cc37bfb35e675423a2fc6d6a11754b406afde53ecc89a255e1bcb83ae7ea0",
+        "after": "0d5a6743fa5327f58dd9921b6dc1435500b1d0f2b573e20b0dfcbc9da4d5331f",
+        "dependencies": [
+          "adca7884-e128-4e7c-92c4-3d7ca0a1e1df"
+        ]
+      },
+      {
+        "id": "adca7884-e128-4e7c-92c4-3d7ca0a1e1df",
+        "adapter": "ae",
+        "key": "ZZ_AE_LAB01",
+        "before": "36262674cbd09462d10fa13790ed23c7b932d081760e96afb71e3c20a0d8504b",
+        "after": "3ea9e9865acffb1b828e251142bc48f742bb7012f15faae87506e854e234202d",
+        "dependencies": []
+      }
+    ]
+  },
+  "reverted": {
+    "changeSetId": "8c52441a-d3b0-48f6-83d3-9712713c46b1",
+    "status": "APPLIED",
+    "checkedAt": "2026-10-15T18:25:42.802Z",
+    "objects": [
+      {
+        "adapter": "page",
+        "key": "ZZ_PCODE_LAB_PG",
+        "snapshot": "c4e40910bd158ae4149121497376cdbbed39c908ed6693febb728a303def1b11",
+        "token": "40f062ddaa91f9702cceb11a289bf959563cf00dd359eabd95aad34cdc5235f0",
+        "checkedAt": "2026-10-15T18:25:41.372Z"
+      },
+      {
+        "adapter": "record",
+        "key": "ZZ_RPT_LINE",
+        "snapshot": "0d5a6743fa5327f58dd9921b6dc1435500b1d0f2b573e20b0dfcbc9da4d5331f",
+        "token": "fb719475973c0aa15ad48ee7827fa7683b7a0192c8e81e8d1449b385826abeaa",
+        "checkedAt": "2026-10-15T18:25:41.739Z"
+      },
+      {
+        "adapter": "ae",
+        "key": "ZZ_AE_LAB01",
+        "snapshot": "3ea9e9865acffb1b828e251142bc48f742bb7012f15faae87506e854e234202d",
+        "token": "6a8143c376abedd895833ae785786ffc8144afee20a3bc0dc961a1a985606334",
+        "checkedAt": "2026-10-15T18:25:42.019Z"
+      }
+    ],
+    "nativePageVersion": 565,
+    "mode": "Read-only full application/checkpoint inverse acceptance; controlled pause not exercised."
+  },
+  "nativeDesignerAcceptance": {
+    "status": "PASS",
+    "evidence": "Developer confirmed Windows Application Designer matches Static Text 21 geometry/label and Edit Box 2 Display Only/Invisible before restoration.",
+    "scope": "Corrected Page control trial only"
+  }
+}

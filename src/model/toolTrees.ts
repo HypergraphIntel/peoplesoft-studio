@@ -49,6 +49,7 @@ export const CONFIGURATION_TOOLS: readonly ToolNode[] = [
 
 export const DATA_MIGRATION_TOOLS: readonly ToolNode[] = [
   { label: 'Data Mover Scripts', icon: 'terminal', command: 'psft.dataMover.newScript' },
+  { label: 'Import Migration Package…', icon: 'import', command: 'psft.project.importMigration' },
   { label: 'Data Migration Workbench', icon: 'package', planned: true }
 ];
 

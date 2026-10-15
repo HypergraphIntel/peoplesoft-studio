@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { buildPageLayout, controlShape } from '../model/pageLayout.js';
 import type { PageView, Row } from '../model/uiDefinitions.js';
 import { renderPageHtml } from '../editors/pageHtml.js';
+import { applyPageOperations, pageLayoutForAgent } from '../model/pageOperations.js';
 
 const field = (over: Partial<Record<string, unknown>>): Row => ({
   FIELDNUM: 1, OCCURSLEVEL: 0, FIELDTYPE: 4, FIELDUSE: 0, LBLTYPE: 3, LBLTEXT: '', RECNAME: ' ', FIELDNAME: ' ',
@@ -11,6 +12,14 @@ const field = (over: Partial<Record<string, unknown>>): Row => ({
 });
 
 const view = (fields: Row[]): PageView => ({ page: { PNLTYPE: 0, VERSION: 3, DESCR: 'A page' }, fields, components: [] });
+
+test('MCP Page operations refuse Static Text field-control flags and advertise the limitation', () => {
+  const layout = buildPageLayout('P', view([field({ FIELDTYPE: 0 })]));
+  assert.throws(() => applyPageOperations(layout, [{ op: 'set_use', id: 1, displayOnly: true }]), /Static Text does not support/);
+  assert.throws(() => applyPageOperations(layout, [{ op: 'set_use', id: 1, invisible: true }]), /Static Text does not support/);
+  assert.match(JSON.stringify(pageLayoutForAgent(layout)), /does not support Display Only/);
+  assert.doesNotThrow(() => applyPageOperations(layout, [{ op: 'set_use', id: 1, displayOnly: false, invisible: false }]));
+});
 
 test('a control keeps its stored rectangle; the shape follows FIELDTYPE', () => {
   const layout = buildPageLayout('P', view([

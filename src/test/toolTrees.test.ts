@@ -20,7 +20,7 @@ test('Configuration Tools: the requested tree', () => {
 });
 
 test('Data Migration Tools: the requested list', () => {
-  assert.deepEqual(outline(DATA_MIGRATION_TOOLS), ['Data Mover Scripts', 'Data Migration Workbench']);
+  assert.deepEqual(outline(DATA_MIGRATION_TOOLS), ['Data Mover Scripts', 'Import Migration Package…', 'Data Migration Workbench']);
 });
 
 test('every leaf is a placeholder or runs a command, every entry has an icon, and both panes are registered by id', () => {
@@ -30,7 +30,7 @@ test('every leaf is a placeholder or runs a command, every entry has an icon, an
   }
   // PS Query now opens its definition viewer; Event Mapping opens its configuration editor.
   const built = [...all(CONFIGURATION_TOOLS), ...all(DATA_MIGRATION_TOOLS)].filter((n) => n.command).map((n) => `${n.label} -> ${n.command}`);
-  assert.deepEqual(built, ['PS Query -> psft.query.open', 'Process Definitions -> psft.process.open', 'Page and Field Configurator -> psft.customization.openPageFieldConfigurator', 'Event Mapping -> psft.customization.configureEventMapping', 'Drop Zones -> psft.customization.configureDropZones', 'Message Catalog -> psft.administration.messages', 'Text Catalog -> psft.administration.text', 'URL Definitions -> psft.administration.urls', 'Structure & Content -> psft.portal.structure', 'Message Definitions -> psft.ib.message', 'Document Definitions -> psft.ib.document', 'Service -> psft.ib.service', 'Service Operation -> psft.ib.operation', 'Nodes -> psft.ib.node', 'Routes -> psft.ib.routing', 'OAuth -> psft.security.oauth', 'SAML -> psft.security.saml', 'Data Mover Scripts -> psft.dataMover.newScript']);
+  assert.deepEqual(built, ['PS Query -> psft.query.open', 'Process Definitions -> psft.process.open', 'Page and Field Configurator -> psft.customization.openPageFieldConfigurator', 'Event Mapping -> psft.customization.configureEventMapping', 'Drop Zones -> psft.customization.configureDropZones', 'Message Catalog -> psft.administration.messages', 'Text Catalog -> psft.administration.text', 'URL Definitions -> psft.administration.urls', 'Structure & Content -> psft.portal.structure', 'Message Definitions -> psft.ib.message', 'Document Definitions -> psft.ib.document', 'Service -> psft.ib.service', 'Service Operation -> psft.ib.operation', 'Nodes -> psft.ib.node', 'Routes -> psft.ib.routing', 'OAuth -> psft.security.oauth', 'SAML -> psft.security.saml', 'Data Mover Scripts -> psft.dataMover.newScript', 'Import Migration Package… -> psft.project.importMigration']);
   const planned = [...all(CONFIGURATION_TOOLS), ...all(DATA_MIGRATION_TOOLS)].filter((n) => n.planned).map((n) => n.label);
   assert.deepEqual(planned, ['Configurable Search', 'Data Migration Workbench']);
   assert.ok(!CONFIGURATION_TOOLS.find((n) => n.label === 'Customization')!.planned);

@@ -1,0 +1,206 @@
+{
+  "checkedAt": "2026-10-15T17:04:31.961Z",
+  "connection": "oracle:HRDMO",
+  "page": "ZZ_PCODE_LAB_PG",
+  "changeSetId": "ba4a466c-fbf6-4190-9f64-aa423d53edda",
+  "objectId": "52a831be-ee8d-465d-ac3d-64c52bebb487",
+  "changeSetRevision": 2,
+  "status": "REVERTED",
+  "review": "APPROVED",
+  "application": "VERIFIED",
+  "beforeHash": "c4e40910bd158ae4149121497376cdbbed39c908ed6693febb728a303def1b11",
+  "afterHash": "773292a346de51a27d7a2f6867e7a919b5e1b187b8f454826adaa0c9cbeec0d9",
+  "baselineToken": "9273d72e340222c09efa4ab499ed3d2c3eb1d2b55196534a343fe60780c09794",
+  "nativeVersionAfterStageAndValidation": 533,
+  "nativeScopedContentAndTokenUnchanged": true,
+  "semanticChanges": [
+    {
+      "path": "$.tables.PSPNLDEFN.DESCR",
+      "kind": "MODIFY",
+      "before": "Lab Page Edited",
+      "after": "Page Change Review validation"
+    }
+  ],
+  "notVerified": [
+    "native visual reopen",
+    "global native counter readback",
+    "native Page geometry/label/use apply",
+    "native Page redo"
+  ],
+  "nativeApplications": [
+    {
+      "checkedAt": "2026-10-15T17:08:59.564Z",
+      "changeSetId": "ba4a466c-fbf6-4190-9f64-aa423d53edda",
+      "objectId": "52a831be-ee8d-465d-ac3d-64c52bebb487",
+      "status": "APPLIED",
+      "origin": "agent",
+      "version": 560,
+      "description": "Page Change Review validation",
+      "controlCount": 23,
+      "beforeHash": "c4e40910bd158ae4149121497376cdbbed39c908ed6693febb728a303def1b11",
+      "afterHash": "773292a346de51a27d7a2f6867e7a919b5e1b187b8f454826adaa0c9cbeec0d9",
+      "nativeToken": "aa131d83a58ae91addd42a115b1fbff17f852a428ca263d2c72790d977f6b2aa",
+      "approvedRevisionHash": "96be6b600833c55f5bc7b93a78130c57811584bd93baf0cad9978a5ea3f0f2b5",
+      "checkpoint": {
+        "at": "2026-10-15T17:07:27.302Z",
+        "objects": [
+          {
+            "id": "52a831be-ee8d-465d-ac3d-64c52bebb487",
+            "snapshot": "c4e40910bd158ae4149121497376cdbbed39c908ed6693febb728a303def1b11",
+            "token": "9273d72e340222c09efa4ab499ed3d2c3eb1d2b55196534a343fe60780c09794"
+          }
+        ]
+      },
+      "semanticChanges": [
+        {
+          "path": "$.tables.PSPNLDEFN.DESCR",
+          "kind": "MODIFY",
+          "before": "Lab Page Edited",
+          "after": "Page Change Review validation"
+        }
+      ],
+      "historyLinks": [],
+      "timeline": {
+        "live": {
+          "status": "MATCHES_RECORDED",
+          "checkedAt": "2026-10-15T17:08:59.244Z",
+          "matched": "ba4a466c-fbf6-4190-9f64-aa423d53edda:52a831be-ee8d-465d-ac3d-64c52bebb487"
+        },
+        "verifiedRevisions": 1
+      },
+      "journal": [
+        {
+          "action": "REVISED_APPROVALS_INVALIDATED",
+          "at": "2026-10-15T17:04:21.511Z"
+        },
+        {
+          "action": "VALIDATING",
+          "at": "2026-10-15T17:04:23.772Z"
+        },
+        {
+          "action": "READY_FOR_REVIEW",
+          "at": "2026-10-15T17:04:26.059Z"
+        },
+        {
+          "action": "APPROVED",
+          "at": "2026-10-15T17:07:25.773Z",
+          "detail": "52a831be-ee8d-465d-ac3d-64c52bebb487"
+        },
+        {
+          "action": "APPLYING",
+          "at": "2026-10-15T17:07:28.759Z"
+        },
+        {
+          "action": "WRITE_STARTED",
+          "at": "2026-10-15T17:07:29.055Z",
+          "object": "52a831be-ee8d-465d-ac3d-64c52bebb487"
+        },
+        {
+          "action": "WRITE_VERIFIED",
+          "at": "2026-10-15T17:07:30.168Z",
+          "object": "52a831be-ee8d-465d-ac3d-64c52bebb487"
+        },
+        {
+          "action": "APPLIED",
+          "at": "2026-10-15T17:07:30.179Z"
+        }
+      ]
+    },
+    {
+      "checkedAt": "2026-10-15T17:10:16.288Z",
+      "changeSetId": "dd4967c1-8835-4691-b6d2-05dec76ad072",
+      "objectId": "50b39a28-dc10-46d5-b10c-fea664741444",
+      "status": "APPLIED",
+      "origin": "reversal",
+      "reverses": "ba4a466c-fbf6-4190-9f64-aa423d53edda",
+      "version": 561,
+      "description": "Lab Page Edited",
+      "controlCount": 23,
+      "beforeHash": "773292a346de51a27d7a2f6867e7a919b5e1b187b8f454826adaa0c9cbeec0d9",
+      "afterHash": "c4e40910bd158ae4149121497376cdbbed39c908ed6693febb728a303def1b11",
+      "nativeToken": "9206ff8d5b0e99eb6b2fb5eeb34f9e0a86e46f24a089c66543c6b1c81802f411",
+      "approvedRevisionHash": "d7039fa57ab51d81542b55b059e2524c4ee6cb16d92fecb66ab8fc09f79bd9cb",
+      "checkpoint": {
+        "at": "2026-10-15T17:09:12.449Z",
+        "objects": [
+          {
+            "id": "50b39a28-dc10-46d5-b10c-fea664741444",
+            "snapshot": "773292a346de51a27d7a2f6867e7a919b5e1b187b8f454826adaa0c9cbeec0d9",
+            "token": "aa131d83a58ae91addd42a115b1fbff17f852a428ca263d2c72790d977f6b2aa"
+          }
+        ]
+      },
+      "semanticChanges": [
+        {
+          "path": "$.tables.PSPNLDEFN.DESCR",
+          "kind": "MODIFY",
+          "before": "Page Change Review validation",
+          "after": "Lab Page Edited"
+        }
+      ],
+      "historyLinks": [
+        {
+          "changeSetId": "ba4a466c-fbf6-4190-9f64-aa423d53edda",
+          "status": "REVERTED",
+          "reversedBy": "dd4967c1-8835-4691-b6d2-05dec76ad072"
+        }
+      ],
+      "timeline": {
+        "live": {
+          "status": "MATCHES_RECORDED",
+          "checkedAt": "2026-10-15T17:10:16.056Z",
+          "matched": "dd4967c1-8835-4691-b6d2-05dec76ad072:50b39a28-dc10-46d5-b10c-fea664741444"
+        },
+        "verifiedRevisions": 2
+      },
+      "journal": [
+        {
+          "action": "REVERSAL_PROPOSED",
+          "at": "2026-10-15T17:08:20.969Z",
+          "detail": "ba4a466c-fbf6-4190-9f64-aa423d53edda"
+        },
+        {
+          "action": "VALIDATING",
+          "at": "2026-10-15T17:08:23.362Z"
+        },
+        {
+          "action": "READY_FOR_REVIEW",
+          "at": "2026-10-15T17:08:24.931Z"
+        },
+        {
+          "action": "APPROVED",
+          "at": "2026-10-15T17:09:11.063Z",
+          "detail": "50b39a28-dc10-46d5-b10c-fea664741444"
+        },
+        {
+          "action": "APPLYING",
+          "at": "2026-10-15T17:09:13.996Z"
+        },
+        {
+          "action": "WRITE_STARTED",
+          "at": "2026-10-15T17:09:14.302Z",
+          "object": "50b39a28-dc10-46d5-b10c-fea664741444"
+        },
+        {
+          "action": "WRITE_VERIFIED",
+          "at": "2026-10-15T17:09:15.373Z",
+          "object": "50b39a28-dc10-46d5-b10c-fea664741444"
+        },
+        {
+          "action": "APPLIED",
+          "at": "2026-10-15T17:09:15.394Z"
+        }
+      ]
+    }
+  ],
+  "mode": "installed native MCP; developer-reviewed bounded lab Page applications independently read back",
+  "current": {
+    "checkedAt": "2026-10-15T17:10:16.288Z",
+    "changeSetId": "dd4967c1-8835-4691-b6d2-05dec76ad072",
+    "status": "APPLIED",
+    "version": 561,
+    "description": "Lab Page Edited",
+    "snapshotHash": "c4e40910bd158ae4149121497376cdbbed39c908ed6693febb728a303def1b11",
+    "token": "9206ff8d5b0e99eb6b2fb5eeb34f9e0a86e46f24a089c66543c6b1c81802f411"
+  }
+}

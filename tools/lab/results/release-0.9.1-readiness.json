@@ -1,0 +1,268 @@
+{
+  "version": "0.9.1",
+  "status": "ACCEPTED_FOR_V0_9_1_GIT_RELEASE",
+  "checkedAt": "2026-10-15T22:14:39.035999+00:00",
+  "artifact": "peoplesoft-studio-0.9.1.vsix",
+  "sha256": "bbc523827b3db65d07811cd81d4341ae171ebc8c990e67f0bab1b7b26d1550dc",
+  "bundleSha256": "3dbb75d567e1b2507f1b4cf506b0e645aa3c785a1a471a53b673e52f2c2d8196",
+  "packagedManifestAndBundleMatchSource": true,
+  "manifestLockfileAndMcpHandshakeVersion": "0.9.1",
+  "verify": {
+    "tests": 1916,
+    "pass": 1915,
+    "fail": 0,
+    "skipped": 1
+  },
+  "fixtureHttpUiChecks": 36,
+  "navigationCommands": 103,
+  "activatedViews": 9,
+  "nativeHarnessStrictTypecheck": "PASS",
+  "activeHostCapabilityCheck": "PASS_NINE_ADAPTERS",
+  "previousHistoryAudit": {
+    "pendingOrUncertainChangeSets": 0,
+    "historyDeletedOrRewritten": false
+  },
+  "outstanding": [],
+  "nativeWritesDuringReleasePreparation": true,
+  "packagedReadmeAndChangelogMatchSourceAfterVsceNormalization": true,
+  "artifactNormalization": "VSCE repository URL rewriting and same-repository issue autolinks only",
+  "activeMcpHandshakeVersion": "0.9.1",
+  "nativeRollbackValidation": {
+    "changeSetId": "e419a3b0-1438-41c6-bf4d-af9a90552178",
+    "status": "READY_FOR_REVIEW",
+    "adapters": [
+      "page",
+      "record",
+      "ae"
+    ],
+    "scopedLiveBaselinesUnchanged": true,
+    "developerApprovalAndApplication": "APPLIED_ALL_THREE_AND_INDEPENDENTLY_VERIFIED"
+  },
+  "queryCycleRecheckedAfter091Reload": {
+    "status": "PASS",
+    "changeSetId": "523036b4-853a-4f65-a9eb-59b0b55801d7",
+    "live": "MATCHES_RECORDED",
+    "verifiedRevisions": 3
+  },
+  "nativeFullApplication": {
+    "changeSetId": "e419a3b0-1438-41c6-bf4d-af9a90552178",
+    "status": "APPLIED",
+    "checkedAt": "2026-10-15T18:22:42.945Z",
+    "objects": [
+      {
+        "adapter": "page",
+        "key": "ZZ_PCODE_LAB_PG",
+        "snapshot": "a2e78eeb91bec92262916c5fd8dc4e9d05a5c5aa2f3f7d0ca06ab2e87e63c805",
+        "token": "9c939c8514e8dfa46a1ee6314e204ac75c1a043fabe2e798200b00fd0b02f207",
+        "checkedAt": "2026-10-15T18:22:41.331Z"
+      },
+      {
+        "adapter": "record",
+        "key": "ZZ_RPT_LINE",
+        "snapshot": "d74cc37bfb35e675423a2fc6d6a11754b406afde53ecc89a255e1bcb83ae7ea0",
+        "token": "acfc934d76d8a58980547992c05aca71ea346acc60f4ec270be60351e8cc0cf5",
+        "checkedAt": "2026-10-15T18:22:41.709Z"
+      },
+      {
+        "adapter": "ae",
+        "key": "ZZ_AE_LAB01",
+        "snapshot": "36262674cbd09462d10fa13790ed23c7b932d081760e96afb71e3c20a0d8504b",
+        "token": "aa2290176acfc55514af5cc2dbe3468924ab85975a67c7389252a6e81a989f63",
+        "checkedAt": "2026-10-15T18:22:42.031Z"
+      }
+    ],
+    "nativePageVersion": 564,
+    "mode": "Read-only full application/checkpoint inverse acceptance; controlled pause not exercised."
+  },
+  "nativeControlledPause": {
+    "changeSetId": "7b01aa98-bf35-4ccf-8463-7f69113075ec",
+    "status": "PARTIALLY_APPLIED",
+    "checkedAt": "2026-10-15T19:41:26.763Z",
+    "objects": [
+      {
+        "adapter": "record",
+        "key": "ZZ_RPT_LINE",
+        "snapshot": "3978c7f8b0b1b09f9cf9618902fa7b218852932b04276d4e4b2fd57afc942841",
+        "token": "74840bd7e2341bd8eb7140cb6d1213f97a982302faed415070926d22c6872c78",
+        "checkedAt": "2026-10-15T19:41:25.832Z"
+      },
+      {
+        "adapter": "ae",
+        "key": "ZZ_AE_LAB01",
+        "snapshot": "3ea9e9865acffb1b828e251142bc48f742bb7012f15faae87506e854e234202d",
+        "token": "6a8143c376abedd895833ae785786ffc8144afee20a3bc0dc961a1a985606334",
+        "checkedAt": "2026-10-15T19:41:26.070Z"
+      }
+    ],
+    "mode": "Read-only native snapshot/token/checkpoint/approval/journal acceptance; no approval or writer calls."
+  },
+  "nativeStructuredCheckpointInverse": {
+    "changeSetId": "8c52441a-d3b0-48f6-83d3-9712713c46b1",
+    "status": "APPLIED",
+    "checkedAt": "2026-10-15T18:25:42.802Z",
+    "objects": [
+      {
+        "adapter": "page",
+        "key": "ZZ_PCODE_LAB_PG",
+        "snapshot": "c4e40910bd158ae4149121497376cdbbed39c908ed6693febb728a303def1b11",
+        "token": "40f062ddaa91f9702cceb11a289bf959563cf00dd359eabd95aad34cdc5235f0",
+        "checkedAt": "2026-10-15T18:25:41.372Z"
+      },
+      {
+        "adapter": "record",
+        "key": "ZZ_RPT_LINE",
+        "snapshot": "0d5a6743fa5327f58dd9921b6dc1435500b1d0f2b573e20b0dfcbc9da4d5331f",
+        "token": "fb719475973c0aa15ad48ee7827fa7683b7a0192c8e81e8d1449b385826abeaa",
+        "checkedAt": "2026-10-15T18:25:41.739Z"
+      },
+      {
+        "adapter": "ae",
+        "key": "ZZ_AE_LAB01",
+        "snapshot": "3ea9e9865acffb1b828e251142bc48f742bb7012f15faae87506e854e234202d",
+        "token": "6a8143c376abedd895833ae785786ffc8144afee20a3bc0dc961a1a985606334",
+        "checkedAt": "2026-10-15T18:25:42.019Z"
+      }
+    ],
+    "nativePageVersion": 565,
+    "mode": "Read-only full application/checkpoint inverse acceptance; controlled pause not exercised."
+  },
+  "nativePageDesignerAcceptance": {
+    "status": "PASS",
+    "evidence": "Developer confirmed Windows Application Designer matches Static Text 21 geometry/label and Edit Box 2 Display Only/Invisible before restoration.",
+    "scope": "Corrected Page control trial only"
+  },
+  "nativeLabObjectsRestoredAfterFirstCycle": true,
+  "finalPackageRefreshRequired": false,
+  "pendingPackageChanges": [],
+  "nativeContinuationProposal": {
+    "changeSetId": "0e67da7c-266d-4d78-9dee-1a0d7b586995",
+    "title": "Remaining work \u00b7 Native header pause validation",
+    "status": "READY_FOR_REVIEW",
+    "revision": 1,
+    "objects": [
+      {
+        "id": "f2ff769a-c8e4-4071-b3fe-4912fc7eabbb",
+        "adapter": "ae",
+        "key": "ZZ_AE_LAB01",
+        "review": "PENDING",
+        "before": "3ea9e9865acffb1b828e251142bc48f742bb7012f15faae87506e854e234202d",
+        "after": "5485f4850d135d9410385bad866490ba6c8a168d95968e84c99359c2be63e337"
+      }
+    ],
+    "prerequisites": [
+      {
+        "adapter": "record",
+        "changeSetId": "7b01aa98-bf35-4ccf-8463-7f69113075ec",
+        "key": "ZZ_RPT_LINE",
+        "objectId": "f487a6ec-578c-4a6c-b31d-ba77d118979e",
+        "snapshot": "3978c7f8b0b1b09f9cf9618902fa7b218852932b04276d4e4b2fd57afc942841",
+        "token": "74840bd7e2341bd8eb7140cb6d1213f97a982302faed415070926d22c6872c78"
+      }
+    ]
+  },
+  "nativeCloseout": {
+    "checkedAt": "2026-10-15T22:06:11.629Z",
+    "status": "PASS",
+    "mode": "Native read-only verification; local queue classification uses current candidate source",
+    "labObjectsRestored": [
+      {
+        "adapter": "page",
+        "key": "ZZ_PCODE_LAB_PG",
+        "snapshot": "c4e40910bd158ae4149121497376cdbbed39c908ed6693febb728a303def1b11",
+        "token": "40f062ddaa91f9702cceb11a289bf959563cf00dd359eabd95aad34cdc5235f0",
+        "checkedAt": "2026-10-15T22:06:03.537Z"
+      },
+      {
+        "adapter": "record",
+        "key": "ZZ_RPT_LINE",
+        "snapshot": "0d5a6743fa5327f58dd9921b6dc1435500b1d0f2b573e20b0dfcbc9da4d5331f",
+        "token": "63fc114226fac4e1303e7ab05b0be6139cc813e19a80da0473e740fab1377700",
+        "checkedAt": "2026-10-15T22:06:06.077Z"
+      },
+      {
+        "adapter": "ae",
+        "key": "ZZ_AE_LAB01",
+        "snapshot": "3ea9e9865acffb1b828e251142bc48f742bb7012f15faae87506e854e234202d",
+        "token": "922c4b2758fd562c72e26f3c9350eeae107a214c9562a34af8ab971ebcf7e9ac",
+        "checkedAt": "2026-10-15T22:06:06.516Z"
+      }
+    ],
+    "pageVersion": 565,
+    "operationalPendingChangeSets": 0,
+    "uncertainObjects": 0,
+    "retainedPartialHistory": {
+      "changeSetId": "7b01aa98-bf35-4ccf-8463-7f69113075ec",
+      "status": "PARTIALLY_APPLIED",
+      "completedBy": "0e67da7c-266d-4d78-9dee-1a0d7b586995",
+      "historyRewritten": false
+    }
+  },
+  "nativeReviewedContinuation": {
+    "changeSetId": "0e67da7c-266d-4d78-9dee-1a0d7b586995",
+    "status": "APPLIED",
+    "checkedAt": "2026-10-15T19:44:59.526Z",
+    "objects": [
+      {
+        "adapter": "record",
+        "key": "ZZ_RPT_LINE",
+        "snapshot": "3978c7f8b0b1b09f9cf9618902fa7b218852932b04276d4e4b2fd57afc942841",
+        "token": "74840bd7e2341bd8eb7140cb6d1213f97a982302faed415070926d22c6872c78",
+        "checkedAt": "2026-10-15T19:44:58.801Z"
+      },
+      {
+        "adapter": "ae",
+        "key": "ZZ_AE_LAB01",
+        "snapshot": "5485f4850d135d9410385bad866490ba6c8a168d95968e84c99359c2be63e337",
+        "token": "95b63a685f82f30bab567b32ba85ea1a48d70f9e29bca16585d0a08951c55291",
+        "checkedAt": "2026-10-15T19:44:59.023Z"
+      }
+    ],
+    "mode": "Read-only native snapshot/token/checkpoint/approval/journal acceptance; no approval or writer calls."
+  },
+  "nativeFinalHeaderRestoration": {
+    "changeSetId": "2dca21dc-f930-458d-9cea-e86617736490",
+    "status": "APPLIED",
+    "checkedAt": "2026-10-15T19:46:23.246Z",
+    "objects": [
+      {
+        "adapter": "record",
+        "key": "ZZ_RPT_LINE",
+        "snapshot": "0d5a6743fa5327f58dd9921b6dc1435500b1d0f2b573e20b0dfcbc9da4d5331f",
+        "token": "63fc114226fac4e1303e7ab05b0be6139cc813e19a80da0473e740fab1377700",
+        "checkedAt": "2026-10-15T19:46:22.588Z"
+      },
+      {
+        "adapter": "ae",
+        "key": "ZZ_AE_LAB01",
+        "snapshot": "3ea9e9865acffb1b828e251142bc48f742bb7012f15faae87506e854e234202d",
+        "token": "922c4b2758fd562c72e26f3c9350eeae107a214c9562a34af8ab971ebcf7e9ac",
+        "checkedAt": "2026-10-15T19:46:22.732Z"
+      }
+    ],
+    "mode": "Read-only native snapshot/token/checkpoint/approval/journal acceptance; no approval or writer calls."
+  },
+  "finalCandidateInstalled": true,
+  "finalCandidateReloadVerified": true,
+  "installedBundleMatchesFinalArtifact": true,
+  "developerUiAcceptance": {
+    "status": "PASS",
+    "date": "2026-10-15",
+    "pendingChanges": 0,
+    "completedPartialHistoryAndFollowUp": "CONFIRMED",
+    "menuPlacementClearAndUncluttered": "CONFIRMED",
+    "evidence": "Developer confirmed: Yes \u2014 history and menus look right"
+  },
+  "acceptedCandidate": {
+    "artifact": "peoplesoft-studio-0.9.1.vsix",
+    "sha256": "161f0d201010460a18cab2e539e626c321aa50e376a364678bbaa7c4602700b6",
+    "bundleSha256": "3dbb75d567e1b2507f1b4cf506b0e645aa3c785a1a471a53b673e52f2c2d8196"
+  },
+  "gitRelease": {
+    "branch": "main",
+    "tag": "v0.9.1",
+    "authorization": "Developer requested commit, tag, and push",
+    "completionEvidence": "Matching origin/main and refs/tags/v0.9.1"
+  },
+  "distributionPublicationPerformed": false,
+  "releaseNotesRepackageRuntimeUnchanged": true
+}

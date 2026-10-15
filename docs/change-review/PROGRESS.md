@@ -2,6 +2,29 @@
 
 ## Status
 
+0.9.1 acceptance is complete. The developer authorized the Git release on `main` with annotated tag `v0.9.1`; remote refs provide completion evidence. Distribution publication remains separate. See the [release readiness tracker](../RELEASE_0_9_1.md) for current gates; historical session entries below retain their original evidence/status.
+
+Current closeout: version, lockfile and MCP handshake are 0.9.1. Full verify
+passed (1,915 passed, one skipped), 36 fixture HTTP/UI checks passed, and all
+103 commands/nine views pass navigation/activation checks. The final candidate
+`peoplesoft-studio-0.9.1.vsix` is packaged, source/document/bundle audited and
+installed and reloaded. Activation, native closeout and developer menu/history
+display acceptance pass.
+The earlier candidate was activated and verified with all nine adapters.
+
+Developer-approved native Page/Record/AE application and checkpoint inverse,
+Windows Application Designer inspection, a deliberate Record-only pause, fresh
+AE-only continuation and separately approved final baseline restoration all
+passed independent read-only acceptance. All three original lab scopes are
+restored; Page remains version 565. The final audit found zero operational
+pending changes and zero uncertain objects. The partial original is retained as
+history with its completed continuation; no history was deleted or rewritten.
+Native writes occurred only in these developer-approved lab cycles. The full
+initiative remains bounded by the adapter coverage and future-work contracts.
+
+Current handoff: commit/tag/push the accepted 0.9.1 snapshot, as requested.
+Broader adapter coverage and future initiative work remain outside this release.
+
 **Development implementation in progress; not a completed or released initiative.**
 The first end-to-end slice now includes durable Change Sets, a persistent
 review/history workspace, separate optional plan approval, exact-revision
@@ -17,12 +40,41 @@ Implementation details and boundaries are documented in:
   regenerated development inventory also includes local Change Set tools.
 - [Schemas, state, MCP, authorization, storage and recovery contracts](CONTRACTS.md).
 - [Object capability/risk matrix and local blockers](COVERAGE.md).
+- [Bounded Page adapter contracts and acceptance gate](PAGE_ADAPTER.md).
+- [Bounded Record/AE header preservation adapters](STRUCTURED_HEADERS.md).
 - [Required test scenarios and evidence](TESTING.md).
 
 The 0.9.0 live writer checks do not certify the new staged review workflow.
-Native developer approval/reload tests and broader object adapters remain open.
+The installed Query apply/reversal/redo timeline has been reverified after
+0.9.1 reload. Native Page description and corrected control cycles, Record/AE
+header apply/inverse and deliberate pause/continuation/restoration are verified
+within their documented scopes. Final UI inspection passed. Broader adapter
+coverage remains future work outside the bounded 0.9.1 candidate.
 
 ## Objective
+
+Menu-first navigation is implemented in the development source. The placement
+contract is [Navigation and action placement](../NAVIGATION.md): bounded header
+actions, contextual object/project commands and a dedicated review sidebar.
+Approval/application remain in the trusted workspace, with secondary controls
+under More actions and explicit All/Pending/History navigation. Installed VS Code
+menu acceptance passed on the reloaded final 0.9.1 candidate; this does not
+expand the bounded native writer acceptance.
+
+Menu development verification (October 15): full verification passed with 1,916
+tests (1,915 passed, one skipped), followed by successful final compile/activation
+and 35 production HTTP/UI fixture checks. Navigation audit accounts for all 103
+commands, nine views activate, and the view-header limit is checked. The actual
+review HTML was rendered and inspected at wide/narrow sizes; narrow layout
+probes report no horizontal body/sidebar overflow. Fixture checks verify that
+navigation does not approve/apply and that unavailable review actions are absent.
+Package `/tmp/peoplesoft-studio-menu-navigation-dev.vsix` matches the current
+manifest and bundled JavaScript byte-for-byte and was installed with `--force`.
+It includes the pending typed Page guard, Record/AE header adapters and controlled
+pause work; those still require their separate native acceptance after reload.
+No database changes were made for menu development, and no release/commit/tag/push
+was performed. Next UI gate: reload and inspect the sidebar, object/project context
+menus and state-specific review controls in the real VS Code window.
 
 Replace repeated per-object modal approvals with durable Change Sets reviewed
 in a persistent VS Code workspace. Separate planning, staging and approved
@@ -59,37 +111,27 @@ scope; the illustrative timeline is not repository or database history.
 - `git diff --check` passed. This development work has not been committed,
   tagged, pushed or published as a new release.
 
-## Next task: installed review acceptance, then structured adapters
+## Next task: final UI candidate reload and 0.9.1 handoff
 
-Installed validation after reload (October 14, 2026, local date): the running
-MCP advertises all six adapters and reads HRDMO. Native Query
-`ZZ_QRY_MCP_MV8YENO1` has a description-only proposal in Change Set
-`8cd54e34-9e5e-4322-9da5-f84a997053f4`, status `READY_FOR_REVIEW`.
-Staging returned `persisted: false`; the live token and description were
-unchanged afterward, and the semantic diff contains only `$.query.DESCR`.
-Developer approval/application remains pending; no native apply or reversal
-success is claimed. Evidence: `tools/lab/results/change-review-native-validation.json`.
+Bounded native closeout has passed. Query history survives 0.9.1 reload with
+three matching verified revisions. Corrected Page controls passed native
+apply/inverse and developer Windows Application Designer inspection. Record/AE
+headers passed full-scope native apply/checkpoint inverse. A separate Record →
+AE trial passed deliberate pause, independently verified untouched AE baseline,
+fresh AE-only continuation with pinned unchanged Record, and final full-scope
+header restoration. Page remains restored at version 565.
 
-This check exposed a real display-name resolution defect: Change Set creation
-accepted `oracle:HRDMO` but rejected `HRDMO`. The environment factory now uses
-the existing shared MCP connection resolver. The fixture workspace now rejects
-noncanonical IDs, and an additional HTTP check covers name/ID equivalence and
-automatic staging without a supplied Change Set. All 16 fixture checks and
-`npm run package` passed (1,834 tests passed, one skipped). The corrected VSIX
-is installed and requires a reload to activate the fix. The current review
-can still be completed before that reload.
+The final read-only audit reports zero operational pending changes and zero
+uncertain objects. The original header trial's partial record is preserved as
+history, linked to its verified continuation; no history was deleted or rewritten.
+Native crash/lost-response, wider object adapters and combined continuation
+reversal remain outside this bounded release claim.
 
-1. Finish regression and production HTTP/UI fixture checks on the development
-   build, package it, and activate it with a developer-controlled reload.
-2. Stage a controlled lab proposal through the installed MCP; have the developer
-   review/approve the actual approach and object definitions in the persistent
-   page. Verify native apply/readback, history, checkpoint reversal of an update,
-   redo, stale drift and restart behavior. Do not impersonate human approval in
-   the native harness.
-3. Implement the next complete metadata adapter (Page/Record/AE) using the
-   existing designer/writer, after resolving its exact snapshot/identity and
-   staged-dependency blockers in COVERAGE.md. Expand family by family; legacy
-   paths must remain explicit until migrated and verified.
+Final source fixes address pause-action discoverability and completed-follow-up
+queue classification. Full verify passes (1,915 passed, one skipped), and the
+production HTTP/UI suite passes 36 checks. Package/activate the final candidate,
+inspect menus and Pending/History in the actual VS Code window, and retain the
+final artifact fingerprint. 0.9.1 is not yet committed/tagged/pushed/published.
 
 Current implementation source: `src/changeReview/`,
 `src/mcp/changeReviewTools.ts`, `src/mcp/reviewRouting.ts`, provider/manual-history
@@ -101,12 +143,12 @@ calibration rules have been changed.
 | Milestone | Status | Required completion evidence |
 |---|---|---|
 | 1. Architecture and inventory | Documented; baseline verified | Source inventory, current/target architecture, contracts, affected files, UX plan, risks and baseline tests recorded; adapter-specific native research remains explicit |
-| 2. Change Set foundation | Implemented; fixture verified | Durable schema-1 store, snapshots, lifecycle, plans, approval hashes, dependency ordering and retry identity; future migrations/retention/shared storage remain open |
-| 3. Change Review interface | Initial slice implemented | Persistent page, status indicator, before/after/native diffs, approvals, report/history and supported reversal; native Page/AE visual comparison and full timeline UX remain open |
-| 4. MCP integration | Partial by explicit adapter | Text/PeopleCode, Process and Query tools route to staging on Oracle; six adapter families; other tools/platforms retain legacy gates |
-| 5. Safe application | Core implemented; native acceptance pending | Preflight, authorization drift, checkpoints, journal, verified readback, cancellation and reconciliation tested with fixtures; no global atomicity or automatic remaining-work replay |
-| 6. History and reversal | Partial by adapter | Supported manual saves, immutable snapshots, revision comparison, reviewed inverse/redo and drift blocks; unsupported CREATE inverses disabled; native review tests pending |
-| 7. Full object coverage | Not complete | Page/Record/AE comparator models exist, but their mutation adapters and remaining families need the evidence listed in COVERAGE.md |
+| 2. Change Set foundation | Implemented; fixture verified | Durable schema-1/2 store, snapshots, lifecycle, plans, approval hashes, dependency ordering, reviewed continuation and retry identity; future migrations/retention/shared storage remain open |
+| 3. Change Review interface | Initial slice and object timeline implemented | Persistent page, status indicator, before/after/native diffs, approvals, report/history, retained object baseline/revisions, explicit live checks and supported reversal; installed timeline acceptance and native Page/AE visual comparison remain open |
+| 4. MCP integration | Partial by explicit adapter | Text/PeopleCode, Process, Query and bounded Page/Record/AE edits route to staging on Oracle; nine adapter families; other tools/platforms retain legacy gates |
+| 5. Safe application | Core implemented; native acceptance pending | Preflight, authorization drift, checkpoints, journal, verified readback, cancellation and reconciliation tested with fixtures; reviewed remaining-work proposals are fixture verified; no global atomicity or automatic replay |
+| 6. History and reversal | Partial by adapter | Supported manual saves, immutable snapshots, revision comparison, reviewed inverse/redo and drift blocks; unsupported CREATE inverses disabled; one native Query update/revert/redo verified, broader native acceptance pending |
+| 7. Full object coverage | Not complete | Page and Record/AE header adapters have full-scope fixture evidence; corrected Page control and Record/AE native acceptance remain pending; remaining families need COVERAGE.md evidence |
 
 The proposal's 12 phases provide detailed requirements; its seven milestones
 above define incremental delivery. Lifecycle states and conceptual MCP tool
@@ -170,4 +212,491 @@ complete only when its required behavior and evidence are present.
   unit suite, 16/16 `npm run test:mcp-workflows`, lint, smoke. Corrected the
   stale ROADMAP/AGENTS statements that implementation had not started. Next
   task unchanged: installed review acceptance (Next task, step 2).
+- 2026-10-15: Resumed Change Review after that handoff. The installed MCP still
+  reports the lab Query Change Set as `READY_FOR_REVIEW` with review/application
+  pending. Added an object timeline in `src/changeReview/timeline.ts`, service,
+  review workspace and read-only `psft_get_object_timeline` MCP tool. Scope is
+  exact environment/adapter/canonical key. Baselines, verified revisions,
+  manual/reversal/partial history, gaps and unresolved proposals are explicit.
+  Live checking is opt-in, compares hash and native token, and cannot approve,
+  reconcile or restore. History links and baseline comparison resolve retained
+  revisions on the host. Also made existing history/compare key matching use
+  canonical JSON. No object adapters or encoder/decoder rules were changed.
+  Targeted service tests passed (19/19), production HTTP/UI checks passed
+  (25/25), and full `npm run verify` passed (1,880 tests: 1,879 passed, one
+  skipped; typecheck, bundle, activation smoke). Native apply/reversal and
+  installed timeline acceptance remain pending; next task is still the actual
+  developer-reviewed lab apply/readback, then reviewed inverse/redo.
+  Final `npm run package` and all 25 HTTP/UI checks passed after the UI history
+  navigation/cache-invalidation checks were added. Installed
+  `/tmp/peoplesoft-studio-change-review-timeline-dev.vsix` successfully; the
+  developer must reload the window to activate it. `git diff --check` passed.
+  Changes are uncommitted and unpublished. The unrelated untracked
+  `tools/corpus/save-protocol/results/cs01-edit/` capture was left untouched.
 
+
+- 2026-10-15: Developer applied the lab Query proposal. Independent read-only
+  acceptance checks confirmed APPLIED/VERIFIED, the exact approval hash, retained
+  before-state checkpoint, native semantic snapshot equal to the reviewed after
+  hash, and current native token equal to verified readback. The only semantic
+  difference is DESCR: `MCP save verified` -> `Change Review validation`.
+  Added `tools/lab/change-review-acceptance.mts` for repeatable read-only checks
+  after developer-applied lab Query revisions; it cannot approve/apply. Also
+  confirmed installed connection display-name resolution and idempotent request
+  lookup return the original APPLIED set. Evidence is recorded in
+  `tools/lab/results/change-review-native-validation.json`.
+  Prepared and validated checkpoint inverse
+  `5c6551dc-46de-4de6-81db-ae0cfe163b3f` (description restoration only); it is
+  READY_FOR_REVIEW and has not written the database. Next: developer reviews
+  and applies the inverse, then run the acceptance harness against that ID,
+  confirm the original becomes REVERTED, and prepare reviewed redo. The running
+  MCP does not yet expose the timeline tool; installed timeline acceptance
+  requires activating the newly installed build. No new native certification
+  is claimed for other families or failure/recovery scenarios.
+
+- 2026-10-15: Developer applied inverse
+  `5c6551dc-46de-4de6-81db-ae0cfe163b3f`. The read-only acceptance harness
+  passed again: native Query semantic snapshot is exactly the original
+  checkpoint hash, description `MCP save verified`, current token matches the
+  inverse's verified readback, inverse approval hash and checkpoint are intact.
+  Independently confirmed original Change Set status REVERTED with its link to
+  the verified inverse. Prepared and validated redo
+  `523036b4-853a-4f65-a9eb-59b0b55801d7`; fresh current baseline, pending review,
+  no inherited approval, and a single description change. Next: developer
+  approves/applies redo, then run the read-only acceptance harness against the
+  redo ID and check the reversal/history links. Native timeline acceptance
+  remains pending activation of the installed timeline build.
+
+- 2026-10-15: Developer applied redo
+  `523036b4-853a-4f65-a9eb-59b0b55801d7`. Independent read-only acceptance
+  passed: current native token matches verified redo readback, semantic hash
+  exactly matches the original reviewed after-state, description is again
+  `Change Review validation`, and the redo checkpoint/approval are intact.
+  Extended the acceptance harness to verify inverse snapshot links, distinct
+  approval hashes, environment/key isolation, REVERTED predecessor statuses and
+  journal backlinks throughout the reversal chain (with cycle detection). Ran
+  it successfully against the redo. Original and inverse are REVERTED; redo
+  is APPLIED. This completes one native developer-reviewed Query description
+  apply -> checkpoint revert -> redo cycle, not all object/scenario acceptance.
+  Evidence: `tools/lab/results/change-review-native-validation.json`.
+  Next: reload to activate the already-installed timeline build, use its
+  read-only live check to confirm the three retained verified revisions and
+  current redo, then validate installed timeline navigation/comparison and
+  restart persistence. Native conflict/crash and broader adapters remain open.
+
+- 2026-10-15: Implemented reviewed remaining-work preparation in model/store,
+  service, MCP and review workspace. Only previously approved untouched objects
+  are copied; uncertain/manual outcomes and partial reversals block preparation.
+  Confirmed/inherited prerequisites are pinned, included in fresh approval hashes
+  and checked against history/live hash/token during validation, before each
+  writer, at completion and reconciliation. Internal dependencies get new IDs;
+  separate approach approval is required again when an original plan exists.
+  Repeated requests reuse an existing follow-up. Original partial records remain
+  partial with visible follow-up links; no successful writer is replayed.
+  Continuations use schema 2 so old builds fail closed, while existing schema-1
+  approvals remain compatible. Reversing a continuation needs combined recovery
+  semantics and is explicitly unavailable. No encoder/decoder rules changed.
+  Verification: 26/26 service tests; 27/27 production HTTP/UI fixture checks;
+  final `npm run verify` passed (1,887 tests: 1,886 passed, one skipped), bundle
+  and activation smoke. The native read-only redo acceptance harness still
+  passes with the new schema-1 approval function. This is not native continuation
+  certification. Mutation inventory regenerated: 56 registrations.
+  Source changes remain uncommitted/unpublished; unrelated capture files were
+  left untouched. Next task is the activation/native acceptance sequence above.
+
+  Packaged `/tmp/peoplesoft-studio-change-review-recovery-dev.vsix` successfully
+  through vsce (prepublish typecheck/bundle), then installed it with
+  `code --install-extension ... --force`. Activation requires Developer: Reload
+  Window. `git diff --check` passed. This build includes both the object timeline
+  and reviewed continuation work; no release/tag/push was performed.
+
+- 2026-10-15: Inspected Page/Record/AE writers and chose Page review as the first
+  structured adapter target. The Page writer recalculates scroll levels/order
+  and related properties, so a simple operation diff is insufficient to predict
+  the reviewed native after-state. Added Page rollback-preview groundwork:
+  `PageSaveRequest.dryRun`, shared writer verification followed by rollback
+  (including unchanged-page lock release), provider preview handling without
+  post-rollback verification, and `psft_edit_page` dryRun/expectedVersion.
+  Preview asks no save approval, does not refresh editors, and preserves mode,
+  writable/operator/scope/dirty/stale gates. Normal save approvals/commit path
+  remain. Response explicitly separates base and hypothetical versions/counts.
+  Page saves still use legacy gates; this is not a Page staging/reversal adapter.
+  Verification: 53/53 targeted Page tests (existing capture-backed plans plus
+  three transaction tests); 28/28 production HTTP/UI checks, including the real
+  Page provider/writer over a transactional fixture; full `npm run verify` passed
+  (1,890 tests: 1,889 passed, one skipped), bundle and activation smoke.
+  Native preview acceptance remains open. The live MCP still lacks the timeline
+  tool; the read-only native Query redo check continues to pass. No additional
+  database writes were applied and no encoder/decoder rules changed.
+  Updated capability catalog, Page save documentation, coverage and contracts.
+  Next development task: exact native Page snapshot extraction around preview,
+  then bounded existing-control staging with native readback equivalence.
+  Packaged and installed `/tmp/peoplesoft-studio-page-preview-dev.vsix`
+  successfully. Activation needs Developer: Reload Window; the build includes
+  the pending timeline/continuation features as well. `git diff --check` passed.
+  Changes remain uncommitted/unpublished; the unrelated `cs01-edit` capture
+  was left untouched.
+
+- 2026-10-15: Implemented exact Page writer-scope snapshots and a bounded Oracle
+  Page review adapter. Eleven native writer tables retain full rows/CLOB text;
+  content excludes only header version/save stamps, while tokens bind content
+  plus version. Snapshot reads are consistent read-only transactions; previews
+  capture native before/after images under the writer transaction and roll back.
+  Snapshot failures after DML also roll back. Unsupported native values, missing
+  columns/tables, unsafe numeric values, timezone columns and oversized snapshots
+  fail explicitly. Existing-control geometry/label/use and description/comments
+  stage via psft_edit_page; unsupported operations are refused without orphan
+  proposals. Validation reconstructs typed editor requests and demands full
+  native after-image equivalence, never opaque row replay. Application adds a
+  full snapshot token guard under the native header lock. Stable-ID differences
+  and manual Page history are integrated; checkpoint inverses must also pass
+  exact equivalence. Fixed routed connection alias checks to compare resolved
+  provider IDs. No encoder/decoder rules changed; unrelated captures untouched.
+  Next: installed/native Page preview and reviewed bounded apply/inverse, plus
+  timeline/restart acceptance. Record/AE and broader Page operations remain open.
+
+  Verification for this Page slice: 59/59 targeted Page tests (50 existing
+  capture-backed plans and nine transaction/snapshot tests); 31/31 production
+  HTTP/UI checks; full `npm run verify` passed (1,896 tests: 1,895 passed, one
+  skipped), bundle and activation smoke. Final HTTP/UI rerun passed. vsce
+  packaged `/tmp/peoplesoft-studio-page-review-dev.vsix` with prepublish
+  typecheck/bundle; installed successfully. Activation requires a window reload.
+  Added `tools/lab/page-review-native-preview.mts`: it checks the advertised
+  dryRun/includeSnapshots/version schema and active Page adapter before calling
+  any Page writer, then performs preview-only scoped readback checks on a ZZ_
+  lab Page. Its capability-only check refused the currently running old host
+  because dryRun is absent; no Page writer was called. Native Page/timeline
+  acceptance remains pending activation. No tag/push/release was performed;
+  source is uncommitted and unrelated capture files remain untouched.
+
+  Read-only installed MCP check confirmed the existing HRDMO lab candidate
+  `ZZ_PCODE_LAB_PG` is available (observed version 533, description
+  `Lab Page Edited`, 23 controls). No save/preview writer was invoked. Re-read
+  live state after activation; these values are observations, not a fixed
+  restoration baseline or permission to alter the Page.
+
+- 2026-10-15: Developer reloaded the Page review build. Capability-only checks
+  passed: dryRun/includeSnapshots/expectedVersion and the Page adapter are
+  advertised. Installed local Query timeline reads retain all three verified
+  revisions with MATCHES_PREVIOUS continuity and redo recorded as APPLIED.
+  This verifies local history persistence across this reload, not current
+  database state or UI navigation. Explicit live checking returns UNAVAILABLE
+  rather than claiming a match. Both native acceptance harnesses stopped at
+  their initial database reads: Oracle NJS-503 at `127.0.0.1:15210`, confirmed
+  no local listener. No Page preview writer, staging, approval or apply ran.
+  Sanitized evidence: `tools/lab/results/change-review-reload-validation.json`.
+  Resume native preview and Query live acceptance after connectivity returns;
+  no additional reload is currently required.
+
+- 2026-10-15: HRDMO tunnel restored. Installed native Query acceptance passed:
+  redo semantic snapshot/token still match, timeline MATCHES_RECORDED with
+  three verified revisions; reversal links, checkpoints and distinct approvals
+  remain intact. Installed Page harness performed three rollback-only previews
+  on `ZZ_PCODE_LAB_PG`: all eleven scoped native tables and version/token stayed
+  unchanged (version 533). Evidence: `page-review-native-preview.json` and the
+  refreshed `change-review-native-validation.json` under `tools/lab/results/`.
+  Global counter readback, native Page apply/inverse and visual reopen remain open.
+
+  Description staging exposed an adapter type mismatch: native Oracle
+  SECUREINVISIBLE is character `"0"`, while the typed request required integers.
+  Existing Page layout/writer readers already convert that flag to Number.
+  Added narrow `"0"`/`"1"` conversion for that column only, preserving raw
+  snapshots and refusing geometry string coercion. Local projection of the
+  captured full native preview now handles all 23 controls; exact diff is only
+  PSPNLDEFN.DESCR, `Lab Page Edited` -> `Page Change Review validation`.
+  No native Page save occurred; Change Set `ba4a466c-fbf6-4190-9f64-aa423d53edda`
+  remains an empty DRAFT for retry after activation.
+
+  Verification: full `npm run verify` passed (1,897 tests: 1,896 passed, one
+  skipped), bundle and activation smoke; 31/31 HTTP/UI fixture checks pass with
+  native character flags, including Invisible apply and checkpoint reversal.
+  Fixture cleanup now retries transient ENOTEMPTY so background UI refreshes do
+  not mask results. No encoder/decoder rules changed. Next: install/reload the
+  corrected Page build, retry staging/validation, then developer review/apply.
+
+  Packaged `/tmp/peoplesoft-studio-page-charflag-dev.vsix` successfully (vsce
+  prepublish typecheck/bundle) and installed it with `code --install-extension
+  ... --force`. Developer: Reload Window is needed to activate this correction.
+  A final installed rollback-preview rerun still reports the original Page
+  hash/token/version 533 unchanged. `git diff --check` passed. No release,
+  commit/tag/push or native Page approval/application was performed.
+
+- 2026-10-15: Developer reloaded the character-flag build. Installed native Page
+  rollback preview passed again. Retried the same durable Change Set; staging
+  returned REVIEW_REQUIRED/persisted=false and validation reached READY_FOR_REVIEW
+  at revision 2 with no findings. Exact native diff has only PSPNLDEFN.DESCR:
+  `Lab Page Edited` -> `Page Change Review validation`. Object ID:
+  `52a831be-ee8d-465d-ac3d-64c52bebb487`. A post-staging/validation rollback
+  readback still matches the original eleven-table content hash, token and
+  version 533. No native Page save has occurred. Requested actual developer
+  approval/application in the persistent workspace; status remains pending.
+  Evidence: `tools/lab/results/page-review-native-validation.json` and refreshed
+  `page-review-native-preview.json`. Next: independent applied-state readback,
+  then separately approved checkpoint inverse and native visual reopen.
+
+- 2026-10-15: Developer applied the native Page proposal successfully. Independent
+  read-only installed MCP checks confirm APPLIED/VERIFIED, current exact-revision
+  approval hash, the original checkpoint, complete native after-snapshot hash
+  and live token. Layout re-read shows description `Page Change Review validation`,
+  version 560 and 23 controls. Timeline MATCHES_RECORDED with one continuous
+  verified Page revision. Added and successfully ran the strictly read-only
+  `tools/lab/page-review-acceptance.mts`; it checks native snapshots, approval
+  hashes, checkpoints, live timeline match and reversal-chain links. Evidence is
+  appended under nativeApplications in `page-review-native-validation.json`.
+
+  Prepared checkpoint inverse `dd4967c1-8835-4691-b6d2-05dec76ad072`, object
+  `50b39a28-dc10-46d5-b10c-fea664741444`, using current live-state verification.
+  Its bounded writer rollback validation reached READY_FOR_REVIEW with no
+  findings; exact diff only restores description to `Lab Page Edited`. Actual
+  developer approval/application requested separately. No agent approval/apply,
+  raw-row restoration or cross-environment promotion was used. Native visual
+  reopen, counter readback and wider Page operations remain unverified.
+
+- 2026-10-15: Developer applied the Page checkpoint inverse successfully.
+  Read-only acceptance harness passed for `dd4967c1-8835-4691-b6d2-05dec76ad072`:
+  complete eleven-table after-image equals the original checkpoint content,
+  exact approval hash and checkpoint token verified, live timeline matches the
+  inverse's new token, and parent is REVERTED with its verified reversal backlink.
+  Current description `Lab Page Edited`, version 561, 23 controls; both retained
+  revisions are continuous. Native version/save stamps advance normally rather
+  than being restored. This completes one bounded native Page description
+  apply/inverse cycle, not general Page/control reversal or native redo.
+  Evidence: `tools/lab/results/page-review-native-validation.json`.
+  Native visual reopen, installed timeline navigation/comparison, wider control
+  operations and controlled native continuation/crash scenarios remain open.
+
+- 2026-10-15: User authorized the full next sequence and requested pings only
+  when needed. Implemented Page before/after drawings in Change Review by
+  reusing the Page designer's layout model, drawing primitives and CSS.
+  Persisted control IDs connect highlights and change summaries for movement,
+  resizing, label/use and other native properties. Fit/50/75/100 percent scale,
+  paired selection and retained timeline baseline comparison are read-only;
+  native snapshots/diffs remain inspectable. Captured HTML never executes;
+  ambiguous identities, cross-Page snapshots, unknown after-state and excessive
+  geometry fail visual preview explicitly. Fluid/subpages/runtime rendering
+  remain outside the static preview.
+
+  Five new model/render tests pass, full verify passed (1,902 tests: 1,901 passed,
+  one skipped), activation smoke and all 31 production HTTP/UI fixture checks.
+  Chromium rendered actual native rollback-preview images; fit, zoom and paired
+  control selection/red outlines passed DOM checks and screenshot inspection.
+  Native preview on lab Page control 21 has exactly eight PSPNLFIELD differences:
+  left 80->88, top 520->528, right 208->248, bottom 540->552, FIELDSIZETYPE 0->2,
+  label `Added by MCP` -> `Review control validation`, FIELDUSE 0->3 and
+  SECUREINVISIBLE `0`->`1`. Staged set
+  `3f97bd7c-eb53-461c-97e3-2250a127a37c`, object
+  `8362d6ee-cd1b-444c-ba99-b02ba6a0acfc`, revision 2 is READY_FOR_REVIEW.
+  Rollback preview binds restored native version 561 and its full token.
+  Packaged/installed `/tmp/peoplesoft-studio-page-visual-dev.vsix`; requested
+  developer reload plus visual review/apply and native Designer property check.
+  No agent approval/application or native control save has occurred yet.
+  Continue Record/AE adapter work while native acceptance awaits the developer.
+
+- 2026-10-15: Developer applied the control-21 proposal; independent full native
+  snapshot/token/approval readback passed at Page version 562. Native inspection
+  then correctly identified a capability defect: Static Text does not offer
+  Display Only or Invisible. The persisted flags were not proof of valid native
+  control behavior. Developer separately approved/applied checkpoint inverse
+  `6c734bb0-d838-4c30-b39c-a4057104a4e6`; read-only acceptance verifies exact
+  original scoped content restored at version 563 with all use flags cleared.
+  Marked control-type acceptance FAILED in
+  `tools/lab/results/page-control-review-native-validation.json` rather than
+  certifying the invalid combination. Added Static Text guards in MCP operations,
+  native writer planning and copy projection, allowing unsupported flags to be
+  cleared. The agent layout now advertises this limitation; the designer's
+  Static Text Use tab already correctly omits the options. Repeat use flags on
+  a field control, keeping static-text validation to geometry/label changes.
+
+- 2026-10-15: Implemented deliberate trusted UI application of one approved
+  object followed by a pause at a verified writer boundary. Journal records
+  PAUSED_BETWEEN_WRITERS; remaining objects stay untouched and require a fresh
+  pinned-prerequisite continuation and approval. All original preflight checks
+  run before any write. Partial reversal application is refused. Two service
+  tests and a production HTTP/UI fixture verify this behavior. This provides a
+  controlled native continuation acceptance path without inducing a database
+  failure; it is not crash or lost-response certification.
+
+  Added bounded Record/AE description/comments review adapters. Record reads
+  six complete native tables and refuses Related Language referrers. AE reads
+  twenty complete tables, retaining SQL, source/binary PeopleCode and tombstones.
+  Native tokens bind all raw content/stamps; snapshots omit native save stamps.
+  Typed header-only requests execute the existing writers and verification inside
+  rollback for exact equivalence, then reuse those writers for approved commit.
+  Creation/deletion, field removal, DDL, structural AE edits and staged dependency
+  overlays remain unsupported on these staged paths. No encoder/decoder changes.
+  Native acceptance remains pending activation; local fixture tests cover actual
+  writer commit/rollback/inverse, full token drift, capture failures, preservation,
+  unsupported-operation refusals and live timeline checks. See STRUCTURED_HEADERS.md.
+
+  Final verification for this slice passed: full `npm run verify` (1,916 tests:
+  1,915 passed, one skipped), bundle and activation smoke; 34/34 production HTTP/UI
+  fixture checks. Ten structured snapshot/writer tests cover native binary and
+  full timestamp fidelity in addition to rollback/inverse and refusal paths.
+  Inventory regenerated: 56 mutation registrations; no new agent apply/approval
+  endpoint. `git diff --check` passed. No encoder/decoder semantics changed.
+
+  Added capability-gated `tools/lab/structured-review-native-stage.mts` for the
+  next controlled native acceptance: appropriate Page controls, existing custom
+  Record `ZZ_RPT_LINE` description and AE `ZZ_AE_LAB01` description, all in one
+  explicit dependency chain. The script checks advertised staging schemas and
+  all three adapters before any edit tool, stages/rollback-validates only, and
+  verifies live baselines remain unchanged. Its old-host capability check refused
+  missing Record grouping support before any edit; no native Record/AE save ran.
+  Native read-only discovery confirmed the custom lab Record is Derived/Work
+  (observed version 227) and AE description/reference/PeopleCode validation has
+  no errors. These are observations, not fixed restoration baselines.
+  After activation, stage and inspect the exact native proposals, then request
+  developer approve-all plus Apply one object then pause. Verify Page readback
+  and untouched Record/AE baselines before fresh remaining-work approval. True
+  crash/lost-response and general structural adapters remain open.
+
+## 0.9.1 candidate activation and native rollback validation — October 15
+
+- Developer reloaded. The actual MCP initialize handshake reports 0.9.1;
+  tools/list and service capabilities expose all nine adapters, including
+  Record/AE staged arguments. Capability checks passed before edit tools.
+- All three controlled lab definitions were confirmed CUSTOM. Native Page,
+  Record and AE rollback validation passed, with complete before/after scopes
+  and exact semantic differences. Live baseline hashes/tokens remained unchanged.
+- Proposal `e419a3b0-1438-41c6-bf4d-af9a90552178`, revision 4, is
+  READY_FOR_REVIEW. Page object `0e259b41-1a50-48ee-b959-cce32ebbe54e`
+  changes Static Text 21 geometry/label and Edit Box 2 use flags (eight native
+  property differences). Record `ZZ_RPT_LINE` changes only RECDESCR; AE
+  `ZZ_AE_LAB01` changes only DESCR. Dependencies are Page → Record → AE.
+- The first harness attempt used a Record description exceeding the existing
+  30-character limit and was refused before any Record save. The test input
+  was shortened to “Record review validation”; the same local proposal was
+  completed and validated. No native committed change resulted from staging.
+- Developer was asked to review/approve the exact set and choose More actions
+  → Apply one object, then pause. Native application is pending; do not infer
+  it from READY_FOR_REVIEW or the successful rollback previews.
+- Candidate artifact audit verified the current manifest/bundle and README /
+  changelog after normalizing only VSCE repository-link and issue-autolink
+  rewriting. SHA-256 is retained in the release-readiness report.
+
+- After the 0.9.1 reload, the read-only Query acceptance harness passed again
+  against redo `523036b4-853a-4f65-a9eb-59b0b55801d7`: exact live semantic
+  content/token, approval/checkpoint, reversed predecessors and three verified
+  revisions all match. This is preserved-history/reload evidence, not a new write.
+
+## 0.9.1 native structured full application — October 15
+
+Developer confirmed selecting Apply approved changes. The original three-object
+set is APPLIED; WRITE_STARTED/WRITE_VERIFIED cover Page → Record → AE. The
+read-only acceptance harness passed exact approval hashes, before checkpoints,
+staged and persisted semantic snapshots, current native tokens and timelines
+for all three. Page is version 564 with the six intended Static Text 21 changes
+and two intended Edit Box 2 flag changes. Native Designer reopen remains a
+separate check. The controlled pause was not exercised; do not count this as
+pause or continuation acceptance. Preparing the normal dependency-aware inverse
+will permit independent native header/control restoration checks.
+
+## Native structured checkpoint inverse and Designer confirmation — October 15
+
+The developer confirmed Windows Application Designer matches the corrected
+Static Text 21 and Edit Box 2 settings. Then applied checkpoint inverse
+`8c52441a-d3b0-48f6-83d3-9712713c46b1`. Read-only native acceptance passed:
+original set REVERTED with backlink, fresh inverse approvals/checkpoints,
+AE → Record → Page dependencies, complete original semantic scopes restored
+under fresh native tokens, and current Page layout at version 565. This closes
+one native Record/AE header apply/inverse cycle and corrected Page control
+apply/inverse/Designer cycle. Native pause/continuation remains separate and is
+being staged as a smaller Record → AE header trial.
+
+
+## Separate native header pause trial staged
+
+`7b01aa98-bf35-4ccf-8463-7f69113075ec`, revision 3, is READY_FOR_REVIEW.
+It changes only Record `ZZ_RPT_LINE` RECDESCR and AE `ZZ_AE_LAB01` DESCR,
+with Record → AE ordering. Native rollback previews passed; each full live
+baseline content hash equals its restored original scope, and its current token
+remained unchanged through staging. The developer was asked to approve both
+and use More actions → Apply one object, then pause. No pause/continuation
+result is recorded until independently observed. Evidence is in
+`tools/lab/results/header-pause-native-validation.json`.
+
+## Pause-action discoverability correction
+
+The developer could not find the pause action while the header trial was
+READY_FOR_REVIEW with both objects PENDING. Source and live state confirmed
+the current build hid the option until two objects were approved. This was a
+UX discoverability issue, not a missing native writer capability. Current
+source now keeps the action visible for ordinary multi-object proposals,
+disabled with a validation/approval explanation until enabled. It remains
+hidden for completed, cancelled and inverse proposals. Production HTTP/UI
+coverage checks zero/one/two approvals and refusal of a forged preapproval
+application. The installed native test can proceed by approving both first;
+the display correction will enter the final candidate package.
+
+
+## Native controlled pause verified — October 15
+
+Developer confirmed using Apply one object, then pause on header trial
+`7b01aa98-bf35-4ccf-8463-7f69113075ec`. Read-only native acceptance passed:
+PARTIALLY_APPLIED, exactly one WRITE_STARTED/WRITE_VERIFIED for Record, explicit
+PAUSED_BETWEEN_WRITERS, exact fresh approvals/checkpoints, full Record after-state
+and token, and AE still matching its complete original before-state and token.
+
+Prepared/validated fresh schema-2 continuation
+`0e67da7c-266d-4d78-9dee-1a0d7b586995`, “Remaining work · Native header pause
+validation,” revision 1. It contains only AE with PENDING review and the original
+before/after hashes. Record is a pinned read-only prerequisite, excluded from
+writers. Developer was asked to separately approve/apply the AE proposal. No
+continuation application is inferred until independently read back.
+
+
+## Native header continuation and final lab restoration verified
+
+AE-only continuation `0e67da7c-266d-4d78-9dee-1a0d7b586995` was freshly approved
+and applied. Independent acceptance passed its approval/checkpoint, source map,
+full AE result/native token and unchanged pinned Record snapshot/token. The
+separately approved typed restoration `2dca21dc-f930-458d-9cea-e86617736490`
+restored the full original Record/AE scopes under fresh tokens. The final
+read-only closeout audit passed all original lab hashes, unchanged Page version
+565, zero operational pending changes and zero uncertain results.
+
+Candidate source now treats an original partial record as historical only when
+its exact remaining objects, approvals, native baselines, target and pinned
+prerequisites match a fully verified applied direct continuation. Its stored
+partial status is preserved. Unverified/foreign/mismatched follow-ups remain in
+Pending. Fixture HTTP/UI checks cover these refusal cases and the hidden/disabled
+pause-control correction; 36 checks pass. Final candidate reload/real menu
+inspection remain the last UI gate. No encoder/decoder or unrelated capture work
+was changed.
+
+## Final 0.9.1 candidate packaged and installed
+
+The canonical `peoplesoft-studio-0.9.1.vsix` includes both final UI corrections.
+Its manifest/contributions, compiled bundle and normalized README/CHANGELOG
+match current source. SHA-256:
+`161f0d201010460a18cab2e539e626c321aa50e376a364678bbaa7c4602700b6`.
+Installation succeeded; reload and actual menu/history inspection are pending.
+No release commit/tag/push/publication was performed.
+
+## Final candidate reload verified
+
+Developer reloaded the final candidate. Active MCP handshake is 0.9.1, all nine
+adapters are available, and the installed bundle matches the final artifact.
+The read-only native closeout passed again: original full lab scopes restored,
+Page version 565, zero operational pending work and zero uncertain objects.
+Actual menu/history visual acceptance is requested separately; reload alone
+is not treated as that acceptance. No commit/tag/push/publication occurred.
+
+## Final developer UI acceptance passed
+
+On October 15, 2026, the developer confirmed “Yes — history and menus look
+right”: Pending Changes shows 0, the native header pause original appears in
+History as completed via follow-up, and placement is clear and uncluttered.
+All bounded 0.9.1 candidate acceptance gates are complete. The readiness report
+has no outstanding acceptance items. The larger initiative remains scoped by
+the coverage/future-work contracts; release commit/tag/push/publication are
+separate and have not occurred.
+
+## 0.9.1 Git release authorized
+
+The developer requested “Commit, tag, and push.” The accepted snapshot targets
+`main` and annotated tag `v0.9.1`; matching origin refs are the completion
+evidence. README/CHANGELOG now identify the dated 0.9.1 release. The release
+VSIX is rebuilt with those final notes and the unchanged accepted runtime
+bundle. The unrelated corpus capture remains excluded. Marketplace publishing
+and a GitHub Release/artifact upload are separate from this Git release.

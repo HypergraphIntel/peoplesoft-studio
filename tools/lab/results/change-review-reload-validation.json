@@ -1,0 +1,97 @@
+{
+  "checkedAt": "2026-10-15T16:09:58.313Z",
+  "mode": "installed MCP after developer reload; retained local history only",
+  "activePageCapabilities": {
+    "dryRun": true,
+    "includeSnapshots": true,
+    "expectedVersion": true,
+    "pageAdapter": true
+  },
+  "timeline": {
+    "environment": {
+      "connection": "oracle:HRDMO",
+      "identity": "9c585c10567fd0ba68800246978dba6ac89ce1f17c6baf3113490a052807bb85",
+      "label": "HRDMO"
+    },
+    "adapter": "query",
+    "key": [
+      "ZZ_QRY_MCP_MV8YENO1",
+      ""
+    ],
+    "historyHash": "b053a8b5bc6bf68104ae8edf5de149c9adc3dc5e8eabaad684afb998eaed6194",
+    "baseline": {
+      "snapshot": "502e5357511cc6be2570c4c16c684e971976f3f113ad259f11d380339dc0b4b4",
+      "token": "581b2fc13a36349e0c02432c57a196609adce91452e3b7148a309828c08788df",
+      "at": "2026-10-15T04:05:47.241Z",
+      "changeSetId": "8cd54e34-9e5e-4322-9da5-f84a997053f4",
+      "objectId": "28b41d1f-aeee-4f0d-b413-aa1aa4ba5011"
+    },
+    "revisions": [
+      {
+        "id": "8cd54e34-9e5e-4322-9da5-f84a997053f4:28b41d1f-aeee-4f0d-b413-aa1aa4ba5011",
+        "changeSetId": "8cd54e34-9e5e-4322-9da5-f84a997053f4",
+        "objectId": "28b41d1f-aeee-4f0d-b413-aa1aa4ba5011",
+        "title": "Reload validation — lab Query description",
+        "origin": "agent",
+        "status": "REVERTED",
+        "operation": "UPDATE",
+        "snapshot": "d3f99da903e881478bb58bc356786f636b5ffc07c6359215b3014b585d370bcb",
+        "token": "99e44a091f4300561978e3100679c7fc996265cac93275aef7217553cf089188",
+        "before": "502e5357511cc6be2570c4c16c684e971976f3f113ad259f11d380339dc0b4b4",
+        "baselineToken": "581b2fc13a36349e0c02432c57a196609adce91452e3b7148a309828c08788df",
+        "at": "2026-10-15T14:36:39.290Z",
+        "continuity": "MATCHES_PREVIOUS"
+      },
+      {
+        "id": "5c6551dc-46de-4de6-81db-ae0cfe163b3f:e230436a-458d-44b9-ba5a-48bd24c0ca9a",
+        "changeSetId": "5c6551dc-46de-4de6-81db-ae0cfe163b3f",
+        "objectId": "e230436a-458d-44b9-ba5a-48bd24c0ca9a",
+        "title": "Revert Reload validation — lab Query description",
+        "origin": "reversal",
+        "status": "REVERTED",
+        "operation": "UPDATE",
+        "snapshot": "502e5357511cc6be2570c4c16c684e971976f3f113ad259f11d380339dc0b4b4",
+        "token": "a5f87015ba3ea2f441ff94ef79031f761891c8f6aae46af548ccbcf3f4c35591",
+        "before": "d3f99da903e881478bb58bc356786f636b5ffc07c6359215b3014b585d370bcb",
+        "baselineToken": "99e44a091f4300561978e3100679c7fc996265cac93275aef7217553cf089188",
+        "at": "2026-10-15T14:39:24.212Z",
+        "continuity": "MATCHES_PREVIOUS",
+        "reverses": "8cd54e34-9e5e-4322-9da5-f84a997053f4"
+      },
+      {
+        "id": "523036b4-853a-4f65-a9eb-59b0b55801d7:a1ff5caf-8a34-4f31-b539-932134b5c9ec",
+        "changeSetId": "523036b4-853a-4f65-a9eb-59b0b55801d7",
+        "objectId": "a1ff5caf-8a34-4f31-b539-932134b5c9ec",
+        "title": "Redo Revert Reload validation — lab Query description",
+        "origin": "reversal",
+        "status": "APPLIED",
+        "operation": "UPDATE",
+        "snapshot": "d3f99da903e881478bb58bc356786f636b5ffc07c6359215b3014b585d370bcb",
+        "token": "37ac4dc4f6fffb1ad2275fe4b9c4f8547d8c4645bb649219a2da12bcb9656bd9",
+        "before": "502e5357511cc6be2570c4c16c684e971976f3f113ad259f11d380339dc0b4b4",
+        "baselineToken": "a5f87015ba3ea2f441ff94ef79031f761891c8f6aae46af548ccbcf3f4c35591",
+        "at": "2026-10-15T14:40:54.538Z",
+        "continuity": "MATCHES_PREVIOUS",
+        "reverses": "5c6551dc-46de-4de6-81db-ae0cfe163b3f"
+      }
+    ],
+    "proposals": [],
+    "live": {
+      "status": "NOT_CHECKED"
+    }
+  },
+  "liveCheck": {
+    "status": "UNAVAILABLE",
+    "reason": "HRDMO endpoint 127.0.0.1:15210 has no local listener; Oracle NJS-503"
+  },
+  "nativePreview": {
+    "attempted": false,
+    "reason": "Initial native Page layout read failed before any Page writer call"
+  },
+  "notVerified": [
+    "current native Query state",
+    "native Page rollback preview",
+    "developer-reviewed Page apply/inverse",
+    "installed UI history navigation/comparison"
+  ]
+}

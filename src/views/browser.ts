@@ -101,7 +101,7 @@ export class BrowserView implements vscode.TreeDataProvider<Node> {
             : vscode.TreeItemCollapsibleState.None);
         item.description = node.summary.description;
         item.iconPath = new vscode.ThemeIcon(iconFor(key.type));
-        item.contextValue = definitionContextValue(key);
+        item.contextValue = definitionContextValue(key, { compare: node.provider.canReadAsText(key.type) });
         item.resourceUri = toUri(node.provider.id, key);
         item.command = {
           command: 'psft.openDefinition',

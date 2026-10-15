@@ -1,6 +1,7 @@
 import type { ObjectDiffProvider } from './semanticDiff.js';
 import { randomUUID } from 'node:crypto';
 import { ReviewStore } from './store.js';
+import { buildObjectTimeline, type ObjectTimeline } from './timeline.js';
 import { approvalHash, planHash, canonical, createSet, differences, hash, now, ordered, transition, type Change, type ChangeSet, type Environment, type Json, type Snapshot } from './model.js';
 export interface ReviewAdapter {
     id: string;
@@ -41,6 +42,39 @@ export class ReviewService {
         const live = await this.host.environment(set.environment.connection);
         if (canonical(live) !== canonical(set.environment))
             throw new Error('Target environment changed. Restage against the verified target.');
+    }
+    private async checkPrerequisites(set: ChangeSet): Promise<void> {
+        const continuation = set.continuation;
+        if (!continuation) return;
+        const source = await this.store.get(continuation.changeSetId);
+        const parents = new Map([[source.id, source]]);
+        if (source.status !== 'PARTIALLY_APPLIED' || source.revision !== continuation.sourceRevision || canonical(source.environment) !== canonical(set.environment))
+            throw new Error('Continuation source changed; remaining work must be reviewed against its original environment and revision.');
+        const expected = [...(source.continuation?.prerequisites ?? []), ...source.objects.filter(c => c.application === 'VERIFIED').map(c => ({
+            changeSetId: source.id, objectId: c.id, adapter: c.adapter, key: c.key, snapshot: c.verified ?? '', token: c.verifiedToken ?? ''
+        }))];
+        if (canonical(expected) !== canonical(continuation.prerequisites))
+            throw new Error('The verified prerequisite set changed; no prerequisite may be dropped.');
+        const sourceIds = source.objects.filter(c => c.review === 'APPROVED' && c.application === 'PENDING').map(c => c.id).sort();
+        if (canonical(sourceIds) !== canonical(continuation.objects.map(m => m.sourceObjectId).sort()))
+            throw new Error('Remaining-work source mapping is incomplete.');
+        for (const mapping of continuation.objects) {
+            const before = source.objects.find(c => c.id === mapping.sourceObjectId), after = set.objects.find(c => c.id === mapping.objectId);
+            if (!before || !after || before.application !== 'PENDING' || before.review !== 'APPROVED' || before.adapter !== after.adapter || canonical(before.key) !== canonical(after.key))
+                throw new Error('Remaining-work source object changed.');
+        }
+        for (const p of continuation.prerequisites) {
+            if (set.objects.some(c => c.adapter === p.adapter && canonical(c.key) === canonical(p.key)))
+                throw new Error('A verified prerequisite cannot also be written by the continuation.');
+            let parent = parents.get(p.changeSetId);
+            if (!parent) { parent = await this.store.get(p.changeSetId); parents.set(parent.id, parent); }
+            const c = parent.objects.find(c => c.id === p.objectId);
+            if (canonical(parent.environment) !== canonical(set.environment) || !['PARTIALLY_APPLIED', 'APPLIED'].includes(parent.status) || !c || c.application !== 'VERIFIED' || c.verified !== p.snapshot || c.verifiedToken !== p.token || c.adapter !== p.adapter || canonical(c.key) !== canonical(p.key))
+                throw new Error('Verified prerequisite history changed.');
+            const live = await this.adapter(p.adapter).read(set.environment, p.key);
+            if (hash(live.value) !== p.snapshot || live.token !== p.token)
+                throw new Error('Verified prerequisite changed in the database; continuation blocked.');
+        }
     }
     private async save(set: ChangeSet): Promise<ChangeSet> { set.updated = now(); await this.store.put(set); this.host.changed(); return set; }
     async create(title: string, connection: string, session?: string, requestKey?: string, plan?: string): Promise<ChangeSet> {
@@ -118,7 +152,10 @@ export class ReviewService {
             this.editable(set);
             this.checkPlan(set);
             await this.environment(set);
+            await this.checkPrerequisites(set);
             const adapter = this.adapter(adapterId);
+            if (set.continuation?.prerequisites.some(p => p.adapter === adapterId && canonical(p.key) === canonical(key)))
+                throw new Error('A verified prerequisite cannot also be written by the continuation.');
             if (adapter.normalize)
                 after = adapter.normalize(after);
             if (dependencies.some(d => !set.objects.some(c => c.id === d)))
@@ -167,6 +204,7 @@ export class ReviewService {
             await this.save(set);
             try {
                 await this.environment(set);
+                await this.checkPrerequisites(set);
                 if (!set.objects.length)
                     throw new Error('Empty Change Set.');
                 ordered(set, false);
@@ -237,7 +275,7 @@ export class ReviewService {
         await this.store.exclusive(async () => { const set = await this.store.get(id); transition(set, 'CANCELLED'); await this.save(set); });
     }
     /** Trusted UI apply; all preflight checks repeat under the store lock. */
-    async apply(id: string): Promise<ChangeSet> {
+    async apply(id: string, stopAfterFirst = false): Promise<ChangeSet> {
         return this.store.exclusive(async () => {
             const set = await this.store.get(id);
             if (set.status !== 'APPROVED')
@@ -245,12 +283,14 @@ export class ReviewService {
             const selected = ordered(set);
             if (!selected.length)
                 throw new Error('Nothing approved.');
+            if (stopAfterFirst && set.reverses) throw new Error('Partial reversal application requires a combined recovery plan.');
             const abort = new AbortController();
             this.running.set(id, abort);
             let writing = false;
             try {
                 this.checkPlan(set);
                 await this.environment(set);
+                await this.checkPrerequisites(set);
                 const checkpoint: NonNullable<ChangeSet['checkpoint']> = { at: now(), objects: [] };
                 for (const c of selected) {
                     if (c.approvedHash !== approvalHash(set, c))
@@ -273,6 +313,7 @@ export class ReviewService {
                 for (const c of selected) {
                     abort.signal.throwIfAborted();
                     await this.environment(set);
+                    await this.checkPrerequisites(set);
                     const a = this.adapter(c.adapter), live = await a.read(set.environment, c.key);
                     if (hash(live.value) !== c.before || live.token !== c.baselineToken)
                         throw new Error('Concurrent change before writer: ' + c.id);
@@ -291,7 +332,14 @@ export class ReviewService {
                     c.verifiedToken = persisted.token;
                     set.journal.push({ at: now(), action: 'WRITE_VERIFIED', object: c.id });
                     await this.save(set);
+                    if (stopAfterFirst && selected.length > 1) {
+                        await this.checkPrerequisites(set);
+                        transition(set, 'PARTIALLY_APPLIED');
+                        set.journal.push({ at: now(), action: 'PAUSED_BETWEEN_WRITERS', detail: 'Developer requested one verified object; untouched approved work needs a fresh remaining-work proposal.' });
+                        return await this.save(set);
+                    }
                 }
+                await this.checkPrerequisites(set);
                 transition(set, 'APPLIED');
                 await this.save(set);
                 await this.markReversed(set);
@@ -381,6 +429,29 @@ export class ReviewService {
             return run();
         }
     }
+    async objectTimeline(id: string, objectId: string, checkLive = false): Promise<ObjectTimeline> {
+        const set = await this.store.get(id), c = set.objects.find(o => o.id === objectId);
+        if (!c) throw new Error('Object not found.');
+        const timeline = buildObjectTimeline(await this.store.list(), set.environment, c.adapter, c.key);
+        if (checkLive) {
+            const checkedAt = now();
+            try {
+                await this.environment(set);
+                const live = await this.adapter(c.adapter).read(set.environment, c.key);
+                const snapshot = hash(live.value);
+                const candidates = [...timeline.revisions].reverse().map(r => ({ id: r.id, snapshot: r.snapshot, token: r.token }));
+                candidates.push({ id: 'baseline', snapshot: timeline.baseline.snapshot, token: timeline.baseline.token });
+                const exact = candidates.find(r => r.snapshot === snapshot && r.token === live.token);
+                const content = candidates.find(r => r.snapshot === snapshot);
+                timeline.live = exact ? { status: 'MATCHES_RECORDED', checkedAt, matched: exact.id }
+                    : content ? { status: 'TOKEN_CHANGED', checkedAt, matched: content.id, reason: 'Content matches a retained snapshot, but its native token changed. This does not establish the same revision.' }
+                    : { status: 'DIVERGED', checkedAt, reason: 'Live content differs from all retained snapshots; external changes may be unrecorded.' };
+            } catch (error) {
+                timeline.live = { status: 'UNAVAILABLE', checkedAt, reason: error instanceof Error ? error.message : String(error) };
+            }
+        }
+        return timeline;
+    }
     async diff(id: string, objectId: string) {
         const set = await this.store.get(id), c = set.objects.find(o => o.id === objectId);
         if (!c)
@@ -415,6 +486,7 @@ export class ReviewService {
             if (!['APPLYING', 'PARTIALLY_APPLIED'].includes(set.status))
                 throw new Error('No interrupted application to reconcile.');
             await this.environment(set);
+            await this.checkPrerequisites(set);
             for (const c of set.objects.filter(c => ['APPLYING', 'UNCERTAIN', 'VERIFIED'].includes(c.application))) {
                 if (c.resultKnown === false) {
                     c.application = 'UNCERTAIN';
@@ -446,6 +518,8 @@ export class ReviewService {
     }> {
         if (set.status !== 'APPLIED')
             return { supported: false, reason: 'Only verified applied revisions can be reversed.' };
+        if (set.continuation)
+            return { supported: false, reason: 'Reversing continued work needs a combined recovery plan; it is not supported yet.' };
         for (const c of set.objects.filter(c => c.application === 'VERIFIED'))
             if (await this.store.readBlob(c.before) === null && !this.canDelete(c.adapter, c.key))
                 return { supported: false, reason: 'Reversing creation requires a calibrated deletion adapter (' + c.adapter + ').' };
@@ -456,6 +530,8 @@ export class ReviewService {
             const original = await this.store.get(id);
             if (original.status !== 'APPLIED')
                 throw new Error('Only a verified applied Change Set can be reversed.');
+            if (original.continuation)
+                throw new Error('Reversing continued work needs a combined recovery plan; it is not supported yet.');
             await this.environment(original);
             const proposal = createSet((redo ? 'Redo ' : 'Revert ') + original.title, original.environment, 'reversal');
             proposal.reverses = id;
@@ -474,6 +550,66 @@ export class ReviewService {
             }
             ordered(proposal, false);
             proposal.journal.push({ at: now(), action: redo ? 'REDO_PROPOSED' : 'REVERSAL_PROPOSED', detail: id });
+            return this.save(proposal);
+        });
+    }
+    remainingSupport(set: ChangeSet): { supported: boolean; reason: string } {
+        if (set.status !== 'PARTIALLY_APPLIED')
+            return { supported: false, reason: 'Only a reconciled partial application can prepare remaining work.' };
+        if (set.origin === 'manual' || set.reverses)
+            return { supported: false, reason: 'Manual saves and partial reversals require a separate recovery plan.' };
+        if (set.objects.some(c => ['APPLYING', 'UNCERTAIN'].includes(c.application) || c.resultKnown === false))
+            return { supported: false, reason: 'Reconcile uncertain outcomes first. No writer will be retried based on an unknown result.' };
+        if (!set.objects.some(c => c.review === 'APPROVED' && c.application === 'PENDING'))
+            return { supported: false, reason: 'No previously approved, untouched objects remain.' };
+        return { supported: true, reason: 'Prepare untouched approved objects as a new proposal. Confirmed writes become checked prerequisites; fresh approval is required.' };
+    }
+    /** Preparation only. Never replays an uncertain write or inherits a prior approval. */
+    async prepareRemaining(id: string): Promise<ChangeSet> {
+        return this.store.exclusive(async () => {
+            const original = await this.store.get(id);
+            const support = this.remainingSupport(original);
+            if (!support.supported) throw new Error(support.reason);
+            const existing = (await this.store.list()).find(s => s.continuation?.changeSetId === id && !['CANCELLED', 'REJECTED'].includes(s.status));
+            if (existing) return existing;
+            await this.environment(original);
+            await this.checkPrerequisites(original);
+            const selected = ordered(original);
+            const remaining = selected.filter(c => c.application === 'PENDING');
+            const verified = original.objects.filter(c => c.application === 'VERIFIED');
+            const ids = new Map(remaining.map(c => [c.id, randomUUID()]));
+            const proposal = createSet('Remaining work · ' + original.title, original.environment, 'agent', original.session);
+            proposal.schema = 2;
+            proposal.continuation = {
+                changeSetId: original.id, sourceRevision: original.revision,
+                objects: remaining.map(c => ({ sourceObjectId: c.id, objectId: ids.get(c.id)! })),
+                prerequisites: structuredClone(original.continuation?.prerequisites ?? [])
+            };
+            if (original.plan) proposal.plan = { text: original.plan.text, revision: 1, review: 'PENDING' };
+            for (const c of verified) {
+                if (!c.verified || c.verifiedToken === undefined) throw new Error('Verified prerequisite lacks an authoritative snapshot/token.');
+                const live = await this.adapter(c.adapter).read(original.environment, c.key);
+                if (hash(live.value) !== c.verified || live.token !== c.verifiedToken)
+                    throw new Error('A confirmed object changed since reconciliation; remaining work blocked.');
+                proposal.continuation.prerequisites.push({ changeSetId: original.id, objectId: c.id, adapter: c.adapter, key: c.key, snapshot: c.verified, token: c.verifiedToken });
+            }
+            for (const c of remaining) {
+                if (c.approvedHash !== approvalHash(original, c)) throw new Error('Original approval revision is invalid.');
+                const a = this.adapter(c.adapter), live = await a.read(original.environment, c.key);
+                if (hash(live.value) !== c.before || live.token !== c.baselineToken)
+                    throw new Error('An untouched object changed since staging; restage it explicitly against live state.');
+                const after = await this.store.readBlob(c.after);
+                if (after === null && !this.canDelete(c.adapter, c.key)) throw new Error('Remaining deletion is not supported.');
+                for (const dep of c.dependencies)
+                    if (!ids.has(dep) && !verified.some(v => v.id === dep)) throw new Error('Remaining work has an unresolved dependency.');
+                proposal.objects.push({ id: ids.get(c.id)!, adapter: c.adapter, key: c.key, operation: c.operation,
+                    before: await this.store.blob(live.value), after: c.after, baselineToken: live.token,
+                    dependencies: c.dependencies.filter(d => ids.has(d)).map(d => ids.get(d)!), revision: 1,
+                    review: 'PENDING', validation: [], warnings: ['Continues a partial application; previously verified objects are read-only prerequisites.'], application: 'PENDING' });
+            }
+            ordered(proposal, false);
+            proposal.journal.push({ at: now(), action: 'REMAINING_WORK_PROPOSED', detail: original.id });
+            await this.checkPrerequisites(proposal);
             return this.save(proposal);
         });
     }

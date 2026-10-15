@@ -120,7 +120,7 @@ export class ReviewStore {
         // Approval provenance lives in this extension-owned store, not MCP arguments.
         const value = JSON.parse(JSON.stringify(set)) as Json;
         privacy(value);
-        if (set.objects.length > 1000 || Buffer.byteLength(canonical(value)) > 32 * 1024 * 1024)
+        if (set.objects.length > 1000 || (set.continuation?.prerequisites.length ?? 0) > 1000 || Buffer.byteLength(canonical(value)) > 32 * 1024 * 1024)
             throw new Error('Change Set storage limit exceeded.');
         await this.atomic(this.location('sets', set.id), canonical({ checksum: hash(value), value }));
     }
@@ -129,12 +129,16 @@ export class ReviewStore {
             checksum: string;
             value: ChangeSet;
         };
-        if (hash(envelope.value) !== envelope.checksum || envelope.value.schema !== 1 || envelope.value.id !== id || !Array.isArray(envelope.value.objects))
+        if (hash(envelope.value) !== envelope.checksum || ![1, 2].includes(envelope.value.schema) || envelope.value.id !== id || !Array.isArray(envelope.value.objects))
             throw new Error('Corrupt or unsupported Change Set.');
+        if ((envelope.value.schema === 2) !== !!envelope.value.continuation)
+            throw new Error('Continuation requires schema 2; older applications must not ignore prerequisites.');
         for (const c of envelope.value.objects) {
             await this.readBlob(c.before);
             await this.readBlob(c.after);
         }
+        for (const p of envelope.value.continuation?.prerequisites ?? [])
+            await this.readBlob(p.snapshot);
         return envelope.value;
     }
     async list(): Promise<ChangeSet[]> {

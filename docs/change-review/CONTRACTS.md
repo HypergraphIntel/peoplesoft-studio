@@ -5,19 +5,24 @@ These contracts describe the current bounded implementation, not released
 
 ## Durable records and snapshot storage
 
-`src/changeReview/model.ts` defines schema 1 Change Sets, objects, checkpoints
-and journal entries. Store records under extension global storage at
+`src/changeReview/model.ts` defines schema 1 ordinary Change Sets and schema 2
+continuation Change Sets, with objects, checkpoints and journal entries. Store
+records under extension global storage at
 `change-review/sets/<uuid>.json`; immutable snapshots are content-addressed
 JSON in `change-review/blobs/<sha256>.json`. Canonical object keys are sorted;
 array semantics belong to adapters. Stored records have a checksum; referenced
 snapshots are integrity-checked on read. No large payloads use globalState or
-workspaceState. Snapshots are limited to 8 MiB and sets to 1,000 objects/32 MiB.
+workspaceState. Snapshots are limited to 8 MiB and sets to 1,000 objects/32 MiB,
+with at most 1,000 verified external prerequisites.
 
 Files use private permissions, fsync and atomic replacement. An exclusive lock
 serializes application across windows/processes. Only an established dead PID's
 lock is reclaimed, under a separate recovery lock; live/unknown owners fail
 closed. Crash-leftover recovery locks need manual investigation. Schema versions
-other than 1 are refused; no future schema migration or pruning is invented.
+other than 1/2 are refused. Continuation metadata requires schema 2, so older
+builds reject these records instead of treating external prerequisites as
+optional. Existing schema-1 approval hashes remain unchanged. No destructive
+migration or pruning is performed; downgrades cannot read continuation records.
 This local file store is not a shared service or a tested Windows durability
 implementation. Retention, indexed large-history performance and synchronization
 remain open work.
@@ -25,7 +30,8 @@ remain open work.
 Privacy scanning rejects credential-related fields and recognizable embedded
 secrets before storage. This is a conservative heuristic, not a guarantee that
 arbitrary source contains no secrets. Unsupported sensitive snapshots are
-refused, including manual history capture before the writer is invoked. No
+excluded from history; failure to capture manual history does not block the
+developer's save. No
 connection passwords, raw connect strings or encrypted credentials are stored.
 
 ## Identity and concurrency
@@ -82,17 +88,56 @@ A failure stops remaining operations. A writer may commit before its response
 or subsequent verification fails: retain UNCERTAIN, not an optimistic success.
 Reconciliation reads live state without replaying a write. Only a result matching
 the reviewed after-state becomes verified. Drift/unresolved results remain
-partial. A partially applied set does not currently resume automatically;
-preparing an explicit remaining-work proposal with verified external checkpoint
-prerequisites is additional work.
+partial. A partially applied set never resumes automatically.
+
+`Prepare remaining work` / `psft_prepare_remaining_work` creates a new local
+proposal from only previously approved, untouched PENDING objects in a partial
+application. APPLYING/UNCERTAIN or unknown manual results block preparation;
+reconciliation must first establish actual committed results. Confirmed writes
+are excluded from the new write list and pinned as read-only prerequisite
+references (environment/source object, snapshot and native token). Untouched
+objects must still match their original before-state and token. Internal
+dependency IDs are remapped; verified external dependencies remain explicit
+prerequisites. No new-object dependency overlay is inferred.
+
+Continuation records use schema 2, link their source revision and object IDs,
+and include every inherited and newly verified prerequisite in each object
+approval hash. They have fresh object IDs/review state; an original approach
+plan, if present, also needs fresh plan approval. Prerequisite/history integrity
+and live hash/token checks run during staging, validation, before every writer,
+at completion and during reconciliation. A verified prerequisite cannot also
+be staged as a writable object in the continuation. Dropping a prerequisite or
+changing the source mapping is refused. Ordinary current authorization checks
+still apply to every remaining write.
+
+Repeated preparation returns the existing noncancelled/nonrejected follow-up,
+including an already applied or itself-partial follow-up; it never creates a
+second writer replay. Continue a partial follow-up through its own record.
+Cancellation of an unstarted follow-up permits a fresh proposal. The original
+partial outcome is retained, linked from the page, and never relabelled APPLIED
+because a separate proposal succeeded. The review page shows both directions
+of the follow-up link and all pinned prerequisites.
+
+Partial reversals/manual-save failures and reversing an applied continuation
+require combined recovery semantics and remain unsupported. Unknown outcomes,
+changed prerequisites or changed untouched objects require explicit inspection
+and restaging; this feature does not guess whether a failed writer was safe to
+retry, restore database rows, or claim atomicity across native writers.
 
 Cancellation allows an already running writer to finish, then stops later
 writes. Native writers are not assumed to support mid-transaction cancellation.
 
+The trusted UI can deliberately apply one object and pause. It still preflights
+all approved objects, records verified readback, then stops before the next
+writer with PARTIALLY_APPLIED and PAUSED_BETWEEN_WRITERS journal entries. It is
+not a failed/uncertain result. Remaining work requires a fresh continuation and
+approval; partial reversal application is refused. No MCP approval/apply option
+or agent-callable pacing bypass is exposed.
+
 ## History and reversal
 
 Applied snapshots/journals form environment-scoped history. SQL, HTML, freeform
-style sheet, Query, Process and supported PeopleCode manual saves use the same
+style sheet, Query, Process, Page, Record/AE scoped metadata and supported PeopleCode manual saves use the same
 checkpoint/history storage, with origin `manual`. A manual save is an existing
 trusted editor action, not fabricated MCP approval. Unknown interrupted manual
 results remain unknown and cannot be auto-reconciled to a guessed after-state.
@@ -114,14 +159,41 @@ Staging refreshes it without opening/revealing a window. A status-bar indicator
 links pending work. Historical comparison selects retained revisions for the
 same environment/object; history is not proof that live state remains current.
 
+The selected object's timeline (`timeline.ts`, `ReviewService.objectTimeline`)
+is scoped by connection ID, environment identity, adapter and canonical JSON
+key. It lists the first retained proposal's before-state as a local baseline,
+then objects with verified readback hashes/tokens, including manual saves,
+reversals and verified objects in partially applied sets. Pending, rejected,
+cancelled and uncertain outcomes are separate proposals, never applied revisions.
+Times come from recorded readback/reconciliation events, with set update time
+as a fallback for older history. The baseline date is proposal creation, not
+proof of the exact snapshot capture time or original delivered ownership.
+History gaps are reported when an entry's before hash/native token differs
+from the preceding retained result; a complete native audit trail is not claimed.
+
+`Check live revision` is explicit and read-only. It verifies the environment
+before reading the adapter and returns `MATCHES_RECORDED` only when both hash
+and native token match a retained result (or the local baseline). Identical
+content with another token is `TOKEN_CHANGED`; unmatched content is `DIVERGED`;
+connection, adapter or identity failures are `UNAVAILABLE`. No check happens
+merely by opening history. The page shows the observation time, invalidates
+its displayed result when retained history changes, and does not persist it
+as approval, reconciliation, a current-state guarantee or restoration permission.
+Timeline comparisons resolve snapshot IDs from the selected object's retained
+history on the host; webview messages cannot supply arbitrary file paths or
+another object's revision. There is no new restore/apply shortcut.
+
 `semanticDiff.ts` supplies extensible providers. SQL/PeopleCode use exact text
 snapshots/native text diffs. Query comparisons match native row identities while
 ignoring incidental row order. Page controls use positive persisted PNLFLDID
 rather than FIELDNUM; unresolved temporary identities are AMBIGUOUS. Record
 fields use names/order; AE specs use section+variant, step names and action
-types. Page/Record/AE providers currently have model tests, not integrated
-staging or visual-designer/native-lab certification. They must not be presented
-as full object coverage.
+types. Record/AE providers currently have model tests rather than staging.
+The Page adapter now stages a bounded existing-control subset using full native
+scoped snapshots and exact rollback-preview equivalence; see
+[PAGE_ADAPTER.md](PAGE_ADAPTER.md) for the eleven-table scope, limits, locked
+content/version guard and typed inverse/manual-history behavior. Page staging
+is fixture verified, not installed/native or visual-designer certification.
 
 ## MCP protocol
 
@@ -134,17 +206,28 @@ as full object coverage.
 - `psft_get_change_set` / `psft_list_change_sets`: durable resumable state.
 - `psft_validate_change_set`: preflight; does not authorize a write.
 - `psft_get_object_diff`: exact snapshots and structured differences.
+- `psft_get_object_timeline`: Change Set/object IDs and optional `checkLive`;
+  read-only retained baseline/revisions/proposals and a timestamped observation.
 - `psft_request_change_review`: REVIEW_REQUIRED or current status plus the open
   command; no modal wait, focus stealing, approval or application.
 - `psft_get_change_history`: optional connection/environment/adapter/key filter.
 - `psft_prepare_revert` / `psft_prepare_redo`: prepare only; no persistence to
   PeopleSoft, approval or application.
+- `psft_prepare_remaining_work`: new schema-2 proposal for untouched approved
+  objects; pins verified prerequisites, never retries uncertain operations or
+  grants approval. Duplicate requests return the existing follow-up.
 
 Legacy-compatible tool names migrated in this build: `psft_save_text_definition`,
 `psft_save_peoplecode`, `psft_process_save`, `psft_query_create`,
-`psft_query_save`, `psft_query_copy`. Optional changeSetId/dependsOn groups
+`psft_query_save`, `psft_query_copy`, and bounded `psft_edit_page` operations. Optional changeSetId/dependsOn groups
 requests. They return REVIEW_REQUIRED and persisted=false instead of pretending
 an immediate save. Existing dryRun requests keep their existing preview path.
 Identical staged retries do not invalidate approval; duplicate apply is refused.
 Other tools/platforms retain explicit legacy gates. The catalog reports which
 adapters/tools use the new flow. No agent-facing approve/apply tool exists.
+
+Record and AE adapters stage existing-definition description/comments only.
+See [STRUCTURED_HEADERS.md](STRUCTURED_HEADERS.md) for their six/twenty-table
+preservation scopes, exact writer rollback equivalence, full locked native token
+checks, typed inverse and excluded structural/dependency operations. Snapshots
+are preservation evidence, never a general raw-row replay format.

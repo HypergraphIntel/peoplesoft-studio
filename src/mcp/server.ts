@@ -184,15 +184,15 @@ export async function startPeopleSoftMcpServer(
             name:
               'peoplesoft-studio',
             version:
-              '0.9.0'
+              '0.9.1'
           }, {
-            instructions: 'Start with psft_studio_reference or psft_capability_catalog to choose a supported workflow. Read the relevant framework reference before authoring. Select a connection with psft_list_connections; inspect effective customization policy, ownership and live configuration availability before proposing delivered-object changes. Catalog entries describe bounded implementation support, not release certification or permission. Read current definitions and concurrency tokens, preview supported saves, then save through guarded tools and read back. When Change Review tools are available, use durable Change Sets and poll status. SQL/HTML/freeform style sheet, Query and Process saves stage proposals; only the developer can approve/apply in the persistent review workspace. Other mutation families retain legacy gates until adapters are verified. Planned features and preview analyses must remain explicit.'
+            instructions: 'Start with psft_studio_reference or psft_capability_catalog to choose a supported workflow. Read the relevant framework reference before authoring. Select a connection with psft_list_connections; inspect effective customization policy, ownership and live configuration availability before proposing delivered-object changes. Catalog entries describe bounded implementation support, not release certification or permission. Read current definitions and concurrency tokens, preview supported saves, then save through guarded tools and read back. When Change Review tools are available, use durable Change Sets and poll status. SQL/HTML/freeform style sheet, PeopleCode, Query, Process and bounded existing-Page edits plus Record/AE description/comments edits stage proposals; only the developer can approve/apply in the persistent review workspace. Other mutation families retain legacy gates until adapters are verified. Planned features and preview analyses must remain explicit.'
           });
 
         // Every tool call runs as an agent's: the delivered-object guard applies agentDeliveredObjectPolicy to what it writes.
         runToolsAsAgent(server as never);
         if (options.reviewService) {
-          routeReviewedMutations(server, options.reviewService, workspace);
+          routeReviewedMutations(server, options.reviewService, workspace, options.writeHost);
           registerChangeReviewTools(server, options.reviewService);
         }
 

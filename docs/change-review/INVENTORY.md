@@ -12,12 +12,13 @@ Read-only annotated tools with incidental local state are outside this mutation 
 | `psft_ae_copy` | Write | [appEngineTools.ts:208](../../src/mcp/appEngineTools.ts#L208) | Inspect delegated callback |
 | `psft_ae_rename` | Destructive | [appEngineTools.ts:221](../../src/mcp/appEngineTools.ts#L221) | `renameAppEngineProgram`, `saved` |
 | `psft_ae_delete` | Destructive | [appEngineTools.ts:238](../../src/mcp/appEngineTools.ts#L238) | `deleteAppEngineProgram`, `saved` |
-| `psft_create_change_set` | Write | [changeReviewTools.ts:9](../../src/mcp/changeReviewTools.ts#L9) | `create` |
-| `psft_set_change_plan` | Write | [changeReviewTools.ts:10](../../src/mcp/changeReviewTools.ts#L10) | Inspect delegated callback |
-| `psft_stage_object_change` | Write | [changeReviewTools.ts:11](../../src/mcp/changeReviewTools.ts#L11) | Inspect delegated callback |
-| `psft_validate_change_set` | Write | [changeReviewTools.ts:14](../../src/mcp/changeReviewTools.ts#L14) | Inspect delegated callback |
-| `psft_prepare_revert` | Write | [changeReviewTools.ts:21](../../src/mcp/changeReviewTools.ts#L21) | Inspect delegated callback |
-| `psft_prepare_redo` | Write | [changeReviewTools.ts:22](../../src/mcp/changeReviewTools.ts#L22) | Inspect delegated callback |
+| `psft_prepare_remaining_work` | Write | [changeReviewTools.ts:9](../../src/mcp/changeReviewTools.ts#L9) | Inspect delegated callback |
+| `psft_create_change_set` | Write | [changeReviewTools.ts:11](../../src/mcp/changeReviewTools.ts#L11) | `create` |
+| `psft_set_change_plan` | Write | [changeReviewTools.ts:12](../../src/mcp/changeReviewTools.ts#L12) | Inspect delegated callback |
+| `psft_stage_object_change` | Write | [changeReviewTools.ts:13](../../src/mcp/changeReviewTools.ts#L13) | Inspect delegated callback |
+| `psft_validate_change_set` | Write | [changeReviewTools.ts:16](../../src/mcp/changeReviewTools.ts#L16) | Inspect delegated callback |
+| `psft_prepare_revert` | Write | [changeReviewTools.ts:23](../../src/mcp/changeReviewTools.ts#L23) | Inspect delegated callback |
+| `psft_prepare_redo` | Write | [changeReviewTools.ts:24](../../src/mcp/changeReviewTools.ts#L24) | Inspect delegated callback |
 | `psft_channel_create` | Write | [channelTools.ts:110](../../src/mcp/channelTools.ts#L110) | Inspect delegated callback |
 | `psft_channel_edit` | Write | [channelTools.ts:126](../../src/mcp/channelTools.ts#L126) | Inspect delegated callback |
 | `psft_channel_copy` | Write | [channelTools.ts:147](../../src/mcp/channelTools.ts#L147) | Inspect delegated callback |
@@ -40,7 +41,7 @@ Read-only annotated tools with incidental local state are outside this mutation 
 | `psft_menu_copy` | Write | [menuTools.ts:160](../../src/mcp/menuTools.ts#L160) | Inspect delegated callback |
 | `psft_menu_rename` | Destructive | [menuTools.ts:173](../../src/mcp/menuTools.ts#L173) | `renameMenuDefinition`, `saved` |
 | `psft_menu_delete` | Destructive | [menuTools.ts:190](../../src/mcp/menuTools.ts#L190) | `deleteMenuDefinition`, `saved` |
-| `psft_page_field_config_save` | Write | [pfcTools.ts:84](../../src/mcp/pfcTools.ts#L84) | `savePageFieldConfiguration`, `saved` |
+| `psft_page_field_config_save` | Write | [pfcTools.ts:97](../../src/mcp/pfcTools.ts#L97) | `savePageFieldConfiguration`, `saved` |
 | `psft_portal_create_folder` | Write | [portalTools.ts:52](../../src/mcp/portalTools.ts#L52) | Inspect delegated callback |
 | `psft_portal_create_content_reference` | Write | [portalTools.ts:57](../../src/mcp/portalTools.ts#L57) | Inspect delegated callback |
 | `psft_portal_edit` | Write | [portalTools.ts:62](../../src/mcp/portalTools.ts#L62) | Inspect delegated callback |
@@ -52,15 +53,15 @@ Read-only annotated tools with incidental local state are outside this mutation 
 | `psft_save_peoplecode` | Write | [writeTools.ts:197](../../src/mcp/writeTools.ts#L197) | `savePeopleCode` |
 | `psft_save_text_definition` | Write | [writeTools.ts:234](../../src/mcp/writeTools.ts#L234) | `saveSqlDefinition`, `saveStyleSheet`, `saveHtmlDefinition` |
 | `psft_edit_page` | Write | [writeTools.ts:284](../../src/mcp/writeTools.ts#L284) | `savePage` |
-| `psft_create_record` | Write | [writeTools.ts:312](../../src/mcp/writeTools.ts#L312) | `saveRecord` |
-| `psft_edit_record` | Write | [writeTools.ts:332](../../src/mcp/writeTools.ts#L332) | `saveRecord` |
-| `psft_delete_record` | Destructive | [writeTools.ts:359](../../src/mcp/writeTools.ts#L359) | `deleteRecord` |
-| `psft_create_field` | Write | [writeTools.ts:374](../../src/mcp/writeTools.ts#L374) | `createField` |
-| `psft_edit_field` | Write | [writeTools.ts:397](../../src/mcp/writeTools.ts#L397) | `saveField` |
-| `psft_edit_translate` | Write | [writeTools.ts:424](../../src/mcp/writeTools.ts#L424) | `saveTranslate` |
-| `psft_create_project` | Write | [writeTools.ts:448](../../src/mcp/writeTools.ts#L448) | `createProject` |
-| `psft_add_to_project` | Write | [writeTools.ts:461](../../src/mcp/writeTools.ts#L461) | `saveProject` |
-| `psft_create_package` | Write | [writeTools.ts:482](../../src/mcp/writeTools.ts#L482) | `createPackage` |
+| `psft_create_record` | Write | [writeTools.ts:318](../../src/mcp/writeTools.ts#L318) | `saveRecord` |
+| `psft_edit_record` | Write | [writeTools.ts:338](../../src/mcp/writeTools.ts#L338) | `saveRecord` |
+| `psft_delete_record` | Destructive | [writeTools.ts:371](../../src/mcp/writeTools.ts#L371) | `deleteRecord` |
+| `psft_create_field` | Write | [writeTools.ts:386](../../src/mcp/writeTools.ts#L386) | `createField` |
+| `psft_edit_field` | Write | [writeTools.ts:409](../../src/mcp/writeTools.ts#L409) | `saveField` |
+| `psft_edit_translate` | Write | [writeTools.ts:436](../../src/mcp/writeTools.ts#L436) | `saveTranslate` |
+| `psft_create_project` | Write | [writeTools.ts:460](../../src/mcp/writeTools.ts#L460) | `createProject` |
+| `psft_add_to_project` | Write | [writeTools.ts:473](../../src/mcp/writeTools.ts#L473) | `saveProject` |
+| `psft_create_package` | Write | [writeTools.ts:494](../../src/mcp/writeTools.ts#L494) | `createPackage` |
 
 ## Commit boundary inventory
 
@@ -71,11 +72,11 @@ inspect each branch before assigning a transaction guarantee.
 | Module | Commit calls | Rollback calls |
 |---|---|---|
 | [administrationWriter.ts](../../src/providers/administrationWriter.ts) | 1 | 1 |
-| [appEngineWriter.ts](../../src/providers/appEngineWriter.ts) | 3 | 4 |
+| [appEngineWriter.ts](../../src/providers/appEngineWriter.ts) | 3 | 5 |
 | [channelWriter.ts](../../src/providers/channelWriter.ts) | 3 | 4 |
 | [ciWriter.ts](../../src/providers/ciWriter.ts) | 3 | 4 |
 | [componentWriter.ts](../../src/providers/componentWriter.ts) | 1 | 1 |
-| [database.ts](../../src/providers/database.ts) | 1 | 3 |
+| [database.ts](../../src/providers/database.ts) | 1 | 5 |
 | [dropZoneWriter.ts](../../src/providers/dropZoneWriter.ts) | 1 | 2 |
 | [eventMappingWriter.ts](../../src/providers/eventMappingWriter.ts) | 2 | 3 |
 | [fieldWriter.ts](../../src/providers/fieldWriter.ts) | 2 | 2 |
@@ -83,7 +84,7 @@ inspect each branch before assigning a transaction guarantee.
 | [ibWriter.ts](../../src/providers/ibWriter.ts) | 1 | 2 |
 | [menuWriter.ts](../../src/providers/menuWriter.ts) | 3 | 4 |
 | [packageWriter.ts](../../src/providers/packageWriter.ts) | 1 | 1 |
-| [pageWriter.ts](../../src/providers/pageWriter.ts) | 2 | 2 |
+| [pageWriter.ts](../../src/providers/pageWriter.ts) | 2 | 4 |
 | [peopleCodeWriter.ts](../../src/providers/peopleCodeWriter.ts) | 1 | 1 |
 | [pfcWriter.ts](../../src/providers/pfcWriter.ts) | 1 | 3 |
 | [portalWriter.ts](../../src/providers/portalWriter.ts) | 1 | 2 |
@@ -91,7 +92,7 @@ inspect each branch before assigning a transaction guarantee.
 | [projectWriter.ts](../../src/providers/projectWriter.ts) | 2 | 2 |
 | [queryWriter.ts](../../src/providers/queryWriter.ts) | 1 | 3 |
 | [rcServiceWriter.ts](../../src/providers/rcServiceWriter.ts) | 1 | 2 |
-| [recordWriter.ts](../../src/providers/recordWriter.ts) | 3 | 2 |
+| [recordWriter.ts](../../src/providers/recordWriter.ts) | 3 | 3 |
 | [securityWriter.ts](../../src/providers/securityWriter.ts) | 1 | 2 |
 | [sqlWriter.ts](../../src/providers/sqlWriter.ts) | 1 | 1 |
 | [styleSheetWriter.ts](../../src/providers/styleSheetWriter.ts) | 1 | 1 |

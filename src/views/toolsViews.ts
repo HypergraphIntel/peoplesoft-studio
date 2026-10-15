@@ -34,7 +34,7 @@ export class ToolsView implements vscode.TreeDataProvider<Node> {
   getTreeItem(node: Node): vscode.TreeItem {
     const { tool } = node;
     const item = new vscode.TreeItem(tool.label,
-      tool.children?.length ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None);
+      tool.children?.length ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
     item.iconPath = new vscode.ThemeIcon(tool.icon, tool.planned ? new vscode.ThemeColor('disabledForeground') : undefined);
     if (tool.planned) {
       // The label itself takes the decoration's disabled colour (PlannedToolDecorations).
@@ -46,6 +46,7 @@ export class ToolsView implements vscode.TreeDataProvider<Node> {
         item.command = { command: PLANNED_TOOL_COMMAND, title: 'Not available yet', arguments: [node.path.join(' › ')] };
       }
     } else if (tool.command) {
+      item.contextValue = 'tool.' + tool.command;
       item.command = { command: tool.command, title: tool.label };
       item.tooltip = node.path.join(' › ');
     }

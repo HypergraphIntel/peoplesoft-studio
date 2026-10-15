@@ -12,6 +12,7 @@ import {
 } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
 import { writeScopeRefusal } from './writeScope.js';
+import { readStructuredSnapshot, type StructuredPreview } from './structuredSnapshot.js';
 
 /*
  * Saving an App Engine program as App Designer does (docs/APP_ENGINE.md).
@@ -703,6 +704,9 @@ export interface AeSaveRequest {
   operatorId: string;
   /** Plan only: return the plan, write nothing. */
   dryRun?: boolean;
+  /** Execute and verify the existing writer inside rollback; internal review projection only. */
+  captureSnapshots?: boolean;
+  expectedSnapshotToken?: string;
 }
 
 export interface AeSaveResult {
@@ -711,6 +715,7 @@ export interface AeSaveResult {
   token: string;
   /** False on a dry run or an empty plan. */
   written: boolean;
+  snapshots?: StructuredPreview;
 }
 
 /** Runs the statements; each must touch the rows it expects. */
@@ -729,6 +734,7 @@ export async function run(c: Connection, statements: Statement[]): Promise<void>
  */
 export async function saveAppEngine(c: Connection, oracledb: DbTypes, request: AeSaveRequest): Promise<AeSaveResult> {
   try {
+    if (request.captureSnapshots && !request.dryRun) throw new AeSaveRefusedError('Snapshots require rollback preview.');
     const operatorError = validateOperatorId(request.operatorId);
     if (operatorError) throw new AeSaveRefusedError(operatorError);
     const scope = writeScopeRefusal(request.doc.name);
@@ -738,6 +744,8 @@ export async function saveAppEngine(c: Connection, oracledb: DbTypes, request: A
     if (!(await operatorExists(c, request.operatorId))) throw new AeSaveRefusedError(`PeopleSoft operator ${request.operatorId} does not exist in this database (PSOPRDEFN).`);
 
     const stored = await readStoredAppEngine(c, oracledb, request.doc.name, true);
+    const before = request.captureSnapshots || request.expectedSnapshotToken ? await readStructuredSnapshot(c, oracledb, 'ae', request.doc.name) : undefined;
+    if (request.expectedSnapshotToken && before!.token !== request.expectedSnapshotToken) throw new AeSaveRefusedError('Native Application Engine snapshot changed before writer.');
     const token = appEngineToken(stored);
     if (token !== request.openedToken) {
       throw new AeSaveRefusedError(request.openedToken === 'absent'
@@ -751,12 +759,17 @@ export async function saveAppEngine(c: Connection, oracledb: DbTypes, request: A
     const plan = planAppEngineSave(stored, request.doc, {
       operatorId: request.operatorId, toolsRelease: String(toolsRelease).trim(), lastupddttm, counters: counters.version, oracledb
     });
-    if (request.dryRun || plan.empty) {
+    if (request.dryRun && !request.captureSnapshots || plan.empty) {
       await c.rollback();
-      return { plan, token, written: false };
+      return { plan, token, written: false, ...(request.captureSnapshots ? { snapshots: { schema: 'structured-preview/1', before: before!, after: before! } as StructuredPreview } : {}) };
     }
     await run(c, plan.statements);
     await verifyAppEngine(c, oracledb, plan);
+    if (request.captureSnapshots) {
+      const after = await readStructuredSnapshot(c, oracledb, 'ae', request.doc.name);
+      await c.rollback();
+      return { plan, token, written: false, snapshots: { schema: 'structured-preview/1', before: before!, after } };
+    }
     await c.commit();
     return { plan, token: appEngineToken(await readStoredAppEngine(c, oracledb, request.doc.name, false)), written: true };
   } catch (error) {

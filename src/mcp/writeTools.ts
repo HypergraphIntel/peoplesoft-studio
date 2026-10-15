@@ -293,19 +293,25 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
       'Fluid Page, and the Fluid tab\'s style classes and Suppress System-Specific Style Classes. Coordinates are pixels from the page\'s top-left. ' +
       'Every save assigns each control\'s scroll level from the tab order and runs App Designer\'s checks (No data for scroll, More than one data ' +
       'record in scroll, Invalid field level, Invalid related display); a page that fails them is not saved unless saveInvalid is true ' +
-      '(App Designer\'s "Invalid page. Do you still want to save?" Yes). ' + GATES,
+      '(App Designer\'s "Invalid page. Do you still want to save?" Yes). dryRun executes the same writer and in-transaction verification, then rolls back without save approval or editor refresh; its version/counts are hypothetical. ' + GATES,
     inputSchema: z.object({ connection: z.string().min(1), page: z.string().min(1), operations: z.array(pageOperation).min(1),
-      saveInvalid: z.boolean().optional().describe('Save even though App Designer\'s page checks fail (its "Invalid page ... save anyway" Yes).') }),
+      saveInvalid: z.boolean().optional().describe('Save even though App Designer\'s page checks fail (its "Invalid page ... save anyway" Yes).'),
+      dryRun: z.boolean().optional(), includeSnapshots: z.boolean().optional().describe('dryRun only: return full native before/after images for the Page writer table scope; save stamps/version are separate from content.'), expectedVersion: z.number().int().nonnegative().optional().describe('Version from psft_get_page_layout; reject a stale preview/save before approval.') }),
     annotations: WRITE
-  }, async ({ connection, page, operations, saveInvalid }) => {
+  }, async ({ connection, page, operations, saveInvalid, dryRun, includeSnapshots, expectedVersion }) => {
+    if (includeSnapshots && !dryRun) throw new Error('Page snapshots require dryRun; nothing was saved.');
     const key: DefinitionKey = { type: DefinitionType.Page, parts: [page.trim().toUpperCase()] };
     const gate = await writable(workspace, host, connection, key.parts[0]);
     const { layout } = await gate.provider.readPageLayout(key);
+    if (expectedVersion !== undefined && expectedVersion !== layout.version) throw new Error('The page changed since it was read; reopen the page before previewing or saving.');
+    if (dryRun && host.hasUnsavedEditor(gate.provider.id, key)) throw new Error('The page has unsaved editor changes; save or discard them before previewing the database definition.');
     const { controls, properties, order } = applyPageOperations(layout, operations as PageOperation[]);
-    await approve(host, gate, key, `edit page ${key.parts[0]}`,
+    if (!dryRun) await approve(host, gate, key, `edit page ${key.parts[0]}`,
       `${operations.length} change${operations.length === 1 ? '' : 's'}:\n${operations.map((o) => describeOperation(o)).join('\n')}`);
     const r = await gate.provider.savePage({ pnlName: key.parts[0], openedVersion: layout.version, operatorId: gate.operatorId, controls, properties,
-      ...(order ? { order } : {}), ...(saveInvalid ? { saveInvalid } : {}) });
+      ...(order ? { order } : {}), ...(saveInvalid ? { saveInvalid } : {}), ...(dryRun ? { dryRun: true } : {}), ...(includeSnapshots ? { captureSnapshots: true } : {}) });
+    if (dryRun) return jsonResult({ connection: { id: gate.provider.id, name: gate.provider.displayName }, definition: displayName(key), saved: false, preview: true,
+      baseVersion: layout.version, hypotheticalVersion: r.version, controls: r.fieldCount, inserted: r.inserted, updated: r.updated, deleted: r.deleted, ...(r.snapshots ? { snapshots: r.snapshots } : {}) });
     return done(gate, key, { version: r.version, controls: r.fieldCount, inserted: r.inserted, updated: r.updated, deleted: r.deleted });
   });
 
@@ -336,20 +342,26 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
       '(by name), insert a subrecord, set a field\'s Use (key, search key, list box ...), Edits (required, prompt ' +
       'table, translate, yes/no), default, label; set Record Properties or the record type. The rules App Designer ' +
       'keeps (Search Key needs Key, observed type changes only ...) are enforced. Read it with psft_get_definition ' +
-      '(type 0) first. ' + GATES,
-    inputSchema: z.object({ connection: z.string().min(1), record: z.string().min(1), operations: z.array(recordOperation).min(1) }),
+      '(type 0) first. dryRun executes/verifies the shared writer and rolls back; returned versions are hypothetical. expectedVersion rejects stale input. ' + GATES,
+    inputSchema: z.object({ connection: z.string().min(1), record: z.string().min(1), operations: z.array(recordOperation).min(1), dryRun: z.boolean().optional(), expectedVersion: z.number().int().optional() }),
     annotations: WRITE
-  }, async ({ connection, record, operations }) => {
+  }, async ({ connection, record, operations, dryRun, expectedVersion }) => {
     const key: DefinitionKey = { type: DefinitionType.Record, parts: [record.trim().toUpperCase()] };
     const gate = await writable(workspace, host, connection, key.parts[0]);
     const layout = await gate.provider.readRecordLayout(key);
     if (!layout) throw new Error(`There is no record named ${key.parts[0]} on ${gate.provider.displayName}.`);
+    if (expectedVersion !== undefined && layout.version !== expectedVersion) throw new Error('Stale Record version; read it again.');
+    if (host.hasUnsavedEditor(gate.provider.id, key)) throw new Error('Record has unsaved editor changes.');
     const refusal = layoutEditRefusal(layout);
     if (refusal) throw new Error(refusal);
     const state = applyRecordOperations({
       recname: layout.name, recordType: layout.recordType, openedVersion: layout.version,
       fields: layout.fields.map((f) => ({ name: f.name, useEdit: f.useEdit, useEdit2: f.useEdit2 ?? 0, isNew: false, ...(f.isSubrecord ? { isSubrecord: true } : {}) }))
     }, layout.recordType, operations as RecordOperation[]);
+    if (dryRun) {
+      const preview = await gate.provider.saveRecord({ edit: state, operatorId: gate.operatorId, dryRun: true });
+      return jsonResult({ saved: false, preview: true, baseVersion: layout.version, hypotheticalVersion: preview.version, plan: preview.plan, languageReferrers: preview.languageReferrers });
+    }
     await approve(host, gate, key, `edit record ${key.parts[0]}`,
       `${operations.length} change${operations.length === 1 ? '' : 's'}:\n${operations.map((o) => describeOperation(o)).join('\n')}`);
     const r = await gate.provider.saveRecord({ edit: state, operatorId: gate.operatorId });

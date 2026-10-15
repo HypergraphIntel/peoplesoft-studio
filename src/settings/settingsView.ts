@@ -11,6 +11,8 @@ interface SettingsNode {
   icon: string;
   /** A theme color for the icon: green while the thing it stands for is live. */
   color?: string;
+  context?: string;
+  command?: string;
 }
 
 /** The Connections view's own "connected" green, so live looks the same in both. */
@@ -21,8 +23,8 @@ const LIVE = 'charts.green';
  *
  * A short, read-only summary of the target connection -- chosen in the
  * Connections view or the status bar, not here -- read from the same state
- * the panel renders, and a way into the panel. Every row opens it: the form
- * itself does not fit a tree.
+ * the panel renders, and a way into the panel. The MCP row opens its server
+ * controls, and AI setup has its own entry; connection/profile rows open Settings.
  */
 export class SettingsView implements vscode.TreeDataProvider<SettingsNode>, vscode.Disposable {
   private readonly _onDidChangeTreeData = new vscode.EventEmitter<void>();
@@ -38,7 +40,8 @@ export class SettingsView implements vscode.TreeDataProvider<SettingsNode>, vsco
     if (node.description !== undefined) item.description = node.description;
     if (node.tooltip !== undefined) item.tooltip = node.tooltip;
     item.iconPath = new vscode.ThemeIcon(node.icon, node.color ? new vscode.ThemeColor(node.color) : undefined);
-    item.command = { command: OPEN_SETTINGS_COMMAND, title: 'Open Settings' };
+    item.contextValue = node.context;
+    item.command = { command: node.command ?? OPEN_SETTINGS_COMMAND, title: node.label };
     return item;
   }
 
@@ -90,6 +93,7 @@ function summarize(state: SettingsState): SettingsNode[] {
     }[mcp.status];
     nodes.push({
       label: 'MCP Server',
+      context: 'settings.mcp', command: 'psft.mcp.menu',
       description: mcp.status === 'running' ? `${status} · ${mcp.url}` : status,
       tooltip: mcp.error ? `MCP server: ${status}\n${mcp.error}` : `MCP server: ${status}\n${mcp.url}`,
       icon: mcp.status === 'error' ? 'error' : 'plug',
@@ -98,5 +102,6 @@ function summarize(state: SettingsState): SettingsNode[] {
   }
 
   nodes.push({ label: 'Open Settings', icon: 'settings-gear' });
+  nodes.push({ label: 'Configure AI Client…', icon: 'hubot', command: 'psft.mcp.configureClient' });
   return nodes;
 }

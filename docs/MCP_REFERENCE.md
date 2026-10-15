@@ -116,14 +116,47 @@ existing HRDMO saved connection; no credentials are read into the script.
 Results and retained fixture names are recorded in
 `tools/lab/results/mcp-workflow-live-e2e.json`.
 
-## Change Review development (after 0.9.0)
+## Change Review — 0.9.1 candidate
 
 The development server can expose durable Change Set tools. On supported
 Oracle paths, SQL/HTML/freeform style sheet, Query, Process and PeopleCode
-mutations stage proposals and return `REVIEW_REQUIRED`, not immediate saves.
-Use the persistent **PeopleSoft: Open Change Review** workspace for developer
+mutations and bounded Page/Record/AE edits stage proposals and return
+`REVIEW_REQUIRED`, not immediate saves.
+Open **PeopleSoft sidebar → Change Review → Open Review** for developer
 approval/application and poll the Change Set status. Other paths retain legacy
 gates. Existing immediate-save lab scripts need adaptation for staged paths.
+`psft_get_object_timeline` reads a selected object's retained baseline, verified
+revisions and other proposals. Optional `checkLive` compares the actual content
+and native token in the recorded target environment; it grants no approval.
+`psft_prepare_remaining_work` prepares untouched approved objects from a
+reconciled partial application, pins verified prerequisites and requires fresh
+review. Uncertain outcomes and drift block preparation/application. Repeated
+requests return the existing follow-up; this is not an automatic retry tool.
+Continuation records require schema 2 and cannot be opened by older builds.
+On Oracle with Change Review, `psft_edit_page` stages existing-control move/resize,
+label/use and Page description/comments. Structural/other property changes and
+`saveInvalid` are refused for staging; explicit `dryRun` keeps rollback preview.
+Optional `includeSnapshots` returns scoped native before/after rows and full
+CLOB text inside that preview; `expectedVersion` rejects stale layout input.
+Native equivalence validation and a full locked content/version token guard
+protect application. Manual Page saves enter history; inverse changes must be
+exactly reproducible through the typed writer. Static Text cannot use Display
+Only/Invisible; those flags require an appropriate field control. Visual
+before/after and retained-baseline drawings reuse the Page designer model. One
+native description apply/inverse is verified, and a corrected Static Text / Edit
+Box control trial passed apply/inverse and Windows Designer inspection. The older
+invalid static-text flag trial was restored and remains explicitly uncertified. See [Page adapter scope](change-review/PAGE_ADAPTER.md).
+Record/AE description/comments edits now stage preservation snapshots on Oracle.
+Other operations are refused on those staged edit paths; create/copy/rename/delete
+retain their legacy routes. Record public dryRun is an actual rollback preview;
+AE public dryRun remains plan-only. One native Record/AE description apply and
+checkpoint inverse is independently verified over the full preservation scopes.
+See [structured header scope](change-review/STRUCTURED_HEADERS.md).
+The trusted UI can apply one object and pause after verified readback. Remaining
+work still needs fresh continuation approval; one native header pause and
+continuation/restoration is verified. No MCP apply/approve tool is exposed.
 See [contracts](change-review/CONTRACTS.md), [coverage](change-review/COVERAGE.md)
-and [progress](change-review/PROGRESS.md). New native reviewed-path acceptance
-is pending; 0.9.0's live evidence does not establish it.
+and [progress](change-review/PROGRESS.md). One installed developer-approved
+Query description update has independent snapshot/token/checkpoint evidence;
+its checkpoint reversal and redo are also verified, including live timeline match
+after reload. Broader reviewed-path and native fault acceptance remain pending. 0.9.0's earlier live evidence does not establish the new workflow.

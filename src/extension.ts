@@ -6,6 +6,9 @@ import { databaseReviewAdapters } from './changeReview/adapters.js';
 import { ReviewStore } from './changeReview/store.js';
 import { ReviewService } from './changeReview/service.js';
 import { ReviewWorkspace } from './changeReview/workspace.js';
+import { ChangeReviewView } from './views/changeReviewView.js';
+import { definitionReviewTarget } from './changeReview/navigation.js';
+import { canonical } from './changeReview/model.js';
 import { openSecurityPanel } from './editors/securityPanel.js';
 import { SECURITY_TITLES } from './model/security.js';
 import { openPortalStructure } from './editors/portalPanel.js';
@@ -323,10 +326,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   const reviewAdapters = databaseReviewAdapters(workspace, () => mcpController.writeHost);
   let reviewWorkspace: ReviewWorkspace | undefined;
+  let reviewTree: ChangeReviewView | undefined;
   const reviewService = new ReviewService(new ReviewStore(path.join(context.globalStorageUri.fsPath, 'change-review')), {
-    environment: reviewAdapters.environment, changed: () => reviewWorkspace?.changed()
+    environment: reviewAdapters.environment, changed: () => { reviewWorkspace?.changed(); reviewTree?.refresh(); }
   }, reviewAdapters.adapters);
   reviewWorkspace = new ReviewWorkspace(reviewService);
+  reviewTree = new ChangeReviewView(reviewService);
+  context.subscriptions.push(reviewTree, vscode.window.registerTreeDataProvider('psft.changeReview', reviewTree));
   mcpController.reviewService = reviewService;
   setManualHistoryObserver((connection, key, write) => {
     if ([8,9,42,43,44,46,47,48,58].includes(key.type)) return reviewService.captureManual(connection, 'peoplecode', { type: key.type, parts: [...key.parts] }, write);
@@ -335,14 +341,37 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     if (key.type === DefinitionType.SqlDefinition) return reviewService.captureManual(connection, 'sql', key.parts[0], write);
     if (key.type === DefinitionType.Query) return reviewService.captureManual(connection, 'query', [key.parts[0], key.parts[1] ?? ''], write);
     if (key.type === DefinitionType.ProcessDefinition) return reviewService.captureManual(connection, 'process', [...key.parts], write);
+    if (key.type === DefinitionType.Page) return reviewService.captureManual(connection, 'page', key.parts[0], write);
+    if (key.type === DefinitionType.Record) return reviewService.captureManual(connection, 'record', key.parts[0], write);
+    if (key.type === DefinitionType.AppEngineProgram) return reviewService.captureManual(connection, 'ae', key.parts[0], write);
     return write();
   });
   context.subscriptions.push({ dispose: () => setManualHistoryObserver(undefined) });
   context.subscriptions.push(reviewWorkspace);
   for (const command of ['open', 'pending', 'history', 'compare', 'apply', 'revert', 'redo']) {
     context.subscriptions.push(vscode.commands.registerCommand('psft.changeReview.' + command,
-      (id?: string) => command === 'compare' ? reviewWorkspace!.compareRevisions() : reviewWorkspace!.show(typeof id === 'string' ? id : undefined)));
+      (id?: string) => command === 'compare' ? reviewWorkspace!.compareRevisions() : reviewWorkspace!.show(typeof id === 'string' ? id : undefined,
+        command === 'pending' ? 'pending' : command === 'history' ? 'history' : 'all')));
   }
+  context.subscriptions.push(
+    vscode.commands.registerCommand('psft.definition.open', (node?: unknown) => withError('Open definition', async () => {
+      const target = await resolveDefinitionForCompare(workspace, node, 'Open');
+      const project = node && typeof node === 'object' && 'project' in node && typeof node.project === 'string' ? node.project : undefined;
+      if (target) await vscode.commands.executeCommand(project ? 'psft.openProjectDefinition' : 'psft.openDefinition', target.connectionId, target.key, project);
+    })),
+    vscode.commands.registerCommand('psft.changeReview.objectHistory', (node?: unknown) => withError('Object history', async () => {
+      const target = await resolveDefinitionForCompare(workspace, node, 'Object History');
+      const scope = target && definitionReviewTarget(target.key);
+      if (!target || !scope) return;
+      const sets = await reviewService.store.list();
+      for (const set of sets) {
+        if (set.environment.connection !== target.connectionId) continue;
+        const object = set.objects.find(c => c.adapter === scope.adapter && canonical(c.key) === canonical(scope.key));
+        if (object) { await reviewWorkspace!.show(set.id, 'all', object.id); return; }
+      }
+      void vscode.window.showInformationMessage(`No retained Change Review history for ${displayName(target.key)} on this connection.`);
+    }))
+  );
 
   const mcpStatus =
     new McpStatus(
@@ -353,6 +382,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     mcpController,
     mcpStatus
   );
+
+  // Menu state is presentation only; command handlers retain their existing write/approval gates.
+  const menuMcpState = () => { void vscode.commands.executeCommand('setContext', 'psft.mcp.state', mcpController.state.status); };
+  context.subscriptions.push(mcpController.onDidChangeState(menuMcpState));
+  menuMcpState();
 
   registerSettings(context, workspace, mcpController);
 

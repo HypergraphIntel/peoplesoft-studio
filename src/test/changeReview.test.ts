@@ -5,7 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { ReviewStore } from '../changeReview/store.js';
 import { ReviewService, type ReviewAdapter } from '../changeReview/service.js';
-import { canonical, differences, hash, privacy, type Environment, type Json } from '../changeReview/model.js';
+import { buildObjectTimeline } from '../changeReview/timeline.js';
+import { approvalHash, canonical, differences, hash, privacy, type Environment, type Json } from '../changeReview/model.js';
 async function fixture() {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'psft-review-')), store = new ReviewStore(root);
     let target: Environment = { connection: 'oracle:LAB', identity: 'database-schema-1', label: 'LAB' }, writable = true, fail = '', commitThenFail = false;
@@ -43,6 +44,294 @@ async function ready(f: Awaited<ReturnType<typeof fixture>>, keys = ['A']) {
     assert.equal(set.status, 'READY_FOR_REVIEW');
     return f.service.review(set.id, set.objects.map(c => c.id), 'APPROVED', set.revision);
 }
+async function partialChain(f: Awaited<ReturnType<typeof fixture>>) {
+    let set = await ready(f, ['A', 'B', 'C', 'D']);
+    for (let i = 1; i < set.objects.length; i++)
+        set = await f.service.stage(set.id, 'fixture', String.fromCharCode(65 + i), { text: 'new ' + String.fromCharCode(65 + i) }, [set.objects[i - 1].id]);
+    set = await f.service.validate(set.id);
+    set = await f.service.review(set.id, set.objects.map(c => c.id), 'APPROVED', set.revision);
+    f.fail('B', true);
+    assert.equal((await f.service.apply(set.id)).status, 'PARTIALLY_APPLIED');
+    return set;
+}
+test('trusted one-object application pauses only at a verified writer boundary and requires fresh remaining approval', async () => {
+    const f = await fixture();
+    try {
+        const set = await ready(f, ['A', 'B']);
+        const paused = await f.service.apply(set.id, true);
+        assert.equal(paused.status, 'PARTIALLY_APPLIED');
+        assert.deepEqual(paused.objects.map(c => c.application), ['VERIFIED', 'PENDING']);
+        assert.deepEqual(f.writes, ['A']);
+        assert.ok(paused.journal.some(e => e.action === 'PAUSED_BETWEEN_WRITERS'));
+        assert.ok(!paused.journal.some(e => e.action === 'APPLICATION_STOPPED'));
+        await assert.rejects(f.service.apply(set.id), /approved Change Set/);
+        let remaining = await f.service.prepareRemaining(set.id);
+        assert.deepEqual(remaining.objects.map(c => c.key), ['B']);
+        assert.equal(remaining.continuation?.prerequisites.length, 1);
+        await assert.rejects(f.service.apply(remaining.id), /approved/);
+        remaining = await f.service.validate(remaining.id);
+        remaining = await f.service.review(remaining.id, remaining.objects.map(c => c.id), 'APPROVED', remaining.revision);
+        assert.equal((await f.service.apply(remaining.id)).status, 'APPLIED');
+        assert.deepEqual(f.writes, ['A', 'B']);
+    } finally { await f.close(); }
+});
+test('one-object application does not partially reverse checkpoints and still checks every baseline before writing', async () => {
+    const f = await fixture();
+    try {
+        f.live.set('A', { value: { text: 'old' }, token: '1' });
+        let set = await ready(f, ['A']);
+        assert.equal((await f.service.apply(set.id, true)).status, 'APPLIED');
+        let inverse = await f.service.reverse(set.id);
+        inverse = await f.service.validate(inverse.id);
+        inverse = await f.service.review(inverse.id, inverse.objects.map(c => c.id), 'APPROVED', inverse.revision);
+        await assert.rejects(f.service.apply(inverse.id, true), /Partial reversal/);
+        set = await ready(f, ['B', 'C']);
+        f.live.set('C', { value: { text: 'outside' }, token: '2' });
+        assert.equal((await f.service.apply(set.id, true)).status, 'CONFLICTED');
+        assert.deepEqual(f.writes, ['A']);
+    } finally { await f.close(); }
+});
+test('remaining work is a durable fresh proposal after reconciliation; confirmed writes are never replayed', async () => {
+    const f = await fixture();
+    try {
+        const set = await partialChain(f);
+        await assert.rejects(f.service.prepareRemaining(set.id), /Reconcile uncertain/);
+        await f.service.recover(set.id);
+        const before = canonical(await f.store.get(set.id));
+        let proposal = await f.service.prepareRemaining(set.id);
+        assert.equal(proposal.schema, 2);
+        assert.equal(proposal.status, 'DRAFT');
+        assert.deepEqual(proposal.objects.map(c => c.key), ['C', 'D']);
+        assert.deepEqual(proposal.objects[1].dependencies, [proposal.objects[0].id]);
+        assert.deepEqual(proposal.continuation?.prerequisites.map(p => p.key), ['A', 'B']);
+        assert.ok(proposal.objects.every(c => c.review === 'PENDING' && c.application === 'PENDING' && !c.approvedHash && !c.authorizationStamp));
+        assert.equal(canonical(await f.store.get(set.id)), before);
+        assert.equal((await new ReviewStore(f.root).get(proposal.id)).continuation?.changeSetId, set.id);
+        assert.equal((await f.service.prepareRemaining(set.id)).id, proposal.id);
+        await assert.rejects(f.service.apply(proposal.id), /approved/);
+        await assert.rejects(f.service.stage(proposal.id, 'fixture', 'A', { text: 'do not replay' }), /prerequisite cannot also/);
+        assert.deepEqual(f.writes, ['A', 'B']);
+        f.fail('');
+        proposal = await f.service.validate(proposal.id);
+        proposal = await f.service.review(proposal.id, proposal.objects.map(c => c.id), 'APPROVED', proposal.revision);
+        assert.equal((await f.service.apply(proposal.id)).status, 'APPLIED');
+        assert.deepEqual(f.writes, ['A', 'B', 'C', 'D']);
+        assert.equal((await f.store.get(set.id)).status, 'PARTIALLY_APPLIED', 'original outcome remains an honest historical record');
+        assert.equal((await f.service.prepareRemaining(set.id)).id, proposal.id, 'duplicate preparation never replays an applied follow-up');
+        await assert.rejects(f.service.reverse(proposal.id), /combined recovery plan/);
+    } finally { await f.close(); }
+});
+
+test('remaining preparation refuses unknown outcomes, native drift and environment changes without creating a set', async () => {
+    for (const mode of ['uncertain', 'confirmed-token', 'pending-content', 'environment']) {
+        const f = await fixture();
+        try {
+            const set = await partialChain(f);
+            if (mode === 'uncertain') f.live.delete('B');
+            await f.service.recover(set.id);
+            if (mode === 'confirmed-token') f.live.get('A')!.token = 'external-resave';
+            if (mode === 'pending-content') f.live.set('C', { value: { text: 'outside' }, token: 'external' });
+            if (mode === 'environment') f.setTarget({ ...set.environment, identity: 'another-schema' });
+            await assert.rejects(f.service.prepareRemaining(set.id), /uncertain|changed|Restage/);
+            assert.equal((await f.store.list()).length, 1);
+            assert.deepEqual(f.writes, ['A', 'B']);
+        } finally { await f.close(); }
+    }
+});
+
+test('continuation prerequisites are enforced during validation and again after approval', async () => {
+    for (const phase of ['validate', 'apply']) {
+        const f = await fixture();
+        try {
+            const source = await partialChain(f);
+            await f.service.recover(source.id);
+            let proposal = await f.service.prepareRemaining(source.id);
+            if (phase === 'apply') {
+                proposal = await f.service.validate(proposal.id);
+                proposal = await f.service.review(proposal.id, proposal.objects.map(c => c.id), 'APPROVED', proposal.revision);
+            }
+            f.live.get('A')!.token = 'external-resave';
+            const stopped = phase === 'apply' ? await f.service.apply(proposal.id) : await f.service.validate(proposal.id);
+            assert.equal(stopped.status, 'CONFLICTED');
+            assert.deepEqual(f.writes, ['A', 'B']);
+        } finally { await f.close(); }
+    }
+});
+
+test('continuation approval binds prerequisites and schema 1 cannot silently discard the new contract', async () => {
+    const f = await fixture();
+    try {
+        const source = await partialChain(f);
+        await f.service.recover(source.id);
+        let proposal = await f.service.prepareRemaining(source.id);
+        proposal = await f.service.validate(proposal.id);
+        proposal = await f.service.review(proposal.id, proposal.objects.map(c => c.id), 'APPROVED', proposal.revision);
+        const altered = structuredClone(proposal);
+        altered.continuation!.prerequisites = [];
+        assert.notEqual(approvalHash(proposal, proposal.objects[0]), approvalHash(altered, altered.objects[0]));
+        await f.store.exclusive(() => f.store.put(altered));
+        assert.equal((await f.service.apply(proposal.id)).status, 'CONFLICTED');
+        const downgraded = structuredClone(proposal);
+        downgraded.schema = 1;
+        await f.store.exclusive(() => f.store.put(downgraded));
+        await assert.rejects(f.store.get(proposal.id), /schema 2/);
+        assert.deepEqual(f.writes, ['A', 'B']);
+    } finally { await f.close(); }
+});
+
+test('remaining work respects plan review and excludes rejected objects', async () => {
+    const f = await fixture();
+    try {
+        let set = await f.service.create('Planned partial', 'oracle:LAB', undefined, undefined, 'Review this approach');
+        set = await f.service.reviewPlan(set.id, 'APPROVED', set.revision);
+        for (const key of ['A', 'B', 'C', 'REJECTED']) set = await f.service.stage(set.id, 'fixture', key, { text: key });
+        set = await f.service.validate(set.id);
+        set = await f.service.review(set.id, set.objects.map(c => c.id), 'APPROVED', set.revision);
+        set = await f.service.review(set.id, [set.objects[3].id], 'REJECTED', set.revision);
+        f.fail('B', true);
+        await f.service.apply(set.id);
+        await f.service.recover(set.id);
+        let proposal = await f.service.prepareRemaining(set.id);
+        assert.deepEqual(proposal.objects.map(c => c.key), ['C']);
+        assert.equal(proposal.plan?.review, 'PENDING');
+        assert.equal(proposal.plan?.approvedHash, undefined);
+        await assert.rejects(f.service.validate(proposal.id), /separate developer plan approval/);
+        proposal = await f.service.reviewPlan(proposal.id, 'APPROVED', proposal.revision);
+        assert.equal((await f.service.validate(proposal.id)).status, 'READY_FOR_REVIEW');
+        await f.service.cancel(proposal.id);
+        assert.notEqual((await f.service.prepareRemaining(set.id)).id, proposal.id, 'cancelled proposal may be replaced with a fresh one');
+        assert.deepEqual(f.writes, ['A', 'B']);
+    } finally { await f.close(); }
+});
+
+test('prerequisites are inherited when a continuation is itself interrupted', async () => {
+    const f = await fixture();
+    try {
+        const set = await partialChain(f);
+        await f.service.recover(set.id);
+        let proposal = await f.service.prepareRemaining(set.id);
+        proposal = await f.service.validate(proposal.id);
+        proposal = await f.service.review(proposal.id, proposal.objects.map(c => c.id), 'APPROVED', proposal.revision);
+        f.fail('');
+        const write = f.adapter.write;
+        f.adapter.write = async (e, key, after, baseline) => {
+            await write(e, key, after, baseline);
+            if (key === 'C') await f.service.cancel(proposal.id);
+        };
+        assert.equal((await f.service.apply(proposal.id)).status, 'PARTIALLY_APPLIED');
+        assert.deepEqual(f.writes, ['A', 'B', 'C']);
+        const next = await f.service.prepareRemaining(proposal.id);
+        assert.deepEqual(next.objects.map(c => c.key), ['D']);
+        assert.deepEqual(next.continuation?.prerequisites.map(p => p.key), ['A', 'B', 'C']);
+        f.live.get('A')!.token = 'external-resave';
+        assert.equal((await f.service.validate(next.id)).status, 'CONFLICTED');
+        assert.deepEqual(f.writes, ['A', 'B', 'C']);
+    } finally { await f.close(); }
+});
+test('prerequisite drift during a writer stops later writes or final completion', async () => {
+    for (const changedDuring of ['C', 'D']) {
+        const f = await fixture();
+        try {
+            const set = await partialChain(f);
+            await f.service.recover(set.id);
+            let proposal = await f.service.prepareRemaining(set.id);
+            proposal = await f.service.validate(proposal.id);
+            proposal = await f.service.review(proposal.id, proposal.objects.map(c => c.id), 'APPROVED', proposal.revision);
+            f.fail('');
+            const write = f.adapter.write;
+            f.adapter.write = async (e, key, after, baseline) => {
+                await write(e, key, after, baseline);
+                if (key === changedDuring) f.live.get('A')!.token = 'concurrent-change';
+            };
+            const stopped = await f.service.apply(proposal.id);
+            assert.equal(stopped.status, 'PARTIALLY_APPLIED');
+            assert.deepEqual(f.writes, changedDuring === 'C' ? ['A', 'B', 'C'] : ['A', 'B', 'C', 'D']);
+            await assert.rejects(f.service.recover(proposal.id), /prerequisite changed/);
+        } finally { await f.close(); }
+    }
+});
+test('object timeline distinguishes proposals, verified readback, token drift and unavailable environments without writes', async () => {
+    const f = await fixture();
+    try {
+        const staged = await ready(f), objectId = staged.objects[0].id;
+        let timeline = await f.service.objectTimeline(staged.id, objectId);
+        assert.equal(timeline.live.status, 'NOT_CHECKED');
+        assert.equal(timeline.baseline.snapshot, hash(null));
+        assert.equal(timeline.revisions.length, 0);
+        assert.equal(timeline.proposals.length, 1);
+        assert.equal((await f.service.objectTimeline(staged.id, objectId, true)).live.matched, 'baseline');
+        assert.deepEqual(f.writes, []);
+        const applied = await f.service.apply(staged.id);
+        const recorded = canonical(await f.store.get(staged.id));
+        timeline = await f.service.objectTimeline(staged.id, objectId, true);
+        assert.equal(timeline.revisions.length, 1);
+        assert.equal(timeline.proposals.length, 0);
+        assert.equal(timeline.revisions[0].continuity, 'MATCHES_PREVIOUS');
+        assert.equal(timeline.live.status, 'MATCHES_RECORDED');
+        assert.equal(timeline.live.matched, timeline.revisions[0].id);
+        assert.equal(canonical(await f.store.get(staged.id)), recorded, 'live history checks must not alter review or application state');
+        f.live.get('A')!.token = 'external-resave';
+        assert.equal((await f.service.objectTimeline(staged.id, objectId, true)).live.status, 'TOKEN_CHANGED');
+        f.live.set('A', { value: { text: 'external edit' }, token: 'external-edit' });
+        assert.equal((await f.service.objectTimeline(staged.id, objectId, true)).live.status, 'DIVERGED');
+        f.setTarget({ ...applied.environment, identity: 'different-schema' });
+        let reads = 0;
+        f.adapter.read = async () => { reads++; throw new Error('must not read another environment'); };
+        assert.equal((await f.service.objectTimeline(staged.id, objectId)).live.status, 'NOT_CHECKED');
+        assert.equal((await f.service.objectTimeline(staged.id, objectId, true)).live.status, 'UNAVAILABLE');
+        assert.equal(reads, 0);
+        assert.deepEqual(f.writes, ['A']);
+    } finally { await f.close(); }
+});
+
+test('timeline retains reversal/manual history and marks unrecorded gaps instead of inventing continuity', async () => {
+    const f = await fixture();
+    try {
+        const applied = await f.service.apply((await ready(f)).id);
+        let inverse = await f.service.reverse(applied.id);
+        inverse = await f.service.validate(inverse.id);
+        inverse = await f.service.review(inverse.id, inverse.objects.map(c => c.id), 'APPROVED', inverse.revision, true);
+        await f.service.apply(inverse.id);
+        let timeline = await f.service.objectTimeline(applied.id, applied.objects[0].id, true);
+        assert.equal(timeline.revisions.length, 2);
+        assert.equal(timeline.revisions.find(r => r.changeSetId === applied.id)?.status, 'REVERTED');
+        assert.equal(timeline.revisions.find(r => r.changeSetId === inverse.id)?.reverses, applied.id);
+        assert.equal(timeline.live.matched, timeline.revisions.find(r => r.changeSetId === inverse.id)?.id);
+        f.live.set('A', { value: { text: 'external edit before manual save' }, token: 'outside' });
+        await f.service.captureManual('oracle:LAB', 'fixture', 'A', async () => f.live.set('A', { value: { text: 'manual' }, token: 'manual-token' }));
+        timeline = await f.service.objectTimeline(applied.id, applied.objects[0].id, true);
+        const manual = timeline.revisions.find(r => r.origin === 'manual');
+        assert.ok(manual);
+        assert.equal(manual.continuity, 'GAP');
+        assert.equal(timeline.live.matched, manual.id);
+        assert.equal((await new ReviewService(new ReviewStore(f.root), { environment: async () => applied.environment, changed() {} }, [f.adapter]).objectTimeline(applied.id, applied.objects[0].id)).revisions.length, 3);
+    } finally { await f.close(); }
+});
+
+test('timeline scopes canonical keys to one environment and includes only verified objects from partial applications', async () => {
+    const f = await fixture();
+    try {
+        const set = await ready(f, ['A', 'B', 'C']);
+        f.fail('B', true);
+        const partial = await f.service.apply(set.id);
+        const all = await f.store.list();
+        assert.equal(partial.status, 'PARTIALLY_APPLIED');
+        assert.equal((await f.service.objectTimeline(set.id, set.objects[0].id)).revisions.length, 1);
+        const uncertain = await f.service.objectTimeline(set.id, set.objects[1].id);
+        assert.equal(uncertain.revisions.length, 0);
+        assert.equal(uncertain.proposals[0].application, 'UNCERTAIN');
+        const canonicalSet = structuredClone(all[0]);
+        canonicalSet.objects[0].key = { type: 8, parts: ['A', 'B', 'C'] };
+        const otherEnvironment = structuredClone(canonicalSet);
+        otherEnvironment.environment.identity = 'other-database';
+        const otherConnection = structuredClone(canonicalSet);
+        otherConnection.environment.connection = 'oracle:OTHER';
+        const timeline = buildObjectTimeline([canonicalSet, otherEnvironment, otherConnection], set.environment, 'fixture', { parts: ['A', 'B', 'C'], type: 8 });
+        assert.equal(timeline.revisions.length, 1);
+        assert.equal(timeline.proposals.length, 0);
+        assert.throws(() => buildObjectTimeline(all, set.environment, 'another-adapter', 'A'), /No retained history/);
+    } finally { await f.close(); }
+});
 test('staging/restart/review has no persistence; new and deleted objects have real null sides', async () => {
     const f = await fixture();
     try {

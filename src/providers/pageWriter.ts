@@ -1,4 +1,5 @@
-import type { DbConnection as Connection } from '../db/connection.js';
+import type { DbConnection as Connection, DbTypes } from '../db/connection.js';
+import { readPageSnapshot, type PagePreviewSnapshots } from './pageSnapshot.js';
 import { writeScopeRefusal } from './writeScope.js';
 import { PAGE_SIZE_BITS, PAGE_SIZE_CUSTOM, PAGE_SIZE_PRESETS, pageSizeChoice } from '../model/pageLayout.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
@@ -8,6 +9,7 @@ import {
   newControlRows, isRecordBound, type ColumnValues, type FieldInfo, type NewControl, type NewControlDataRows
 } from './pageControlTemplates.js';
 import { checkPageScrolls, occursLevels, SCROLL_FIELD_TYPES, type CheckedControl, type PageProblem } from '../model/pageLevels.js';
+import { pageUseRefusal } from '../model/pageUse.js';
 
 /*
  * Saving a page's layout, as App Designer does (docs/PAGE_SAVE.md, cases
@@ -237,6 +239,12 @@ export interface PageSaveRequest {
   order?: number[];
   /** Save a page that fails App Designer's checks (PageInvalidError), as its "Invalid page ... save?" Yes does. */
   saveInvalid?: boolean;
+  /** Execute the native writer and verify within its transaction, then roll back. Returned version/counts are hypothetical. */
+  dryRun?: boolean;
+  /** Full native before/after images, captured inside the preview transaction before rollback. Requires dryRun. */
+  captureSnapshots?: boolean;
+  /** Additional full-content/version guard, checked under the Page header lock. */
+  expectedSnapshotToken?: string;
 }
 
 /**
@@ -428,6 +436,7 @@ export interface PageSaveResult {
   updated: number;
   deleted: number;
   inserted: number;
+  snapshots?: PagePreviewSnapshots;
 }
 
 /** A stored control's editable columns plus its FIELDNUM, read before the write. */
@@ -646,6 +655,8 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
     if (!storedById.has(c.pnlFldId)) {
       throw new PageSaveRefusedError(`Control ${c.pnlFldId} is not on the stored page.`);
     }
+    const refusal = pageUseRefusal(storedById.get(c.pnlFldId)?.fieldType, c.fieldUse, c.secureInvisible);
+    if (refusal) throw new PageSaveRefusedError(refusal);
   }
   // MAXPNLFLDID is a high-water mark; never hand out an id at or below a stored one.
   const base = Math.max(maxPnlFldId, ...stored.map((c) => c.pnlFldId), 0);
@@ -668,6 +679,8 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
     : e.fresh.control.add ? NEW_CONTROL_FIELDTYPE[e.fresh.control.add.kind] : Number(e.fresh.control.fieldType ?? -1));
   const atOrigin = (e: (typeof final)[number]) => { const c = placedAt(e); return c.fieldLeft === 0 && c.fieldTop === 0 && !SCROLL_FIELD_TYPES.has(typeOf(e)); };
   for (const f of fresh) {
+    const useRefusal = pageUseRefusal(f.control.add ? NEW_CONTROL_FIELDTYPE[f.control.add.kind] : f.control.fieldType, f.control.fieldUse, f.control.secureInvisible);
+    if (useRefusal) throw new PageSaveRefusedError(useRefusal);
     const into = f.control.add?.intoGrid;
     if (into !== undefined) {
       // A column of a grid (gd-column, ts-fresh, ag-fresh): stored at (0, 0) with its size, right after the grid's last
@@ -892,12 +905,14 @@ async function counters(c: Connection, forUpdate: boolean): Promise<{ pdm: numbe
 
 const quoteText = (s: string) => `'${s.replace(/'/g, "''")}'`;
 
-export async function savePage(c: Connection, request: PageSaveRequest): Promise<PageSaveResult> {
+export async function savePage(c: Connection, request: PageSaveRequest, types?: DbTypes): Promise<PageSaveResult> {
   const { pnlName, operatorId } = request;
   const scope = writeScopeRefusal(pnlName);
   if (scope) throw new PageSaveRefusedError(scope);
   const opError = validateOperatorId(operatorId);
   if (opError) throw new PageSaveRefusedError(opError);
+  if (request.captureSnapshots && (!request.dryRun || !types)) throw new PageSaveRefusedError('Page snapshots require a rollback preview and connected driver types.');
+  if (request.expectedSnapshotToken && !types) throw new PageSaveRefusedError('Page snapshot guard requires connected driver types.');
 
   try {
     if (!(await operatorExists(c, operatorId))) {
@@ -914,6 +929,8 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
     if (Number(defn.VERSION) !== request.openedVersion) {
       throw new PageSaveRefusedError(`${pnlName} changed since it was opened (version ${defn.VERSION}, opened ${request.openedVersion}); reopen it.`);
     }
+    const before = request.captureSnapshots || request.expectedSnapshotToken ? await readPageSnapshot(c, types!, pnlName) : undefined;
+    if (request.expectedSnapshotToken && before?.token !== request.expectedSnapshotToken) throw new PageSaveRefusedError('Native Page snapshot changed before the writer; restage and review.');
 
     const storedRows = await select<Record<string, number | string>>(c,
       `SELECT F.PNLFLDID, F.FIELDNUM, F.FIELDTYPE, F.FIELDLEFT, F.FIELDTOP, F.FIELDRIGHT, F.FIELDBOTTOM, F.EDITLBLLEFT, F.EDITLBLTOP, F.EDITLBLRIGHT, F.EDITLBLBOTTOM,
@@ -1023,7 +1040,9 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
     if (plan.deletes.length === 0 && plan.updates.length === 0 && plan.inserts.length === 0 && plan.htmlWrites.length === 0 && plan.richTextWrites.length === 0 && plan.extUpdates.length === 0
       && Object.keys(props).length === 0) {
       // Nothing changed: leave the page, its version and the counters untouched.
-      return { version: request.openedVersion, fieldCount: plan.fieldCount, updated: 0, deleted: 0, inserted: 0 };
+      const snapshots: PagePreviewSnapshots | undefined = before && request.captureSnapshots ? { schema: 'page-preview/1', before, after: await readPageSnapshot(c, types!, pnlName) } : undefined;
+      if (request.dryRun) await c.rollback();
+      return { version: request.openedVersion, fieldCount: plan.fieldCount, updated: 0, deleted: 0, inserted: 0, ...(snapshots ? { snapshots } : {}) };
     }
 
     // Each added control's rows, built before anything is written so a refused field stops the save clean.
@@ -1100,7 +1119,9 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
       version: next.pdm + 1, fieldCount: plan.fieldCount, updated: plan.updates.length, deleted: plan.deletes.length, inserted: plan.inserts.length
     };
     await verifyPageSave(c, request, result, plan.inserts.map((i) => i.pnlFldId));
-    await c.commit();
+    if (before && request.captureSnapshots) result.snapshots = { schema: 'page-preview/1', before, after: await readPageSnapshot(c, types!, pnlName) };
+    if (request.dryRun) await c.rollback();
+    else await c.commit();
     return result;
   } catch (err) {
     await c.rollback().catch(() => { /* the original error matters more */ });
@@ -1272,6 +1293,8 @@ export function copyControlRows(source: { field: ColumnValues; ext: ColumnValues
   edited: EditedControl): { field: ColumnValues; ext: ColumnValues } {
   const n = (v: unknown) => Number(v ?? 0);
   const src = source.field;
+  const useRefusal = pageUseRefusal(n(src.FIELDTYPE), edited.fieldUse, edited.secureInvisible);
+  if (useRefusal) throw new PageSaveRefusedError(useRefusal);
   const dx = edited.fieldLeft - n(src.FIELDLEFT), dy = edited.fieldTop - n(src.FIELDTOP);
   // The editor keeps an auto-sized 0 at 0; App Designer moves it too. A resized copy keeps the editor's size.
   const corner = (col: 'FIELDRIGHT' | 'FIELDBOTTOM', d: number, sent: number) =>

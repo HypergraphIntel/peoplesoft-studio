@@ -7,7 +7,32 @@ captured App Designer saves (PeopleCode, records, fields, translates, SQL,
 HTML, style sheets, projects, packages, pages). Core authoring tools are in
 `src/mcp/writeTools.ts`; domain tools live in the corresponding `src/mcp/*Tools.ts`
 modules. Authoring tools register only when VS Code provides the write host
-(the setting, the approval dialog, and the editors' state).
+(the setting, review/approval integration, and the editors' state).
+
+## 0.9.1 candidate: staged review paths
+
+On Oracle with Change Review enabled, supported SQL, HTML/freeform style sheet,
+PeopleCode, Query and Process mutations stage durable proposals. Page edits are
+bounded to existing-control move/resize, label/use and description/comments.
+Record edits are existing SQL Table/Derived Work description/comments only; AE
+edits are existing-program description/comments only. Other operations on these
+staged Page/Record/AE edit tools are refused. Creation/copy/rename/delete tools
+outside the migrated paths retain their existing legacy gates.
+
+`REVIEW_REQUIRED` means **no committed PeopleSoft change**. Open **PeopleSoft →
+Change Review → Open Review**, inspect the proposal, then approve and apply in
+that workspace. Agents can prepare proposals and read status; no MCP approval
+or application tool exists. Approval binds the exact revision, target, native
+baseline and policy. Drift or a changed proposal requires validation and fresh
+approval. The `allow` setting does not bypass staged revision approval.
+
+Explicit supported `dryRun` requests remain previews: Page/Record execute and
+roll back; public AE preview remains plan-only. The native writer supports more
+operations than the initial review adapters. The legacy-operation descriptions
+below must not be read as broader staged capability. See
+[adapter coverage](change-review/COVERAGE.md),
+[header scope](change-review/STRUCTURED_HEADERS.md) and
+[0.9.1 readiness](RELEASE_0_9_1.md) for evidence and open acceptance checks.
 
 ## Additional authoring tools in 0.8.9
 
@@ -37,8 +62,9 @@ A write goes ahead only when all of these hold:
 4. **A name in the write scope** (`peoplesoft.writeNamePrefix`, when set).
 5. **No VS Code editor with unsaved changes** to the definition. The user
    saves or reverts first.
-6. **The user's approval**, when `peoplesoft.mcp.writes` is `confirm` (the
-   default). A modal names the connection, the definition and the change: for
+6. **The user's approval**. Migrated paths require exact-revision approval in
+   Change Review. Legacy paths ask when `peoplesoft.mcp.writes` is `confirm`
+   (the default). Their modal names the connection, definition and change: for
    text, where it changes and the new lines; for pages and records, each
    operation. Nothing is written unless the user chooses **Allow**.
 
@@ -59,8 +85,8 @@ PeopleCode save leaves the same report as an editor save
 
 | `peoplesoft.mcp.writes` | |
 |---|---|
-| `confirm` (default) | VS Code asks before each write |
-| `allow` | Writes go straight through the gates |
+| `confirm` (default) | Staged revision approval in Change Review; legacy writes use their existing confirmation |
+| `allow` | Staged revision approval still required; legacy writes proceed through their other gates |
 | `off` | The MCP is read-only |
 
 ## Tools
@@ -136,7 +162,10 @@ a live database.
 
 Every write tool's save passes the agent delivered-object policy,
 `peoplesoft.customization.agentDeliveredObjectPolicy`, after the user's
-approval of the write (docs/CUSTOMIZATION.md): a write to an Oracle- or
+approval of the write (docs/CUSTOMIZATION.md). Migrated paths bind current
+ownership/policy into reviewed authorization and recheck it at application;
+they do not prompt again for an unchanged exact reviewed proof. Legacy paths
+keep the existing confirmation: a write to an Oracle- or
 vendor-delivered definition, or one of unknown ownership, is asked for again
 in VS Code under `requireApproval` (the default) -- even when MCP writes are
 `allow` -- refused under `block`, and recorded under `allowWithAudit`. An

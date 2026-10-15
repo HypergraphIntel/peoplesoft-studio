@@ -1,6 +1,7 @@
 import type { PageLayout } from './pageLayout.js';
 import { FIELD_USE_DISPLAY_ONLY, FIELD_USE_INVISIBLE } from './pageLayout.js';
-import { NEW_CONTROL_FIELDUSE, NEW_CONTROL_SIZE, type NewControlKind } from '../providers/pageControlTemplates.js';
+import { pageUseRefusal } from './pageUse.js';
+import { NEW_CONTROL_FIELDTYPE, NEW_CONTROL_FIELDUSE, NEW_CONTROL_SIZE, type NewControlKind } from '../providers/pageControlTemplates.js';
 import type { EditedControl, EditedPageProperties } from '../providers/pageWriter.js';
 
 /*
@@ -124,6 +125,8 @@ export function applyPageOperations(layout: PageLayout, operations: readonly Pag
           c.fieldUse = o.invisible ? c.fieldUse | FIELD_USE_INVISIBLE : c.fieldUse & ~FIELD_USE_INVISIBLE;
           c.secureInvisible = o.invisible ? 1 : 0;
         }
+        const refusal = pageUseRefusal(c.add ? NEW_CONTROL_FIELDTYPE[c.add.kind] : c.fieldType, c.fieldUse, c.secureInvisible);
+        if (refusal) throw new PageOperationError(refusal);
         break;
       }
       case 'delete': {
@@ -196,7 +199,8 @@ export function pageLayoutForAgent(layout: PageLayout): Record<string, unknown> 
       labelType: c.columns.lblType, label: c.columns.lblText,
       ...(c.recName ? { record: c.recName } : {}), ...(c.fieldName ? { field: c.fieldName } : {}),
       ...(c.pageFieldName ? { pageFieldName: c.pageFieldName } : {}),
-      displayOnly: c.displayOnly, invisible: c.invisible
+      displayOnly: c.displayOnly, invisible: c.invisible,
+      ...(c.type === 0 ? { useNote: 'Static Text does not support Display Only or Invisible.' } : {})
     }))
   };
 }

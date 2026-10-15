@@ -116,29 +116,29 @@ function columnData(c: PageControl): string {
     ` data-ity="${k.inputType}" data-mnn="${esc(k.minNumber)}" data-mxn="${esc(k.maxNumber)}" data-stn="${esc(k.stepNumber)}" data-nsp="${k.disableSmartPrompt}"`;
 }
 
-function controlsHtml(controls: readonly PageControl[], editable: boolean): string {
+function controlsHtml(controls: readonly PageControl[], editable: boolean, prefix = '', metadata = true): string {
   return controls.map((c) => {
     const parts: string[] = [];
-    if (c.label) parts.push(`<div class="lbl" id="l${c.pnlFldId}">${esc(c.label.text)}</div>`);
+    if (c.label) parts.push(`<div class="lbl" id="${prefix}l${c.pnlFldId}">${esc(c.label.text)}</div>`);
     const inner = c.shape === 'checkbox' ? '<span class="box"></span>'
       : c.shape === 'radio' ? '<span class="dot"></span>'
       : c.shape === 'dropdown' ? '<span class="caret">▾</span>'
       : c.shape === 'button' ? esc(c.columns.lblText || c.typeName) : '';
     const cls = `ctl s-${c.shape}${c.displayOnly ? ' u-display-only' : ''}${c.invisible ? ' u-invisible' : ''}`;
     parts.push(
-      `<div class="${cls}" id="c${c.pnlFldId}" tabindex="0" title="${esc(`${c.num}. ${c.typeName}`)}" ${columnData(c)}>` +
+      `<div class="${cls}" id="${prefix}c${c.pnlFldId}" tabindex="0" title="${esc(`${c.num}. ${c.typeName}`)}" ${metadata ? columnData(c) : `data-control="${c.pnlFldId}"`}>` +
       `${inner}${editable ? '<span class="rsz" aria-hidden="true"></span>' : ''}</div>`);
     return parts.join('');
   }).join('\n');
 }
 
-function geometryCss(controls: readonly PageControl[]): string {
+function geometryCss(controls: readonly PageControl[], prefix = ''): string {
   const rules: string[] = [];
   for (const c of controls) {
-    rules.push(`#c${c.pnlFldId}{left:${px(c.rect.left)};top:${px(c.rect.top)};width:${px(c.rect.width)};height:${px(c.rect.height)};` +
+    rules.push(`#${prefix}c${c.pnlFldId}{left:${px(c.rect.left)};top:${px(c.rect.top)};width:${px(c.rect.width)};height:${px(c.rect.height)};` +
       `z-index:${c.shape === 'container' ? 1 : 2}}`);
     if (c.label) {
-      rules.push(`#l${c.pnlFldId}{left:${px(c.label.rect.left)};top:${px(c.label.rect.top)};` +
+      rules.push(`#${prefix}l${c.pnlFldId}{left:${px(c.label.rect.left)};top:${px(c.label.rect.top)};` +
         `${c.label.rect.width ? `max-width:${px(c.label.rect.width)};` : ''}}`);
     }
   }
@@ -154,6 +154,29 @@ function orderGrid(controls: readonly PageControl[], editable = false): string {
     `<td>${esc(c.columns.lblText)}</td><td>${esc(c.typeName)}</td><td>${esc(c.fieldName)}</td><td>${esc(c.recName)}</td>` +
     `<td>${esc(c.pageFieldName)}</td><td class="c">${c.deferProc ? '✓' : ''}</td><td class="n">${c.controlFieldNum || ''}</td></tr>`).join('\n');
   return `<table class="order-grid"><thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+/** Shared designer drawing rules; no editor script or active PeopleSoft content. */
+export const PAGE_CONTROL_CSS = `  .ctl { position: absolute; box-sizing: border-box; font-size: 11px; color: #1a1a1a; overflow: hidden; display: flex; align-items: center; padding: 0 2px; }
+  .ctl:focus { outline: 2px solid var(--vscode-focusBorder); }
+  .lbl { position: absolute; font-size: 11px; color: #1a1a1a; white-space: pre; z-index: 2; }
+  .s-field, .s-dropdown { background: #fff; border: 1px solid #7a7a7a; }
+  .s-dropdown { justify-content: flex-end; } .caret { color: #555; }
+  .s-checkbox, .s-radio { border: none; background: transparent; }
+  .s-checkbox .box { width: 12px; height: 12px; border: 1px solid #555; background: #fff; display: inline-block; }
+  .s-radio .dot { width: 12px; height: 12px; border: 1px solid #555; border-radius: 50%; background: #fff; display: inline-block; }
+  .s-button { background: #e6e6e6; border: 1px solid #707070; border-radius: 2px; justify-content: center; font-size: 10px; color: #222; }
+  .s-container { background: rgba(120,140,200,0.05); border: 1px solid #9aa7c8; align-items: flex-start; }
+  .s-label { border: 1px dashed transparent; } .s-image { background: #eef; border: 1px dashed #88a; }
+  .s-rule { background: #999; } .s-misc { border: 1px dotted #888; background: #f4f4f4; }
+  .u-display-only { opacity: 0.55; }
+  .u-invisible { background-image: repeating-linear-gradient(45deg, #0000 0 4px, #8883 4px 6px); border-style: dashed; }
+`;
+
+/** Static drawing for retained snapshots. A prefix keeps two canvases independent. */
+export function pageDrawing(layout: PageLayout, prefix: string): { html: string; css: string } {
+  if (!/^[a-z][a-z0-9-]*-$/.test(prefix)) throw new Error('Invalid Page drawing prefix.');
+  return { html: controlsHtml(layout.controls, false, prefix, false), css: geometryCss(layout.controls, prefix) };
 }
 
 export function renderPageHtml(layout: PageLayout, orderText: string, nonce: string, options: PageHtmlOptions = { editable: false }): string {
@@ -187,20 +210,7 @@ export function renderPageHtml(layout: PageLayout, orderText: string, nonce: str
   .panel { display: none; position: absolute; inset: 0; overflow: auto; } .panel.selected { display: block; }
   .canvas-scroll { padding: 16px; }
   .canvas { position: relative; background: #fbfbfb; border: 1px solid #b9b9b9; width: ${layout.width}px; height: ${layout.height}px; }
-  .ctl { position: absolute; box-sizing: border-box; font-size: 11px; color: #1a1a1a; overflow: hidden; display: flex; align-items: center; padding: 0 2px; }
-  .ctl:focus { outline: 2px solid var(--vscode-focusBorder); }
-  .lbl { position: absolute; font-size: 11px; color: #1a1a1a; white-space: pre; z-index: 2; }
-  .s-field, .s-dropdown { background: #fff; border: 1px solid #7a7a7a; }
-  .s-dropdown { justify-content: flex-end; } .caret { color: #555; }
-  .s-checkbox, .s-radio { border: none; background: transparent; }
-  .s-checkbox .box { width: 12px; height: 12px; border: 1px solid #555; background: #fff; display: inline-block; }
-  .s-radio .dot { width: 12px; height: 12px; border: 1px solid #555; border-radius: 50%; background: #fff; display: inline-block; }
-  .s-button { background: #e6e6e6; border: 1px solid #707070; border-radius: 2px; justify-content: center; font-size: 10px; color: #222; }
-  .s-container { background: rgba(120,140,200,0.05); border: 1px solid #9aa7c8; align-items: flex-start; }
-  .s-label { border: 1px dashed transparent; } .s-image { background: #eef; border: 1px dashed #88a; }
-  .s-rule { background: #999; } .s-misc { border: 1px dotted #888; background: #f4f4f4; }
-  .u-display-only { opacity: 0.55; }
-  .u-invisible { background-image: repeating-linear-gradient(45deg, #0000 0 4px, #8883 4px 6px); border-style: dashed; }
+  ${PAGE_CONTROL_CSS}
   .removed { display: none; }
   .selected-ctl { outline: 2px solid #c02; outline-offset: 0; }
   .editable .ctl { cursor: move; }

@@ -191,7 +191,11 @@ export function createStub() {
       }
     },
     // VS Code's own commands a smoke test observes: vscode.diff records its arguments.
-    _handlers: new Map([['vscode.diff', (left, right, title) => { vscode._diffs.push({ left, right, title }); }]]),
+    _handlers: new Map([
+      ['vscode.diff', (left, right, title) => { vscode._diffs.push({ left, right, title }); }],
+      ['setContext', (key, value) => { vscode._contexts.set(key, value); }]
+    ]),
+    _contexts: new Map(),
     _diffs: [],
     _createdQuickPicks: [],
     _diagnostics: new Map(),

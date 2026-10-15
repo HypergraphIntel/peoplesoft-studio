@@ -1,5 +1,5 @@
 {
-  "mode": "installed native MCP; developer review pending",
+  "mode": "installed native MCP; developer-approved lab Query apply/readback verified",
   "connection": "oracle:HRDMO",
   "changeSetId": "8cd54e34-9e5e-4322-9da5-f84a997053f4",
   "query": "ZZ_QRY_MCP_MV8YENO1",
@@ -16,20 +16,267 @@
         "before": "MCP save verified",
         "after": "Change Review validation"
       }
-    ]
+    ],
+    "connectionDisplayNameAccepted": true,
+    "existingRequestReusedAfterApply": true,
+    "nativeCheckpointRestorationVerified": true,
+    "originalMarkedReverted": true,
+    "nativeRedoVerified": true,
+    "distinctApprovalsForApplyRevertRedo": true,
+    "nativeReversalHistoryLinksVerified": true
   },
   "baselineToken": "581b2fc13a36349e0c02432c57a196609adce91452e3b7148a309828c08788df",
   "baselineSnapshotHash": "502e5357511cc6be2570c4c16c684e971976f3f113ad259f11d380339dc0b4b4",
   "proposedSnapshotHash": "d3f99da903e881478bb58bc356786f636b5ffc07c6359215b3014b585d370bcb",
-  "status": "READY_FOR_REVIEW",
+  "status": "REVERTED",
   "issue": {
     "connectionDisplayName": "create_change_set HRDMO fails; canonical oracle:HRDMO works",
-    "fix": "use shared requireProvider resolution; 16 HTTP/UI fixture checks passed; patched build pending activation"
+    "fix": "Verified installed: HRDMO resolves and the existing idempotency key returns the original APPLIED Change Set."
   },
   "notVerified": [
-    "native developer approve/apply/readback",
-    "native checkpoint reversal/redo",
     "native restart recovery",
-    "broader adapters"
-  ]
+    "broader adapters",
+    "installed timeline acceptance (running MCP has no timeline tool)"
+  ],
+  "nativeApplications": [
+    {
+      "checkedAt": "2026-10-15T14:38:08.705Z",
+      "changeSetId": "8cd54e34-9e5e-4322-9da5-f84a997053f4",
+      "status": "APPLIED",
+      "origin": "agent",
+      "description": "Change Review validation",
+      "version": 24,
+      "nativeToken": "99e44a091f4300561978e3100679c7fc996265cac93275aef7217553cf089188",
+      "snapshotHash": "d3f99da903e881478bb58bc356786f636b5ffc07c6359215b3014b585d370bcb",
+      "checkpoint": {
+        "id": "28b41d1f-aeee-4f0d-b413-aa1aa4ba5011",
+        "snapshot": "502e5357511cc6be2570c4c16c684e971976f3f113ad259f11d380339dc0b4b4",
+        "token": "581b2fc13a36349e0c02432c57a196609adce91452e3b7148a309828c08788df"
+      },
+      "approvedRevisionHash": "c2f804e3efbd2bea0fa35adc7e66bcd9eb6debb421ac96be77e8e986a87dd11c",
+      "semanticChanges": [
+        {
+          "path": "$.query.DESCR",
+          "kind": "MODIFY",
+          "before": "MCP save verified",
+          "after": "Change Review validation"
+        }
+      ],
+      "journal": [
+        {
+          "action": "REVISED_APPROVALS_INVALIDATED",
+          "at": "2026-10-15T04:05:51.925Z"
+        },
+        {
+          "action": "VALIDATING",
+          "at": "2026-10-15T04:05:55.899Z"
+        },
+        {
+          "action": "READY_FOR_REVIEW",
+          "at": "2026-10-15T04:05:56.469Z"
+        },
+        {
+          "action": "APPROVED",
+          "at": "2026-10-15T14:26:06.639Z",
+          "detail": "28b41d1f-aeee-4f0d-b413-aa1aa4ba5011"
+        },
+        {
+          "action": "APPROVED",
+          "at": "2026-10-15T14:26:16.562Z",
+          "detail": "28b41d1f-aeee-4f0d-b413-aa1aa4ba5011"
+        },
+        {
+          "action": "APPLYING",
+          "at": "2026-10-15T14:36:37.309Z"
+        },
+        {
+          "action": "WRITE_STARTED",
+          "at": "2026-10-15T14:36:37.452Z",
+          "object": "28b41d1f-aeee-4f0d-b413-aa1aa4ba5011"
+        },
+        {
+          "action": "WRITE_VERIFIED",
+          "at": "2026-10-15T14:36:39.290Z",
+          "object": "28b41d1f-aeee-4f0d-b413-aa1aa4ba5011"
+        },
+        {
+          "action": "APPLIED",
+          "at": "2026-10-15T14:36:39.302Z"
+        }
+      ],
+      "timeline": {
+        "available": false
+      }
+    },
+    {
+      "checkedAt": "2026-10-15T14:39:49.020Z",
+      "changeSetId": "5c6551dc-46de-4de6-81db-ae0cfe163b3f",
+      "status": "APPLIED",
+      "origin": "reversal",
+      "reverses": "8cd54e34-9e5e-4322-9da5-f84a997053f4",
+      "description": "MCP save verified",
+      "version": 25,
+      "nativeToken": "a5f87015ba3ea2f441ff94ef79031f761891c8f6aae46af548ccbcf3f4c35591",
+      "snapshotHash": "502e5357511cc6be2570c4c16c684e971976f3f113ad259f11d380339dc0b4b4",
+      "checkpoint": {
+        "id": "e230436a-458d-44b9-ba5a-48bd24c0ca9a",
+        "snapshot": "d3f99da903e881478bb58bc356786f636b5ffc07c6359215b3014b585d370bcb",
+        "token": "99e44a091f4300561978e3100679c7fc996265cac93275aef7217553cf089188"
+      },
+      "approvedRevisionHash": "aa12c4101bae3be7500acb455e3897b2f35dad1e01788a14564f2bf65f2cc001",
+      "semanticChanges": [
+        {
+          "path": "$.query.DESCR",
+          "kind": "MODIFY",
+          "before": "Change Review validation",
+          "after": "MCP save verified"
+        }
+      ],
+      "journal": [
+        {
+          "action": "REVERSAL_PROPOSED",
+          "at": "2026-10-15T14:37:16.362Z",
+          "detail": "8cd54e34-9e5e-4322-9da5-f84a997053f4"
+        },
+        {
+          "action": "VALIDATING",
+          "at": "2026-10-15T14:37:21.480Z"
+        },
+        {
+          "action": "READY_FOR_REVIEW",
+          "at": "2026-10-15T14:37:21.781Z"
+        },
+        {
+          "action": "APPROVED",
+          "at": "2026-10-15T14:39:20.595Z",
+          "detail": "e230436a-458d-44b9-ba5a-48bd24c0ca9a"
+        },
+        {
+          "action": "APPLYING",
+          "at": "2026-10-15T14:39:22.581Z"
+        },
+        {
+          "action": "WRITE_STARTED",
+          "at": "2026-10-15T14:39:22.735Z",
+          "object": "e230436a-458d-44b9-ba5a-48bd24c0ca9a"
+        },
+        {
+          "action": "WRITE_VERIFIED",
+          "at": "2026-10-15T14:39:24.212Z",
+          "object": "e230436a-458d-44b9-ba5a-48bd24c0ca9a"
+        },
+        {
+          "action": "APPLIED",
+          "at": "2026-10-15T14:39:24.223Z"
+        }
+      ],
+      "timeline": {
+        "available": false
+      }
+    },
+    {
+      "checkedAt": "2026-10-15T18:14:10.280Z",
+      "changeSetId": "523036b4-853a-4f65-a9eb-59b0b55801d7",
+      "status": "APPLIED",
+      "origin": "reversal",
+      "reverses": "5c6551dc-46de-4de6-81db-ae0cfe163b3f",
+      "description": "Change Review validation",
+      "version": 26,
+      "nativeToken": "37ac4dc4f6fffb1ad2275fe4b9c4f8547d8c4645bb649219a2da12bcb9656bd9",
+      "snapshotHash": "d3f99da903e881478bb58bc356786f636b5ffc07c6359215b3014b585d370bcb",
+      "checkpoint": {
+        "id": "a1ff5caf-8a34-4f31-b539-932134b5c9ec",
+        "snapshot": "502e5357511cc6be2570c4c16c684e971976f3f113ad259f11d380339dc0b4b4",
+        "token": "a5f87015ba3ea2f441ff94ef79031f761891c8f6aae46af548ccbcf3f4c35591"
+      },
+      "approvedRevisionHash": "7c7cc970a8d485e1bf792eb7e3a68e9357be5aaa4aa8a3e6935d337b2de7fab3",
+      "semanticChanges": [
+        {
+          "path": "$.query.DESCR",
+          "kind": "MODIFY",
+          "before": "MCP save verified",
+          "after": "Change Review validation"
+        }
+      ],
+      "journal": [
+        {
+          "action": "REDO_PROPOSED",
+          "at": "2026-10-15T14:39:54.942Z",
+          "detail": "5c6551dc-46de-4de6-81db-ae0cfe163b3f"
+        },
+        {
+          "action": "VALIDATING",
+          "at": "2026-10-15T14:39:59.577Z"
+        },
+        {
+          "action": "READY_FOR_REVIEW",
+          "at": "2026-10-15T14:39:59.826Z"
+        },
+        {
+          "action": "APPROVED",
+          "at": "2026-10-15T14:40:51.616Z",
+          "detail": "a1ff5caf-8a34-4f31-b539-932134b5c9ec"
+        },
+        {
+          "action": "APPLYING",
+          "at": "2026-10-15T14:40:52.979Z"
+        },
+        {
+          "action": "WRITE_STARTED",
+          "at": "2026-10-15T14:40:53.198Z",
+          "object": "a1ff5caf-8a34-4f31-b539-932134b5c9ec"
+        },
+        {
+          "action": "WRITE_VERIFIED",
+          "at": "2026-10-15T14:40:54.538Z",
+          "object": "a1ff5caf-8a34-4f31-b539-932134b5c9ec"
+        },
+        {
+          "action": "APPLIED",
+          "at": "2026-10-15T14:40:54.550Z"
+        }
+      ],
+      "historyLinks": [
+        {
+          "changeSetId": "5c6551dc-46de-4de6-81db-ae0cfe163b3f",
+          "status": "REVERTED",
+          "reversedBy": "523036b4-853a-4f65-a9eb-59b0b55801d7"
+        },
+        {
+          "changeSetId": "8cd54e34-9e5e-4322-9da5-f84a997053f4",
+          "status": "REVERTED",
+          "reversedBy": "5c6551dc-46de-4de6-81db-ae0cfe163b3f"
+        }
+      ],
+      "timeline": {
+        "live": {
+          "status": "MATCHES_RECORDED",
+          "checkedAt": "2026-10-15T18:14:10.047Z",
+          "matched": "523036b4-853a-4f65-a9eb-59b0b55801d7:a1ff5caf-8a34-4f31-b539-932134b5c9ec"
+        },
+        "verifiedRevisions": 3
+      }
+    }
+  ],
+  "reversalProposal": {
+    "changeSetId": "5c6551dc-46de-4de6-81db-ae0cfe163b3f",
+    "status": "REVERTED",
+    "reverses": "8cd54e34-9e5e-4322-9da5-f84a997053f4",
+    "semanticChanges": [
+      {
+        "path": "$.query.DESCR",
+        "before": "Change Review validation",
+        "after": "MCP save verified"
+      }
+    ],
+    "persisted": false
+  },
+  "redoProposal": {
+    "changeSetId": "523036b4-853a-4f65-a9eb-59b0b55801d7",
+    "status": "APPLIED",
+    "reverses": "5c6551dc-46de-4de6-81db-ae0cfe163b3f",
+    "oldApprovalReused": false,
+    "persisted": true
+  },
+  "verifiedScope": "Single retained HRDMO lab Query; description-only update, checkpoint inverse and redo. No broader family, crash or conflict certification."
 }

@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { copyControlRows, FLUID_USETEMP2, FLUID_USETMP, fluidClassSlots, NEW_PAGE_LICENSE_CODE, planNewPage, planPageProperties, planPageSave, PageSaveRefusedError, type EditedControl, type StoredControl } from '../providers/pageWriter.js';
 import type { NewControlKind } from '../providers/pageControlTemplates.js';
+import { NEW_CONTROL_FIELDTYPE } from '../providers/pageControlTemplates.js';
 import { checkPageScrolls } from '../model/pageLevels.js';
 
 const control = (over: Partial<StoredControl> & { pnlFldId: number }): StoredControl => ({
@@ -12,6 +13,14 @@ const control = (over: Partial<StoredControl> & { pnlFldId: number }): StoredCon
   lblType: 3, lblText: '', fieldUse: 0, secureInvisible: 0, ...over
 });
 const edit = (c: StoredControl): EditedControl => { const { fieldNum: _fieldNum, ...rest } = c; return rest; };
+
+test('Static Text cannot acquire Display Only/Invisible; invalid historical flags can be cleared', () => {
+  const stored = control({ pnlFldId: 21, fieldNum: 1, fieldType: 0 });
+  for (const update of [{ fieldUse: 1 }, { fieldUse: 2, secureInvisible: 1 }, { secureInvisible: 1 }])
+    assert.throws(() => planPageSave([stored], [{ ...edit(stored), ...update }]), /Static Text does not support/);
+  const invalid = { ...stored, fieldUse: 3, secureInvisible: 1 };
+  assert.deepEqual(planPageSave([invalid], [{ ...edit(invalid), fieldUse: 0, secureInvisible: 0 }]).updates[0].columns, { FIELDUSE: 0, SECUREINVISIBLE: 0 });
+});
 
 test('a move writes only the moved control\'s position columns (03-move shape)', () => {
   const stored = [control({ pnlFldId: 1, fieldNum: 1, fieldLeft: 72, fieldTop: 68 }),
@@ -563,7 +572,7 @@ test('an added control takes the tab order App Designer gives it: after the cont
     const stored = captureRows(capture, 'before', 'PSPNLFIELD', page).map(asStored);
     const added = inserted(capture, 'PSPNLFIELD').filter((r) => r.PNLNAME === page).sort((a, b) => Number(a.PNLFLDID) - Number(b.PNLFLDID));
     const plan = planPageSave(stored, [...stored.map(edit), ...added.map((r) => ({ ...edit(asStored(r)), pnlFldId: -1,
-      add: { kind: 'staticText' as const, recName: String(r.RECNAME), fieldName: String(r.FIELDNAME) } }))], 0, undefined, page);
+      add: { kind: Object.entries(NEW_CONTROL_FIELDTYPE).find(([, type]) => type === Number(r.FIELDTYPE))![0] as NewControlKind, recName: String(r.RECNAME), fieldName: String(r.FIELDNAME) } }))], 0, undefined, page);
     assert.deepEqual(plan.inserts.map((i) => i.fieldNum), added.map((r) => Number(r.FIELDNUM)), `${capture}: the added controls' FIELDNUM`);
     const after = new Map(captureRows(capture, 'after', 'PSPNLFIELD', page).map((r) => [Number(r.PNLFLDID), Number(r.FIELDNUM)]));
     for (const s of stored) {

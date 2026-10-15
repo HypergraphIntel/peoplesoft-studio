@@ -1,0 +1,146 @@
+{
+  "checkedAt": "2026-10-15T18:26:15.469Z",
+  "mode": "Native rollback validation/staging only; no approval/apply",
+  "changeSetId": "7b01aa98-bf35-4ccf-8463-7f69113075ec",
+  "revision": 3,
+  "status": "READY_FOR_REVIEW",
+  "environment": {
+    "connection": "oracle:HRDMO",
+    "identity": "9c585c10567fd0ba68800246978dba6ac89ce1f17c6baf3113490a052807bb85",
+    "label": "HRDMO"
+  },
+  "objects": [
+    {
+      "id": "f487a6ec-578c-4a6c-b31d-ba77d118979e",
+      "adapter": "record",
+      "key": "ZZ_RPT_LINE",
+      "before": "0d5a6743fa5327f58dd9921b6dc1435500b1d0f2b573e20b0dfcbc9da4d5331f",
+      "after": "3978c7f8b0b1b09f9cf9618902fa7b218852932b04276d4e4b2fd57afc942841",
+      "baselineToken": "fb719475973c0aa15ad48ee7827fa7683b7a0192c8e81e8d1449b385826abeaa",
+      "differences": [
+        {
+          "path": "$.tables.PSRECDEFN.RECDESCR",
+          "kind": "MODIFY",
+          "before": "Inventory report detail work",
+          "after": "Pause review validation"
+        }
+      ]
+    },
+    {
+      "id": "2a4dd79e-1953-4dbd-9d86-2f7684bd645d",
+      "adapter": "ae",
+      "key": "ZZ_AE_LAB01",
+      "before": "3ea9e9865acffb1b828e251142bc48f742bb7012f15faae87506e854e234202d",
+      "after": "5485f4850d135d9410385bad866490ba6c8a168d95968e84c99359c2be63e337",
+      "baselineToken": "6a8143c376abedd895833ae785786ffc8144afee20a3bc0dc961a1a985606334",
+      "differences": [
+        {
+          "path": "$.tables.PSAEAPPLDEFN.DESCR",
+          "kind": "MODIFY",
+          "before": "AE lab program",
+          "after": "Pause AE validation"
+        }
+      ]
+    }
+  ],
+  "scopedLiveBaselinesUnchanged": true,
+  "next": "Developer approves both objects, then More actions > Apply one object, then pause.",
+  "paused": {
+    "changeSetId": "7b01aa98-bf35-4ccf-8463-7f69113075ec",
+    "status": "PARTIALLY_APPLIED",
+    "checkedAt": "2026-10-15T19:41:26.763Z",
+    "objects": [
+      {
+        "adapter": "record",
+        "key": "ZZ_RPT_LINE",
+        "snapshot": "3978c7f8b0b1b09f9cf9618902fa7b218852932b04276d4e4b2fd57afc942841",
+        "token": "74840bd7e2341bd8eb7140cb6d1213f97a982302faed415070926d22c6872c78",
+        "checkedAt": "2026-10-15T19:41:25.832Z"
+      },
+      {
+        "adapter": "ae",
+        "key": "ZZ_AE_LAB01",
+        "snapshot": "3ea9e9865acffb1b828e251142bc48f742bb7012f15faae87506e854e234202d",
+        "token": "6a8143c376abedd895833ae785786ffc8144afee20a3bc0dc961a1a985606334",
+        "checkedAt": "2026-10-15T19:41:26.070Z"
+      }
+    ],
+    "mode": "Read-only native snapshot/token/checkpoint/approval/journal acceptance; no approval or writer calls."
+  },
+  "continuationProposal": {
+    "changeSetId": "0e67da7c-266d-4d78-9dee-1a0d7b586995",
+    "title": "Remaining work · Native header pause validation",
+    "status": "READY_FOR_REVIEW",
+    "revision": 1,
+    "objects": [
+      {
+        "id": "f2ff769a-c8e4-4071-b3fe-4912fc7eabbb",
+        "adapter": "ae",
+        "key": "ZZ_AE_LAB01",
+        "review": "PENDING",
+        "before": "3ea9e9865acffb1b828e251142bc48f742bb7012f15faae87506e854e234202d",
+        "after": "5485f4850d135d9410385bad866490ba6c8a168d95968e84c99359c2be63e337"
+      }
+    ],
+    "prerequisites": [
+      {
+        "adapter": "record",
+        "changeSetId": "7b01aa98-bf35-4ccf-8463-7f69113075ec",
+        "key": "ZZ_RPT_LINE",
+        "objectId": "f487a6ec-578c-4a6c-b31d-ba77d118979e",
+        "snapshot": "3978c7f8b0b1b09f9cf9618902fa7b218852932b04276d4e4b2fd57afc942841",
+        "token": "74840bd7e2341bd8eb7140cb6d1213f97a982302faed415070926d22c6872c78"
+      }
+    ]
+  },
+  "remaining": {
+    "changeSetId": "0e67da7c-266d-4d78-9dee-1a0d7b586995",
+    "status": "APPLIED",
+    "checkedAt": "2026-10-15T19:44:59.526Z",
+    "objects": [
+      {
+        "adapter": "record",
+        "key": "ZZ_RPT_LINE",
+        "snapshot": "3978c7f8b0b1b09f9cf9618902fa7b218852932b04276d4e4b2fd57afc942841",
+        "token": "74840bd7e2341bd8eb7140cb6d1213f97a982302faed415070926d22c6872c78",
+        "checkedAt": "2026-10-15T19:44:58.801Z"
+      },
+      {
+        "adapter": "ae",
+        "key": "ZZ_AE_LAB01",
+        "snapshot": "5485f4850d135d9410385bad866490ba6c8a168d95968e84c99359c2be63e337",
+        "token": "95b63a685f82f30bab567b32ba85ea1a48d70f9e29bca16585d0a08951c55291",
+        "checkedAt": "2026-10-15T19:44:59.023Z"
+      }
+    ],
+    "mode": "Read-only native snapshot/token/checkpoint/approval/journal acceptance; no approval or writer calls."
+  },
+  "restorationProposal": {
+    "changeSetId": "2dca21dc-f930-458d-9cea-e86617736490",
+    "revision": 3,
+    "status": "READY_FOR_REVIEW",
+    "mode": "Fresh typed baseline restoration staged/validated only; separate developer approval/application required."
+  },
+  "restored": {
+    "changeSetId": "2dca21dc-f930-458d-9cea-e86617736490",
+    "status": "APPLIED",
+    "checkedAt": "2026-10-15T19:46:23.246Z",
+    "objects": [
+      {
+        "adapter": "record",
+        "key": "ZZ_RPT_LINE",
+        "snapshot": "0d5a6743fa5327f58dd9921b6dc1435500b1d0f2b573e20b0dfcbc9da4d5331f",
+        "token": "63fc114226fac4e1303e7ab05b0be6139cc813e19a80da0473e740fab1377700",
+        "checkedAt": "2026-10-15T19:46:22.588Z"
+      },
+      {
+        "adapter": "ae",
+        "key": "ZZ_AE_LAB01",
+        "snapshot": "3ea9e9865acffb1b828e251142bc48f742bb7012f15faae87506e854e234202d",
+        "token": "922c4b2758fd562c72e26f3c9350eeae107a214c9562a34af8ab971ebcf7e9ac",
+        "checkedAt": "2026-10-15T19:46:22.732Z"
+      }
+    ],
+    "mode": "Read-only native snapshot/token/checkpoint/approval/journal acceptance; no approval or writer calls."
+  }
+}

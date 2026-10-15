@@ -83,15 +83,15 @@ const familyRoutes: Partial<Record<D, Partial<Record<Operation, string[]>>>> = {
 };
 
 const CONSTRAINTS: Partial<Record<D, string[]>> = {
+  [D.Record]: ['With Oracle Change Review, psft_edit_record stages only description/definition-text edits on existing SQL Table and Derived/Work records. Full six-table preservation snapshots, exact rollback preview and locked native token checks apply. Related Language referrers are refused. Other Record edits are refused on this staged path; create/delete and servers without Review retain legacy gates. No physical DDL/data or field-removal reversal is implied. Native acceptance remains pending.'],
+  [D.AppEngineProgram]: ['With Oracle Change Review, psft_ae_edit stages only existing-program description/comments edits, preserving twenty native tables including SQL, PeopleCode and tombstones. Existing validators and an actual rollback preview prove exact equivalence. Other AE edit operations are refused on the staged path; create/copy/rename/delete keep legacy gates. No staged dependency overlay or general structural reversal is implied. Native acceptance remains pending. No AE execution is exposed; customization AE plug-in availability remains UNKNOWN.'],
   [D.Query]: ['Oracle PeopleTools 8.62.09 authoring; one SQL Table record without subrecords, direct character fields, at most one ungrouped equal-to constant/prompt criterion.', 'Public or configured-operator private queries only; Query record access checked for prepare/run/save. No joins, unions, aggregates, row-security SQL, rename or delete.'],
   [D.ProcessDefinition]: ['Existing definitions only; saves on Oracle. No scheduling, execution, create/copy/rename/delete.', 'Complete editable properties and component/group arrays, concurrency token, installed translates and reference checks.'],
-  [D.Record]: ['Writer-supported record shapes only; record metadata changes do not build or migrate physical tables or application data.'],
   [D.Field]: ['Only calibrated field types and attributes; migration adapters impose additional restrictions.'],
-  [D.Page]: ['Bounded layout/property operations; no MCP page creation or complete page-designer parity asserted.'],
+  [D.Page]: ['Bounded layout/property operations; no MCP page creation or complete page-designer parity asserted.', 'dryRun executes the shared writer/verification then rolls back; includeSnapshots returns scoped native before/after rows with full CLOB text. expectedVersion rejects stale input. With Change Review on Oracle, existing-control move/resize, labels/use and description/comments stage exact native proposals. Other Page operations/saveInvalid are refused for staging; other platforms and servers without Change Review retain legacy gates. Static Text does not support Display Only/Invisible. One native description apply/inverse is verified; valid control-type/native visual acceptance remains pending.'],
   [D.Component]: ['Structured reads only; component editing is not exposed through MCP.'],
   [D.StyleSheet]: ['Text saves support freeform style sheets only.'],
   [D.PortalRegistry]: ['Ordinary component/external content references and folders; advanced target kinds and existing properties are preserved rather than inferred.'],
-  [D.AppEngineProgram]: ['Program definition authoring and validation only; no AE execution. Customization AE plug-in discovery remains UNKNOWN.']
 };
 
 const CONFIGURATION_MEANINGS: Record<string, { purpose: string; relationships: string[] }> = {

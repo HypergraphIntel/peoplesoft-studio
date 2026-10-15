@@ -1,8 +1,61 @@
 # Changelog
 
-## Unreleased
+## 0.9.1 — 2026-10-15
+
+Release scope and acceptance evidence are tracked in
+[0.9.1 release verification](docs/RELEASE_0_9_1.md).
 
 ### Added
+
+- Contextual menu navigation, a Change Review sidebar with pending/history,
+  object history shortcuts and state-specific review controls. View headers
+  keep at most two primary actions; project migration, MCP and discovery tools
+  have grouped menus. AI client setup is available directly in Settings.
+
+- Bounded Record/AE header Change Review with native preservation snapshots,
+  actual writer rollback validation, locked full-token checks and typed inverse.
+  Structural operations remain outside these first adapters. One native
+  description apply/checkpoint-inverse cycle is verified for each header family.
+- Trusted review action to apply one object and pause after verified readback;
+  untouched work needs fresh continuation review. Crash certification remains open.
+
+- Change Review: visual Page before/after and retained-baseline comparisons,
+  persisted-control change summaries, paired selection and shared fit/zoom.
+
+- **Bounded Page Change Review** (development, Oracle): existing-control
+  move/resize, label/use and Page description/comments now stage native
+  proposals for developer review. Full scoped rows/CLOBs are captured inside
+  rollback preview; validation requires exact native equivalence, and the writer
+  checks a full content/version token under its lock. Added control-ID diffs and
+  manual Page history. Structural operations and unhandled columns are refused;
+  native description and corrected control apply/inverse cycles are verified,
+  including Windows Application Designer inspection of the control changes. Visual comparisons reuse the Page designer drawing model.
+
+- **Page edit rollback preview** (development): `psft_edit_page` accepts
+  `dryRun` to run the existing native writer/verification and roll back without
+  save approval or editor refresh. Optional `expectedVersion` rejects stale
+  input. Preview versions/counts are explicitly hypothetical; normal save gates
+  remain. Optional `includeSnapshots` returns native scoped before/after images
+  captured before rollback; preview after-images remain hypothetical.
+
+- **Reviewed continuation after partial application** (development): prepare
+  untouched approved objects as a fresh proposal, with confirmed writes pinned
+  as read-only prerequisites and rechecked against live content/native tokens.
+  Uncertain outcomes block continuation; completed writers are never replayed.
+  The review workspace and `psft_prepare_remaining_work` expose preparation,
+  with fresh plan/object approval. Continuations use schema 2, which older
+  builds reject. One native Record → AE controlled pause, fresh AE continuation
+  and full-baseline restoration are verified; crash/lost-response certification
+  remains separate.
+
+- **Change Review object timeline** (development): retained baselines, verified
+  revisions, manual saves and reversals for the selected object/environment,
+  with links to recorded changes and comparison against the first retained
+  baseline. An explicit read-only live check distinguishes matching content and
+  native token, token-only drift, different content and unavailable targets.
+  Pending/uncertain proposals remain separate; gaps are visible. A native Query
+  update/revert/redo cycle and Page description update/inverse are verified;
+  broader native acceptance and object coverage remain pending.
 
 - Data Mover Scripts creates untitled export, import, replace-all, header or empty
   scripts from templates. Language support uses RichardWood.peoplesoft-datamover
@@ -43,6 +96,21 @@
 - **Configurable Search** in Configuration Tools > Customization, as a planned
   entry.
 
+### Fixed
+
+- Completed direct continuations move the original partial application into
+  History, with a follow-up link and its original outcome preserved. Unknown,
+  incomplete or mismatched follow-ups remain pending.
+
+- Multi-object review keeps “Apply one object, then pause” visible in More
+  actions before approval, disabled with its approval requirement explained.
+
+- Static Text control-type checks reject unsupported Display Only/Invisible
+  flags through MCP operations and the native Page writer, while allowing
+  historical flags to be cleared during restoration.
+- MCP handshake version matches the 0.9.1 extension version; production HTTP
+  verification checks that these versions stay consistent.
+
 ### Change Review development
 
 - Durable Change Sets and a persistent VS Code review/history workspace,
@@ -55,7 +123,9 @@
   partial/uncertain result reconciliation and retry protection. No multi-object
   transaction or physical data/DDL undo is claimed.
 - This is an incremental development implementation. Native human-reviewed
-  acceptance and broader metadata adapters remain pending; see
+  acceptance is verified for the documented Query, Page control/description,
+  Record/AE header and controlled-pause/continuation cycles;
+  the remaining native gates and broader metadata adapters are tracked in
   [Change Review progress](docs/change-review/PROGRESS.md).
 
 ## 0.9.0 — 2026-10-14

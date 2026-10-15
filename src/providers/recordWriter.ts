@@ -7,6 +7,8 @@ import { writeScopeRefusal } from './writeScope.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
 import { deleteViewSql, writeViewSql } from './sqlWriter.js';
+import { readStructuredSnapshot, type StructuredPreview } from './structuredSnapshot.js';
+import type { DbTypes } from '../db/connection.js';
 
 /*
  * Saving a record definition, as App Designer does (docs/RECORD_SAVE.md).
@@ -23,6 +25,10 @@ export interface RecordSaveRequest {
   edit: RecordEditState;
   /** PSOPRDEFN.OPRID recorded as LASTUPDOPRID. */
   operatorId: string;
+  /** Existing-definition rollback preview only; creation keeps its normal path. */
+  dryRun?: boolean;
+  captureSnapshots?: boolean;
+  expectedSnapshotToken?: string;
 }
 
 export interface RecordSaveResult {
@@ -31,6 +37,7 @@ export interface RecordSaveResult {
   plan: RecordSavePlan;
   /** Records whose Related Language record this is: their VERSION was set to the new one. */
   languageReferrers: string[];
+  snapshots?: StructuredPreview;
 }
 
 interface Column { name: string; type: string }
@@ -216,14 +223,19 @@ async function createRecord(c: Connection, request: RecordSaveRequest): Promise<
   return result;
 }
 
-export async function saveRecord(c: Connection, request: RecordSaveRequest): Promise<RecordSaveResult> {
+export async function saveRecord(c: Connection, request: RecordSaveRequest, types?: DbTypes): Promise<RecordSaveResult> {
   const recname = request.edit.recname;
   try {
     const operatorError = validateOperatorId(request.operatorId);
     if (operatorError) throw new RecordSaveRefusedError(operatorError);
     const scope = writeScopeRefusal(recname);
     if (scope) throw new RecordSaveRefusedError(scope);
-    if (request.edit.isNew) return await createRecord(c, request);
+    if (request.captureSnapshots && !request.dryRun) throw new RecordSaveRefusedError('Snapshots require rollback preview.');
+    if ((request.captureSnapshots || request.expectedSnapshotToken) && !types) throw new RecordSaveRefusedError('Native snapshot driver types are required.');
+    if (request.edit.isNew) {
+      if (request.dryRun || request.captureSnapshots || request.expectedSnapshotToken) throw new RecordSaveRefusedError('New Record rollback preview is not supported.');
+      return await createRecord(c, request);
+    }
     const tables: Tables = {
       recfield: await columnsOf(c, 'PSRECFIELD'), recfielddb: await columnsOf(c, 'PSRECFIELDDB'),
       index: await columnsOf(c, 'PSINDEXDEFN'), key: await columnsOf(c, 'PSKEYDEFN')
@@ -231,6 +243,8 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
 
     // The record row first: saves of one record serialize here.
     const stored = await readStored(c, tables, recname, true);
+    const before = request.captureSnapshots || request.expectedSnapshotToken ? await readStructuredSnapshot(c, types!, 'record', recname) : undefined;
+    if (request.expectedSnapshotToken && before!.token !== request.expectedSnapshotToken) throw new RecordSaveRefusedError('Native Record snapshot changed before writer.');
     if (stored.version !== request.edit.openedVersion) {
       throw new RecordSaveRefusedError(
         `${recname} was saved since it was opened (version ${stored.version}, not ${request.edit.openedVersion}). Reopen it and reapply your changes.`);
@@ -259,6 +273,7 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
     }
     const languageReferrers = await select<{ RECNAME: string }>(c,
       `SELECT RECNAME FROM PSRECDEFN WHERE RECNAME <> :r AND RELLANGRECNAME = :r FOR UPDATE`, { r: recname });
+    if ((request.captureSnapshots || request.expectedSnapshotToken) && languageReferrers.length) throw new RecordSaveRefusedError('Record review needs checkpoints for Related Language referrers; this definition is not supported yet.');
 
     for (const f of request.edit.fields.filter((x) => x.isNew && !x.isSubrecord)) {
       const [{ N }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSDBFIELD WHERE FIELDNAME = :f`, { f: f.name });
@@ -393,7 +408,9 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
     if ((Object.keys(next) as (keyof Counters)[]).some((k) => now[k] !== next[k])) {
       throw new RecordSaveRefusedError(`counters ${JSON.stringify(now)}, ${JSON.stringify(next)} expected; rolled back.`);
     }
-    await c.commit();
+    if (request.captureSnapshots) result.snapshots = { schema: 'structured-preview/1', before: before!, after: await readStructuredSnapshot(c, types!, 'record', recname) };
+    if (request.dryRun) await c.rollback();
+    else await c.commit();
     return result;
   } catch (error) {
     await c.rollback().catch(() => { /* the original error matters more */ });

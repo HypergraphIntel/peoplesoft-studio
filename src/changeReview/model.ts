@@ -39,8 +39,14 @@ export interface Entry {
     object?: string;
     detail?: string;
 }
+export interface Continuation {
+    changeSetId: string;
+    sourceRevision: number;
+    objects: { sourceObjectId: string; objectId: string }[];
+    prerequisites: { changeSetId: string; objectId: string; adapter: string; key: Json; snapshot: string; token: string }[];
+}
 export interface ChangeSet {
-    schema: 1;
+    schema: 1 | 2;
     id: string;
     title: string;
     description: string;
@@ -62,6 +68,7 @@ export interface ChangeSet {
         }[];
     };
     reverses?: string;
+    continuation?: Continuation;
     requestKey?: string;
     requestHash?: string;
     plan?: {
@@ -121,7 +128,8 @@ export function transition(set: ChangeSet, next: Status): void {
 export function planHash(set: ChangeSet): string { return hash({ environment: set.environment, plan: set.plan ? { text: set.plan.text, revision: set.plan.revision } : null }); }
 export function approvalHash(set: ChangeSet, change: Change): string {
     return hash({ environment: set.environment, revision: set.revision, object: change.id, adapter: change.adapter, key: change.key,
-        before: change.before, after: change.after, token: change.baselineToken, dependencies: change.dependencies, operation: change.operation, objectRevision: change.revision, authorization: change.authorizationStamp ?? null });
+        before: change.before, after: change.after, token: change.baselineToken, dependencies: change.dependencies, operation: change.operation, objectRevision: change.revision, authorization: change.authorizationStamp ?? null,
+        ...(set.continuation ? { continuation: set.continuation } : {}) });
 }
 export function ordered(set: ChangeSet, approvedOnly = true): Change[] {
     const selected = set.objects.filter(c => !approvedOnly || c.review === 'APPROVED');

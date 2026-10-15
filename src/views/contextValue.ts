@@ -1,5 +1,6 @@
 import { DefinitionKey, DefinitionType } from '../model/definitions.js';
 import { hasProperties } from '../model/properties.js';
+import { definitionReviewTarget } from '../changeReview/navigation.js';
 
 /**
  * A definition node's contextValue: "definition", then ".properties" when it
@@ -9,8 +10,10 @@ import { hasProperties } from '../model/properties.js';
  * (Change Description), or ".component" for a component (View PeopleCode).
  * package.json's menus match on these parts.
  */
-export function definitionContextValue(key: DefinitionKey): string {
+export function definitionContextValue(key: DefinitionKey, navigation?: { compare: boolean }): string {
   return 'definition' +
+    (navigation?.compare ? '.comparable' : '') +
+    (navigation && definitionReviewTarget(key) ? '.reviewable' : '') +
     (hasProperties(key.type) ? '.properties' : '') +
     (key.type === DefinitionType.Field && key.parts.length >= 2 ? '.recordField' : '') +
     (key.type === DefinitionType.Record ? '.record' : '') +

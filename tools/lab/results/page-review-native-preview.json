@@ -1,0 +1,30 @@
+{
+  "checkedAt": "2026-10-15T17:04:31.961Z",
+  "connection": "HRDMO",
+  "page": "ZZ_PCODE_LAB_PG",
+  "mode": "installed native Page rollback previews only; no stage/approval/apply",
+  "baselineVersion": 533,
+  "baselineToken": "9273d72e340222c09efa4ab499ed3d2c3eb1d2b55196534a343fe60780c09794",
+  "baselineHash": "c4e40910bd158ae4149121497376cdbbed39c908ed6693febb728a303def1b11",
+  "candidateHash": "f680145d8939c02baa0eb9544bb97cd208de24a7dcef3cc93569ebc56f3ce2b7",
+  "hypotheticalVersion": 560,
+  "scopedTables": [
+    "PSPNLDEFN",
+    "PSPNLFIELD",
+    "PSPNLFIELDEXT",
+    "PSPNLHTMLAREA",
+    "PSPNLHTMLLANG",
+    "PSPTPNLRTEDITOR",
+    "PSPNLCNTRLDATA",
+    "PSPNLBTNDATA",
+    "PSPNLACEGRDDATA",
+    "PSPNLACEGRDAXIS",
+    "PSPNLTREECTRL"
+  ],
+  "nativeScopedContentAndTokenUnchanged": true,
+  "notVerified": [
+    "global native counter readback",
+    "developer-reviewed Page apply/inverse",
+    "native visual reopen"
+  ]
+}

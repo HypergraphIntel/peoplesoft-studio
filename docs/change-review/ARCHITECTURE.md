@@ -1,6 +1,6 @@
 # Change Review architecture and implementation plan
 
-## Current state — inspected source
+## Baseline — published 0.9.0
 
 `src/mcp/server.ts` registers per-domain tools; `agentOrigin.ts` tags their
 callbacks through AsyncLocalStorage. `writeTools.ts` checks writable access,
@@ -18,6 +18,23 @@ packages implement ordering, preflight and verified per-object writes with
 receipts; writers commit independently. Creation receipts and the append-style
 customization audit are provenance evidence, not reversible complete history.
 No durable Change Set or revision-bound approval system exists in 0.9.0.
+
+## Current 0.9.1 candidate
+
+The extension wires a durable ReviewStore/ReviewService to the MCP controller,
+manual-save observers, review workspace and sidebar. Nine Oracle adapters handle
+SQL, HTML, freeform style sheets, PeopleCode, Process, Query, bounded existing
+Page edits and existing Record/AE headers. Migrated normal MCP saves stage exact
+snapshots; the trusted workspace binds approval and applies through the same
+native writers with private exact-key authorization, checkpoints and independent
+readback. Other tool families keep their legacy gates.
+
+Schema-2 continuations pin verified prerequisites and require fresh review.
+Partial/uncertain outcomes never replay automatically. Page comparisons reuse
+the designer drawing model; contextual menus navigate to the exact object while
+approval/application remain in the workspace. The complete current contracts
+are in [CONTRACTS.md](CONTRACTS.md); bounded native evidence and release gates are
+in [PROGRESS.md](PROGRESS.md) and [0.9.1 readiness](../RELEASE_0_9_1.md).
 
 See [INVENTORY.md](INVENTORY.md) for every statically registered write tool and
 writer commit/rollback modules. Static discovery is not runtime proof. Existing

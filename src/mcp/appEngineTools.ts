@@ -31,7 +31,7 @@ async function databaseProvider(workspace: Workspace, connection: string): Promi
 }
 
 /** Validation with the database's answers and every PeopleCode action compiled. */
-async function deepValidate(p: DatabaseProvider, doc: AeDocument): Promise<AeDiagnostic[]> {
+export async function deepValidate(p: DatabaseProvider, doc: AeDocument): Promise<AeDiagnostic[]> {
   const out = [...validateAppEngine(doc), ...await validateAppEngineReferences(doc, p.appEngineReferenceLookup())];
   const release = (await p.readEnvironment()).toolsRelease;
   for (const s of doc.sections) for (const v of s.variants) for (const st of v.steps) {

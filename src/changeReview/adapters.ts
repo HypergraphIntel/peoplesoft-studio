@@ -4,6 +4,7 @@ import { pcmProgKeyParts } from '../model/peopleCodeKeys.js';
 import { prepareHtmlText, contentTextRefusal } from '../providers/htmlWriter.js';
 import { queryDiff } from './semanticDiff.js';
 import { querySnapshot, queryView } from './query.js';
+import { requestForPageSnapshot, nativePageDiff } from '../providers/pageSnapshot.js';
 import { DatabaseProvider } from '../providers/database.js';
 import type { Workspace } from '../workspace.js';
 import { DefinitionType, makeKey, type DefinitionKey } from '../model/definitions.js';
@@ -17,6 +18,9 @@ import type { ReviewAdapter } from './service.js';
 import { withReviewedWrite, reviewedPolicyIdentity } from './authorization.js';
 import type { McpWriteHost } from '../mcp/writeTools.js';
 import { requireProvider } from '../mcp/tools.js';
+import { recordHeaderRequest, aeHeaderDocument, headerChange, structuredHeaderDiff } from './structuredHeaders.js';
+import type { StructuredFamily } from '../providers/structuredSnapshot.js';
+import { deepValidate } from '../mcp/appEngineTools.js';
 export function databaseReviewAdapters(workspace: Workspace, host: () => McpWriteHost | undefined) {
     async function provider(environment: Environment): Promise<DatabaseProvider> {
         const p = await workspace.require(environment.connection);
@@ -62,6 +66,68 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
         if (!Array.isArray(key) || key.length !== 2 || key.some(x => typeof x !== 'string' || !x.trim()))
             throw new Error('Process key is [process type, name].');
         return makeKey(DefinitionType.ProcessDefinition, ...key as string[]);
+    };
+    const pageKey = (key: Json) => {
+        if (typeof key !== 'string' || !/^[A-Z][A-Z0-9_#@$]{0,17}$/.test(key)) throw new Error('Page key must be an uppercase native Page name.');
+        return makeKey(DefinitionType.Page, key);
+    };
+    const page: ReviewAdapter = { id: 'page', diff: nativePageDiff,
+        authorizationState: (e, key) => authorizationState(e, pageKey(key)), warnings: async (e, key) => [...await warnings(e, pageKey(key)), 'Existing-control geometry, labels/use and description/comments only. Native writer normalization is included in review. No Page creation/deletion, inserted/deleted controls or raw row replay.'],
+        read: async (e, key) => { const p = await provider(e), read = await p.readPageForReview(pageKey(key).parts[0]); return { value: read.value as unknown as Json, token: read.token }; },
+        validate: async (e, key, before, after) => {
+            try {
+                const k = pageKey(key), { p, operator } = await authorize(e, k), current = await p.readPageForReview(k.parts[0]);
+                if (hash(current.value) !== hash(before)) return ['Page baseline changed before native validation.'];
+                const request = requestForPageSnapshot(k.parts[0], before, after, current.version, operator);
+                const preview = await p.savePage({ ...request, dryRun: true, captureSnapshots: true, expectedSnapshotToken: current.token });
+                if (!preview.snapshots || preview.snapshots.before.hash !== hash(before) || preview.snapshots.after.hash !== hash(after))
+                    return ['Page proposal is not exactly reproducible by the bounded native writer. Unsupported changes or normalization require a new preview.'];
+                return [];
+            } catch (error) { return [error instanceof Error ? error.message : String(error)]; }
+        },
+        authorize: async (e, key) => { await authorize(e, pageKey(key)); },
+        write: async (e, key, after, baseline) => {
+            const k = pageKey(key), { p, operator, policyIdentity } = await authorizeReviewed(e, k, baseline), live = await p.readPageForReview(k.parts[0]);
+            if (live.token !== baseline.token || hash(live.value) !== hash(baseline.value)) throw new Error('Native Page changed before approved application.');
+            const request = requestForPageSnapshot(k.parts[0], live.value, after, live.version, operator);
+            await withReviewedWrite(p.id, k, () => runAsAgent(() => p.savePage({ ...request, expectedSnapshotToken: baseline.token })), policyIdentity);
+            host()!.saved(p.id, k);
+        }
+    };
+    const structuredHeader = (family: StructuredFamily): ReviewAdapter => {
+        const keyOf = (key: Json) => {
+            if (typeof key !== 'string' || !(family === 'record' ? /^[A-Z][A-Z0-9_]{0,14}$/ : /^[A-Z][A-Z0-9_]{0,11}$/).test(key)) throw new Error('Invalid structured definition key.');
+            return makeKey(family === 'record' ? DefinitionType.Record : DefinitionType.AppEngineProgram, key);
+        };
+        async function request(p: DatabaseProvider, name: string, before: Json, after: Json, version: number, operatorId: string, token: string, preview: boolean) {
+            headerChange(before, after, family, name);
+            if (family === 'record') return p.saveRecord({ ...recordHeaderRequest(name, before, after, version, operatorId), expectedSnapshotToken: token, ...(preview ? { dryRun: true, captureSnapshots: true } : {}) });
+            const live = await p.readAppEngineDocument(name);
+            if (!live) throw new Error('Application Engine program no longer exists.');
+            const doc = aeHeaderDocument(name, before, after, live.doc), errors = (await deepValidate(p, doc)).filter(d => d.severity === 'error');
+            if (errors.length) throw new Error(errors.map(d => d.path + ': ' + d.message).join('\n'));
+            return p.saveAppEngineDocument({ doc, openedToken: live.token, operatorId, expectedSnapshotToken: token, ...(preview ? { dryRun: true, captureSnapshots: true } : {}) });
+        }
+        return { id: family, diff: structuredHeaderDiff(family), authorizationState: (e, key) => authorizationState(e, keyOf(key)),
+            warnings: async (e, key) => [...await warnings(e, keyOf(key)), 'Bounded existing-definition description/comments only. No structural edits, field removal, DDL, code mutation, creation/deletion or raw checkpoint row replay.'],
+            read: async (e, key) => { const p = await provider(e), live = await p.readStructuredForReview(family, keyOf(key).parts[0]); return { value: live.value as unknown as Json, token: live.token }; },
+            validate: async (e, key, before, after) => {
+                try {
+                    const k = keyOf(key), { p, operator } = await authorize(e, k), live = await p.readStructuredForReview(family, k.parts[0]);
+                    if (live.hash !== hash(before)) return ['Structured baseline changed before validation.'];
+                    const result = await request(p, k.parts[0], before, after, live.version, operator, live.token, true);
+                    if (!result.snapshots || result.snapshots.before.hash !== hash(before) || result.snapshots.after.hash !== hash(after)) return ['Bounded native header writer cannot reproduce this complete proposal exactly.'];
+                    return [];
+                } catch (error) { return [error instanceof Error ? error.message : String(error)]; }
+            },
+            authorize: async (e, key) => { await authorize(e, keyOf(key)); },
+            write: async (e, key, after, baseline) => {
+                const k = keyOf(key), { p, operator, policyIdentity } = await authorizeReviewed(e, k, baseline), live = await p.readStructuredForReview(family, k.parts[0]);
+                if (live.token !== baseline.token || live.hash !== hash(baseline.value)) throw new Error('Structured definition changed before approved application.');
+                await withReviewedWrite(p.id, k, () => runAsAgent(() => request(p, k.parts[0], baseline.value, after, live.version, operator, live.token, false)), policyIdentity);
+                host()!.saved(p.id, k);
+            }
+        };
     };
     const sql: ReviewAdapter = { id: 'sql', authorizationState: (e, key) => authorizationState(e, sqlKey(key)), warnings: (e, key) => warnings(e, sqlKey(key)), normalize: value => value && typeof value === 'object' && !Array.isArray(value) && typeof value.text === 'string' ? { ...value, text: prepareSqlText(value.text) } : value,
         read: async (e, key) => {
@@ -231,5 +297,5 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
             throw new Error('A connected database is required.');
         return { connection: p.id, label: p.displayName, identity: await p.changeReviewIdentity() };
     }
-    return { adapters: [sql, content('html', DefinitionType.HtmlDefinition), content('stylesheet', DefinitionType.StyleSheet), process, query, peoplecode], environment, adapterHash: hash };
+    return { adapters: [sql, content('html', DefinitionType.HtmlDefinition), content('stylesheet', DefinitionType.StyleSheet), process, query, peoplecode, page, structuredHeader('record'), structuredHeader('ae')], environment, adapterHash: hash };
 }

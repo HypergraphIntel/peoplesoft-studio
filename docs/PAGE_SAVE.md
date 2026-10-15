@@ -1,5 +1,33 @@
 # Page save — proving the write (Phase 2)
 
+## Development rollback preview (October 15, 2026)
+
+The existing Page writer now accepts `dryRun: true`: it runs the same native
+validation, DML and in-transaction verification, then rolls back instead of
+committing. The unchanged-page path also rolls back to release its locks.
+`DatabaseProvider.savePage` skips persistence approval and post-commit readback
+for this preview; it does not check a hypothetical result after rolling it back.
+With `captureSnapshots: true` (MCP `includeSnapshots`), it returns complete scoped
+before/after rows and CLOBs captured inside the transaction. Only Page save
+stamps/version are separated from content; unsupported native values fail
+closed. The after-image and its token are hypothetical until a reviewed apply.
+
+MCP `psft_edit_page` accepts `dryRun` and optional `expectedVersion` from
+`psft_get_page_layout`. Preview retains writable/operator/scope/mode gates,
+rejects dirty editors and stale input, asks no save approval and sends no editor
+refresh. Its response explicitly says `saved: false`, `preview: true` and
+separates `baseVersion` from `hypotheticalVersion`; counts are hypothetical.
+Servers without Change Review retain normal save approval/commit behavior;
+with Change Review on Oracle, the bounded subset described below stages first.
+
+Tests exercise the real writer/provider through a transactional fixture,
+including rows/counters, failures, stale input and the unchanged case. Installed
+native preview acceptance remains pending. A bounded staged adapter now uses
+these previews; see [Page adapter contracts](change-review/PAGE_ADAPTER.md).
+This does not establish complete Page checkpoint reversal.
+The capture plan and subsequent findings below are retained as historical
+research; the current writer uses the proven PDM/SYS counter protocol.
+
 The visual Page designer's Layout view (docs/PAGES_COMPONENTS_MENUS.md) is
 read-only. Before it can edit and save a page, the save transaction App
 Designer performs has to be captured and proven, exactly as the record and

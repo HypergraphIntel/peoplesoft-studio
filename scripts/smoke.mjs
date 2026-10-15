@@ -13,9 +13,11 @@ import * as path from 'node:path';
 import Module from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { createStub } from './vscode-stub.mjs';
+import { auditNavigation } from './navigation-audit.mjs';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const manifest = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
+auditNavigation(manifest);
 const { vscode, registered, settings } = createStub();
 
 // The bundle does `require('vscode')`, which only the extension host provides.
@@ -60,7 +62,7 @@ const context = {
 };
 
 try {
-  extension.activate(context);
+  await extension.activate(context);
 } catch (err) {
   console.error(`✗ activate() threw: ${err.stack}`);
   process.exit(1);
@@ -75,6 +77,25 @@ for (const id of declared) {
 for (const id of registered.commands) {
   check(declared.includes(id), `command registered but missing from package.json: ${id}`);
 }
+
+// A valid contribution can still be unusable if a menu references a missing
+// command/submenu. Also keep the agreed maximum of two primary view actions.
+const submenus = new Set((manifest.contributes.submenus ?? []).map(s => s.id));
+for (const [location, entries] of Object.entries(manifest.contributes.menus ?? {})) {
+  for (const item of entries) {
+    if (item.command) check(declared.includes(item.command), `${location}: unknown menu command ${item.command}`);
+    if (item.submenu) check(submenus.has(item.submenu), `${location}: unknown submenu ${item.submenu}`);
+  }
+}
+for (const view of Object.values(manifest.contributes.views ?? {}).flat()) {
+  const primary = (manifest.contributes.menus['view/title'] ?? []).filter(item =>
+    /^navigation(?:@|$)/.test(item.group ?? '') && item.when?.includes(`view == ${view.id}`));
+  check(primary.length <= 2, `${view.id}: more than two primary toolbar actions`);
+}
+const reviewNavigation = ['psft.changeReview.open', 'psft.changeReview.pending', 'psft.changeReview.history', 'psft.changeReview.compare', 'psft.changeReview.objectHistory'];
+check((manifest.contributes.menus['view/item/context'] ?? []).every(item =>
+  !item.command?.startsWith('psft.changeReview.') || reviewNavigation.includes(item.command)),
+  'review mutation commands must remain inside the trusted review workspace');
 
 // Status-bar connection picker must open a Quick Pick containing every
 // configured PeopleSoft connection.
@@ -437,8 +458,9 @@ try {
   check(rows[0]?.label === 'HCDEV', 'the Settings view does not show the target connection');
   check(settingsTree.getTreeItem(rows[0]).iconPath?.color?.id === 'charts.green',
     'the Settings view does not show the connected target in green');
-  check(rows.every((r) => settingsTree.getTreeItem(r).command?.command === 'psft.settings.open'),
-    'a Settings view row does not open the Settings panel');
+  check(rows.every((r) => settingsTree.getTreeItem(r).command?.command ===
+    (r.label === 'MCP Server' ? 'psft.mcp.menu' : r.label === 'Configure AI Client…' ? 'psft.mcp.configureClient' : 'psft.settings.open')),
+    'a Settings view row opens the wrong settings/server/client workflow');
   // The MCP server's status sits below the release / compiler profile row.
   const labels = rows.map((r) => r.label);
   const mcpRow = labels.indexOf('MCP Server');
@@ -483,6 +505,20 @@ try {
   check((vscode._messages.at(-1)?.[1] ?? '').includes('project export'),
     `Properties from the editor tab menu did not resolve the tab's definition: ${vscode._messages.at(-1)?.[1]}`);
   vscode.window.activeTextEditor = savedEditor;
+
+  // Context-menu Open must use the clicked definition, even while another
+  // editor has focus. Custom editors also expose their history by URI.
+  const openedBefore = vscode._shownDocuments.length;
+  await vscode.commands.executeCommand('psft.definition.open',
+    { kind: 'definition', provider: { id: devId }, summary: { key: { type: 8, parts: ['DEMO', 'DEMO_ID', 'FieldFormula'] } } });
+  check(vscode._shownDocuments.length > openedBefore && String(vscode._shownDocuments.at(-1)?.doc?.uri).includes('FieldFormula'),
+    'context-menu Open did not open the clicked definition');
+  vscode._messages.length = 0;
+  await vscode.commands.executeCommand('psft.changeReview.objectHistory', tabUri);
+  // Fields have no history adapter, so this must neither open a review for an
+  // unrelated active editor nor claim there are recorded revisions.
+  check(!vscode._messages.some(([, message]) => message.includes('No retained Change Review history')),
+    'an unsupported Field history request fell back to the active editor');
 
   // Record Field PeopleCode: a field under its record lists every record field
   // event; a bare field is asked to be chosen under its record.

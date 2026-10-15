@@ -1,6 +1,6 @@
 # Change Review capability and risk matrix
 
-Development scope only. The 0.9.0 release is unchanged. Registration inventory
+0.9.1 candidate scope. The published 0.9.0 release is unchanged; see [release readiness](../RELEASE_0_9_1.md). Registration inventory
 is in [INVENTORY.md](INVENTORY.md); contracts are in [CONTRACTS.md](CONTRACTS.md).
 
 | Family/path | Current review integration | Snapshot/reversal scope | Verification and missing evidence |
@@ -9,11 +9,11 @@ is in [INVENTORY.md](INVENTORY.md); contracts are in [CONTRACTS.md](CONTRACTS.md
 | HTML / freeform style sheets | Staged create/update; manual history | Text + native description/version; native normalization before approval; update reversal | HTTP/UI fixtures; new live readReviewContent/description and reviewed saves pending; CREATE inverse deletion unsupported |
 | Event PeopleCode (8/9/42/43/44/46/47/48) | Staged create/update/delete; manual history | Authoritative PSPCMTXT source and native fingerprint; existing compiler/writer; reviewed inverse/redo | Compiler and HTTP/UI fixture exercise; new live reviewed path pending; no decompiled baseline |
 | Existing Application Class source (58) | Staged update; manual source history | Existing authoritative source only | Class/package creation/deletion metadata snapshots are missing; new class staging cannot validate and class deletion is refused |
-| PS Query | Staged create/edit/copy; manual history | Existing native query rows minus writer stamps; full native token and access checks; update reversal | HTTP/UI fixtures. CREATE inverse needs a calibrated delete adapter; new live reviewed path pending |
+| PS Query | Staged create/edit/copy; manual history | Existing native query rows minus writer stamps; full native token and access checks; update reversal | HTTP/UI fixtures and one installed developer-approved description update with independent snapshot/token/checkpoint verification. Native description-update inverse and redo also independently verified; remaining scenarios pending; CREATE inverse needs a calibrated delete adapter |
 | Process Definitions | Staged existing-definition updates; manual history | Complete editor input and native token; sorted association sets | Core/model tests. Output-mode normalization changes currently refused; reference validation still runs in writer; live reviewed UI flow pending |
-| Pages | Semantic comparator model only; mutation remains legacy | Persisted control identities matched; provisional/ambiguous matches explicit | Need complete editable snapshot/projection, new-control identity mapping and native before/after visual/save checks |
-| Records / fields / translates | Record comparator model only; mutation remains legacy | No reviewed mutation or physical DDL reversal | Need complete supported metadata/index/label snapshots, field-removal PeopleCode checkpoints, related-record side effects and inverse lab controls |
-| AE | Semantic comparator model only; mutation remains legacy | Section-variant/step/action identities and order | Need full language/native document preservation, staged-dependency overlay, canonical after-state and create/delete/rename recovery lab evidence |
+| Pages | Bounded staged existing-control geometry/label/use and description/comments on Oracle; manual history; shared-writer rollback preview | Full scoped native rows/CLOBs, positive persisted IDs, exact rollback-preview equivalence and locked content/version token guard. Typed inverse only when exactly reproducible | Real writer/provider HTTP/UI fixture verified. One native developer-reviewed description apply/inverse verified with full snapshot/token/checkpoint and live timeline checks. Visual overlays are implemented and browser/fixture verified. Corrected Static Text geometry/label and Edit Box use flags passed native apply/inverse plus developer Windows Designer inspection; Page redo remains unverified; creation/deletion, inserted/deleted controls, binding/order/other properties and invalid-save override are not staged. See PAGE_ADAPTER.md |
+| Records / fields / translates | Record description/comments staged on Oracle; field/translate and create/delete remain legacy | Six-table native preservation checkpoint, shared-writer rollback validation and locked full token; existing SQL Table/Derived Work only; Related Language referrers refused | One native Record header description apply/checkpoint inverse passed complete scoped snapshot/token/approval checks. No reviewed field removal, code side effects, type/DDL/data or general structural reversal. See STRUCTURED_HEADERS.md |
+| AE | Existing-program description/comments staged on Oracle; other edit operations refused on staged path; create/copy/rename/delete remain legacy | Twenty-table preservation checkpoint including language/SQL/source/binary/tombstones; exact shared-writer rollback equivalence, locked full token and typed header inverse | One native AE header description apply/checkpoint inverse passed complete scoped snapshot/token/approval checks. Structural/action edits, staged-dependency overlay and combined create/delete/rename recovery remain open. See STRUCTURED_HEADERS.md |
 | Menus / CI / channels | Legacy | Existing writer/session models reusable, not yet review adapters | Need complete snapshots and inverse/dependency evidence for create/edit/copy/rename/delete |
 | IB / Portal / administration / OAuth | Legacy | Secret-filtered readers/writers exist; not generalized into exact review snapshots | Need per-kind normalization, side-effect/checkpoint scope, ownership/configuration authorization and inverse evidence |
 | Event Mapping / PFC / Drop Zones | Legacy | Existing configuration models and previews reusable | Need derived mapping/service side-effect snapshots, zero/new configuration states and dependency-aware reversal coverage |
@@ -50,12 +50,19 @@ writes or replay opaque rows to get around them.
 
 - Explicit dependency graphs only; no complete dynamic SQL/PeopleCode closure.
 - Per-writer transactions, no atomic multi-object application or automatic restore.
-- Partial/uncertain results stop; remaining-work resume needs explicit reviewed
-  prerequisites rather than blindly retrying the old request.
+  Trusted UI can deliberately apply one object and pause after verified readback;
+  remaining work then requires a fresh continuation and approval. One native Record → AE pause/continuation/restoration is verified; this does
+  not certify crash/lost-response behavior.
+- Partial/uncertain results stop. Reviewed remaining-work proposals are fixture
+  verified for reconciled ordinary partial applications, with pinned verified
+  prerequisites and fresh approval. One native deliberate pause and freshly approved AE-only continuation are
+  independently verified; actual crash/lost-response acceptance remains open. Partial reversals/manual failures and reversal of continued work need
+  combined recovery semantics and remain unsupported.
 - File storage has checksums, schema checks, private files and fsync/rename on the
   development platform. Windows crash durability, retention and large-history
   indexing need verification. No shared history service exists.
 - Secret scanning is heuristic and may refuse sensitive/manual source snapshots;
   it is not a universal secret detector.
-- Native visual Page/AE comparison, complete object timeline UX and every manual
-  mutation pathway are not complete simply because generic history/UI exists.
+- The object timeline has fixture-verified history navigation, baseline comparison
+  and explicit live hash/token checks. Installed visual/native acceptance,
+  native Page/AE comparison and every manual mutation pathway remain incomplete.

@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -74,6 +74,11 @@
           "icon": "./resources/document.svg",
           "id": "psft.browser",
           "name": "Definition Browser"
+        },
+        {
+          "id": "psft.changeReview",
+          "name": "Change Review",
+          "icon": "./resources/document.svg"
         },
         {
           "icon": "./resources/hammer-brush.svg",
@@ -228,13 +233,15 @@
         "command": "psft.findInProject",
         "title": "Find in Project…",
         "category": "PeopleSoft",
-        "icon": "$(search)"
+        "icon": "$(search)",
+        "shortTitle": "Find…"
       },
       {
         "command": "psft.openRecentProject",
         "title": "Open Recent Project",
         "category": "PeopleSoft",
-        "icon": "$(history)"
+        "icon": "$(history)",
+        "shortTitle": "Open Recent Project…"
       },
       {
         "command": "psft.clearRecentProjects",
@@ -245,13 +252,15 @@
         "command": "psft.openDefinitionDialog",
         "title": "Open Definition...",
         "category": "PeopleSoft",
-        "icon": "$(search)"
+        "icon": "$(folder-opened)",
+        "shortTitle": "Open…"
       },
       {
         "command": "psft.newDefinition",
         "title": "New Definition...",
         "category": "PeopleSoft",
-        "icon": "$(new-file)"
+        "icon": "$(new-file)",
+        "shortTitle": "New…"
       },
       {
         "command": "psft.newPage",
@@ -292,7 +301,8 @@
         "command": "psft.customization.openPlan",
         "title": "Open Customization Plan",
         "category": "PeopleSoft",
-        "icon": "$(notebook)"
+        "icon": "$(notebook)",
+        "shortTitle": "Open Plan"
       },
       {
         "command": "psft.customization.pin",
@@ -310,7 +320,8 @@
         "command": "psft.customization.refresh",
         "title": "Refresh Customization Strategy",
         "category": "PeopleSoft",
-        "icon": "$(refresh)"
+        "icon": "$(refresh)",
+        "shortTitle": "Refresh"
       },
       {
         "command": "psft.customization.discover",
@@ -350,13 +361,15 @@
       {
         "command": "psft.intelligence.showDiscoveries",
         "title": "Show Discoveries",
-        "category": "PeopleSoft"
+        "category": "PeopleSoft",
+        "shortTitle": "Find Discovery…"
       },
       {
         "command": "psft.customization.openSettings",
         "title": "Customization Settings",
         "category": "PeopleSoft",
-        "icon": "$(gear)"
+        "icon": "$(gear)",
+        "shortTitle": "Settings"
       },
       {
         "command": "psft.customization.captureBaseline",
@@ -412,7 +425,8 @@
         "command": "psft.settings.open",
         "title": "Open Settings",
         "category": "PeopleSoft",
-        "icon": "$(settings-gear)"
+        "icon": "$(settings-gear)",
+        "shortTitle": "Open Settings"
       },
       {
         "command": "psft.openProjectFile",
@@ -521,7 +535,8 @@
         "command": "psft.peoplecode.findReferences",
         "title": "Find References",
         "icon": "$(references)",
-        "category": "PeopleSoft"
+        "category": "PeopleSoft",
+        "shortTitle": "Find References"
       },
       {
         "command": "psft.sql.run",
@@ -545,7 +560,8 @@
         "command": "psft.project.build",
         "title": "Build Project",
         "icon": "$(tools)",
-        "category": "PeopleSoft"
+        "category": "PeopleSoft",
+        "shortTitle": "Build…"
       },
       {
         "command": "psft.project.exportMigration",
@@ -584,7 +600,8 @@
         "command": "psft.project.compare",
         "title": "Compare Project",
         "icon": "$(diff)",
-        "category": "PeopleSoft"
+        "category": "PeopleSoft",
+        "shortTitle": "Compare…"
       },
       {
         "command": "psft.mcp.menu",
@@ -625,7 +642,8 @@
         "command": "psft.intelligence.refreshDiscoveries",
         "title": "Refresh Discoveries",
         "category": "PeopleSoft",
-        "icon": "$(refresh)"
+        "icon": "$(refresh)",
+        "shortTitle": "Refresh"
       },
       {
         "command": "psft.intelligence.openDiscovery",
@@ -660,22 +678,27 @@
       {
         "command": "psft.changeReview.open",
         "title": "Open Change Review",
-        "category": "PeopleSoft"
+        "category": "PeopleSoft",
+        "shortTitle": "Open Review",
+        "icon": "$(git-pull-request)"
       },
       {
         "command": "psft.changeReview.pending",
         "title": "Show Pending Changes",
-        "category": "PeopleSoft"
+        "category": "PeopleSoft",
+        "shortTitle": "Pending Changes"
       },
       {
         "command": "psft.changeReview.history",
         "title": "Open Change History",
-        "category": "PeopleSoft"
+        "category": "PeopleSoft",
+        "shortTitle": "History"
       },
       {
         "command": "psft.changeReview.compare",
         "title": "Compare Object Revisions",
-        "category": "PeopleSoft"
+        "category": "PeopleSoft",
+        "shortTitle": "Compare Revisions…"
       },
       {
         "command": "psft.changeReview.apply",
@@ -691,6 +714,18 @@
         "command": "psft.changeReview.redo",
         "title": "Redo Change Set",
         "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.definition.open",
+        "title": "Open Definition",
+        "category": "PeopleSoft",
+        "shortTitle": "Open"
+      },
+      {
+        "command": "psft.changeReview.objectHistory",
+        "title": "Open Object Change History",
+        "category": "PeopleSoft",
+        "shortTitle": "Object History"
       }
     ],
     "snippets": [
@@ -702,49 +737,84 @@
     "menus": {
       "view/title": [
         {
-          "command": "psft.findInProject",
-          "when": "view == psft.projects",
-          "group": "navigation@5"
-        },
-        {
-          "command": "psft.openRecentProject",
-          "when": "view == psft.projects",
-          "group": "navigation@5"
-        },
-        {
           "command": "psft.openDefinitionDialog",
           "when": "view == psft.projects || view == psft.browser",
           "group": "navigation@1"
         },
         {
-          "command": "psft.newDefinition",
-          "when": "view == psft.projects || view == psft.browser",
+          "command": "psft.findInProject",
+          "when": "view == psft.projects",
           "group": "navigation@2"
+        },
+        {
+          "command": "psft.newDefinition",
+          "when": "view == psft.browser",
+          "group": "navigation@2"
+        },
+        {
+          "command": "psft.openRecentProject",
+          "when": "view == psft.projects",
+          "group": "1_open@1"
+        },
+        {
+          "command": "psft.openProjectFile",
+          "when": "view == psft.projects",
+          "group": "1_open@2"
+        },
+        {
+          "command": "psft.refresh",
+          "when": "view == psft.projects || view == psft.browser",
+          "group": "8_refresh"
         },
         {
           "command": "psft.addConnection",
           "when": "view == psft.connections",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
-          "command": "psft.refresh",
-          "when": "view == psft.browser || view == psft.projects",
-          "group": "navigation@2"
-        },
-        {
-          "command": "psft.project.build",
-          "when": "view == psft.projects",
-          "group": "navigation@3"
-        },
-        {
-          "command": "psft.project.compare",
-          "when": "view == psft.projects",
-          "group": "navigation@4"
+          "command": "psft.status.selectConnection",
+          "when": "view == psft.connections",
+          "group": "1_connection"
         },
         {
           "command": "psft.settings.open",
-          "when": "view == psft.settings || view == psft.connections",
-          "group": "navigation@9"
+          "when": "view == psft.connections",
+          "group": "2_settings"
+        },
+        {
+          "command": "psft.installDb2Driver",
+          "when": "view == psft.connections",
+          "group": "9_advanced"
+        },
+        {
+          "command": "psft.changeReview.open",
+          "when": "view == psft.changeReview",
+          "group": "navigation@1"
+        },
+        {
+          "command": "psft.changeReview.pending",
+          "when": "view == psft.changeReview",
+          "group": "1_browse@1"
+        },
+        {
+          "command": "psft.changeReview.history",
+          "when": "view == psft.changeReview",
+          "group": "1_browse@2"
+        },
+        {
+          "command": "psft.changeReview.compare",
+          "when": "view == psft.changeReview",
+          "group": "2_compare"
+        },
+        {
+          "command": "psft.settings.open",
+          "when": "view == psft.settings",
+          "group": "navigation@1"
+        },
+        {
+          "submenu": "psft.settings.mcp",
+          "when": "view == psft.settings",
+          "group": "1_mcp"
         },
         {
           "command": "psft.customization.openPlan",
@@ -754,22 +824,22 @@
         {
           "command": "psft.customization.pin",
           "when": "view == psft.customizationStrategy && !psft.customization.pinned",
-          "group": "navigation@2"
+          "group": "1_follow"
         },
         {
           "command": "psft.customization.unpin",
           "when": "view == psft.customizationStrategy && psft.customization.pinned",
-          "group": "navigation@2"
+          "group": "1_follow"
         },
         {
           "command": "psft.customization.refresh",
           "when": "view == psft.customizationStrategy",
-          "group": "navigation@3"
+          "group": "2_refresh"
         },
         {
           "command": "psft.customization.openSettings",
           "when": "view == psft.customizationStrategy",
-          "group": "navigation@4"
+          "group": "3_settings"
         },
         {
           "command": "psft.customization.captureBaseline",
@@ -785,18 +855,53 @@
           "command": "psft.intelligence.refreshDiscoveries",
           "when": "view == psft.discoveries",
           "group": "navigation@1"
+        },
+        {
+          "command": "psft.intelligence.showDiscoveries",
+          "when": "view == psft.discoveries",
+          "group": "1_browse"
+        },
+        {
+          "command": "psft.intelligence.recordFromEditor",
+          "when": "view == psft.discoveries && editorLangId == json",
+          "group": "2_record"
+        },
+        {
+          "submenu": "psft.discovery.knowledge",
+          "when": "view == psft.discoveries",
+          "group": "3_knowledge"
+        },
+        {
+          "submenu": "psft.discovery.server",
+          "when": "view == psft.discoveries",
+          "group": "9_server"
         }
       ],
       "view/item/context": [
         {
           "command": "psft.findInProject",
           "when": "view == psft.projects && (viewItem == project || viewItem == project.opened)",
-          "group": "navigation@3"
+          "group": "1_project@1"
         },
         {
-          "command": "psft.openFieldPeopleCode",
-          "when": "viewItem =~ /\\.recordField\\b/",
-          "group": "navigation@1"
+          "command": "psft.project.build",
+          "when": "view == psft.projects && (viewItem == project || viewItem == project.opened)",
+          "group": "2_project@1"
+        },
+        {
+          "command": "psft.project.compare",
+          "when": "view == psft.projects && (viewItem == project || viewItem == project.opened)",
+          "group": "2_project@2"
+        },
+        {
+          "submenu": "psft.project.migration",
+          "when": "view == psft.projects && (viewItem == project || viewItem == project.opened)",
+          "group": "3_migration"
+        },
+        {
+          "command": "psft.closeProject",
+          "when": "view == psft.projects && viewItem == project.opened",
+          "group": "9_close"
         },
         {
           "command": "psft.connect",
@@ -804,61 +909,79 @@
           "group": "inline"
         },
         {
+          "command": "psft.connect",
+          "when": "view == psft.connections && viewItem == connection.disconnected",
+          "group": "1_connect"
+        },
+        {
           "command": "psft.disconnect",
-          "when": "view == psft.connections && viewItem == connection.connected"
+          "when": "view == psft.connections && viewItem == connection.connected",
+          "group": "1_connect"
+        },
+        {
+          "command": "psft.settings.open",
+          "when": "view == psft.connections && viewItem =~ /^connection\\./",
+          "group": "2_settings"
         },
         {
           "command": "psft.removeConnection",
-          "when": "view == psft.connections && viewItem =~ /^connection\\./"
+          "when": "view == psft.connections && viewItem =~ /^connection\\./",
+          "group": "9_remove"
         },
         {
-          "command": "psft.closeProject",
-          "when": "view == psft.projects && viewItem == project.opened",
-          "group": "inline"
+          "command": "psft.definition.open",
+          "when": "(view == psft.projects || view == psft.browser) && viewItem =~ /^definition\\b/ || viewItem == appPackage.properties",
+          "group": "1_open@1"
         },
         {
-          "command": "psft.project.exportMigration",
-          "when": "view == psft.projects && viewItem =~ /^project/",
-          "group": "migration@2"
-        },
-        {
-          "command": "psft.project.migrationReview",
-          "when": "view == psft.projects && viewItem =~ /^project/",
-          "group": "migration@1"
-        },
-        {
-          "command": "psft.project.compare",
-          "when": "view == psft.projects && viewItem =~ /^project/",
-          "group": "inline@2"
-        },
-        {
-          "command": "psft.insertIntoProject",
-          "when": "viewItem =~ /^definition\\b/ || viewItem == appPackage.properties",
-          "group": "navigation@8"
-        },
-        {
-          "command": "psft.compareDefinition",
-          "when": "viewItem =~ /^definition\\b/"
-        },
-        {
-          "command": "psft.changeDescription",
-          "when": "viewItem =~ /\\.description$/",
-          "group": "navigation@9"
-        },
-        {
-          "command": "psft.deleteRecord",
-          "when": "viewItem =~ /\\.record$/",
-          "group": "z_delete"
+          "command": "psft.openFieldPeopleCode",
+          "when": "(view == psft.projects || view == psft.browser) && viewItem =~ /\\.recordField\\b/",
+          "group": "1_open@2"
         },
         {
           "command": "psft.viewComponentPeopleCode",
-          "when": "viewItem =~ /\\.component\\b/",
-          "group": "navigation@5"
+          "when": "(view == psft.projects || view == psft.browser) && viewItem =~ /\\.component\\b/",
+          "group": "1_open@2"
+        },
+        {
+          "command": "psft.compareDefinition",
+          "when": "(view == psft.projects || view == psft.browser) && viewItem =~ /^definition\\b/ && viewItem =~ /\\.comparable\\b/",
+          "group": "2_compare@1"
+        },
+        {
+          "command": "psft.changeReview.objectHistory",
+          "when": "(view == psft.projects || view == psft.browser) && viewItem =~ /^definition\\b/ && viewItem =~ /\\.reviewable\\b/",
+          "group": "2_compare@2"
+        },
+        {
+          "command": "psft.insertIntoProject",
+          "when": "(view == psft.projects || view == psft.browser) && viewItem =~ /^definition\\b/ || viewItem == appPackage.properties",
+          "group": "3_edit@1"
+        },
+        {
+          "command": "psft.changeDescription",
+          "when": "(view == psft.projects || view == psft.browser) && viewItem =~ /\\.description$/",
+          "group": "3_edit@2"
         },
         {
           "command": "psft.showProperties",
-          "when": "viewItem =~ /\\.properties\\b/",
-          "group": "navigation@9"
+          "when": "(view == psft.projects || view == psft.browser) && viewItem =~ /\\.properties\\b/",
+          "group": "8_properties"
+        },
+        {
+          "command": "psft.deleteRecord",
+          "when": "(view == psft.projects || view == psft.browser) && viewItem =~ /\\.record$/",
+          "group": "9_delete"
+        },
+        {
+          "command": "psft.query.new",
+          "when": "view == psft.configurationTools && viewItem == tool.psft.query.open",
+          "group": "1_create"
+        },
+        {
+          "submenu": "psft.settings.mcp",
+          "when": "view == psft.settings && viewItem == settings.mcp",
+          "group": "1_mcp"
         }
       ],
       "editor/title/context": [
@@ -871,31 +994,17 @@
           "when": "resourceScheme == psft"
         },
         {
+          "command": "psft.changeReview.objectHistory",
+          "when": "resourceScheme == psft && resourcePath =~ /^\\/(0|5|8|9|30|33|42|43|44|46|47|48|50|51|58|10|20)(:|%3A)/",
+          "group": "3_history"
+        },
+        {
           "command": "psft.showProperties",
-          "when": "resourceScheme == psft"
+          "when": "resourceScheme == psft && resourcePath =~ /^\\/(-2|0|2|5|6|7|30|33|36|50|51|57)(:|%3A)/",
+          "group": "8_properties"
         }
       ],
       "editor/title": [
-        {
-          "command": "psft.pagePeopleCode.object",
-          "when": "resourceScheme == psft && resourcePath =~ /^\\/44(:|%3A)/",
-          "group": "navigation@-2"
-        },
-        {
-          "command": "psft.pagePeopleCode.event",
-          "when": "resourceScheme == psft && resourcePath =~ /^\\/44(:|%3A)/",
-          "group": "navigation@-1"
-        },
-        {
-          "command": "psft.componentPeopleCode.object",
-          "when": "resourceScheme == psft && resourcePath =~ /^\\/4[678](:|%3A)/",
-          "group": "navigation@-2"
-        },
-        {
-          "command": "psft.componentPeopleCode.event",
-          "when": "resourceScheme == psft && resourcePath =~ /^\\/4[678](:|%3A)/",
-          "group": "navigation@-1"
-        },
         {
           "command": "psft.peoplecode.validate",
           "when": "resourceScheme == psft && (resourceLangId == psft-peoplecode || resourceLangId == psft-sql)",
@@ -904,7 +1013,7 @@
         {
           "command": "psft.peoplecode.findReferences",
           "when": "resourceScheme == psft && resourceLangId == psft-peoplecode",
-          "group": "navigation@2"
+          "group": "2_references"
         },
         {
           "command": "psft.sql.run",
@@ -920,6 +1029,21 @@
           "command": "psft.record.refresh",
           "when": "activeCustomEditorId == psft.recordEditor",
           "group": "navigation@1"
+        },
+        {
+          "submenu": "psft.editor.peoplecode",
+          "when": "resourceScheme == psft && resourcePath =~ /^\\/(44|46|47|48)(:|%3A)/",
+          "group": "1_peoplecode"
+        },
+        {
+          "command": "psft.changeReview.objectHistory",
+          "when": "resourceScheme == psft && resourcePath =~ /^\\/(0|5|8|9|30|33|42|43|44|46|47|48|50|51|58|10|20)(:|%3A)/",
+          "group": "3_history"
+        },
+        {
+          "command": "psft.showProperties",
+          "when": "resourceScheme == psft && resourcePath =~ /^\\/(-2|0|2|5|6|7|30|33|36|50|51|57)(:|%3A)/",
+          "group": "8_properties"
         }
       ],
       "commandPalette": [
@@ -974,6 +1098,103 @@
         {
           "command": "psft.intelligence.openDiscovery",
           "when": "false"
+        },
+        {
+          "command": "psft.definition.open",
+          "when": "false"
+        },
+        {
+          "command": "psft.changeReview.objectHistory",
+          "when": "false"
+        }
+      ],
+      "psft.project.migration": [
+        {
+          "command": "psft.project.migrationReview",
+          "group": "1_review"
+        },
+        {
+          "command": "psft.project.exportMigration",
+          "group": "2_package@1"
+        }
+      ],
+      "psft.discovery.knowledge": [
+        {
+          "command": "psft.intelligence.checkKnowledgeUpdates"
+        },
+        {
+          "command": "psft.intelligence.installKnowledgeFromFile"
+        }
+      ],
+      "psft.discovery.server": [
+        {
+          "command": "psft.intelligence.setServerToken"
+        },
+        {
+          "command": "psft.intelligence.clearServerToken"
+        }
+      ],
+      "psft.settings.mcp": [
+        {
+          "command": "psft.mcp.status",
+          "group": "1_status@1"
+        },
+        {
+          "command": "psft.mcp.copyUrl",
+          "group": "1_status@2"
+        },
+        {
+          "command": "psft.mcp.start",
+          "when": "psft.mcp.state == stopped || psft.mcp.state == error",
+          "group": "2_server@1"
+        },
+        {
+          "command": "psft.mcp.stop",
+          "when": "psft.mcp.state == running",
+          "group": "2_server@2"
+        },
+        {
+          "command": "psft.mcp.restart",
+          "when": "psft.mcp.state == running",
+          "group": "2_server@3"
+        },
+        {
+          "command": "psft.settings.open",
+          "group": "3_settings"
+        }
+      ],
+      "psft.editor.peoplecode": [
+        {
+          "command": "psft.pagePeopleCode.object",
+          "when": "resourceScheme == psft && resourcePath =~ /^\\/44(:|%3A)/",
+          "group": "1_navigate@1"
+        },
+        {
+          "command": "psft.pagePeopleCode.event",
+          "when": "resourceScheme == psft && resourcePath =~ /^\\/44(:|%3A)/",
+          "group": "1_navigate@2"
+        },
+        {
+          "command": "psft.componentPeopleCode.object",
+          "when": "resourceScheme == psft && resourcePath =~ /^\\/4[678](:|%3A)/",
+          "group": "1_navigate@1"
+        },
+        {
+          "command": "psft.componentPeopleCode.event",
+          "when": "resourceScheme == psft && resourcePath =~ /^\\/4[678](:|%3A)/",
+          "group": "1_navigate@2"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "psft.peoplecode.findReferences",
+          "when": "resourceScheme == psft && resourceLangId == psft-peoplecode",
+          "group": "navigation"
+        },
+        {
+          "command": "psft.intelligence.recordFromEditor",
+          "when": "resourceLangId == json",
+          "group": "9_discovery"
         }
       ]
     },
@@ -1402,7 +1623,29 @@
           "markdownDescription": "Downloading signed knowledge bundles from the discovery server (`peoplesoft.intelligence.serverUrl`). Bundles are data only: they never change what PeopleSoft Studio or an agent may write."
         }
       }
-    }
+    },
+    "submenus": [
+      {
+        "id": "psft.project.migration",
+        "label": "Migration"
+      },
+      {
+        "id": "psft.discovery.knowledge",
+        "label": "Knowledge"
+      },
+      {
+        "id": "psft.discovery.server",
+        "label": "Discovery Server"
+      },
+      {
+        "id": "psft.settings.mcp",
+        "label": "MCP Server"
+      },
+      {
+        "id": "psft.editor.peoplecode",
+        "label": "PeopleCode"
+      }
+    ]
   },
   "scripts": {
     "typecheck": "tsc -p . --noEmit",
