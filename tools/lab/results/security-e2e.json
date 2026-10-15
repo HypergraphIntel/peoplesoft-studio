@@ -1,0 +1,18 @@
+{
+  "database": "HRDMO",
+  "key": [
+    "ZZ_STUDIO_OAUTH_01",
+    "CU"
+  ],
+  "checks": [
+    "OAuth search and two-part identity",
+    "installed authorization-server choices",
+    "legacy inbound SAML query",
+    "preview rolled back",
+    "stale token rejected",
+    "committed edit verified",
+    "original public configuration restored",
+    "encrypted secret unchanged (database digest comparison only)",
+    "PSVERSION counters unchanged, matching native save"
+  ]
+}

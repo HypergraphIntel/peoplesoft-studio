@@ -18,10 +18,11 @@ export interface ToolNode {
 
 export const CONFIGURATION_TOOLS: readonly ToolNode[] = [
   { label: 'PS Query', icon: 'search', command: 'psft.query.open' },
+  { label: 'Process Definitions', icon: 'run', command: 'psft.process.open' },
   { label: 'Customization', icon: 'wand', children: [
-    { label: 'Page and Field Configurator', icon: 'layout', planned: true },
+    { label: 'Page and Field Configurator', icon: 'layout', command: 'psft.customization.openPageFieldConfigurator' },
     { label: 'Event Mapping', icon: 'symbol-event', command: 'psft.customization.configureEventMapping' },
-    { label: 'Drop Zones', icon: 'inbox', planned: true }
+    { label: 'Drop Zones', icon: 'inbox', command: 'psft.customization.configureDropZones' }
   ] },
   { label: 'Administration', icon: 'settings', children: [
     { label: 'Message Catalog', icon: 'comment', command: 'psft.administration.messages' },
@@ -39,9 +40,9 @@ export const CONFIGURATION_TOOLS: readonly ToolNode[] = [
     { label: 'Nodes', icon: 'server-environment', command: 'psft.ib.node' },
     { label: 'Routes', icon: 'git-merge', command: 'psft.ib.routing' }
   ] },
-  { label: 'Security', icon: 'shield', planned: true, children: [
-    { label: 'OAuth', icon: 'key', planned: true },
-    { label: 'SAML', icon: 'lock', planned: true }
+  { label: 'Security', icon: 'shield', children: [
+    { label: 'OAuth', icon: 'key', command: 'psft.security.oauth' },
+    { label: 'SAML', icon: 'lock', command: 'psft.security.saml' }
   ] }
 ];
 

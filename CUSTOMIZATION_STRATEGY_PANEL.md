@@ -2,6 +2,13 @@
 
 VS Code UI/UX + MCP Architecture Specification
 
+> **0.9.0 status.** The Strategy view follows definitions and shows ownership,
+> policy, evidence and supported configuration actions. Event Mapping, Drop
+> Zones and Page and Field Configurator discovery/configuration are implemented;
+> dedicated configuration editors are available. Plan execution, registry and
+> upgrade-impact analysis remain previews. This file retains the broader design;
+> [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md) describes shipped behavior.
+
 I recommend implementing the Customization Strategy Panel as a context-aware companion to the existing PeopleSoft Studio editors, rather than building a separate customization application.
 
 When a developer opens a delivered Page, Component, Record, PeopleCode program, or Application Engine, the panel should automatically identify that object and expose its configuration alternatives.

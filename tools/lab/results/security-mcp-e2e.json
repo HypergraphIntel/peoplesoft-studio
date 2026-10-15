@@ -1,0 +1,16 @@
+{
+  "database": "HRDMO",
+  "checks": [
+    "security tools advertised by production HTTP MCP server",
+    "OAuth search",
+    "public configuration without secret fields",
+    "MCP off gate",
+    "unsaved editor gate",
+    "preview rolls back without approval",
+    "confirmed write and committed readback",
+    "stale-token write refused",
+    "fixture public configuration restored",
+    "reference returns installed code labels",
+    "legacy inbound SAML search"
+  ]
+}

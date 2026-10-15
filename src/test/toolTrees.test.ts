@@ -10,6 +10,7 @@ const all = (nodes: readonly ToolNode[]): ToolNode[] => nodes.flatMap((n) => [n,
 test('Configuration Tools: the requested tree', () => {
   assert.deepEqual(outline(CONFIGURATION_TOOLS), [
     'PS Query',
+    'Process Definitions',
     { Customization: ['Page and Field Configurator', 'Event Mapping', 'Drop Zones'] },
     { Administration: ['Message Catalog', 'Text Catalog', 'URL Definitions'] },
     { 'Portal Registry': ['Structure & Content'] },
@@ -29,7 +30,7 @@ test('every leaf is a placeholder or runs a command, every entry has an icon, an
   }
   // PS Query now opens its definition viewer; Event Mapping opens its configuration editor.
   const built = all(CONFIGURATION_TOOLS).filter((n) => n.command).map((n) => `${n.label} -> ${n.command}`);
-  assert.deepEqual(built, ['PS Query -> psft.query.open', 'Event Mapping -> psft.customization.configureEventMapping', 'Message Catalog -> psft.administration.messages', 'Text Catalog -> psft.administration.text', 'URL Definitions -> psft.administration.urls', 'Structure & Content -> psft.portal.structure', 'Message Definitions -> psft.ib.message', 'Document Definitions -> psft.ib.document', 'Service -> psft.ib.service', 'Service Operation -> psft.ib.operation', 'Nodes -> psft.ib.node', 'Routes -> psft.ib.routing']);
+  assert.deepEqual(built, ['PS Query -> psft.query.open', 'Process Definitions -> psft.process.open', 'Page and Field Configurator -> psft.customization.openPageFieldConfigurator', 'Event Mapping -> psft.customization.configureEventMapping', 'Drop Zones -> psft.customization.configureDropZones', 'Message Catalog -> psft.administration.messages', 'Text Catalog -> psft.administration.text', 'URL Definitions -> psft.administration.urls', 'Structure & Content -> psft.portal.structure', 'Message Definitions -> psft.ib.message', 'Document Definitions -> psft.ib.document', 'Service -> psft.ib.service', 'Service Operation -> psft.ib.operation', 'Nodes -> psft.ib.node', 'Routes -> psft.ib.routing', 'OAuth -> psft.security.oauth', 'SAML -> psft.security.saml']);
   assert.ok(!CONFIGURATION_TOOLS.find((n) => n.label === 'Customization')!.planned);
   assert.deepEqual(Object.keys(TOOL_TREES), ['psft.configurationTools', 'psft.dataMigrationTools']);
 });

@@ -1,0 +1,348 @@
+{
+  "project": "ZZ_RPT_INVENTORY",
+  "source": "HRDMO",
+  "items": [
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "ZZ_RPT_AET"
+        ]
+      },
+      "displayName": "ZZ_RPT_AET",
+      "typeLabel": "Records"
+    },
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "ZZ_RPT_LINE"
+        ]
+      },
+      "displayName": "ZZ_RPT_LINE",
+      "typeLabel": "Records"
+    },
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "ZZ_RPT_SUM"
+        ]
+      },
+      "displayName": "ZZ_RPT_SUM",
+      "typeLabel": "Records"
+    },
+    {
+      "key": {
+        "type": 2,
+        "parts": [
+          "ZZ_RPT_COUNT"
+        ]
+      },
+      "displayName": "ZZ_RPT_COUNT",
+      "typeLabel": "Fields"
+    },
+    {
+      "key": {
+        "type": 2,
+        "parts": [
+          "ZZ_RPT_FILE"
+        ]
+      },
+      "displayName": "ZZ_RPT_FILE",
+      "typeLabel": "Fields"
+    },
+    {
+      "key": {
+        "type": 2,
+        "parts": [
+          "ZZ_RPT_LABEL"
+        ]
+      },
+      "displayName": "ZZ_RPT_LABEL",
+      "typeLabel": "Fields"
+    },
+    {
+      "key": {
+        "type": 2,
+        "parts": [
+          "ZZ_RPT_TOTAL"
+        ]
+      },
+      "displayName": "ZZ_RPT_TOTAL",
+      "typeLabel": "Fields"
+    },
+    {
+      "key": {
+        "type": 33,
+        "parts": [
+          "ZZ_RPT_INV"
+        ]
+      },
+      "displayName": "ZZ_RPT_INV",
+      "typeLabel": "App Engine Programs"
+    },
+    {
+      "key": {
+        "type": 34,
+        "parts": [
+          "ZZ_RPT_INV",
+          "MAIN"
+        ]
+      },
+      "displayName": "ZZ_RPT_INV.MAIN",
+      "typeLabel": "App Engine Sections"
+    },
+    {
+      "key": {
+        "type": 43,
+        "parts": [
+          "ZZ_RPT_INV",
+          "MAIN    GBLdefault  1900-01-01",
+          "DETAIL",
+          "OnExecute"
+        ]
+      },
+      "displayName": "ZZ_RPT_INV.MAIN    GBLdefault  1900-01-01.DETAIL.OnExecute",
+      "typeLabel": "App Engine PeopleCode"
+    },
+    {
+      "key": {
+        "type": 43,
+        "parts": [
+          "ZZ_RPT_INV",
+          "MAIN    GBLdefault  1900-01-01",
+          "FINISH",
+          "OnExecute"
+        ]
+      },
+      "displayName": "ZZ_RPT_INV.MAIN    GBLdefault  1900-01-01.FINISH.OnExecute",
+      "typeLabel": "App Engine PeopleCode"
+    },
+    {
+      "key": {
+        "type": 43,
+        "parts": [
+          "ZZ_RPT_INV",
+          "MAIN    GBLdefault  1900-01-01",
+          "INIT",
+          "OnExecute"
+        ]
+      },
+      "displayName": "ZZ_RPT_INV.MAIN    GBLdefault  1900-01-01.INIT.OnExecute",
+      "typeLabel": "App Engine PeopleCode"
+    }
+  ],
+  "records": [
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "ZZ_RPT_AET"
+        ]
+      },
+      "name": "ZZ_RPT_AET",
+      "description": "Record inventory AE state",
+      "recordType": 2,
+      "fields": [
+        {
+          "name": "PROCESS_INSTANCE",
+          "fieldNum": 1,
+          "type": 2,
+          "length": 10,
+          "decimalPositions": 0,
+          "useEdit": 8388608
+        },
+        {
+          "name": "RECTYPE",
+          "fieldNum": 2,
+          "type": 2,
+          "length": 1,
+          "decimalPositions": 0,
+          "useEdit": 8388608
+        },
+        {
+          "name": "ZZ_RPT_COUNT",
+          "fieldNum": 3,
+          "type": 2,
+          "length": 10,
+          "decimalPositions": 0,
+          "useEdit": 8388608
+        },
+        {
+          "name": "ZZ_RPT_FILE",
+          "fieldNum": 4,
+          "type": 0,
+          "length": 128,
+          "decimalPositions": 0,
+          "useEdit": 8388608
+        },
+        {
+          "name": "ZZ_RPT_TOTAL",
+          "fieldNum": 5,
+          "type": 2,
+          "length": 10,
+          "decimalPositions": 0,
+          "useEdit": 8388608
+        }
+      ],
+      "version": 226
+    },
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "ZZ_RPT_LINE"
+        ]
+      },
+      "name": "ZZ_RPT_LINE",
+      "description": "Inventory report detail work",
+      "recordType": 2,
+      "fields": [
+        {
+          "name": "RECTYPE",
+          "fieldNum": 1,
+          "type": 2,
+          "length": 1,
+          "decimalPositions": 0,
+          "useEdit": 8388608
+        },
+        {
+          "name": "ZZ_RPT_LABEL",
+          "fieldNum": 2,
+          "type": 0,
+          "length": 40,
+          "decimalPositions": 0,
+          "useEdit": 8388608
+        },
+        {
+          "name": "ZZ_RPT_COUNT",
+          "fieldNum": 3,
+          "type": 2,
+          "length": 10,
+          "decimalPositions": 0,
+          "useEdit": 8388608
+        }
+      ],
+      "version": 227
+    },
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "ZZ_RPT_SUM"
+        ]
+      },
+      "name": "ZZ_RPT_SUM",
+      "description": "Inventory report summary work",
+      "recordType": 2,
+      "fields": [
+        {
+          "name": "PROCESS_INSTANCE",
+          "fieldNum": 1,
+          "type": 2,
+          "length": 10,
+          "decimalPositions": 0,
+          "useEdit": 8388608
+        },
+        {
+          "name": "ZZ_RPT_TOTAL",
+          "fieldNum": 2,
+          "type": 2,
+          "length": 10,
+          "decimalPositions": 0,
+          "useEdit": 8388608
+        },
+        {
+          "name": "ZZ_RPT_FILE",
+          "fieldNum": 3,
+          "type": 0,
+          "length": 128,
+          "decimalPositions": 0,
+          "useEdit": 8388608
+        }
+      ],
+      "version": 228
+    }
+  ],
+  "ae": {
+    "program": "ZZ_RPT_INV",
+    "description": "Record inventory CSV report",
+    "comments": "Read-only metadata inventory. Writes a UTF8 CSV with record-type counts and total. Derived state; restart disabled because file output is not transactional.",
+    "programType": "Standard",
+    "disableRestart": true,
+    "applicationLibrary": false,
+    "batchOnly": false,
+    "messageSet": 0,
+    "stateRecords": [
+      {
+        "record": "ZZ_RPT_AET",
+        "default": true
+      }
+    ],
+    "tempTables": [],
+    "sections": [
+      {
+        "name": "MAIN",
+        "market": "GBL",
+        "platform": "default",
+        "effectiveDate": "1900-01-01",
+        "active": true,
+        "description": "Create inventory report",
+        "type": "Prepare Only",
+        "public": true,
+        "autoCommit": false,
+        "steps": [
+          {
+            "name": "INIT",
+            "description": "Initialize CSV and counters",
+            "commitAfter": "Default",
+            "onError": "Abort",
+            "active": true,
+            "actions": [
+              {
+                "type": "PeopleCode",
+                "onReturn": "Abort",
+                "peopleCode": "Local File &report;\nZZ_RPT_AET.ZZ_RPT_TOTAL = 0;\nZZ_RPT_AET.ZZ_RPT_FILE = \"record_inventory_\" | String(%ProcessInstance) | \".csv\";\n&report = GetFile(ZZ_RPT_AET.ZZ_RPT_FILE, \"W\", \"UTF8\", %FilePath_Relative);\nIf Not &report.IsOpen Then\n   Error (\"Cannot open record inventory report.\");\nEnd-If;\n&report.WriteLine(\"Record Type,Type Description,Definition Count\");\n&report.Close();\n"
+              }
+            ]
+          },
+          {
+            "name": "DETAIL",
+            "description": "Count and report record types",
+            "commitAfter": "Default",
+            "onError": "Abort",
+            "active": true,
+            "actions": [
+              {
+                "type": "Do Select",
+                "reuse": "No",
+                "sql": "%Select(RECTYPE, ZZ_RPT_COUNT) SELECT RECTYPE, COUNT(*) FROM PSRECDEFN GROUP BY RECTYPE ORDER BY RECTYPE",
+                "doSelectType": "Select/Fetch"
+              },
+              {
+                "type": "PeopleCode",
+                "onReturn": "Abort",
+                "peopleCode": "Local Record &line;\nLocal File &report;\nLocal string &label;\n&line = CreateRecord(Record.ZZ_RPT_LINE);\n&line.RECTYPE.Value = ZZ_RPT_AET.RECTYPE;\n&line.ZZ_RPT_COUNT.Value = ZZ_RPT_AET.ZZ_RPT_COUNT;\nEvaluate ZZ_RPT_AET.RECTYPE\nWhen = 0\n   &label = \"SQL Table\";\nWhen = 1\n   &label = \"SQL View\";\nWhen = 2\n   &label = \"Derived Work\";\nWhen = 3\n   &label = \"Subrecord\";\nWhen = 5\n   &label = \"Dynamic View\";\nWhen = 6\n   &label = \"Query View\";\nWhen = 7\n   &label = \"Temporary Table\";\nWhen-Other\n   &label = \"Other\";\nEnd-Evaluate;\n&line.ZZ_RPT_LABEL.Value = &label;\nZZ_RPT_AET.ZZ_RPT_TOTAL = ZZ_RPT_AET.ZZ_RPT_TOTAL + &line.ZZ_RPT_COUNT.Value;\n&report = GetFile(ZZ_RPT_AET.ZZ_RPT_FILE, \"A\", \"UTF8\", %FilePath_Relative);\nIf Not &report.IsOpen Then\n   Error (\"Cannot append record inventory detail.\");\nEnd-If;\n&report.WriteLine(String(&line.RECTYPE.Value) | \",\" | &line.ZZ_RPT_LABEL.Value | \",\" | String(&line.ZZ_RPT_COUNT.Value));\n&report.Close();\n"
+              }
+            ]
+          },
+          {
+            "name": "FINISH",
+            "description": "Write total and completion log",
+            "commitAfter": "Default",
+            "onError": "Abort",
+            "active": true,
+            "actions": [
+              {
+                "type": "PeopleCode",
+                "onReturn": "Abort",
+                "peopleCode": "Local Record &summary;\nLocal File &report;\n&summary = CreateRecord(Record.ZZ_RPT_SUM);\n&summary.PROCESS_INSTANCE.Value = %ProcessInstance;\n&summary.ZZ_RPT_TOTAL.Value = ZZ_RPT_AET.ZZ_RPT_TOTAL;\n&summary.ZZ_RPT_FILE.Value = ZZ_RPT_AET.ZZ_RPT_FILE;\n&report = GetFile(&summary.ZZ_RPT_FILE.Value, \"A\", \"UTF8\", %FilePath_Relative);\nIf Not &report.IsOpen Then\n   Error (\"Cannot append record inventory total.\");\nEnd-If;\n&report.WriteLine(\"TOTAL,All Record Definitions,\" | String(&summary.ZZ_RPT_TOTAL.Value));\n&report.Close();\nMessageBox(0, \"\", 0, 0, \"Record inventory complete: \" | &summary.ZZ_RPT_FILE.Value | \"; definitions=\" | String(&summary.ZZ_RPT_TOTAL.Value));\n"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

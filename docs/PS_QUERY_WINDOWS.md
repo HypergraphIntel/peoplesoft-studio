@@ -219,3 +219,15 @@ aggregate SQL and translation; expression columns, subqueries and unions.
 Each new operation needs native captures, row-plan replay and native reopen /
 SQL / results validation before enabling it. This release covers both requested
 workflows in a bounded scope; it does not claim full PS Query parity.
+
+## MCP workflows in 0.9.0
+
+The existing query model, access checks and writer are exposed through
+reference/list/get/prepare/run/create/save/copy tools. Save previews use the
+real transactional writer and readback, then roll back; committed saves notify
+clean editors to reload and dirty designers block MCP saves. Query identity is
+name plus owner, with blank owner for public queries and the configured Operator
+ID for private queries. Existing ownership uses that full key and passes the
+agent delivered-object policy. The installed MCP passed live HRDMO Query
+create/edit/copy and readback checks. See [MCP reference](MCP_REFERENCE.md) for
+inputs, prompt handling, limits and the repeatable validation command.

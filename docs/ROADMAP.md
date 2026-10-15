@@ -3,14 +3,23 @@
 Ordered by what unblocks the most work, not by visibility. Full Application
 Designer parity is the goal; this is the path to it.
 
-## Current release: 0.8.9
+## Current release: 0.9.0
 
-Integration Broker, administration catalogs and Portal Registry now have bounded
-editors and MCP authoring. Studio project migration packages cover fields, basic
-records and App Engine with dependency review and target preview. See the
-[README capability tables](../README.md#what-works-now) and
-[changelog](../CHANGELOG.md) for current scope; the entries below retain the
-historical implementation and research progression.
+0.9.0 adds Process Definition, Page and Field Configurator, Drop Zone and
+bounded OAuth editors; MCP orientation and a structured capability catalog;
+and Process Definition/PS Query workflows through existing writers. Native
+ownership keys now protect existing Queries and Process Definitions. Live HRDMO
+checks cover Query commits/readback, Process Definition previews and guards.
+
+Next priorities: component editing through MCP; evidence-backed customization
+planning; guarded MCP migration apply and additional adapters; Data Mover and
+Data Migration Workbench. These remain unimplemented. Full PS Query parity and
+browser SAML SSO also need additional evidence and implementation.
+
+See the [README capability tables](../README.md#what-works-now),
+[MCP reference](MCP_REFERENCE.md), and [changelog](../CHANGELOG.md) for current
+scope. The sections below retain the historical research progression and are
+not a current capability inventory.
 
 ## Done
 

@@ -13,7 +13,7 @@ writing the same rows Application Designer writes.
 > is experimental: read the [Disclaimer](#disclaimer) before writing to any
 > database.
 
-Current release: **0.8.9**. See the [changelog](CHANGELOG.md#089--2026-10-14).
+Current release: **0.9.0**. See the [changelog](CHANGELOG.md#090--2026-10-14).
 
 ## Why PeopleSoft Studio
 
@@ -133,14 +133,21 @@ definitions, outages or any other damage.
 
 Goal long-term: replace Application Designer. **Today it reads many common definition types and edits the supported kinds below** -- PeopleCode, records, fields, pages, components, App Engine, menus, Component Interfaces, message channels, SQL, HTML, style sheets, translates, projects and a bounded PS Query workflow. Saving is experimental. The tables distinguish working editors from read-only viewers and features still planned.
 
-In **0.8.9**, Integration Broker tools support bounded native creation and
-editing across six definition families on PeopleTools 8.62.09. Administration
-and Portal Registry have searchable editors and MCP tools. Studio migration
-packages export and import fields, basic records and App Engine, with target
-preview, dependency review and verified save receipts. See
-[Integration Broker](docs/INTEGRATION_BROKER.md),
-[Administration](docs/ADMINISTRATION.md), [Portal Registry](docs/PORTAL_REGISTRY.md)
-and [Project migration](docs/PROJECT_MIGRATION.md) for scope and limits.
+In **0.9.0**, Configuration Tools includes working Process Definition,
+Page and Field Configurator, Drop Zone and bounded OAuth editors. The MCP adds
+a structured capability catalog, Process Definition editing, and bounded PS
+Query authoring/execution. Query and Process Definition ownership uses the native
+keys and preserves delivered-object policy checks. Eleven live HRDMO MCP checks
+verified previews, guarded Query saves and readback. See
+[MCP workflows and validation](docs/MCP_REFERENCE.md),
+[Process Definitions](docs/PROCESS_DEFINITIONS.md),
+[Customization](docs/CUSTOMIZATION.md) and [Security](docs/SECURITY.md).
+
+Integration Broker, administration and Portal Registry authoring remain
+available. Studio migration packages cover supported fields, basic records and
+App Engine with dependency review, target preview and verified save receipts;
+MCP exposes review/export/preview, with apply in the UI. See
+[Project migration](docs/PROJECT_MIGRATION.md) for scope and limits.
 
 | Capability | Status | Notes |
 |------------|--------|-------|
@@ -148,7 +155,7 @@ and [Project migration](docs/PROJECT_MIGRATION.md) for scope and limits.
 | Connect to **Microsoft SQL Server** or **DB2** (LUW, z/OS) | Experimental | Everything above and below that reads, as on Oracle; writes are the same rows Oracle's App Designer captures proved, not yet captured on these platforms. DB2 needs *PeopleSoft: Install DB2 Driver*. Two-tier (App Designer 2 Tier) sign-on too. See [docs/DATABASES.md](docs/DATABASES.md) |
 | Open App Designer XML project export | Yes | |
 | Project tree & definition browser | Yes | |
-| **Configuration Tools** and **Data Migration Tools** panes | Partial | **PS Query** and **Event Mapping** open working editors. Standalone Page and Field Configurator and Drop Zones entries remain placeholders; their configuration actions are available in the Customization Strategy view. Administration opens Message Catalog, Text Catalog and URL editors; Portal Registry opens a portal picker and editable Structure & Content tree. Integration Broker opens six searchable editors with New, Preview and Save. Security, Data Mover Scripts and Data Migration Workbench entries remain greyed *Coming soon* |
+| **Configuration Tools** and **Data Migration Tools** panes | Partial | **PS Query**, **Process Definitions**, **Page and Field Configurator**, **Event Mapping** and **Drop Zones** open working editors. Customization Strategy also exposes configuration actions. Administration opens Message Catalog, Text Catalog and URL editors; Portal Registry opens a portal picker and editable Structure & Content tree. Integration Broker opens six searchable editors with New, Preview and Save. Security opens OAuth configuration and legacy inbound SAML inspection. Data Mover Scripts and Data Migration Workbench entries remain greyed *Coming soon* |
 | **Event Mapping** editor | Experimental | Configuration Tools > Customization > Event Mapping, or a component's content reference in the Customization Strategy view: the Configure Event Mapping page's configurations -- component, page, record and field level rows, their services, sequence and enabled flag -- and a new related content service with its application class, saved as PeopleTools' own page saves them, on Writable connections — see [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md) |
 | **Customization: ownership and the delivered-object policy** | Experimental | Delivered / Delivered modified / Partner / Custom / Unknown, with evidence from save stamps, projects, naming prefixes, delivered baselines and verified Studio creation receipts. Policies (block / requireApproval / allowWithAudit) apply to guarded definition saves, renames and deletes. User default: allow with audit; agent default: require approval for delivered, partner or Unknown definitions. New verified custom definitions retain their receipts across supported edits. MCP approval waits expire after 60 seconds or cancellation — see [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md) |
 | **Customization Strategy** view and **Customization Plan** editor | Experimental / Preview | The Strategy view follows the open definition and discovers Event Mapping, Drop Zones and Page and Field Configurator. Its configuration actions write the supported settings, including custom subpages and Standard/Masking field configurations. Other frameworks remain Unknown. The Plan editor previews Requirement, Discover, Strategy, Validate and Approval with its actions disabled — see [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md) |
@@ -176,15 +183,16 @@ and [Project migration](docs/PROJECT_MIGRATION.md) for scope and limits.
 | **File Layouts** | Read-Only | Format, segments and fields — see [docs/FILE_LAYOUTS_COMPONENT_INTERFACES.md](docs/FILE_LAYOUTS_COMPONENT_INTERFACES.md) |
 | **Component Interfaces** | Experimental | CI Designer and MCP tools: create, edit, save, copy, rename and delete; keys, properties, collections, standard methods, synchronization and Methods PeopleCode — see [docs/COMPONENT_INTERFACES.md](docs/COMPONENT_INTERFACES.md) |
 | **Permission Lists**, **Roles** | Read-Only | A permission list's pages and actions, sign-on times, Web Libraries and more; a role's permission lists — see [docs/SECURITY_MESSAGES.md](docs/SECURITY_MESSAGES.md) |
-| **Queries** (Windows PS Query workflow) | Experimental | **Open PS Query** / **New PS Query**, also Configuration Tools > PS Query. Oracle / PeopleTools 8.62.09: open existing public or own private queries; create, edit, save and Save As for one SQL Table record with direct character fields and at most one equal-to constant/prompt criterion. Headings, ordering, prompts, SQL and bounded read-only results with Query access checks. Unsupported shapes remain readable, with a reason saving/running is refused — see [docs/PS_QUERY_WINDOWS.md](docs/PS_QUERY_WINDOWS.md) |
-| **Process Definitions** | Read-Only | Priority, run location, parameters, output, components and process groups — see [docs/PROCESS_DEFINITIONS.md](docs/PROCESS_DEFINITIONS.md) |
+| **Queries** (Windows PS Query workflow) | Experimental | **Open PS Query** / **New PS Query**, also Configuration Tools > PS Query. Oracle / PeopleTools 8.62.09: open existing public or own private queries; create, edit, save and Save As for one SQL Table record with direct character fields and at most one equal-to constant/prompt criterion. Headings, ordering, prompts, SQL and bounded read-only results with Query access checks. MCP exposes matching bounded read/prepare/run/create/edit/copy workflows. Unsupported shapes remain readable, with a reason saving/running is refused — see [docs/PS_QUERY_WINDOWS.md](docs/PS_QUERY_WINDOWS.md) |
+| **Process Definitions** | View / Edit (Oracle) | Tabbed editor and MCP read/edit/rollback preview for scheduling defaults, overrides, output, recovery, components and process groups; no process scheduling or execution — see [docs/PROCESS_DEFINITIONS.md](docs/PROCESS_DEFINITIONS.md) |
 | **Trees** | Read-Only | Settings, levels, and nodes as an outline with detail ranges — see [docs/TREES.md](docs/TREES.md) |
 | **Integration Broker** | Experimental | Messages, Document Builder, services, service operations, nodes and routings: search, inspect, validate, create, preview and save through editors or MCP on PeopleTools 8.62.09; unsupported structures require PIA — see [docs/INTEGRATION_BROKER.md](docs/INTEGRATION_BROKER.md) |
 | **Images** | Read-Only | Shown in a panel (GIF, PNG, JPEG, SVG, BMP) — see [docs/IMAGES.md](docs/IMAGES.md) |
 | **Message Catalog**, **HCM Text Catalog**, **URL Definitions** | Experimental | Search, create and edit through Configuration Tools > Administration or MCP; typed schemas, catalog reference, Text Catalog configuration/language choices, concurrency and write gates — see [docs/ADMINISTRATION.md](docs/ADMINISTRATION.md) |
 | **Portal Registry** | Experimental | Select a portal, browse its Structure & Content tree, create folders and component/external content references, and edit properties, parent, sequence and security through the UI or MCP — see [docs/PORTAL_REGISTRY.md](docs/PORTAL_REGISTRY.md) |
 | **XSLT** | Read-Only | Stylesheet text; node editing is covered by Integration Broker and node passwords are never shown — see [docs/URLS_NODES.md](docs/URLS_NODES.md) |
-| MCP server (AI clients) | Yes | Search/read supported definitions and bounded PeopleCode text search; `psft_list_definition_types` gives type codes and key parts. Experimental authoring tools cover PeopleCode, SQL, HTML, style sheets, pages, records, fields, translates, projects, packages, App Engine, menus, Component Interfaces, message channels, Portal Registry folders/content references, Message Catalog, HCM Text Catalog and URL definitions. 0.8.9 adds Integration Broker authoring plus project migration review, package export and import preview; imports apply through the UI. Structured designers and tools share their models and writers, with validation and concurrency checks. Customization tools cover ownership, Event Mapping, Drop Zones and Page and Field Configurator; discovery tools read and record evidence. Default MCP write mode asks for approval in VS Code, with separate ownership checks for guarded definition changes. See [docs/MCP_WRITES.md](docs/MCP_WRITES.md) and [0.8.8 fixes](docs/MCP_0_8_8.md) |
+| **OAuth / SAML** | Partial | OAuth applications: public configuration, audiences and role inspection; calibrated edits for existing CUSTOM / Client Only / Client Credentials applications on Oracle 8.62.09. Legacy inbound SAML mappings are read-only; 8.63 browser SAML SSO remains planned. Secrets and tokens are excluded — see [Security tools](docs/SECURITY.md) |
+| MCP server (AI clients) | Yes | Search/read supported definitions and bounded PeopleCode text search; `psft_list_definition_types` gives type codes and key parts. Experimental authoring tools cover PeopleCode, SQL, HTML, style sheets, pages, records, fields, translates, projects, packages, App Engine, menus, Component Interfaces, message channels, Portal Registry folders/content references, Message Catalog, HCM Text Catalog and URL definitions. 0.9.0 adds product orientation and a structured capability catalog, Process Definition editing, and bounded PS Query search/read/prepare/run/create/edit/copy. Integration Broker authoring and project migration review/export/preview remain available; imports apply through the UI. Structured designers and tools share their models and writers, with validation and concurrency checks. Customization tools cover ownership, Event Mapping, Drop Zones and Page and Field Configurator; discovery tools read and record evidence. Default MCP write mode asks for approval in VS Code, with separate ownership checks for guarded definition changes. See [docs/MCP_WRITES.md](docs/MCP_WRITES.md) and [0.8.8 fixes](docs/MCP_0_8_8.md) |
 | PeopleCode IntelliSense-lite | Yes | Completion, hover, outline, snippets |
 | PeopleCode syntax highlighting | Yes | |
 
@@ -358,3 +366,11 @@ Use `psft_ib_reference` for the workflow and
 [Integration Broker documentation](docs/INTEGRATION_BROKER.md) for supported native
 write paths and current PIA-only boundaries. Writes are calibrated on PeopleTools
 8.62.09.
+
+### MCP workflow discovery
+
+Start with `psft_studio_reference` or the filterable `psft_capability_catalog`
+for definition types, configuration tools, customization strategy and migration
+coverage. Process Definition editing and bounded PS Query authoring/execution
+now have dedicated MCP tools. See [MCP reference](docs/MCP_REFERENCE.md) for
+inputs, operation limits, rollback previews and validation.

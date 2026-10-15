@@ -17,7 +17,7 @@ import { select, TIMESTAMP_FORMAT, valueBinds, VALUE_PREDICATE } from './peopleC
  */
 
 /** A definition type's row: its table and key columns, in the key's order. */
-interface DefinitionRow { table: string; columns: string[]; values: (key: DefinitionKey) => string[]; extra?: string }
+interface DefinitionRow { table: string; columns: string[]; values: (key: DefinitionKey) => string[]; extra?: string; namePart?: number }
 
 const DEFINITION_ROWS: Readonly<Partial<Record<DefinitionType, DefinitionRow>>> = {
   [DefinitionType.Record]: { table: 'PSRECDEFN', columns: ['RECNAME'], values: (k) => [k.parts[0]] },
@@ -25,6 +25,8 @@ const DEFINITION_ROWS: Readonly<Partial<Record<DefinitionType, DefinitionRow>>> 
   [DefinitionType.Page]: { table: 'PSPNLDEFN', columns: ['PNLNAME'], values: (k) => [k.parts[0]] },
   [DefinitionType.Component]: { table: 'PSPNLGRPDEFN', columns: ['PNLGRPNAME', 'MARKET'], values: (k) => [k.parts[0], k.parts[1] || 'GBL'] },
   [DefinitionType.Menu]: { table: 'PSMENUDEFN', columns: ['MENUNAME'], values: (k) => [k.parts[0]] },
+  [DefinitionType.Query]: { table: 'PSQRYDEFN', columns: ['QRYNAME', 'OPRID'], values: k => [k.parts[0], k.parts[1]?.trim() || ' '] },
+  [DefinitionType.ProcessDefinition]: { table: 'PS_PRCSDEFN', columns: ['PRCSTYPE', 'PRCSNAME'], values: k => [k.parts[0], k.parts[1]], namePart: 1 },
   [DefinitionType.AppEngineProgram]: { table: 'PSAEAPPLDEFN', columns: ['AE_APPLID'], values: (k) => [k.parts[0]] },
   [DefinitionType.AppEngineSection]: { table: 'PSAEAPPLDEFN', columns: ['AE_APPLID'], values: (k) => [k.parts[0]] },
   [DefinitionType.SqlDefinition]: { table: 'PSSQLDEFN', columns: ['SQLID', 'SQLTYPE'], values: (k) => [k.parts[0], k.parts[1] ?? '0'] },
@@ -154,15 +156,15 @@ export async function readOwnershipEvidence(c: Connection, key: DefinitionKey, p
   if (!spec) return { exists: false };
   const values = spec.values(key);
   const binds = Object.fromEntries(values.map((v, i) => [`k${i}`, v]));
-  const hasVersion=[DefinitionType.Field,DefinitionType.Record,DefinitionType.AppEngineProgram,DefinitionType.UrlDefinition,DefinitionType.IbMessage,DefinitionType.IbService,DefinitionType.IbServiceOperation,DefinitionType.MessageNode,DefinitionType.IbRouting,DefinitionType.IbDocument].includes(key.type);
+  const hasVersion=[DefinitionType.Query,DefinitionType.ProcessDefinition,DefinitionType.Field,DefinitionType.Record,DefinitionType.AppEngineProgram,DefinitionType.UrlDefinition,DefinitionType.IbMessage,DefinitionType.IbService,DefinitionType.IbServiceOperation,DefinitionType.MessageNode,DefinitionType.IbRouting,DefinitionType.IbDocument].includes(key.type);
   const [row] = await select<{ OPRID: string; DTTM: string; VERSION?:number }>(c,
     `SELECT ${hasVersion?'VERSION, ':''}LASTUPDOPRID AS OPRID, TO_CHAR(LASTUPDDTTM, ${TIMESTAMP_FORMAT}) AS DTTM FROM ${spec.table}
       WHERE ${spec.columns.map((col, i) => `${col} = ${col === 'EFFDT' ? `TO_DATE(:k${i},'YYYY-MM-DD')` : `:k${i}`}`).join(' AND ')}${spec.extra ? ` AND ${spec.extra}` : ''} FETCH FIRST 1 ROWS ONLY`, binds);
   if (!row) return { exists: false };
   return {
     exists: true, operator: String(row.OPRID ?? '').trim(), updated: String(row.DTTM ?? ''), ...(hasVersion?{version:Number(row.VERSION)}:{}),
-    ...(baseline?.covers(spec.table) ? { baseline: { label: baseline.label, contains: baseline.has(spec.table, values.join('.')) } } : {}),
-    ...withPrefix(key.parts[0], prefixes),
+    ...(baseline?.covers(spec.table) ? { baseline: { label: baseline.label, contains: baseline.has(spec.table, values.join('.').replace(/\s+\./g, '.').trim()) } } : {}),
+    ...withPrefix(key.parts[spec.namePart ?? 0], prefixes),
     ...await deliveredProject(c, key, prefixes)
   };
 }

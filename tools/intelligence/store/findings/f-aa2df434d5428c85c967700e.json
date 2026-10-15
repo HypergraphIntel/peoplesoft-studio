@@ -1,0 +1,69 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-aa2df434d5428c85c967700e",
+  "fingerprint": "aa2df434d5428c85c967700e674a76ae80c698a01512a4a4972f0f5288cf9416",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "security",
+    "objectType": "OAuth2 service application",
+    "tables": [
+      "PSPTSEC_TOKEN"
+    ],
+    "properties": [
+      "PTCLIENT_ID",
+      "PTISS",
+      "PTTOKENURL",
+      "PTSCOPE_URL"
+    ]
+  },
+  "assertion": {
+    "kind": "public-configuration-edit",
+    "facts": {
+      "authorizationServer": "CU",
+      "applicationType": "CO",
+      "grant": "CC",
+      "versionCountersChanged": false
+    }
+  },
+  "title": "Native CUSTOM client-credentials public setting edits leave cache counters unchanged",
+  "statement": "On HRDMO PeopleTools 8.62.09, a native PIA edit of client ID, issuer, token endpoint and scope URL on an inert CUSTOM / Client Only / Client Credentials application changed those four public fields without changing PSVERSION counters. Registration state and the other captured public properties stayed unchanged. This evidence does not establish credential, grant, role or audience write protocols.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-14T22:48:37.710Z",
+      "method": "manual-inspection",
+      "experimentId": "oauth-native-public-edit",
+      "runId": "2026-10-14",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA and sanitized database snapshots"
+      },
+      "observation": "Captured native creation and subsequent four-field edit for ZZ_STUDIO_OAUTH_01 with a synthetic client and example.invalid endpoint. No encrypted secret or token values retained. Native edit changed only the four public fields; PSVERSION had no changes.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/test/fixtures/security-8.62.09/oauth-native.json"
+        }
+      ],
+      "digest": "a1a69653c8fdef3538183e6dbe3306989a66c0ac250ecab413b10e5ce8610a24"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-14T22:48:43.053Z",
+    "updatedAt": "2026-10-14T22:48:43.053Z",
+    "schemaVersion": 1
+  }
+}

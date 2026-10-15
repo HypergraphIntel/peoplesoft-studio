@@ -28,7 +28,7 @@ export const DEFINITION_TYPE_GUIDE: readonly DefinitionTypeGuide[] = [
   { type: DefinitionType.Component, keyParts: ['component', 'market (GBL ...)'], databaseSearch: true },
   { type: DefinitionType.RecordPeopleCode, keyParts: ['record', 'field', 'event'], databaseSearch: true, note: 'Searched by record. psft_get_record_peoplecode reads a record\'s programs.' },
   { type: DefinitionType.MenuPeopleCode, keyParts: ['menu', 'bar', 'item', 'event'], databaseSearch: true },
-  { type: DefinitionType.Query, keyParts: ['query'], databaseSearch: true, note: 'Public queries.' },
+  { type: DefinitionType.Query, keyParts: ['query', 'owner (optional; blank for public)'], databaseSearch: true, note: 'Generic search lists public queries. psft_query_list includes the configured operator\'s own private queries.' },
   { type: DefinitionType.Tree, keyParts: ['SetID (blank: " ")', 'set control value (blank: " ")', 'tree', 'effective date YYYY-MM-DD'], databaseSearch: true, note: 'Searched by tree name; every effective-dated version is listed.' },
   { type: DefinitionType.Role, keyParts: ['role'], databaseSearch: true },
   { type: DefinitionType.ProcessDefinition, keyParts: ['process type', 'process name'], databaseSearch: true, note: 'Searched by process name.' },

@@ -1,0 +1,132 @@
+[
+  {
+    "key": {
+      "type": 0,
+      "parts": [
+        "ZZ_RPT_AET"
+      ]
+    },
+    "name": "ZZ_RPT_AET",
+    "description": "Record inventory AE state",
+    "recordType": 2,
+    "fields": [
+      {
+        "name": "PROCESS_INSTANCE",
+        "fieldNum": 1,
+        "type": 2,
+        "length": 10,
+        "decimalPositions": 0,
+        "useEdit": 8388608
+      },
+      {
+        "name": "RECTYPE",
+        "fieldNum": 2,
+        "type": 2,
+        "length": 1,
+        "decimalPositions": 0,
+        "useEdit": 8388608
+      },
+      {
+        "name": "ZZ_RPT_COUNT",
+        "fieldNum": 3,
+        "type": 2,
+        "length": 10,
+        "decimalPositions": 0,
+        "useEdit": 8388608
+      },
+      {
+        "name": "ZZ_RPT_FILE",
+        "fieldNum": 4,
+        "type": 0,
+        "length": 128,
+        "decimalPositions": 0,
+        "useEdit": 8388608
+      },
+      {
+        "name": "ZZ_RPT_TOTAL",
+        "fieldNum": 5,
+        "type": 2,
+        "length": 10,
+        "decimalPositions": 0,
+        "useEdit": 8388608
+      }
+    ],
+    "version": 226
+  },
+  {
+    "key": {
+      "type": 0,
+      "parts": [
+        "ZZ_RPT_LINE"
+      ]
+    },
+    "name": "ZZ_RPT_LINE",
+    "description": "Inventory report detail work",
+    "recordType": 2,
+    "fields": [
+      {
+        "name": "RECTYPE",
+        "fieldNum": 1,
+        "type": 2,
+        "length": 1,
+        "decimalPositions": 0,
+        "useEdit": 8388608
+      },
+      {
+        "name": "ZZ_RPT_LABEL",
+        "fieldNum": 2,
+        "type": 0,
+        "length": 40,
+        "decimalPositions": 0,
+        "useEdit": 8388608
+      },
+      {
+        "name": "ZZ_RPT_COUNT",
+        "fieldNum": 3,
+        "type": 2,
+        "length": 10,
+        "decimalPositions": 0,
+        "useEdit": 8388608
+      }
+    ],
+    "version": 227
+  },
+  {
+    "key": {
+      "type": 0,
+      "parts": [
+        "ZZ_RPT_SUM"
+      ]
+    },
+    "name": "ZZ_RPT_SUM",
+    "description": "Inventory report summary work",
+    "recordType": 2,
+    "fields": [
+      {
+        "name": "PROCESS_INSTANCE",
+        "fieldNum": 1,
+        "type": 2,
+        "length": 10,
+        "decimalPositions": 0,
+        "useEdit": 8388608
+      },
+      {
+        "name": "ZZ_RPT_TOTAL",
+        "fieldNum": 2,
+        "type": 2,
+        "length": 10,
+        "decimalPositions": 0,
+        "useEdit": 8388608
+      },
+      {
+        "name": "ZZ_RPT_FILE",
+        "fieldNum": 3,
+        "type": 0,
+        "length": 128,
+        "decimalPositions": 0,
+        "useEdit": 8388608
+      }
+    ],
+    "version": 228
+  }
+]

@@ -1,13 +1,15 @@
 # PeopleSoft Studio — Customization Intelligence Architecture
 
-> **Status.** Phase 1 -- ownership classification and the delivered-object
-> policies at the write gate -- is built, and phase 2: Event Mapping
-> discovered (2a) and written as the Configure Event Mapping page writes it
-> (2b, through the MCP): see docs/CUSTOMIZATION.md. The Customization
-> Strategy view and Plan editor exist as a preview. Naming prefixes are a list
-> (bolt-on vendors carry their own; a vendor's prefix is the evidence for
-> PARTNER). Next: Event Mapping in the Strategy view, then Drop Zones, Page
-> and Field Configurator, AE plug-ins.
+> **0.9.0 implementation status.** Ownership and guarded delivered-object
+> policies are implemented, including native Query and Process Definition keys.
+> Event Mapping, Drop Zones and Page and Field Configurator have live discovery
+> and supported configuration writes through MCP and editors. The Strategy view
+> uses that evidence; customization plans, the registry and upgrade-impact
+> analysis remain previews. Configurable Search and AE plug-in discovery remain
+> UNKNOWN. See [current scope](docs/CUSTOMIZATION.md) and
+> [MCP workflows](docs/MCP_REFERENCE.md). The architecture below is the broader
+> design, not a statement that every proposed capability has shipped.
+
 
 Proposed feature: Customization Intelligence Engine
 

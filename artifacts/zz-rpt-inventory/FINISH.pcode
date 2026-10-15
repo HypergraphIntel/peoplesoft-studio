@@ -1,0 +1,13 @@
+Local Record &summary;
+Local File &report;
+&summary = CreateRecord(Record.ZZ_RPT_SUM);
+&summary.PROCESS_INSTANCE.Value = %ProcessInstance;
+&summary.ZZ_RPT_TOTAL.Value = ZZ_RPT_AET.ZZ_RPT_TOTAL;
+&summary.ZZ_RPT_FILE.Value = ZZ_RPT_AET.ZZ_RPT_FILE;
+&report = GetFile(&summary.ZZ_RPT_FILE.Value, "A", "UTF8", %FilePath_Relative);
+If Not &report.IsOpen Then
+   Error ("Cannot append record inventory total.");
+End-If;
+&report.WriteLine("TOTAL,All Record Definitions," | String(&summary.ZZ_RPT_TOTAL.Value));
+&report.Close();
+MessageBox(0, "", 0, 0, "Record inventory complete: " | &summary.ZZ_RPT_FILE.Value | "; definitions=" | String(&summary.ZZ_RPT_TOTAL.Value));

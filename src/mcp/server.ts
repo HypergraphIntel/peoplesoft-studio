@@ -1,3 +1,10 @@
+import * as z from 'zod/v4';
+import { capabilityCatalog } from './capabilityCatalog.js';
+import { registerProcessTools } from './processTools.js';
+import { registerQueryTools } from './queryTools.js';
+import { studioReference } from './studioReference.js';
+import { jsonResult } from './tools.js';
+import { registerSecurityTools } from './securityTools.js';
 import { registerPortalTools } from './portalTools.js';
 import { registerStructureTools } from './structureTools.js';
 import {
@@ -173,11 +180,19 @@ export async function startPeopleSoftMcpServer(
             name:
               'peoplesoft-studio',
             version:
-              '0.2.1'
+              '0.9.0'
+          }, {
+            instructions: 'Start with psft_studio_reference or psft_capability_catalog to choose a supported workflow. Read the relevant framework reference before authoring. Select a connection with psft_list_connections; inspect effective customization policy, ownership and live configuration availability before proposing delivered-object changes. Catalog entries describe bounded implementation support, not release certification or permission. Read current definitions and concurrency tokens, preview supported saves, then save through guarded tools and read back. Planned features and preview analyses must remain explicit.'
           });
 
         // Every tool call runs as an agent's: the delivered-object guard applies agentDeliveredObjectPolicy to what it writes.
         runToolsAsAgent(server as never);
+
+        server.registerTool('psft_studio_reference', {
+          title: 'PeopleSoft Studio: tools, definitions and customization strategy',
+          description: 'Read first for the current Studio feature map: every Configuration Tools and Data Migration Tools entry, all modeled definition types and generic MCP coverage, customization strategy and its enforced versus preview behavior, project migration workflows, tool routing and explicit limitations. Read-only orientation; database availability and effective policy require their discovery tools.',
+          annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
+        }, async () => jsonResult(studioReference()));
 
         registerPeopleSoftTools(
           server,
@@ -191,6 +206,13 @@ export async function startPeopleSoftMcpServer(
 
         const writeHost =
           options.writeHost?.();
+
+        server.registerTool('psft_capability_catalog', {
+          title: 'Structured Studio capability catalog',
+          description: 'Read first to choose a workflow. Filter by kind, definition type code or text. Explains every modeled definition type, its relationships, operation-specific MCP routes and missing operations; every configuration/data migration pane entry; customization strategy and migration limits. Implementation evidence is distinct from release verification and write permission.',
+          inputSchema: z.object({ kind: z.enum(['definition', 'configuration', 'dataMigration', 'strategy', 'projectMigration']).optional(), type: z.number().int().optional(), query: z.string().optional() }).strict(),
+          annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
+        }, async filter => jsonResult(capabilityCatalog(filter, !!writeHost)));
 
         // App Engine: read tools always; write tools with the write host.
         registerAppEngineTools(
@@ -219,6 +241,9 @@ export async function startPeopleSoftMcpServer(
         registerPageFieldConfiguratorTools(server, workspace, writeHost);
         registerDiscoveryTools(server, workspace, writeHost);
         registerAdministrationTools(server, workspace, writeHost);
+        registerSecurityTools(server, workspace, writeHost);
+        registerProcessTools(server, workspace, writeHost);
+        registerQueryTools(server, workspace, writeHost);
         registerIbTools(server, workspace, writeHost);
         registerPortalTools(server, workspace, writeHost);
 

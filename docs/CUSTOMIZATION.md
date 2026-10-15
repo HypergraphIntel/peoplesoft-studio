@@ -1,14 +1,16 @@
 # Customization Intelligence
 
 Who owns a definition, what may happen to it, and which configuration
-frameworks could extend it instead. Phase 1 of the Customization Intelligence
-design (CUSTOMIZATION_INTELLIGENCE.md, CUSTOMIZATION_STRATEGY_PANEL.md):
-ownership classified from evidence, and delivered-object policies every write
-passes. Phase 2: Event Mapping discovered (2a) and written as PeopleTools'
-own page writes it (2b, through the MCP). Drop Zones, Page and Field
-Configurator, Configurable Search, AE plug-ins, plans and the customization
-registry are later; the Customization Strategy view and the Customization
-Plan editor show them as previews.
+frameworks can extend it without changing it. In 0.9.0, ownership is classified
+from database evidence and delivered-object policies apply at guarded writes.
+Event Mapping, Drop Zones and Page and Field Configurator have database
+discovery and supported configuration writes through MCP and editors.
+Configuration Tools exposes dedicated component editors for Drop Zones and
+Standard/Masking Page and Field Configurator settings.
+
+Configurable Search and AE plug-in discovery remain UNKNOWN. Customization
+plans, the registry and upgrade-impact analysis remain previews; the preferred
+strategy is a preference rather than an enforced planning engine.
 
 ## Ownership
 
@@ -292,6 +294,16 @@ src/providers/pfcMapper.ts (see Writing Page and Field Configurator).
 
 ## Writing Drop Zones
 
+**Configuration Tools > Customization > Drop Zones** opens a searchable component
+picker and a grid of the component’s drop zones. Each row shows its page, label,
+key, tab order and current subpage. Edit subpage names or clear an assignment,
+then use **Preview changes** or **Save**. Saves show a confirmation with the
+planned changes and use the existing concurrency token and verified writer.
+**Reload / Revert** discards pending edits after confirmation. Page and stored
+subpage links open their designers. Browsing works on read-only connections;
+saving requires Oracle, a Writable connection and a PeopleSoft Operator ID,
+with the existing subpage write-scope checks.
+
 `DatabaseProvider.saveDropZoneConfiguration` (src/providers/dropZoneWriter.ts)
 sets drop zones' subpages as Configure Drop Zones saves them
 (`PTCS_SUBPNL_WRK.PTSAVE_CHANGE_SUOW` FieldChange), in one transaction,
@@ -556,12 +568,15 @@ usually Oracle's. No delivered-object guard: no definition changes.
 |---|---|
 | `psft_customization_get_policy` | The effective prefixes, strategy and both delivered-object policies |
 | `psft_object_classify` | Ownership, confidence and evidence of a definition, and what the agent policy would do with a write to it |
-| `psft_customization_discover` | Which frameworks could extend a definition: Event Mapping's verdict, evidence and existing configurations; the rest not discovered yet |
+| `psft_customization_discover` | Which frameworks could extend a definition: Event Mapping, Drop Zones and Page and Field Configurator evidence and existing configurations; Configurable Search and AE plug-ins remain UNKNOWN |
 | `psft_event_mapping_reference` | Levels, events, processing and parameters, as the page saves them |
 | `psft_event_mapping_get` | A content reference's configuration as the page lists it, with instance IDs and the token |
 | `psft_event_mapping_save` | Saves the whole configuration as the page does (dryRun: the plan, rows restamped, warnings) |
 | `psft_event_mapping_remove` | The list's Remove |
 | `psft_event_mapping_create_service` | The package and class when missing, then the Application Class service, as the Define Related Content Service page saves it |
+| `psft_drop_zone_get` / `psft_drop_zone_save` | Read existing drop zones and configure custom subpage assignments, with preview and token checks |
+| `psft_page_field_config_get` / `psft_page_field_config_fields` / `psft_page_field_config_save` | Read configurations/catalog fields and save supported Standard/Masking configurations |
+| `psft_studio_reference` / `psft_capability_catalog` | Product scope, operation routes, relationships and explicit missing capabilities |
 
 ## Proof
 
@@ -590,3 +605,29 @@ usually Oracle's. No delivered-object guard: no definition changes.
   the validator, a row deleted, Revert); not yet inside VS Code.
 - `src/test/ownership.test.ts` also proves the origin survives awaits and
   interleaved calls, and that an MCP tool's callback runs as an agent's.
+
+### Page and Field Configurator editor
+
+Configuration Tools → Customization → Page and Field Configurator opens a
+component editor after choosing a connected database and searching for a
+component. Standard and Masking configurations have separate drafts. Set the
+description, add sequences, select fields from the delivered page catalog, and
+edit or remove field settings. Standard supports hidden, display only, required
+and replacement labels; Masking uses the database’s mask profiles. Configuration
+and sequence activation are editable. Existing criteria, role and page settings
+are preserved and remain editable in PIA; Change Tracking is not offered.
+
+Preview shows the existing writer’s row and Event Mapping plan. Save uses the
+opened token, confirms the concrete plan, and reloads the verified configuration.
+Editing requires an Oracle Writable connection and a PeopleSoft Operator ID.
+Reload and switching configuration types confirm before discarding a dirty draft.
+
+### Query and Process Definition ownership in 0.9.0
+
+Queries use QRYNAME plus OPRID (blank for public). Process Definitions use
+PRCSTYPE plus PRCSNAME; naming-prefix evidence applies to the process name.
+Both read native save stamps and versions, so an existing definition reaches
+the delivered-object policy. Public Query baseline keys use the same blank-owner
+normalization as baseline capture. Unit tests cover these keys and policy
+outcomes; the installed MCP established existing Query and delivered Process
+Definition ownership during live HRDMO validation.

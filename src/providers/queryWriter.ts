@@ -9,7 +9,7 @@ const TABLES=Object.keys(QUERY_TABLES) as QueryTable[];
 const TIME_FORMAT=`'YYYY-MM-DD"T"HH24:MI:SS.FF9'`;
 const timestamp=(column: ColumnInfo) => /^(DATE|TIMESTAMP)/.test(column.dataType);
 export interface QueryEdit { view: QueryView; token: string }
-export interface QuerySaveRequest { view: QueryView; openedToken: string; operatorId: string }
+export interface QuerySaveRequest { view: QueryView; openedToken: string; operatorId: string; dryRun?: boolean }
 export interface QuerySaveResult extends QueryEdit { written: boolean; replaced: Record<string,number> }
 
 async function readTable(c: DbConnection, types: DbTypes, table: QueryTable, name: string, owner: string, lock = false): Promise<Row[]> {
@@ -142,8 +142,8 @@ export async function saveQuery(c: DbConnection, types: DbTypes, request: QueryS
     await expectRows(c,"UPDATE PSVERSION SET VERSION=VERSION+1 WHERE OBJECTTYPENAME IN ('QDM','SYS')",{},2,'Updating QDM and SYS');
     await expectRows(c,"UPDATE PSLOCK SET VERSION=VERSION+1 WHERE OBJECTTYPENAME='QDM'",{},1,'Updating QDM lock');
     const verified=await verifyView(c,types,planned);
-    await c.commit();
-    return {...verified,written:true,replaced};
+    if (request.dryRun) await c.rollback(); else await c.commit();
+    return {...verified,written:!request.dryRun,replaced};
   } catch (error) { await c.rollback(); throw error; }
 }
 

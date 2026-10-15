@@ -1,0 +1,316 @@
+{
+  "format": "psft-migration-review/1",
+  "project": "ZZ_RPT_INVENTORY",
+  "source": "HRDMO (connector readback)",
+  "items": [
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "ZZ_RPT_AET"
+        ]
+      },
+      "displayName": "ZZ_RPT_AET",
+      "typeLabel": "Records"
+    },
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "ZZ_RPT_LINE"
+        ]
+      },
+      "displayName": "ZZ_RPT_LINE",
+      "typeLabel": "Records"
+    },
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "ZZ_RPT_SUM"
+        ]
+      },
+      "displayName": "ZZ_RPT_SUM",
+      "typeLabel": "Records"
+    },
+    {
+      "key": {
+        "type": 2,
+        "parts": [
+          "ZZ_RPT_COUNT"
+        ]
+      },
+      "displayName": "ZZ_RPT_COUNT",
+      "typeLabel": "Fields"
+    },
+    {
+      "key": {
+        "type": 2,
+        "parts": [
+          "ZZ_RPT_FILE"
+        ]
+      },
+      "displayName": "ZZ_RPT_FILE",
+      "typeLabel": "Fields"
+    },
+    {
+      "key": {
+        "type": 2,
+        "parts": [
+          "ZZ_RPT_LABEL"
+        ]
+      },
+      "displayName": "ZZ_RPT_LABEL",
+      "typeLabel": "Fields"
+    },
+    {
+      "key": {
+        "type": 2,
+        "parts": [
+          "ZZ_RPT_TOTAL"
+        ]
+      },
+      "displayName": "ZZ_RPT_TOTAL",
+      "typeLabel": "Fields"
+    },
+    {
+      "key": {
+        "type": 33,
+        "parts": [
+          "ZZ_RPT_INV"
+        ]
+      },
+      "displayName": "ZZ_RPT_INV",
+      "typeLabel": "App Engine Programs"
+    },
+    {
+      "key": {
+        "type": 34,
+        "parts": [
+          "ZZ_RPT_INV",
+          "MAIN"
+        ]
+      },
+      "displayName": "ZZ_RPT_INV.MAIN",
+      "typeLabel": "App Engine Sections"
+    },
+    {
+      "key": {
+        "type": 43,
+        "parts": [
+          "ZZ_RPT_INV",
+          "MAIN    GBLdefault  1900-01-01",
+          "DETAIL",
+          "OnExecute"
+        ]
+      },
+      "displayName": "ZZ_RPT_INV.MAIN    GBLdefault  1900-01-01.DETAIL.OnExecute",
+      "typeLabel": "App Engine PeopleCode"
+    },
+    {
+      "key": {
+        "type": 43,
+        "parts": [
+          "ZZ_RPT_INV",
+          "MAIN    GBLdefault  1900-01-01",
+          "FINISH",
+          "OnExecute"
+        ]
+      },
+      "displayName": "ZZ_RPT_INV.MAIN    GBLdefault  1900-01-01.FINISH.OnExecute",
+      "typeLabel": "App Engine PeopleCode"
+    },
+    {
+      "key": {
+        "type": 43,
+        "parts": [
+          "ZZ_RPT_INV",
+          "MAIN    GBLdefault  1900-01-01",
+          "INIT",
+          "OnExecute"
+        ]
+      },
+      "displayName": "ZZ_RPT_INV.MAIN    GBLdefault  1900-01-01.INIT.OnExecute",
+      "typeLabel": "App Engine PeopleCode"
+    }
+  ],
+  "comparisons": [],
+  "dependencies": [
+    {
+      "key": {
+        "type": 2,
+        "parts": [
+          "PROCESS_INSTANCE"
+        ]
+      },
+      "label": "PROCESS_INSTANCE",
+      "requiredBy": [
+        "ZZ_RPT_AET",
+        "ZZ_RPT_SUM"
+      ],
+      "inProject": false
+    },
+    {
+      "key": {
+        "type": 2,
+        "parts": [
+          "RECTYPE"
+        ]
+      },
+      "label": "RECTYPE",
+      "requiredBy": [
+        "ZZ_RPT_AET",
+        "ZZ_RPT_LINE"
+      ],
+      "inProject": false
+    },
+    {
+      "key": {
+        "type": 0,
+        "parts": [
+          "ZZ_RPT_AET"
+        ]
+      },
+      "label": "ZZ_RPT_AET",
+      "requiredBy": [
+        "ZZ_RPT_INV"
+      ],
+      "inProject": true
+    },
+    {
+      "key": {
+        "type": 2,
+        "parts": [
+          "ZZ_RPT_COUNT"
+        ]
+      },
+      "label": "ZZ_RPT_COUNT",
+      "requiredBy": [
+        "ZZ_RPT_AET",
+        "ZZ_RPT_LINE"
+      ],
+      "inProject": true
+    },
+    {
+      "key": {
+        "type": 2,
+        "parts": [
+          "ZZ_RPT_FILE"
+        ]
+      },
+      "label": "ZZ_RPT_FILE",
+      "requiredBy": [
+        "ZZ_RPT_AET",
+        "ZZ_RPT_SUM"
+      ],
+      "inProject": true
+    },
+    {
+      "key": {
+        "type": 34,
+        "parts": [
+          "ZZ_RPT_INV",
+          "MAIN"
+        ]
+      },
+      "label": "ZZ_RPT_INV.MAIN",
+      "requiredBy": [
+        "ZZ_RPT_INV"
+      ],
+      "inProject": true
+    },
+    {
+      "key": {
+        "type": 43,
+        "parts": [
+          "ZZ_RPT_INV",
+          "MAIN",
+          "GBL",
+          "default",
+          "1900-01-01",
+          "DETAIL",
+          "OnExecute"
+        ]
+      },
+      "label": "ZZ_RPT_INV.MAIN.GBL.default.1900-01-01.DETAIL.OnExecute",
+      "requiredBy": [
+        "ZZ_RPT_INV"
+      ],
+      "inProject": true
+    },
+    {
+      "key": {
+        "type": 43,
+        "parts": [
+          "ZZ_RPT_INV",
+          "MAIN",
+          "GBL",
+          "default",
+          "1900-01-01",
+          "FINISH",
+          "OnExecute"
+        ]
+      },
+      "label": "ZZ_RPT_INV.MAIN.GBL.default.1900-01-01.FINISH.OnExecute",
+      "requiredBy": [
+        "ZZ_RPT_INV"
+      ],
+      "inProject": true
+    },
+    {
+      "key": {
+        "type": 43,
+        "parts": [
+          "ZZ_RPT_INV",
+          "MAIN",
+          "GBL",
+          "default",
+          "1900-01-01",
+          "INIT",
+          "OnExecute"
+        ]
+      },
+      "label": "ZZ_RPT_INV.MAIN.GBL.default.1900-01-01.INIT.OnExecute",
+      "requiredBy": [
+        "ZZ_RPT_INV"
+      ],
+      "inProject": true
+    },
+    {
+      "key": {
+        "type": 2,
+        "parts": [
+          "ZZ_RPT_LABEL"
+        ]
+      },
+      "label": "ZZ_RPT_LABEL",
+      "requiredBy": [
+        "ZZ_RPT_LINE"
+      ],
+      "inProject": true
+    },
+    {
+      "key": {
+        "type": 2,
+        "parts": [
+          "ZZ_RPT_TOTAL"
+        ]
+      },
+      "label": "ZZ_RPT_TOTAL",
+      "requiredBy": [
+        "ZZ_RPT_AET",
+        "ZZ_RPT_SUM"
+      ],
+      "inProject": true
+    }
+  ],
+  "unresolved": [
+    "ZZ_RPT_AET: record indexes, associated PeopleCode and SQL dependency coverage is incomplete.",
+    "ZZ_RPT_INV.MAIN    GBLdefault  1900-01-01.DETAIL.OnExecute: dependency analysis is not available for App Engine PeopleCode.",
+    "ZZ_RPT_INV.MAIN    GBLdefault  1900-01-01.FINISH.OnExecute: dependency analysis is not available for App Engine PeopleCode.",
+    "ZZ_RPT_INV.MAIN    GBLdefault  1900-01-01.INIT.OnExecute: dependency analysis is not available for App Engine PeopleCode.",
+    "ZZ_RPT_INV: SQL, PeopleCode, message and Transform dependency coverage is incomplete.",
+    "ZZ_RPT_LINE: record indexes, associated PeopleCode and SQL dependency coverage is incomplete.",
+    "ZZ_RPT_SUM: record indexes, associated PeopleCode and SQL dependency coverage is incomplete."
+  ]
+}

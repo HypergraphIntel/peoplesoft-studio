@@ -1,0 +1,32 @@
+Local Record &line;
+Local File &report;
+Local string &label;
+&line = CreateRecord(Record.ZZ_RPT_LINE);
+&line.RECTYPE.Value = ZZ_RPT_AET.RECTYPE;
+&line.ZZ_RPT_COUNT.Value = ZZ_RPT_AET.ZZ_RPT_COUNT;
+Evaluate ZZ_RPT_AET.RECTYPE
+When = 0
+   &label = "SQL Table";
+When = 1
+   &label = "SQL View";
+When = 2
+   &label = "Derived Work";
+When = 3
+   &label = "Subrecord";
+When = 5
+   &label = "Dynamic View";
+When = 6
+   &label = "Query View";
+When = 7
+   &label = "Temporary Table";
+When-Other
+   &label = "Other";
+End-Evaluate;
+&line.ZZ_RPT_LABEL.Value = &label;
+ZZ_RPT_AET.ZZ_RPT_TOTAL = ZZ_RPT_AET.ZZ_RPT_TOTAL + &line.ZZ_RPT_COUNT.Value;
+&report = GetFile(ZZ_RPT_AET.ZZ_RPT_FILE, "A", "UTF8", %FilePath_Relative);
+If Not &report.IsOpen Then
+   Error ("Cannot append record inventory detail.");
+End-If;
+&report.WriteLine(String(&line.RECTYPE.Value) | "," | &line.ZZ_RPT_LABEL.Value | "," | String(&line.ZZ_RPT_COUNT.Value));
+&report.Close();

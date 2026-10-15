@@ -1,0 +1,23 @@
+{
+  "connection": "HRDMO",
+  "endpoint": "http://127.0.0.1:7337/mcp",
+  "writes": true,
+  "checks": [
+    "installed MCP advertises new workflows",
+    "installed structured capability catalog",
+    "live Process Definition ownership is delivered and stored",
+    "Process Definition real writer preview rolls back and stale token is refused",
+    "live public Query ownership uses its blank-owner key",
+    "Query list/read/prepare/bounded run and private-owner/input refusals",
+    "Query real writer preview rolls back and stale token is refused",
+    "Query creation commits, readback matches and existing target is refused",
+    "Query existing-definition save commits through guards and readback verifies",
+    "Query copy commits, preserves source and refuses an existing target",
+    "original lab Query and delivered Process Definition remain unchanged"
+  ],
+  "created": [
+    "ZZ_QRY_MCP_MV8YENO1",
+    "ZZ_QRY_MCC_MV8YENO1"
+  ],
+  "status": "passed"
+}

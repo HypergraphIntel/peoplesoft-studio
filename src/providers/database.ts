@@ -1,3 +1,6 @@
+import { saveOAuth, type OAuthSaveRequest } from './securityWriter.js';
+import { listSecurity, readSecurity, securityChoices } from './securityReader.js';
+import type { SecurityKind } from '../model/security.js';
 import { readPortalDocument, savePortalDocument, type PortalSaveRequest } from './portalWriter.js';
 import { portalInput, portalKey, type PortalIdentity } from '../model/portalDocument.js';
 import { createHash } from 'node:crypto';
@@ -99,6 +102,9 @@ import {
   readQueryForEdit as readEditableQuery, saveQuery as writeQuery, verifyQuerySave,
   type QueryEdit, type QuerySaveRequest, type QuerySaveResult
 } from './queryWriter.js';
+import { saveProcess, type ProcessSaveRequest } from './processWriter.js';
+import { processToken } from '../model/processEdit.js';
+import type { ProcessView } from '../model/processDefinition.js';
 import { PROCESS_TRANSLATE_FIELDS, renderProcessDefinition } from '../model/processDefinition.js';
 import { renderTree, TREE_TRANSLATE_FIELDS } from '../model/treeDefinition.js';
 import { PORTAL_TRANSLATE_FIELDS, renderPortalItem } from '../model/portalRegistry.js';
@@ -1595,18 +1601,33 @@ export class DatabaseProvider implements DefinitionProvider {
 
   /** A process definition, keyed by process type and name. */
   private async readProcessDefinition(key: DefinitionKey): Promise<string> {
-    const [type, name] = key.parts;
-    return this.withConnection(async (c) => {
-      const binds = { t: type ?? '', n: name ?? '' };
-      const [process] = await this.uiRows(c, `SELECT P.*, ${UI_STAMP} FROM PS_PRCSDEFN P WHERE PRCSTYPE = :t AND PRCSNAME = :n`, binds);
-      if (!process) throw new ProviderError(`No process definition ${type} / ${name}.`);
-      return renderProcessDefinition({
-        process,
-        components: await this.uiRows(c, `SELECT PNLGRPNAME FROM PS_PRCSDEFNPNL WHERE PRCSTYPE = :t AND PRCSNAME = :n`, binds),
-        groups: await this.uiRows(c, `SELECT PRCSGRP FROM PS_PRCSDEFNGRP WHERE PRCSTYPE = :t AND PRCSNAME = :n`, binds),
-        translates: await this.translates(c, PROCESS_TRANSLATE_FIELDS)
-      });
-    });
+    return renderProcessDefinition(await this.readProcessDocument(key));
+  }
+
+  async readProcessDocument(key: DefinitionKey): Promise<ProcessView> {
+    return this.withConnection(c => this.readProcessRows(c, key));
+  }
+
+  private async readProcessRows(c: Connection, key: DefinitionKey): Promise<ProcessView> {
+    if (key.type !== DefinitionType.ProcessDefinition) throw new ProviderError('Expected a process definition.');
+    const [type, name] = key.parts, binds = { t: type ?? '', n: name ?? '' };
+    const [process] = await this.uiRows(c, `SELECT P.*, ${UI_STAMP} FROM PS_PRCSDEFN P WHERE PRCSTYPE = :t AND PRCSNAME = :n`, binds);
+    if (!process) throw new ProviderError(`No process definition ${type} / ${name}.`);
+    return {
+      process,
+      components: await this.uiRows(c, `SELECT * FROM PS_PRCSDEFNPNL WHERE PRCSTYPE = :t AND PRCSNAME = :n ORDER BY PNLGRPNAME`, binds),
+      groups: await this.uiRows(c, `SELECT * FROM PS_PRCSDEFNGRP WHERE PRCSTYPE = :t AND PRCSNAME = :n ORDER BY PRCSGRP`, binds),
+      translates: await this.translates(c, PROCESS_TRANSLATE_FIELDS)
+    };
+  }
+
+  async saveProcessDocument(request: ProcessSaveRequest): Promise<ProcessView> {
+    if (this.platform !== 'oracle') throw new ProviderError('Process definition saves are currently supported on Oracle.');
+    const key = makeKey(DefinitionType.ProcessDefinition, ...request.key);
+    if (!request.dryRun) await this.guard(key, 'save');
+    const saved = await this.withConnection(c => saveProcess(c, this.types, request, connection => this.readProcessRows(connection, key)));
+    if (!request.dryRun && processToken(await this.readProcessDocument(key)) !== processToken(saved)) throw new ProviderError('Process save committed but subsequent readback differs. Reopen the definition to inspect it.');
+    return saved;
   }
 
   /** A query, keyed by name and owner (blank or absent: public). */
@@ -1650,7 +1671,7 @@ export class DatabaseProvider implements DefinitionProvider {
 
   async saveQueryDocument(request: QuerySaveRequest): Promise<QuerySaveResult> {
     if (this.platform!=='oracle') throw new ProviderError('Query saves are currently calibrated on Oracle.');
-    await this.guard(makeKey(DefinitionType.Query,String(request.view.query.QRYNAME).trim(),String(request.view.query.OPRID).trim()),'save');
+    if (!request.dryRun) await this.guard(makeKey(DefinitionType.Query,String(request.view.query.QRYNAME).trim(),String(request.view.query.OPRID).trim()),'save');
     const result=await this.withConnection(c=>writeQuery(c,this.types,request));
     if (result.written) await this.withConnection(c=>verifyQuerySave(c,this.types,result));
     return result;
@@ -1704,6 +1725,30 @@ export class DatabaseProvider implements DefinitionProvider {
       const [setRow] = await this.uiRows(c, `SELECT * FROM PSMSGSETDEFN WHERE MESSAGE_SET_NBR = :s`, { s: binds.s });
       return renderMessage({ set: setRow, message });
     });
+  }
+
+  async saveOAuth(request: OAuthSaveRequest) {
+    if (this.platform !== 'oracle') throw new ProviderError('OAuth writes are calibrated only on Oracle.');
+    const refusal = writeScopeRefusal(request.key[0]);
+    if (refusal) throw new ProviderError(refusal);
+    const saved = await this.withConnection(c => saveOAuth(c, this.types, request));
+    if (!request.dryRun) {
+      const committed = await this.readSecurity('oauth', request.key);
+      if (!committed || committed.token !== saved.token) throw new ProviderError('OAuth save committed but subsequent readback differs. Refresh and inspect the application.');
+    }
+    return saved;
+  }
+
+  async listSecurity(kind: SecurityKind, query: string, offset = 0) {
+    return this.withConnection(c => listSecurity(c, this.types, kind, query, offset));
+  }
+
+  async readSecurity(kind: SecurityKind, key: string[]) {
+    return this.withConnection(c => readSecurity(c, this.types, kind, key));
+  }
+
+  async securityChoices() {
+    return this.withConnection(c => securityChoices(c, this.types));
   }
 
   async listAdministration(kind: AdminKind, query: string, offset = 0) {

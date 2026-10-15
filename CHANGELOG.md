@@ -1,5 +1,62 @@
 # Changelog
 
+## 0.9.0 — 2026-10-14
+
+### Added
+
+- MCP product orientation and a filterable structured capability catalog covering
+  all modeled definition types, Configuration Tools, Data Migration Tools,
+  customization strategy and project migration limits, with operation-specific
+  routes and explicit unsupported coverage.
+- Process Definition MCP reference/get/save tools using the existing Oracle
+  editor writer, rollback previews, concurrency tokens and readback verification.
+- PS Query MCP reference/list/get/prepare/run/create/save/copy tools using the
+  existing bounded query models, access checks and writer. Save previews roll
+  back rows and counters; unsaved designer edits block MCP saves and clean
+  designers reload after committed changes. See [MCP reference](docs/MCP_REFERENCE.md).
+
+- Configuration Tools > Process Definitions: search by process name, choose by
+  process type, and open a tabbed definition editor with scheduling defaults,
+  overrides, output, recovery settings, components and process groups. Oracle
+  saves include undo/redo, draft recovery, conflict checks and readback verification.
+
+- Configuration Tools Page and Field Configurator editor for Standard
+  and Masking configurations, sequence activation, catalog field selection,
+  previews and verified saves through the existing PFC writer.
+
+- Customization > Drop Zones component editor with component search, subpage
+  assignments, page navigation, preview, verified save and reload/revert.
+
+- Security tools for OAuth application search, public configuration, audiences,
+  role names and installed code labels; matching MCP list/get/reference tools.
+- Calibrated editing of existing CUSTOM / Client Only / Client Credentials
+  OAuth applications on Oracle PeopleTools 8.62.09: client ID, issuer, token
+  endpoint and scope URL, with preview rollback, concurrency checks, readback
+  verification and MCP approval gates. Existing secrets/tokens remain untouched.
+- Read-only legacy inbound SAML inspection using its four-part identity.
+  The panel distinguishes it from PeopleTools 8.63 browser SAML SSO, which
+  remains unimplemented. See [Security tools](docs/SECURITY.md).
+
+### Fixed
+
+- Query and Process Definition ownership now uses the complete native keys,
+  including public Query owners and Process Definition names. Existing objects
+  reach the delivered-object policy instead of being treated as new.
+- MCP saves refuse dirty Query/Process editors; clean editors refresh after
+  committed saves. Query rollback previews preserve rows and cache counters.
+
+### Validation and limits
+
+- Release verification covers typecheck, bundle, unit tests and activation smoke,
+  plus production HTTP MCP fixture checks for routing, gates and editor state.
+- Eleven installed-MCP checks passed on HRDMO: ownership, previews, token and
+  access refusals, Query execution and committed create/edit/copy readback.
+  The delivered Process Definition was previewed only and remained unchanged.
+- Data Mover Scripts and Data Migration Workbench remain planned. Project
+  migration apply remains in the UI. Full PS Query parity, customization plans,
+  upgrade-impact analysis, Configurable Search/AE plug-in discovery and browser
+  SAML SSO are outside this release's implemented scope.
+
 ## 0.8.9 — 2026-10-14
 
 ### Added

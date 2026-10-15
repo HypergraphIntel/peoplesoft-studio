@@ -22,7 +22,7 @@ export type QueryOp =
   | { kind: 'clearCriteria' }
   | { kind: 'properties'; description: string; comments: string };
 const fieldName=z.string().regex(/^[A-Z][A-Z0-9_]*$/);
-const opSchema=z.discriminatedUnion('kind',[
+export const queryOpSchema=z.discriminatedUnion('kind',[
   z.object({kind:z.literal('select'),field:fieldName,selected:z.boolean()}).strict(),
   z.object({kind:z.literal('heading'),field:fieldName,mode:z.enum(['text','short']),text:z.string().optional()}).strict(),
   z.object({kind:z.literal('order'),field:fieldName,position:z.number().int().min(0),descending:z.boolean()}).strict(),
@@ -31,7 +31,7 @@ const opSchema=z.discriminatedUnion('kind',[
   z.object({kind:z.literal('clearCriteria')}).strict(),
   z.object({kind:z.literal('properties'),description:z.string(),comments:z.string()}).strict()
 ]);
-export function parseQueryOp(value: unknown): QueryOp { return opSchema.parse(value); }
+export function parseQueryOp(value: unknown): QueryOp { return queryOpSchema.parse(value); }
 const n = (v: unknown) => Number(v ?? 0);
 const s = (v: unknown) => String(v ?? '').trim();
 const blank = (v: string) => v || ' ';

@@ -1,3 +1,5 @@
+import { openSecurityPanel } from './editors/securityPanel.js';
+import { SECURITY_TITLES } from './model/security.js';
 import { openPortalStructure } from './editors/portalPanel.js';
 import * as vscode from 'vscode';
 import * as fs from 'node:fs';
@@ -7,6 +9,7 @@ import { PeopleSoftFileSystem } from './providers/fileSystem.js';
 import { ConnectionsView } from './views/connections.js';
 import { BrowserView } from './views/browser.js';
 import { ProjectsView } from './views/projects.js';
+import { ProcessEditorProvider } from './editors/processEditor.js';
 import { RecordEditorProvider } from './editors/recordEditor.js';
 import { RecordSaveRefusedError } from './model/recordEdit.js';
 import { FieldEditorProvider } from './editors/fieldEditor.js';
@@ -378,6 +381,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     mode: () => vscode.workspace.getConfiguration('peoplesoft.mcp').get<McpWriteMode>('writes', 'confirm'),
     confirm: async ({ title, detail }) => (await vscode.window.showWarningMessage(title, { modal: true, detail }, 'Allow')) === 'Allow',
     hasUnsavedEditor: (connectionId, key) => {
+      if (key.type === DefinitionType.Query) return QueryDesignerPanel.hasUnsaved(connectionId, key.parts[0], key.parts[1]);
+      if (key.type === DefinitionType.ProcessDefinition && ProcessEditorProvider.hasUnsaved(connectionId, key)) return true;
       if (key.type === DefinitionType.AppEngineProgram) return AeDesignerPanel.sessionOf(connectionId, key.parts[0])?.dirty ?? false;
       if (key.type === DefinitionType.Menu) return MenuDesignerPanel.sessionOf(connectionId, key.parts[0])?.dirty ?? false;
       if (key.type === DefinitionType.ComponentInterface) return CiDesignerPanel.sessionOf(connectionId, key.parts[0])?.dirty ?? false;
@@ -397,12 +402,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       else if (key.type === DefinitionType.Menu) void MenuDesignerPanel.reloadIfOpen(connectionId, key.parts[0]);
       else if (key.type === DefinitionType.ComponentInterface) void CiDesignerPanel.reloadIfOpen(connectionId, key.parts[0]);
       else if (key.type === DefinitionType.MessageChannel) void ChannelDesignerPanel.reloadIfOpen(connectionId, key.parts[0]);
+      else if (key.type === DefinitionType.Query) void QueryDesignerPanel.reloadIfOpen(connectionId, key.parts[0], key.parts[1]).catch(error => console.error('PeopleSoft Studio: could not reload Query:', error));
+      else if (key.type === DefinitionType.ProcessDefinition) void ProcessEditorProvider.reloadIfOpen(connectionId, key).catch(error => console.error('PeopleSoft Studio: could not reload Process Definition:', error));
       else if (key.type === DefinitionType.ComponentInterfacePeopleCode) { PeopleSoftFileSystem.instance?.invalidate(toUri(connectionId, key)); void CiDesignerPanel.reloadIfOpen(connectionId, key.parts[0]); }
       else PeopleSoftFileSystem.instance?.invalidate(toUri(connectionId, key));
       refreshAll();
     }
   };
   // A saved record's fields change in the trees too.
+  context.subscriptions.push(ProcessEditorProvider.register(workspace));
   context.subscriptions.push(RecordEditorProvider.register(workspace, () => { browser.refresh(); projects.refresh(); }));
 
   context.subscriptions.push(
@@ -610,6 +618,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (!provider) { if (!connected.length) vscode.window.showInformationMessage('Connect a PeopleSoft database to open Structure & Content.'); return; }
       await openPortalStructure(workspace, provider);
     })),
+
+    ...(['oauth', 'saml'] as const).map(kind => vscode.commands.registerCommand('psft.security.' + kind, () => withError(SECURITY_TITLES[kind], async () => {
+      const connected = workspace.activeProviders.filter((p): p is DatabaseProvider => p instanceof DatabaseProvider && p.isConnected);
+      let provider = connected.find(p => p.id === workspace.selectedConnectionId);
+      if (!provider && connected.length === 1) provider = connected[0];
+      if (!provider && connected.length) provider = (await vscode.window.showQuickPick(connected.map(p => ({ label: p.displayName, provider: p })), { title: 'Security — connection' }))?.provider;
+      if (!provider) { if (!connected.length) vscode.window.showInformationMessage('Connect a PeopleSoft database to open Security tools.'); return; }
+      openSecurityPanel(workspace, provider, kind);
+    }))),
 
     ...ibKind.options.map(kind => vscode.commands.registerCommand('psft.ib.' + kind, () => withError(IB_TITLES[kind], async () => {
       const connected = workspace.activeProviders.filter((p): p is DatabaseProvider => p instanceof DatabaseProvider && p.isConnected);
@@ -835,6 +852,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       refreshAll();
     }),
 
+    vscode.commands.registerCommand('psft.process.open', () => withError('Opening Process Definition', async () => {
+      const connected = workspace.activeProviders.filter((p): p is DatabaseProvider => p instanceof DatabaseProvider && p.isConnected);
+      let provider = connected.find(p => p.id === workspace.selectedConnectionId);
+      if (!provider && connected.length === 1) provider = connected[0];
+      if (!provider && connected.length) provider = (await vscode.window.showQuickPick(connected.map(p => ({ label: p.displayName, provider: p })), { title: 'Process Definitions — connection' }))?.provider;
+      if (!provider) { if (!connected.length) vscode.window.showInformationMessage('Connect a PeopleSoft database to open Process Definitions.'); return; }
+      const pattern = await vscode.window.showInputBox({ title: `Process Definitions — ${provider.displayName}`, prompt: 'Process name (% matches any text)', value: '%', ignoreFocusOut: true });
+      if (pattern === undefined) return;
+      const found = await provider.search({ type: DefinitionType.ProcessDefinition, namePattern: pattern.trim().toUpperCase() || '%', limit: 500 });
+      if (!found.length) { vscode.window.showInformationMessage('No process definitions match that name.'); return; }
+      const picked = await vscode.window.showQuickPick(found.map(d => ({ label: d.key.parts[1], description: d.key.parts[0], detail: d.description, key: d.key })),
+        { title: 'Open Process Definition', placeHolder: 'Choose a process (up to 500 matches)', matchOnDescription: true, matchOnDetail: true });
+      if (picked) await vscode.commands.executeCommand('psft.openDefinition', provider.id, picked.key);
+    })),
+
     vscode.commands.registerCommand('psft.query.open', async () => {
       await withError('Opening PS Query', async () => {
         const connected = workspace.activeProviders.filter(p => p.isConnected && p instanceof DatabaseProvider);
@@ -887,6 +919,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           if (key.type === DefinitionType.Field) {
             await vscode.commands.executeCommand(
               'vscode.openWith', toUri(connectionId, key), FieldEditorProvider.viewType);
+            return;
+          }
+
+          if (key.type === DefinitionType.ProcessDefinition) {
+            await vscode.commands.executeCommand('vscode.openWith', toUri(connectionId, key), ProcessEditorProvider.viewType);
             return;
           }
 

@@ -1,0 +1,56 @@
+{
+  "program": "ZZ_RPT_INV",
+  "description": "Record inventory CSV report",
+  "comments": "Read-only metadata inventory. Writes a UTF8 CSV with record-type counts and total. Derived state; restart disabled because file output is not transactional.",
+  "disableRestart": true,
+  "stateRecords": [
+    {
+      "record": "ZZ_RPT_AET",
+      "default": true
+    }
+  ],
+  "sections": [
+    {
+      "name": "MAIN",
+      "description": "Create inventory report",
+      "autoCommit": false,
+      "steps": [
+        {
+          "name": "INIT",
+          "description": "Initialize CSV and counters",
+          "actions": [
+            {
+              "type": "PeopleCode",
+              "peopleCode": "Local File &report;\nZZ_RPT_AET.ZZ_RPT_TOTAL = 0;\nZZ_RPT_AET.ZZ_RPT_FILE = \"record_inventory_\" | String(%ProcessInstance) | \".csv\";\n&report = GetFile(ZZ_RPT_AET.ZZ_RPT_FILE, \"W\", \"UTF8\", %FilePath_Relative);\nIf Not &report.IsOpen Then\n   Error (\"Cannot open record inventory report.\");\nEnd-If;\n&report.WriteLine(\"Record Type,Type Description,Definition Count\");\n&report.Close();"
+            }
+          ]
+        },
+        {
+          "name": "DETAIL",
+          "description": "Count and report record types",
+          "actions": [
+            {
+              "type": "Do Select",
+              "doSelectType": "Select/Fetch",
+              "sql": "%Select(RECTYPE, ZZ_RPT_COUNT) SELECT RECTYPE, COUNT(*) FROM PSRECDEFN GROUP BY RECTYPE ORDER BY RECTYPE"
+            },
+            {
+              "type": "PeopleCode",
+              "peopleCode": "Local Record &line;\nLocal File &report;\nLocal string &label;\n&line = CreateRecord(Record.ZZ_RPT_LINE);\n&line.RECTYPE.Value = ZZ_RPT_AET.RECTYPE;\n&line.ZZ_RPT_COUNT.Value = ZZ_RPT_AET.ZZ_RPT_COUNT;\nEvaluate ZZ_RPT_AET.RECTYPE\nWhen = 0\n   &label = \"SQL Table\";\nWhen = 1\n   &label = \"SQL View\";\nWhen = 2\n   &label = \"Derived Work\";\nWhen = 3\n   &label = \"Subrecord\";\nWhen = 5\n   &label = \"Dynamic View\";\nWhen = 6\n   &label = \"Query View\";\nWhen = 7\n   &label = \"Temporary Table\";\nWhen-Other\n   &label = \"Other\";\nEnd-Evaluate;\n&line.ZZ_RPT_LABEL.Value = &label;\nZZ_RPT_AET.ZZ_RPT_TOTAL = ZZ_RPT_AET.ZZ_RPT_TOTAL + &line.ZZ_RPT_COUNT.Value;\n&report = GetFile(ZZ_RPT_AET.ZZ_RPT_FILE, \"A\", \"UTF8\", %FilePath_Relative);\nIf Not &report.IsOpen Then\n   Error (\"Cannot append record inventory detail.\");\nEnd-If;\n&report.WriteLine(String(&line.RECTYPE.Value) | \",\" | &line.ZZ_RPT_LABEL.Value | \",\" | String(&line.ZZ_RPT_COUNT.Value));\n&report.Close();"
+            }
+          ]
+        },
+        {
+          "name": "FINISH",
+          "description": "Write total and completion log",
+          "actions": [
+            {
+              "type": "PeopleCode",
+              "peopleCode": "Local Record &summary;\nLocal File &report;\n&summary = CreateRecord(Record.ZZ_RPT_SUM);\n&summary.PROCESS_INSTANCE.Value = %ProcessInstance;\n&summary.ZZ_RPT_TOTAL.Value = ZZ_RPT_AET.ZZ_RPT_TOTAL;\n&summary.ZZ_RPT_FILE.Value = ZZ_RPT_AET.ZZ_RPT_FILE;\n&report = GetFile(&summary.ZZ_RPT_FILE.Value, \"A\", \"UTF8\", %FilePath_Relative);\nIf Not &report.IsOpen Then\n   Error (\"Cannot append record inventory total.\");\nEnd-If;\n&report.WriteLine(\"TOTAL,All Record Definitions,\" | String(&summary.ZZ_RPT_TOTAL.Value));\n&report.Close();\nMessageBox(0, \"\", 0, 0, \"Record inventory complete: \" | &summary.ZZ_RPT_FILE.Value | \"; definitions=\" | String(&summary.ZZ_RPT_TOTAL.Value));"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

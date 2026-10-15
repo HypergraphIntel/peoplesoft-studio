@@ -4,9 +4,10 @@ The PeopleSoft Studio MCP server (`src/mcp/`) gives AI clients the same edits
 the editors make. Each write tool calls the editor's own writer, so what lands
 in the database is what the editor's Save writes: rows reproduced from
 captured App Designer saves (PeopleCode, records, fields, translates, SQL,
-HTML, style sheets, projects, packages, pages). The tools are in
-`src/mcp/writeTools.ts`, and they register only when VS Code provides the
-write host (the setting, the approval dialog, and the editors' state).
+HTML, style sheets, projects, packages, pages). Core authoring tools are in
+`src/mcp/writeTools.ts`; domain tools live in the corresponding `src/mcp/*Tools.ts`
+modules. Authoring tools register only when VS Code provides the write host
+(the setting, the approval dialog, and the editors' state).
 
 ## Additional authoring tools in 0.8.9
 
@@ -17,6 +18,13 @@ See [Integration Broker](INTEGRATION_BROKER.md), [Administration](ADMINISTRATION
 and [Portal Registry](PORTAL_REGISTRY.md) for supported writes and evidence limits.
 [Project migration](PROJECT_MIGRATION.md) adds read-only MCP review, package
 export and target preview; applying imports uses the extension UI.
+
+## Security configuration
+
+`psft_oauth_save` edits four public settings of existing CUSTOM / Client Only /
+Client Credentials applications on Oracle PeopleTools 8.62.09, with preview,
+concurrency and normal approval gates. It does not change credentials or tokens.
+See [Security tools](SECURITY.md) for scope and native-save evidence.
 
 ## Gates
 
@@ -177,3 +185,12 @@ path on a live database.
 
 The read-only types. Creating pages and records through the
 MCP is also not offered yet.
+
+## Process Definitions and PS Query
+
+Process Definitions now expose reference/get/save, including rollback previews.
+PS Query exposes reference/list/get/prepare/run/create/save/copy for the existing
+calibrated shapes. Both use the editor writers, reject stale tokens and dirty
+editors, and retain the provider ownership guards. Query execution uses the
+existing record Query access checks and a bounded read-only transaction.
+See [MCP reference](MCP_REFERENCE.md) for inputs, scope and preview semantics.

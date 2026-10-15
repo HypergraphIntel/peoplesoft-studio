@@ -16,6 +16,13 @@ export interface QueryDesignerHost {
 }
 export class QueryDesignerPanel {
   private static readonly panels = new Map<string, vscode.WebviewPanel>();
+  private static readonly sessions = new Map<string, { dirty(): boolean; reload(): Promise<void> }>();
+  static hasUnsaved(connectionId: string, name: string, owner = ''): boolean {
+    return this.sessions.get(JSON.stringify([connectionId, name, owner.trim()]))?.dirty() ?? false;
+  }
+  static async reloadIfOpen(connectionId: string, name: string, owner = ''): Promise<void> {
+    await this.sessions.get(JSON.stringify([connectionId, name, owner.trim()]))?.reload();
+  }
   static async show(connection: { id: string; displayName: string }, edit: QueryEdit, host: QueryDesignerHost): Promise<void> {
     const name=String(edit.view.query.QRYNAME).trim();
     const id=JSON.stringify([connection.id,name,String(edit.view.query.OPRID).trim()]);
@@ -38,7 +45,18 @@ export class QueryDesignerPanel {
       panel.webview.html=renderQueryDesigner(name,connection.displayName,view,host.metadata,
         {editable:host.editable,dirty,plan,unsupported,message,result,canUndo:!!history.length,canRedo:!!future.length});
     };
-    panel.onDidDispose(()=>{disposed=true;this.panels.delete(id);});
+    this.sessions.set(id, { dirty: () => dirty, reload: async () => {
+      queue = queue.then(async () => {
+        if (dirty || disposed) return;
+        const loaded = await host.reload();
+        if (!loaded || disposed) return;
+        view = loaded.view; token = loaded.token; history = []; future = []; result = undefined;
+        message = 'Reloaded after an external save.';
+        await render();
+      });
+      await queue;
+    } });
+    panel.onDidDispose(()=>{disposed=true;this.panels.delete(id);this.sessions.delete(id);});
     panel.webview.onDidReceiveMessage((raw: unknown)=>{
       queue=queue.then(async()=>{
         if (!raw || typeof raw!=='object') throw new Error('Invalid Query message.');

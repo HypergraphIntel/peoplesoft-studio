@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.8.9",
+  "version": "0.9.0",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -121,6 +121,12 @@
     ],
     "customEditors": [
       {
+        "viewType": "psft.processEditor",
+        "displayName": "PeopleSoft Process Definition",
+        "selector": [{ "filenamePattern": "*.psprcs" }],
+        "priority": "default"
+      },
+      {
         "viewType": "psft.recordEditor",
         "displayName": "PeopleSoft Record",
         "selector": [
@@ -142,6 +148,8 @@
       }
     ],
     "commands": [
+      { "command": "psft.security.oauth", "title": "OAuth2 Service Applications", "category": "PeopleSoft" },
+      { "command": "psft.security.saml", "title": "SAML Configuration", "category": "PeopleSoft" },
       {
         "command": "psft.ib.message",
         "title": "Integration Broker: Message Definitions",
@@ -175,6 +183,11 @@
       {
         "command": "psft.portal.structure",
         "title": "Structure & Content",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.process.open",
+        "title": "Open Process Definition",
         "category": "PeopleSoft"
       },
       {
@@ -271,8 +284,18 @@
         "category": "PeopleSoft"
       },
       {
+        "command": "psft.customization.configureDropZones",
+        "title": "Configure Drop Zones",
+        "category": "PeopleSoft"
+      },
+      {
         "command": "psft.customization.configureDropZone",
         "title": "Configure Drop Zone",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.customization.openPageFieldConfigurator",
+        "title": "Open Page and Field Configurator",
         "category": "PeopleSoft"
       },
       {
@@ -1290,6 +1313,7 @@
   },
   "scripts": {
     "typecheck": "tsc -p . --noEmit",
+    "test:mcp-workflows": "tsx tools/lab/mcp-workflow-fixture-e2e.mts",
     "bundle": "node esbuild.mjs",
     "compile": "npm run typecheck && npm run bundle",
     "watch": "node esbuild.mjs --watch",

@@ -26,3 +26,6 @@ jobs:
 
       - name: Verify (typecheck, tests, smoke)
         run: npm run verify
+
+      - name: MCP workflow routing and editor integration (fixtures)
+        run: npm run test:mcp-workflows

@@ -1,0 +1,9 @@
+Local File &report;
+ZZ_RPT_AET.ZZ_RPT_TOTAL = 0;
+ZZ_RPT_AET.ZZ_RPT_FILE = "record_inventory_" | String(%ProcessInstance) | ".csv";
+&report = GetFile(ZZ_RPT_AET.ZZ_RPT_FILE, "W", "UTF8", %FilePath_Relative);
+If Not &report.IsOpen Then
+   Error ("Cannot open record inventory report.");
+End-If;
+&report.WriteLine("Record Type,Type Description,Definition Count");
+&report.Close();

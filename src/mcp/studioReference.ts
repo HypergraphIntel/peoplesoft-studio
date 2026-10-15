@@ -1,0 +1,56 @@
+import { DefinitionType, typeLabel } from '../model/definitions.js';
+import { TOOL_TREES, type ToolNode } from '../model/toolTrees.js';
+import { DEFINITION_TYPE_GUIDE } from './definitionTypes.js';
+
+// Describe the current product, including unavailable features. Reuse the UI
+// inventory so adding a pane entry cannot silently hide it from MCP clients.
+export const CONFIGURATION_GUIDES: Record<string, { tools: string[]; limitation?: string }> = {
+  'PS Query': { tools: ['psft_query_reference', 'psft_query_list', 'psft_query_get', 'psft_query_prepare', 'psft_query_run', 'psft_query_create', 'psft_query_save', 'psft_query_copy'], limitation: 'Bounded Oracle 8.62.09 character-field query authoring; Query access checks apply. No joins, rename or delete.' },
+  'Process Definitions': { tools: ['psft_search_definitions', 'psft_process_reference', 'psft_process_get', 'psft_process_save'], limitation: 'Existing definitions only; Oracle saves and rollback previews. No scheduling or execution.' },
+  'Page and Field Configurator': { tools: ['psft_page_field_config_get', 'psft_page_field_config_fields', 'psft_page_field_config_save'], limitation: 'Standard and Masking saves; Change Tracking is read only. Runtime application depends on EOCC Event Mapping.' },
+  'Event Mapping': { tools: ['psft_event_mapping_reference', 'psft_event_mapping_get', 'psft_event_mapping_create_service', 'psft_event_mapping_save', 'psft_event_mapping_remove'] },
+  'Drop Zones': { tools: ['psft_customization_discover', 'psft_drop_zone_get', 'psft_drop_zone_save'], limitation: 'Configure existing delivered drop zones; adding a drop zone to a delivered page changes that definition.' },
+  'Message Catalog': { tools: ['psft_admin_reference', 'psft_admin_list', 'psft_admin_get', 'psft_admin_save'] },
+  'Text Catalog': { tools: ['psft_admin_reference', 'psft_admin_choices', 'psft_admin_list', 'psft_admin_get', 'psft_admin_save'] },
+  'URL Definitions': { tools: ['psft_admin_reference', 'psft_admin_list', 'psft_admin_get', 'psft_admin_save'] },
+  'Structure & Content': { tools: ['psft_portal_list', 'psft_portal_structure', 'psft_portal_get', 'psft_portal_create_folder', 'psft_portal_create_content_reference', 'psft_portal_edit'] },
+  ...Object.fromEntries(['Message Definitions', 'Document Definitions', 'Service', 'Service Operation', 'Nodes', 'Routes'].map(label => [label, { tools: ['psft_ib_reference', 'psft_ib_list', 'psft_ib_get', 'psft_ib_new', 'psft_ib_validate', 'psft_ib_create', 'psft_ib_save'] }])),
+  OAuth: { tools: ['psft_security_reference', 'psft_security_list', 'psft_security_get', 'psft_oauth_save'], limitation: 'Configuration support does not test authentication. Secrets are excluded from reads.' },
+  SAML: { tools: ['psft_security_reference', 'psft_security_list', 'psft_security_get'], limitation: 'Read only legacy inbound web service mapping; not browser SSO.' }
+};
+
+function describeNodes(nodes: readonly ToolNode[]): unknown[] {
+  return nodes.map(node => ({
+    label: node.label,
+    studioStatus: node.planned ? 'PLANNED' : node.children ? 'GROUP' : 'AVAILABLE',
+    ...(node.command ? { command: node.command } : {}),
+    ...(node.children ? { children: describeNodes(node.children) } : CONFIGURATION_GUIDES[node.label] ?? {
+      tools: [], limitation: node.planned ? 'Placeholder only; no implemented Studio or MCP workflow.' : 'No dedicated MCP workflow documented.'
+    })
+  }));
+}
+
+export function studioReference() {
+  return {
+    scope: 'Current Studio implementation. Tool names describe routing, not permission or verified availability on a particular database. Consult tools/list for this server session; write tools require a write host.',
+    configurationTools: describeNodes(TOOL_TREES['psft.configurationTools'].nodes),
+    dataMigrationTools: describeNodes(TOOL_TREES['psft.dataMigrationTools'].nodes),
+    definitionTypes: Object.values(DefinitionType).filter((value): value is DefinitionType => typeof value === 'number').map(type => {
+      const guide = DEFINITION_TYPE_GUIDE.find(entry => entry.type === type);
+      return { type, label: typeLabel(type), ...(guide ?? {}),
+        mcpAccess: guide ? 'Search/read via the definition tools; this does not imply create/edit/migration support.' : 'Not in the generic MCP definition guide; do not invent a key or assume generic search/read support.' };
+    }),
+    customizationStrategy: {
+      workflow: ['Read psft_customization_get_policy for the effective settings.', 'Classify the target with psft_object_classify; prefixes alone are not proof of ownership.', 'Use psft_customization_discover for database evidence of available frameworks.', 'When configurationFirst is preferred, evaluate configuration and custom definitions before a delivered-object change.', 'Read the framework reference and current configuration; preview supported changes, save through the guarded tool, then read back.'],
+      implemented: ['Evidence-based ownership, including delivered baselines and matching creation receipts', 'Separate human and agent delivered-object policies at the provider write guard', 'Event Mapping, Drop Zones and Page and Field Configurator discovery and configuration', 'Release-scoped discovery findings and knowledge evidence'],
+      limits: ['defaultStrategy is a preference, not an enforced planning engine.', 'Configurable Search and AE plug-in discovery are UNKNOWN.', 'Customization plans, customization registry and upgrade-impact analysis remain previews; do not claim they ran.', 'Knowledge evidence never grants write permission; local observations are not published verified knowledge.'],
+      writeGates: 'Writable connection, Operator ID, write scope where applicable, MCP write mode, concurrency checks where supported, and agent delivered-object policy still apply. An agent cannot approve a user approval gate.'
+    },
+    projectMigration: {
+      tools: ['psft_project_migration_review', 'psft_project_export_migration', 'psft_project_preview_migration'],
+      scope: 'Studio versioned definition packages: supported fields, SQL Table/Derived Work records and full Application Engine documents. Unsupported members block export. Review is not complete dependency closure; preview does not apply changes.',
+      limits: 'No MCP import/apply tool. Studio project packages are distinct from Data Mover data scripts and Data Migration Workbench; both data migration pane entries are planned.'
+    },
+    evidence: 'For release-specific claims use psft_knowledge_capability and psft_knowledge_evidence, and inspect the connected database. UNKNOWN and unsupported coverage must remain explicit.'
+  };
+}
