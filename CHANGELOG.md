@@ -12,6 +12,10 @@
 - Opening a deleted project definition explains that it is still listed in the
   project and can be removed in Application Designer.
 
+- **Page and Field Configurator defaults and set to blank**: a field's default
+  value (or a system variable such as %Date), applied when the field is blank
+  or replacing its value, and *Set to blank* on a hidden or display-only field,
+  refused where the configurator refuses them.
 - **Page and Field Configurator criteria**: *Add criterion* on a sequence --
   a field of the component's pages (levels 0 and 1), an operator (Equals,
   In List, Between, Contains ...) and its value, checked against the field's
