@@ -55,6 +55,8 @@ import { registerPeopleCodeReferences } from './peoplecode/referenceProvider.js'
 import { registerPeopleCodeSignatureHelp } from './peoplecode/signatureProvider.js';
 import { parseUri, SCHEME } from './util/uri.js';
 import { findPeopleCodeReferences } from './peoplecode/findReferences.js';
+import { findInProject } from './findInProject.js';
+import { showTextSearchResults } from './views/textSearchResults.js';
 import { htmlPreviewPage } from './editors/htmlPreview.js';
 import { renderQueryResults } from './editors/queryResults.js';
 import { prepareReadOnlyQuery } from './sql/readOnlyQuery.js';
@@ -538,6 +540,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       });
     }),
 
+    vscode.commands.registerCommand('psft.findInProject', async (node?: unknown) => {
+      await withError('Find in Project', () => findInProject(workspace, node));
+    }),
+
     vscode.commands.registerCommand('psft.peoplecode.findReferences', async () => {
       await withError('Find References', async () => {
         // The PeopleCode editor's own connection and the word at the cursor; else the active connection.
@@ -570,16 +576,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           vscode.window.showInformationMessage(`"${needle}" was not found in ${searchIn.displayName}'s PeopleCode${r.truncated ? ' (the search stopped early)' : ''}.`);
           return;
         }
-        const picked = await vscode.window.showQuickPick(
-          r.hits.map((h) => ({ label: `${displayName(h.key)}:${h.line + 1}`, description: typeLabel(h.key.type), detail: h.context, hit: h })),
-          {
-            title: `"${needle}": ${r.hits.length} in ${r.programs} program${r.programs === 1 ? '' : 's'}${r.truncated ? ' (more programs contain it; narrow the search)' : ''}`,
-            matchOnDescription: true, matchOnDetail: true
-          });
-        if (!picked) return;
-        const doc = await vscode.workspace.openTextDocument(toUri(searchIn.id, picked.hit.key));
-        const at = new vscode.Position(picked.hit.line, picked.hit.column);
-        await vscode.window.showTextDocument(doc, { selection: new vscode.Range(at, at.translate(0, needle.length)) });
+        await showTextSearchResults(searchIn.id, r.hits, needle,
+          `"${needle}": ${r.hits.length} in ${r.programs} program${r.programs === 1 ? '' : 's'}${r.truncated ? ' (more programs contain it; narrow the search)' : ''}`);
       });
     }),
 

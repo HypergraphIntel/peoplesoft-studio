@@ -225,6 +225,12 @@
         "category": "PeopleSoft"
       },
       {
+        "command": "psft.findInProject",
+        "title": "Find in Project…",
+        "category": "PeopleSoft",
+        "icon": "$(search)"
+      },
+      {
         "command": "psft.openRecentProject",
         "title": "Open Recent Project",
         "category": "PeopleSoft",
@@ -696,6 +702,11 @@
     "menus": {
       "view/title": [
         {
+          "command": "psft.findInProject",
+          "when": "view == psft.projects",
+          "group": "navigation@5"
+        },
+        {
           "command": "psft.openRecentProject",
           "when": "view == psft.projects",
           "group": "navigation@5"
@@ -777,6 +788,11 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "psft.findInProject",
+          "when": "view == psft.projects && (viewItem == project || viewItem == project.opened)",
+          "group": "navigation@3"
+        },
         {
           "command": "psft.openFieldPeopleCode",
           "when": "viewItem =~ /\\.recordField\\b/",

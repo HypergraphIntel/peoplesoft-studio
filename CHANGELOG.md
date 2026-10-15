@@ -11,6 +11,8 @@
   connection, with commands to reopen projects or clear the list.
 - Opening a deleted project definition explains that it is still listed in the
   project and can be removed in Application Designer.
+- Find in Project searches readable text definitions with Match Case and Whole Word
+  options, cancellable progress, skipped-definition counts, and results that open at the matching line.
 
 - **Page and Field Configurator defaults and set to blank**: a field's default
   value (or a system variable such as %Date), applied when the field is blank
