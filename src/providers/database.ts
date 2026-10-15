@@ -76,7 +76,7 @@ import { discoverDropZones } from './dropZoneReader.js';
 import { discoverPageFieldConfigurator } from './pfcReader.js';
 import type { PfcDiscovery } from '../model/pageFieldConfigurator.js';
 import { derivePfcMappings, pfcContentReferences, type PfcMapping } from './pfcMapper.js';
-import { pfcCatalogFields, pfcCatalogPages, pfcMaskProfiles, type PfcCatalogField, type PfcCatalogPage, type PfcMaskProfile } from './pfcCatalog.js';
+import { pfcCatalogFields, pfcCatalogPages, pfcFieldTypes, pfcMaskProfiles, type PfcCatalogField, type PfcCatalogPage, type PfcMaskProfile } from './pfcCatalog.js';
 import {
   PFC_TARGETING_TABLES, compactRow, isTypeService, mappingSignature, pfcToken, rowsOf, type ListTable, readPfcColumns, readPfcConfiguration, savePfcConfiguration, storedSignature,
   type PfcSaveRequest, type PfcSaveResult
@@ -2350,8 +2350,13 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   /** The fields the configurator offers on a page of that list, each with the values its field row takes (pfcCatalog.ts). */
-  async readPageFieldCatalogFields(page: string, type: 'P' | 'S', options: { mask?: boolean } = {}): Promise<PfcCatalogField[]> {
+  async readPageFieldCatalogFields(page: string, type: 'P' | 'S', options: { mask?: boolean; criteria?: boolean } = {}): Promise<PfcCatalogField[]> {
     return this.withConnection((c) => pfcCatalogFields(c, page.trim().toUpperCase(), type, options));
+  }
+
+  /** Fields' database types (PSDBFIELD.FIELDTYPE), for a criterion's value format. */
+  async readFieldDatabaseTypes(fields: readonly string[]): Promise<Map<string, number>> {
+    return this.withConnection((c) => pfcFieldTypes(c, fields.map((f) => f.trim().toUpperCase())));
   }
 
   /** PeopleSoft users (PSOPRDEFN) whose ID or description contains the text, for a configuration's user lists. */

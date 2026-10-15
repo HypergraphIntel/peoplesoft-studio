@@ -9,6 +9,11 @@
 - Opening a deleted project definition explains that it is still listed in the
   project and can be removed in Application Designer.
 
+- **Page and Field Configurator criteria**: *Add criterion* on a sequence --
+  a field of the component's pages (levels 0 and 1), an operator (Equals,
+  In List, Between, Contains ...) and its value, checked against the field's
+  type; every criterion must hold. Saved as the configurator saves them, the
+  FieldChange mapping that re-checks a criterion included.
 - **Who a Page and Field Configurator configuration applies to**: in the
   configurator editor, *Applies to…* sets it for the whole configuration or,
   per sequence -- everyone but excluded roles and users, a single role,

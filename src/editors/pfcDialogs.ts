@@ -2,7 +2,8 @@ import * as vscode from 'vscode';
 import { DatabaseProvider } from '../providers/database.js';
 import { DefinitionType } from '../model/definitions.js';
 import { APPLY_TO_LABELS, checkTarget, describeTarget, listsUsed, type ApplyTo, type PfcTarget } from '../model/pfcTargeting.js';
-import { catalogFieldRow } from '../providers/pfcCatalog.js';
+import { catalogCriteriaRow, catalogFieldRow } from '../providers/pfcCatalog.js';
+import { CRITERIA_OPERATORS, checkCriterion, criterionKey, describeCriterion, withCriterionValue } from '../model/pfcCriteria.js';
 import { fieldRowKey, fieldSettingsOf, checkFieldSettings, withFieldSettings, describeFieldSettings, maskOf, defaultMaskFor, withMask, type PfcFieldSettings } from '../model/pfcFieldEdits.js';
 type PfcRow = Record<string, unknown>;
 
@@ -127,3 +128,55 @@ export async function pickTarget(provider: DatabaseProvider, current: PfcTarget,
   if (problems.length) { void vscode.window.showWarningMessage(problems.join(' ')); return undefined; }
   return next;
 }
+
+/**
+ * A criterion chosen as the configurator's Criteria grid offers it: for a new one a page of the component, then one of its
+ * criteria fields (level 0 and 1); then the operator and its value(s), checked against the field's database type.
+ * Returns the row and, for an existing one, the key it had (its operator may change).
+ */
+export async function pickCriterion(provider: DatabaseProvider, component: string, market: string, seq: PfcRow, existing?: PfcRow): Promise<{ row: PfcRow; replacing?: string } | undefined> {
+  let row = existing;
+  if (!row) {
+    const pages = (await provider.readPageFieldCatalogPages(component, market)).filter((p) => p.type === 'P');
+    const page = await vscode.window.showQuickPick(pages.map((p) => ({ label: p.label, description: p.page, p })),
+      { title: `Criterion: the page (${component}.${market})`, matchOnDescription: true });
+    if (!page) return undefined;
+    const fields = await provider.readPageFieldCatalogFields(page.p.page, 'P', { criteria: true });
+    const field = await vscode.window.showQuickPick(fields.map((f) => ({ label: f.label || `${f.record}.${f.field}`, description: `${f.record}.${f.field}${f.level ? ` · level ${f.level}` : ''}${f.page !== f.componentPage ? ` · ${f.page}` : ''}`, f })),
+      { title: `Criterion: a field on ${page.p.label} (levels 0 and 1)`, matchOnDescription: true });
+    if (!field) return undefined;
+    const types = await provider.readFieldDatabaseTypes([field.f.field]);
+    row = catalogCriteriaRow(field.f, types.get(field.f.field) ?? 0, { SEQUENCE_NBR: Number(seq.SEQUENCE_NBR), EOCC_SEQUENCE_NBR: Number(seq.EOCC_SEQUENCE_NBR) }, 'A');
+  }
+  const dbType = Number(row.EOCC_FIELD_TYPE ?? 0);
+  const current = existing ? String(existing.EOCC_CRITERIA_SYM ?? '').trim() : '';
+  const op = await vscode.window.showQuickPick(Object.entries(CRITERIA_OPERATORS).map(([code, o]) => ({ label: `${code === current ? '$(check) ' : ''}${o.label}`, code })),
+    { title: `Criterion on ${String(row.LBLTEXT ?? row.FIELDNAME)}: the operator` });
+  if (!op) return undefined;
+  const values = CRITERIA_OPERATORS[op.code].values;
+  const format = dbType === 4 ? ' (YYYY-MM-DD)' : dbType === 5 ? ' (HH:MM:SS)' : dbType === 2 || dbType === 3 ? ' (a number)' : '';
+  const keep = existing && current === op.code;
+  let value = '', value2 = '';
+  if (values !== 0) {
+    const first = await vscode.window.showInputBox({
+      title: `${String(row.LBLTEXT ?? row.FIELDNAME)} ${CRITERIA_OPERATORS[op.code].label.toLowerCase()}…`,
+      prompt: values === 'list' ? `Values, comma separated${format}` : values === 2 ? `The first value${format}` : `The value${format}`,
+      value: keep ? String(existing!.EOCC_VALUE_MATCH ?? '') : '',
+      validateInput: (v) => (values === 2 ? checkCriterion(op.code, dbType, v, '1').filter((p) => !p.includes('second'))[0] : checkCriterion(op.code, dbType, v)[0])
+    });
+    if (first === undefined) return undefined;
+    value = first;
+    if (values === 2) {
+      const second = await vscode.window.showInputBox({ title: `…and${format}`, value: keep ? String(existing!.EOCC_VALUE_MATCH2 ?? '') : '',
+        validateInput: (v) => checkCriterion(op.code, dbType, value, v)[0] });
+      if (second === undefined) return undefined;
+      value2 = second;
+    }
+  }
+  const problems = checkCriterion(op.code, dbType, value, value2);
+  if (problems.length) { void vscode.window.showWarningMessage(problems.join(' ')); return undefined; }
+  const next = withCriterionValue(row, op.code, value, value2);
+  return { row: next, ...(existing ? { replacing: criterionKey(existing) } : {}) };
+}
+
+export { describeCriterion };

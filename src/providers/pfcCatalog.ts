@@ -27,6 +27,8 @@ const t = (v: unknown) => String(v ?? '').trim();
 const INVISIBLE = 0x2;
 const RELATED_DISPLAY = 0x10;
 const FIELD_TYPES = '4,5,6,7,9,11,12,13,14,15,16,17,21,26,29,31';
+/** The field types criteria can test (edit box, drop-down, check box; subpages walked) [GetPageFieldsList, criteria mode]. */
+const CRITERIA_FIELD_TYPES = '4,5,7,11';
 
 /** A field the configurator offers, with the values its field row takes. */
 export interface PfcCatalogField {
@@ -118,10 +120,10 @@ class Catalog {
   }
 
   /** GetPageFieldsList: the page's fields, subpages walked. */
-  async pageFields(page: string, subRecord: string, subPrimary: string, subLevel: number, superPage: string, out: Raw[]): Promise<void> {
+  async pageFields(page: string, subRecord: string, subPrimary: string, subLevel: number, superPage: string, out: Raw[], criteria = false): Promise<void> {
     const rows = await select<Record<string, unknown>>(this.c,
       `SELECT PNLFLDID AS ID, FIELDTYPE AS T, OCCURSLEVEL AS O, FIELDUSE AS U, RECNAME AS R, FIELDNAME AS F, SUBPNLNAME AS S, ASSOCFIELDNUM AS A
-         FROM PSPNLFIELD WHERE PNLNAME = :p AND FIELDTYPE IN (${FIELD_TYPES}) ORDER BY OCCURSLEVEL, FIELDNUM`, { p: page });
+         FROM PSPNLFIELD WHERE PNLNAME = :p AND FIELDTYPE IN (${criteria ? CRITERIA_FIELD_TYPES : FIELD_TYPES}) ORDER BY OCCURSLEVEL, FIELDNUM`, { p: page });
     for (const r of rows) {
       const own = Number(r.O);
       const level = own + subLevel;
@@ -129,7 +131,7 @@ class Catalog {
       if (Number(r.T) === 11) {
         const sub = t(r.S);
         const primary = record ? await this.subpagePrimaryRecord(sub) : '';
-        if (sub !== 'SD_RT_SBP') await this.pageFields(sub, record, primary, level, `${Number(r.ID)}.${page}`, out);
+        if (sub !== 'SD_RT_SBP') await this.pageFields(sub, record, primary, level, `${Number(r.ID)}.${page}`, out, criteria);
         continue;
       }
       if (!t(r.F)) continue;
@@ -142,13 +144,15 @@ class Catalog {
   }
 
   /** PageFieldsList: the catalog rows of a page (invisible fields left out, related display fields' controls found). */
-  async pageFieldsList(page: string, componentPage: string, type: 'P' | 'S'): Promise<PfcCatalogField[]> {
+  async pageFieldsList(page: string, componentPage: string, type: 'P' | 'S', criteria = false): Promise<PfcCatalogField[]> {
     const raw: Raw[] = [];
-    await this.pageFields(page, '', '', 0, '', raw);
+    await this.pageFields(page, '', '', 0, '', raw, criteria);
     const out: PfcCatalogField[] = [];
     for (const r of raw) {
       const parts = r.key.split('.');
-      if (parts.length !== 5 || (r.fieldUse & INVISIBLE)) continue;
+      if (parts.length !== 5) continue;
+      // Criteria test level 0 and 1 fields, an invisible one only at level 0 (isInvisiblePageField, PageFieldsList in criteria mode).
+      if (criteria ? Number(parts[0]) > 1 || (Number(parts[0]) > 0 && (r.fieldUse & INVISIBLE)) : (r.fieldUse & INVISIBLE)) continue;
       const sub = r.base.split('.');
       let recordBase = sub[0].trim();
       let record1 = '', field1 = '';
@@ -211,8 +215,8 @@ export async function pfcCatalogPages(c: Connection, component: string, market: 
  * The fields the configurator offers on one page of the catalog (a component page "P" or a secondary page "S"). For a
  * Masking configuration (EOCC_MSKFLD_DVW.LBLTEXT FieldFormula) long fields (PSDBFIELD.FIELDTYPE 1) are left out.
  */
-export async function pfcCatalogFields(c: Connection, page: string, type: 'P' | 'S', options: { mask?: boolean } = {}): Promise<PfcCatalogField[]> {
-  const fields = await new Catalog(c).pageFieldsList(page, page, type);
+export async function pfcCatalogFields(c: Connection, page: string, type: 'P' | 'S', options: { mask?: boolean; criteria?: boolean } = {}): Promise<PfcCatalogField[]> {
+  const fields = await new Catalog(c).pageFieldsList(page, page, type, !!options.criteria);
   if (!options.mask || !fields.length) return fields;
   const names = [...new Set(fields.map((f) => f.field))];
   const long = new Set<string>();
@@ -223,6 +227,43 @@ export async function pfcCatalogFields(c: Connection, page: string, type: 'P' | 
     for (const r of rows) long.add(t(r.F));
   }
   return fields.filter((f) => !long.has(f.field));
+}
+
+/**
+ * A criteria row (PS_EOCC_CONFIG_CRT) for a field of the criteria catalog, as the configurator's Add fills it in
+ * (EOCC_CONFIGURE EOCC_FIELDS_WRK.EOCC_ADD_PB): the field's page placement, its database type (PSDBFIELD.FIELDTYPE, in
+ * EOCC_FIELD_TYPE) and the default text for that type (Helper.GetDefaultText) as the value until one is given.
+ */
+export function catalogCriteriaRow(f: PfcCatalogField, dbFieldType: number, sequence: { SEQUENCE_NBR: number; EOCC_SEQUENCE_NBR: number }, symbol: string): Record<string, unknown> {
+  return {
+    SEQUENCE_NBR: sequence.SEQUENCE_NBR, EOCC_SEQUENCE_NBR: sequence.EOCC_SEQUENCE_NBR, RECNAME: f.record, FIELDNAME: f.field, PNLFLDID: f.pnlfldid,
+    EOCC_CRITERIA_SYM: symbol, PNLNAME: f.page, EOCC_VALUE_MATCH: criteriaDefaultText(dbFieldType), OCCURSLEVEL: f.level, EOCC_FIELD_TYPE: dbFieldType,
+    LBLTEXT: f.label, RECNAME1: f.record1 || ' ', FIELDNAME1: f.field1 || ' ', RECNAME_BASE: f.recordBase || ' '
+  };
+}
+
+/** Helper.GetDefaultText: the value text a criterion starts with, by database field type. */
+export function criteriaDefaultText(dbFieldType: number): string {
+  switch (dbFieldType) {
+    case 2: case 3: return '0';
+    case 4: return 'YYYY-MM-DD';
+    case 5: return 'HH:MM:SS';
+    case 6: return 'YYYY-MM-DD HH:MM:SS.ms AM';
+    default: return '';
+  }
+}
+
+/** The database type of each field (PSDBFIELD.FIELDTYPE: 0 character, 1 long, 2 number, 3 signed number, 4 date, 5 time, 6 datetime). */
+export async function pfcFieldTypes(c: Connection, fields: readonly string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const names = [...new Set(fields)];
+  for (let i = 0; i < names.length; i += 500) {
+    const chunk = names.slice(i, i + 500);
+    const rows = await select<{ F: string; T: number }>(c, `SELECT FIELDNAME AS F, FIELDTYPE AS T FROM PSDBFIELD WHERE FIELDNAME IN (${chunk.map((_, j) => `:f${j}`).join(', ')})`,
+      Object.fromEntries(chunk.map((n, j) => [`f${j}`, n])));
+    for (const r of rows) out.set(t(r.F), Number(r.T));
+  }
+  return out;
 }
 
 /** A mask profile (PS_EOCC_MASK_PROF): how a masked field is shown. */

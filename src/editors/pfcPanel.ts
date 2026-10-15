@@ -4,7 +4,8 @@ import type { Workspace } from '../workspace.js';
 import { DatabaseProvider } from '../providers/database.js';
 import { DefinitionType } from '../model/definitions.js';
 import { fieldSettingsOf, describeFieldSettings, isBlankFieldRow, maskOf, fieldRowKey, withFieldRow, withoutFieldRow } from '../model/pfcFieldEdits.js';
-import { pickCatalogField, pickFieldSettings, pickMask, pickTarget } from './pfcDialogs.js';
+import { describeCriterion, pickCatalogField, pickCriterion, pickFieldSettings, pickMask, pickTarget } from './pfcDialogs.js';
+import { criterionKey, withCriterion, withoutCriterion } from '../model/pfcCriteria.js';
 import { describeTarget, headerLevel, targetOf, withApplyLevel, withTarget } from '../model/pfcTargeting.js';
 import { pfcHtml } from './pfcHtml.js';
 const panels = new Map<string, vscode.WebviewPanel>();
@@ -58,6 +59,7 @@ export async function openPageFieldConfigurator(workspace: Workspace, connection
   const post = async (message = '') => {
     panel.title = `${dirty() ? '● ' : ''}Page and Field Configurator: ${name}.${market}`;
     await panel.webview.postMessage({ type: 'state', component: name, market, connection: db.displayName, configType: type, exists: read.exists, editable: editable(), dirty: dirty(), configuration: draft, contentReferences: read.contentReferences, message,
+      criteriaRows: draft.criteria.map((row, index) => ({ index, sequence: row.EOCC_SEQUENCE_NBR, text: describeCriterion(row) })),
       headerLevel: headerLevel(draft), headerTarget: describeTarget(targetOf(draft)), sequenceTargets: draft.sequences.map((q) => describeTarget(targetOf(draft, q))),
       fields: draft.fields.map((row, index) => ({ index, sequence: row.EOCC_SEQUENCE_NBR, page: row.STDPNLNAME ?? row.PNLNAME, name: `${row.RECNAME}.${row.FIELDNAME}`, label: row.LBLTEXT, blank: isBlankFieldRow(row), settings: type === 'MASK' ? (maskOf(row) ? `Masked (${maskOf(row)})` : 'Not masked') : describeFieldSettings(fieldSettingsOf(row)) })) });
   };
@@ -79,6 +81,16 @@ export async function openPageFieldConfigurator(workspace: Workspace, connection
         if (description !== undefined) draft.header.DESCR = description.trim();
       } else if (m.type === 'active') draft.header.EFF_STATUS = (draft.header.EFF_STATUS ?? 'A') === 'I' ? 'A' : 'I';
       else if (m.type === 'applyLevel') draft = withApplyLevel(draft, headerLevel(draft) ? 'S' : 'H');
+      else if (m.type === 'addCriterion') {
+        const seq = draft.sequences[m.index ?? -1]; if (!seq) throw new Error('Unknown sequence.');
+        const picked = await pickCriterion(db, name, market, seq);
+        if (picked) draft.criteria = withCriterion(draft.criteria, picked.row);
+      } else if (m.type === 'editCriterion' || m.type === 'removeCriterion') {
+        const row = draft.criteria[m.index ?? -1]; if (!row) throw new Error('Unknown criterion.');
+        const seq = draft.sequences.find(q => Number(q.EOCC_SEQUENCE_NBR) === Number(row.EOCC_SEQUENCE_NBR)); if (!seq) throw new Error('Unknown sequence.');
+        if (m.type === 'removeCriterion') draft.criteria = withoutCriterion(draft.criteria, seq, criterionKey(row));
+        else { const picked = await pickCriterion(db, name, market, seq, row); if (picked) draft.criteria = withCriterion(draft.criteria, picked.row, picked.replacing); }
+      }
       else if (m.type === 'target') {
         // index -1: the configuration (header level); else a sequence.
         const seq = (m.index ?? -1) >= 0 ? draft.sequences[m.index!] : undefined;

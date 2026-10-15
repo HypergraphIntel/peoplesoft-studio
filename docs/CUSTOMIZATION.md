@@ -458,6 +458,24 @@ configurations on HRDMO name demo users the database does not have. Every
 configuration on HRDMO, read and saved back unchanged, plans nothing
 (JOB_DATA_FL's two excluded roles and the masking user lists included).
 
+**Criteria** (the configurator editor's *Add criterion*; `PS_EOCC_CONFIG_CRT`):
+the field values that decide whether a sequence applies; every criterion must
+hold (the page's own summary joins them with 'AND'). A criterion names a field
+from the criteria catalog -- the component pages' edit boxes, drop-downs and
+check boxes at levels 0 and 1, an invisible one only at level 0
+(`GetPageFieldsList` / `PageFieldsList` in criteria mode) -- with its page field
+id, the (sub)page it is on, its database type (`PSDBFIELD.FIELDTYPE`, in
+`EOCC_FIELD_TYPE`) and label, as the Add fills them in; an operator
+(`EOCC_CRITERIA_SYM`: Equals, In List, Between ...) and the value text
+(`EOCC_VALUE_MATCH`, `_MATCH2` for Between) in the field's format (numbers,
+YYYY-MM-DD dates, HH:MM:SS times; Helper.GetDefaultText); an in-list value is
+comma separated. The operator is part of the key, so changing it replaces the
+row. All 37 criteria rows on HRDMO match the catalog on every column
+(tools/lab/pfc-criteria-check.mts). A saved criterion also maps FieldChange on
+its field (the mapper re-evaluates criteria when it changes): a dry run adding
+Status = A to JOB_CODE_TBL plans the row and `EOCC_FIELDCHANGE` on
+`JOBCODE_TBL.EFF_STATUS`.
+
 **Masking** (a MASK configuration; *Mask a field…*, *Create a masking
 configuration…*): the field list is the Standard one less long fields
 (`PSDBFIELD.FIELDTYPE` 1, `EOCC_MSKFLD_DVW.LBLTEXT` FieldFormula); a masked
