@@ -52,6 +52,49 @@ provider.saveQueryDocument = async (request: any) => {
   if (!request.dryRun) queries.set(key, after);
   return { view: after, token: queryToken(after), written: !request.dryRun, replaced: {} };
 };
+// Populate every configuration list so HTTP schema stripping cannot hide behind empty fixtures.
+const pfcSequence = { SEQUENCE_NBR: 1, EOCC_SEQUENCE_NBR: 1 };
+const pfcConfiguration = {
+  header: { DESCR: 'Fixture configuration', EFF_STATUS: 'A', EOCC_APPLY_LVL: 'S' },
+  sequences: [{ ...pfcSequence, EOCC_APPLY_TO: 'U' }],
+  criteria: [{ ...pfcSequence, RECNAME: 'AAP_TBL', FIELDNAME: 'DESCR', EOCC_CRITERIA_SYM: 'A', EOCC_VALUE_MATCH: 'Fixture' }],
+  pages: [{ ...pfcSequence, PNLNAME: 'ZZ_MCP_PAGE', EOCC_VISIBLE_FLAG: 'N' }],
+  fields: [{ ...pfcSequence, RECNAME: 'AAP_TBL', FIELDNAME: 'DESCR', EOCC_DISABLED: 'Y' }],
+  seqUsers: [{ ...pfcSequence, OPRID: 'PS' }],
+  seqExcludedUsers: [{ ...pfcSequence, OPRID: 'EXCLUDED' }],
+  seqRoles: [{ ...pfcSequence, ROLENAME: 'Manager' }],
+  seqExcludedRoles: [{ ...pfcSequence, ROLENAME: 'Employee' }],
+  users: [{ OPRID: 'JARED' }], excludedUsers: [{ OPRID: 'EXCLUDED_HEADER' }],
+  roles: [{ ROLENAME: 'HR Administrator' }], excludedRoles: [{ ROLENAME: 'HR Admin Approver Fluid' }]
+};
+const pfcPages = [{ page: 'ZZ_MCP_PAGE', label: 'Fixture page', type: 'P' }];
+const pfcFields = [{ pageField: '0.AAP_TBL.DESCR.1.0.P', level: 0, record: 'AAP_TBL', field: 'DESCR', pnlfldid: 1, ownLevel: 0,
+  page: 'ZZ_MCP_PAGE', componentPage: 'ZZ_MCP_PAGE', label: 'Description', fieldType: 4, fieldUse: 0, record1: '', field1: '', recordBase: '' }];
+const pfcMasks = { profiles: [{ id: 'ZZ_MASK', label: 'Fixture mask', description: 'Fixture mask profile', type: 'C', isDefault: true }], fieldDefaults: { DESCR: 'ZZ_MASK' } };
+const pfcSaveCalls: any[] = [];
+const pfcCatalogCalls: any[] = [];
+provider.readPageFieldConfiguration = async (component: string, market: string, type: string) => {
+  assert.deepEqual([component, market, type], ['ZZ_MCP_COMP', 'GBL', 'STD']);
+  return { exists: true, token: 'fixture-pfc-token', configuration: structuredClone(pfcConfiguration), derived: [], contentReferences: [] };
+};
+provider.readPageFieldCatalogPages = async (component: string, market: string) => {
+  assert.deepEqual([component, market], ['ZZ_MCP_COMP', 'GBL']);
+  return structuredClone(pfcPages);
+};
+provider.readPageFieldCatalogFields = async (page: string, type: string, options: any) => {
+  pfcCatalogCalls.push({ page, type, options: structuredClone(options) });
+  return structuredClone(pfcFields);
+};
+provider.readFieldDatabaseTypes = async (fields: readonly string[]) => { assert.deepEqual(fields, ['DESCR']); return new Map([['DESCR', 0]]); };
+provider.readPageFieldMaskProfiles = async () => structuredClone(pfcMasks);
+provider.savePageFieldConfiguration = async (request: any) => {
+  assert.equal(writeOrigin(), 'agent');
+  assert.equal(request.openedToken, 'fixture-pfc-token');
+  assert.equal(request.operatorId, 'JARED');
+  pfcSaveCalls.push(structuredClone(request));
+  return { written: !request.dryRun, token: 'fixture-pfc-saved', rows: { empty: false, changes: ['Fixture PFC row change'] },
+    mappings: { changes: [] }, warnings: [], derived: [] };
+};
 const workspace: any = { connections: [], activeProviders: [provider], require: async (id: string) => { assert.equal(id, provider.id, 'Workspace.require accepts canonical IDs, not connection names'); return provider; }, isWritable: () => access, configFor: () => ({ peoplesoftOperatorId: operator }) };
 const host = { mode: () => mode, hasUnsavedEditor: () => dirty, saved: () => { refreshed++; }, confirm: async () => { confirmed++; return accept; } };
 const server = await startPeopleSoftMcpServer(workspace, { port: 39519, writeHost: () => host });
@@ -76,6 +119,8 @@ try {
   const advertised = (await rpc('tools/list', {})).tools;
   for (const name of ['psft_capability_catalog', 'psft_process_get', 'psft_process_save', 'psft_query_list', 'psft_query_get', 'psft_query_prepare', 'psft_query_run', 'psft_query_save', 'psft_query_create', 'psft_query_copy']) assert.ok(advertised.some((t: any) => t.name === name));
   check('server instructions and tools/list advertise the workflows');
+  for (const name of ['psft_page_field_config_get', 'psft_page_field_config_fields', 'psft_page_field_config_save']) assert.ok(advertised.some((t: any) => t.name === name));
+  check('PFC tools/list advertises get, fields and save');
   // Catalog has no connection input.
   const catalog = await rpc('tools/call', { name: 'psft_capability_catalog', arguments: { kind: 'definition', type: 10 } });
   assert.equal(JSON.parse(catalog.content[0].text).entries.length, 1);
@@ -97,6 +142,60 @@ try {
   assert.equal((await tool('psft_process_save', edit)).saved, true);
   await tool('psft_process_save', edit, false);
   check('process decline, preview preservation, confirmed save and stale-token refusal');
+  const pfk = { component: 'ZZ_MCP_COMP' };
+  const pfcBefore = await tool('psft_page_field_config_get', pfk);
+  assert.deepEqual(pfcBefore.configuration, pfcConfiguration);
+  const pfcEdit = { ...pfk, expectedToken: pfcBefore.token, configuration: pfcBefore.configuration };
+  const pfcConfirmsBefore = confirmed, pfcRefreshesBefore = refreshed;
+  assert.equal((await tool('psft_page_field_config_save', { ...pfcEdit, dryRun: true })).saved, false);
+  assert.equal(pfcSaveCalls.length, 1);
+  assert.deepEqual(pfcSaveCalls[0].configuration, pfcConfiguration);
+  check('PFC get to save HTTP round trip preserves every configuration and targeting list');
+  assert.deepEqual(pfcSaveCalls.map(request => request.dryRun), [true]);
+  assert.equal(confirmed, pfcConfirmsBefore);
+  assert.equal(refreshed, pfcRefreshesBefore);
+  check('PFC dry run only previews, without a write, confirmation or refresh');
+  mode = 'off'; await tool('psft_page_field_config_save', pfcEdit, false); mode = 'confirm';
+  assert.equal(pfcSaveCalls.length, 1);
+  access = false; await tool('psft_page_field_config_save', pfcEdit, false); access = true;
+  assert.equal(pfcSaveCalls.length, 1);
+  operator = ''; await tool('psft_page_field_config_save', pfcEdit, false); operator = 'JARED';
+  assert.equal(pfcSaveCalls.length, 1);
+  assert.equal(confirmed, pfcConfirmsBefore);
+  check('PFC off, read-only connection and missing operator gates refuse provider saves');
+  accept = false; await tool('psft_page_field_config_save', pfcEdit, false); accept = true;
+  assert.deepEqual(pfcSaveCalls.map(request => request.dryRun), [true, true]);
+  assert.equal(confirmed, pfcConfirmsBefore + 1);
+  assert.equal(refreshed, pfcRefreshesBefore);
+  assert.equal((await tool('psft_page_field_config_save', pfcEdit)).saved, true);
+  assert.deepEqual(pfcSaveCalls.map(request => request.dryRun), [true, true, true, undefined]);
+  assert.equal(pfcSaveCalls.filter(request => !request.dryRun).length, 1);
+  assert.deepEqual(pfcSaveCalls.at(-1).configuration, pfcConfiguration);
+  assert.equal(confirmed, pfcConfirmsBefore + 2);
+  assert.equal(refreshed, pfcRefreshesBefore + 1);
+  check('PFC declined confirmation only previews; confirmed save writes once and refreshes');
+  assert.deepEqual((await tool('psft_page_field_config_fields', pfk)).pages, pfcPages);
+  const pfcCriteria = await tool('psft_page_field_config_fields', { ...pfk, page: 'ZZ_MCP_PAGE', criteria: true });
+  assert.deepEqual(pfcCatalogCalls.at(-1), { page: 'ZZ_MCP_PAGE', type: 'P', options: { mask: false, criteria: true } });
+  assert.equal(pfcCriteria.count, 1);
+  assert.deepEqual(pfcCriteria.fields, [{ label: 'Description', recordField: 'AAP_TBL.DESCR', level: 0,
+    row: { RECNAME: 'AAP_TBL', FIELDNAME: 'DESCR', PNLFLDID: 1, EOCC_CRITERIA_SYM: 'A', PNLNAME: 'ZZ_MCP_PAGE', EOCC_VALUE_MATCH: '',
+      OCCURSLEVEL: 0, EOCC_FIELD_TYPE: 0, LBLTEXT: 'Description', RECNAME1: ' ', FIELDNAME1: ' ', RECNAME_BASE: ' ' } }]);
+  assert.deepEqual(pfcCriteria.operators, {
+    A: 'Equals', F: 'Not Equals', B: 'Less Than', C: 'Greater Than', D: 'Not Greater Than', E: 'Not Less Than',
+    G: 'Contains No Value (no value)', H: 'Contains Value (no value)', I: 'Between (EOCC_VALUE_MATCH and EOCC_VALUE_MATCH2)',
+    J: 'Not Between (EOCC_VALUE_MATCH and EOCC_VALUE_MATCH2)', K: 'In List (comma-separated values)', O: 'Not in List (comma-separated values)',
+    L: 'Begins With', M: 'Contains', N: 'Does not Contain'
+  });
+  check('PFC field discovery returns fixture pages, criteria rows and the operators map');
+  const pfcMasked = await tool('psft_page_field_config_fields', { ...pfk, page: 'ZZ_MCP_PAGE', mask: true });
+  assert.deepEqual(pfcCatalogCalls.at(-1), { page: 'ZZ_MCP_PAGE', type: 'P', options: { mask: true, criteria: false } });
+  assert.deepEqual(pfcMasked.maskProfiles, pfcMasks.profiles);
+  assert.equal(pfcMasked.count, 1);
+  assert.equal(pfcMasked.fields[0].recordField, 'AAP_TBL.DESCR');
+  assert.equal(pfcMasked.fields[0].row.EOCC_MASK_FLAG, 'Y');
+  assert.equal(pfcMasked.fields[0].row.EOCC_MASK_ID, 'ZZ_MASK');
+  check('PFC mask discovery returns maskProfiles and applies the fixture mask to field rows');
   const qk = { name: 'ZZ_MCP_QRY' };
   await tool('psft_query_list');
   const qb = await tool('psft_query_get', qk);
@@ -144,6 +243,9 @@ try {
   assert.ok(names.includes('psft_query_run') && names.includes('psft_process_get'));
   for (const name of ['psft_process_save', 'psft_query_save', 'psft_query_create', 'psft_query_copy']) assert.ok(!names.includes(name));
   check('read-only server exposes reads and bounded Query execution without authoring tools');
+  assert.ok(names.includes('psft_page_field_config_get') && names.includes('psft_page_field_config_fields'));
+  assert.ok(!names.includes('psft_page_field_config_save'));
+  check('read-only server advertises PFC get and fields without save');
 } finally { await readOnly.dispose(); }
 
 
