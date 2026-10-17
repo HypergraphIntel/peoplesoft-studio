@@ -1,0 +1,858 @@
+{
+ "format": "def-capture/1",
+ "kind": "fl",
+ "case": "fl12-save-as",
+ "name": "ZZ_FL_N3",
+ "watch": {
+  "PSFLDDEFN": {
+   "columns": [
+    {
+     "name": "FLDDEFNNAME"
+    },
+    {
+     "name": "FLDFORMAT"
+    },
+    {
+     "name": "FLDSEGCOUNT"
+    },
+    {
+     "name": "FLDTAG"
+    },
+    {
+     "name": "FLDQUALIFIER"
+    },
+    {
+     "name": "FLDQUALIFIEROPT"
+    },
+    {
+     "name": "FLDDELIMITERTYPE"
+    },
+    {
+     "name": "FLDDELIMITER"
+    },
+    {
+     "name": "FLDIMPLYDECIMAL"
+    },
+    {
+     "name": "FLDEXCELFORMAT"
+    },
+    {
+     "name": "FLDCONVERTTABS"
+    },
+    {
+     "name": "FLDSTRIPSPACE"
+    },
+    {
+     "name": "FLDINTRPBACKSLASH"
+    },
+    {
+     "name": "FLDEMBQUOTEFMT"
+    },
+    {
+     "name": "FLDFILENAME"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "FLDSEGID"
+    },
+    {
+     "name": "FLDSEGIDSTART"
+    },
+    {
+     "name": "FLDSEGIDLENGTH"
+    },
+    {
+     "name": "FLDXMLBUFFSIZE"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [
+    {
+     "FLDDEFNNAME": "ZZ_FL_N3",
+     "FLDFORMAT": "0",
+     "FLDSEGCOUNT": "1",
+     "FLDTAG": " ",
+     "FLDQUALIFIER": " ",
+     "FLDQUALIFIEROPT": "0",
+     "FLDDELIMITERTYPE": "0",
+     "FLDDELIMITER": " ",
+     "FLDIMPLYDECIMAL": "0",
+     "FLDEXCELFORMAT": "0",
+     "FLDCONVERTTABS": "0",
+     "FLDSTRIPSPACE": "0",
+     "FLDINTRPBACKSLASH": "0",
+     "FLDEMBQUOTEFMT": "0",
+     "FLDFILENAME": " ",
+     "DESCR": " ",
+     "VERSION": "43",
+     "LASTUPDOPRID": "JARED",
+     "LASTUPDDTTM": "2026-10-17T17:48:00",
+     "FLDSEGID": " ",
+     "FLDSEGIDSTART": "0",
+     "FLDSEGIDLENGTH": "0",
+     "FLDXMLBUFFSIZE": "0",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSFLDSEGDEFN": {
+   "columns": [
+    {
+     "name": "FLDDEFNNAME"
+    },
+    {
+     "name": "FLDSEGNAME"
+    },
+    {
+     "name": "FLDSEGID"
+    },
+    {
+     "name": "FLDSEGPARENT"
+    },
+    {
+     "name": "FLDSEGIDSTART"
+    },
+    {
+     "name": "FLDSEGIDLENGTH"
+    },
+    {
+     "name": "FLDOFFSET"
+    },
+    {
+     "name": "FLDTAG"
+    },
+    {
+     "name": "FLDSEQNO"
+    },
+    {
+     "name": "FLDQUALIFIER"
+    },
+    {
+     "name": "FLDDELIMITERTYPE"
+    },
+    {
+     "name": "FLDDELIMITER"
+    },
+    {
+     "name": "FLDSEGCOUNT"
+    },
+    {
+     "name": "FLDFIELDCOUNT"
+    },
+    {
+     "name": "FLDIDSEQNO"
+    },
+    {
+     "name": "FLDMAXSEGLEN"
+    },
+    {
+     "name": "DESCR100"
+    },
+    {
+     "name": "RECNAME_FILE"
+    },
+    {
+     "name": "SQLID"
+    },
+    {
+     "name": "SQLTYPE"
+    },
+    {
+     "name": "PTFLDSEGTERM"
+    }
+   ],
+   "inserted": [
+    {
+     "FLDDEFNNAME": "ZZ_FL_N3",
+     "FLDSEGNAME": "ZZ_FL_REC_B",
+     "FLDSEGID": " ",
+     "FLDSEGPARENT": " ",
+     "FLDSEGIDSTART": "0",
+     "FLDSEGIDLENGTH": "0",
+     "FLDOFFSET": "0",
+     "FLDTAG": "ZZ_FL_REC_B",
+     "FLDSEQNO": "1",
+     "FLDQUALIFIER": " ",
+     "FLDDELIMITERTYPE": "0",
+     "FLDDELIMITER": ",",
+     "FLDSEGCOUNT": "0",
+     "FLDFIELDCOUNT": "10",
+     "FLDIDSEQNO": "0",
+     "FLDMAXSEGLEN": "77",
+     "DESCR100": " ",
+     "RECNAME_FILE": " ",
+     "SQLID": " ",
+     "SQLTYPE": " ",
+     "PTFLDSEGTERM": " "
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSFLDFIELDDEFN": {
+   "columns": [
+    {
+     "name": "FLDDEFNNAME"
+    },
+    {
+     "name": "FLDSEGNAME"
+    },
+    {
+     "name": "FLDFIELDNAME"
+    },
+    {
+     "name": "FLDSTART"
+    },
+    {
+     "name": "FLDLENGTH"
+    },
+    {
+     "name": "FLDOFFSET"
+    },
+    {
+     "name": "FLDFIELDTYPE"
+    },
+    {
+     "name": "DECIMAL_POS"
+    },
+    {
+     "name": "FLDTAG"
+    },
+    {
+     "name": "FLDSEQNO"
+    },
+    {
+     "name": "FLDSUPPRESS"
+    },
+    {
+     "name": "FLDDATEFMT"
+    },
+    {
+     "name": "FLDDATESEPARATOR"
+    },
+    {
+     "name": "FLDQUALIFIER"
+    },
+    {
+     "name": "FLDTRIMSPACES"
+    },
+    {
+     "name": "FLDIPVSEG"
+    },
+    {
+     "name": "FLDIPVFIELD"
+    },
+    {
+     "name": "FLDFIELDDFLT"
+    },
+    {
+     "name": "DESCR100"
+    },
+    {
+     "name": "FLDUPPER"
+    },
+    {
+     "name": "FLDSTRIPCHAR"
+    },
+    {
+     "name": "PTFLDPADFIELD"
+    }
+   ],
+   "inserted": [
+    {
+     "FLDDEFNNAME": "ZZ_FL_N3",
+     "FLDSEGNAME": "ZZ_FL_REC_B",
+     "FLDFIELDNAME": "BENEFIT_PLAN",
+     "FLDSTART": "61",
+     "FLDLENGTH": "6",
+     "FLDOFFSET": "0",
+     "FLDFIELDTYPE": "0",
+     "DECIMAL_POS": "0",
+     "FLDTAG": "BENEFIT_PLAN",
+     "FLDSEQNO": "7",
+     "FLDSUPPRESS": "0",
+     "FLDDATEFMT": "MMDDYYYY",
+     "FLDDATESEPARATOR": "/",
+     "FLDQUALIFIER": " ",
+     "FLDTRIMSPACES": "0",
+     "FLDIPVSEG": " ",
+     "FLDIPVFIELD": " ",
+     "FLDFIELDDFLT": " ",
+     "DESCR100": " ",
+     "FLDUPPER": "0",
+     "FLDSTRIPCHAR": " ",
+     "PTFLDPADFIELD": "0"
+    },
+    {
+     "FLDDEFNNAME": "ZZ_FL_N3",
+     "FLDSEGNAME": "ZZ_FL_REC_B",
+     "FLDFIELDNAME": "COMPANY",
+     "FLDSTART": "69",
+     "FLDLENGTH": "3",
+     "FLDOFFSET": "0",
+     "FLDFIELDTYPE": "0",
+     "DECIMAL_POS": "0",
+     "FLDTAG": "COMPANY",
+     "FLDSEQNO": "8",
+     "FLDSUPPRESS": "0",
+     "FLDDATEFMT": "MMDDYYYY",
+     "FLDDATESEPARATOR": "/",
+     "FLDQUALIFIER": " ",
+     "FLDTRIMSPACES": "0",
+     "FLDIPVSEG": " ",
+     "FLDIPVFIELD": " ",
+     "FLDFIELDDFLT": " ",
+     "DESCR100": " ",
+     "FLDUPPER": "0",
+     "FLDSTRIPCHAR": " ",
+     "PTFLDPADFIELD": "0"
+    },
+    {
+     "FLDDEFNNAME": "ZZ_FL_N3",
+     "FLDSEGNAME": "ZZ_FL_REC_B",
+     "FLDFIELDNAME": "COVERAGE_BEGIN_DT",
+     "FLDSTART": "41",
+     "FLDLENGTH": "10",
+     "FLDOFFSET": "0",
+     "FLDFIELDTYPE": "4",
+     "DECIMAL_POS": "0",
+     "FLDTAG": "COVERAGE_BEGIN_DT",
+     "FLDSEQNO": "5",
+     "FLDSUPPRESS": "0",
+     "FLDDATEFMT": "MMDDYYYY",
+     "FLDDATESEPARATOR": "/",
+     "FLDQUALIFIER": " ",
+     "FLDTRIMSPACES": "0",
+     "FLDIPVSEG": " ",
+     "FLDIPVFIELD": " ",
+     "FLDFIELDDFLT": " ",
+     "DESCR100": " ",
+     "FLDUPPER": "0",
+     "FLDSTRIPCHAR": " ",
+     "PTFLDPADFIELD": "0"
+    },
+    {
+     "FLDDEFNNAME": "ZZ_FL_N3",
+     "FLDSEGNAME": "ZZ_FL_REC_B",
+     "FLDFIELDNAME": "COVERAGE_END_DT",
+     "FLDSTART": "51",
+     "FLDLENGTH": "10",
+     "FLDOFFSET": "0",
+     "FLDFIELDTYPE": "4",
+     "DECIMAL_POS": "0",
+     "FLDTAG": "COVERAGE_END_DT",
+     "FLDSEQNO": "6",
+     "FLDSUPPRESS": "0",
+     "FLDDATEFMT": "MMDDYYYY",
+     "FLDDATESEPARATOR": "/",
+     "FLDQUALIFIER": " ",
+     "FLDTRIMSPACES": "0",
+     "FLDIPVSEG": " ",
+     "FLDIPVFIELD": " ",
+     "FLDFIELDDFLT": " ",
+     "DESCR100": " ",
+     "FLDUPPER": "0",
+     "FLDSTRIPCHAR": " ",
+     "PTFLDPADFIELD": "0"
+    },
+    {
+     "FLDDEFNNAME": "ZZ_FL_N3",
+     "FLDSEGNAME": "ZZ_FL_REC_B",
+     "FLDFIELDNAME": "COVRG_CD",
+     "FLDSTART": "67",
+     "FLDLENGTH": "2",
+     "FLDOFFSET": "0",
+     "FLDFIELDTYPE": "0",
+     "DECIMAL_POS": "0",
+     "FLDTAG": "COVRG_CD",
+     "FLDSEQNO": "9",
+     "FLDSUPPRESS": "0",
+     "FLDDATEFMT": "MMDDYYYY",
+     "FLDDATESEPARATOR": "/",
+     "FLDQUALIFIER": " ",
+     "FLDTRIMSPACES": "0",
+     "FLDIPVSEG": " ",
+     "FLDIPVFIELD": " ",
+     "FLDFIELDDFLT": " ",
+     "DESCR100": " ",
+     "FLDUPPER": "0",
+     "FLDSTRIPCHAR": " ",
+     "PTFLDPADFIELD": "0"
+    },
+    {
+     "FLDDEFNNAME": "ZZ_FL_N3",
+     "FLDSEGNAME": "ZZ_FL_REC_B",
+     "FLDFIELDNAME": "DED_CUR",
+     "FLDSTART": "29",
+     "FLDLENGTH": "12",
+     "FLDOFFSET": "0",
+     "FLDFIELDTYPE": "3",
+     "DECIMAL_POS": "2",
+     "FLDTAG": "DED_CUR",
+     "FLDSEQNO": "4",
+     "FLDSUPPRESS": "0",
+     "FLDDATEFMT": "MMDDYYYY",
+     "FLDDATESEPARATOR": "/",
+     "FLDQUALIFIER": " ",
+     "FLDTRIMSPACES": "0",
+     "FLDIPVSEG": " ",
+     "FLDIPVFIELD": " ",
+     "FLDFIELDDFLT": " ",
+     "DESCR100": " ",
+     "FLDUPPER": "0",
+     "FLDSTRIPCHAR": " ",
+     "PTFLDPADFIELD": "0"
+    },
+    {
+     "FLDDEFNNAME": "ZZ_FL_N3",
+     "FLDSEGNAME": "ZZ_FL_REC_B",
+     "FLDFIELDNAME": "EFFDT",
+     "FLDSTART": "18",
+     "FLDLENGTH": "10",
+     "FLDOFFSET": "0",
+     "FLDFIELDTYPE": "4",
+     "DECIMAL_POS": "0",
+     "FLDTAG": "EFFDT",
+     "FLDSEQNO": "3",
+     "FLDSUPPRESS": "0",
+     "FLDDATEFMT": "MMDDYYYY",
+     "FLDDATESEPARATOR": "/",
+     "FLDQUALIFIER": " ",
+     "FLDTRIMSPACES": "0",
+     "FLDIPVSEG": " ",
+     "FLDIPVFIELD": " ",
+     "FLDFIELDDFLT": " ",
+     "DESCR100": " ",
+     "FLDUPPER": "0",
+     "FLDSTRIPCHAR": " ",
+     "PTFLDPADFIELD": "0"
+    },
+    {
+     "FLDDEFNNAME": "ZZ_FL_N3",
+     "FLDSEGNAME": "ZZ_FL_REC_B",
+     "FLDFIELDNAME": "EMPLID",
+     "FLDSTART": "1",
+     "FLDLENGTH": "15",
+     "FLDOFFSET": "0",
+     "FLDFIELDTYPE": "0",
+     "DECIMAL_POS": "0",
+     "FLDTAG": "EMPLID",
+     "FLDSEQNO": "1",
+     "FLDSUPPRESS": "0",
+     "FLDDATEFMT": "MMDDYYYY",
+     "FLDDATESEPARATOR": " ",
+     "FLDQUALIFIER": " ",
+     "FLDTRIMSPACES": "0",
+     "FLDIPVSEG": " ",
+     "FLDIPVFIELD": " ",
+     "FLDFIELDDFLT": " ",
+     "DESCR100": " ",
+     "FLDUPPER": "0",
+     "FLDSTRIPCHAR": "~",
+     "PTFLDPADFIELD": "0"
+    },
+    {
+     "FLDDEFNNAME": "ZZ_FL_N3",
+     "FLDSEGNAME": "ZZ_FL_REC_B",
+     "FLDFIELDNAME": "PLAN_TYPE",
+     "FLDSTART": "16",
+     "FLDLENGTH": "2",
+     "FLDOFFSET": "0",
+     "FLDFIELDTYPE": "0",
+     "DECIMAL_POS": "0",
+     "FLDTAG": "PLAN_TYPE",
+     "FLDSEQNO": "2",
+     "FLDSUPPRESS": "0",
+     "FLDDATEFMT": "MMDDYYYY",
+     "FLDDATESEPARATOR": " ",
+     "FLDQUALIFIER": " ",
+     "FLDTRIMSPACES": "0",
+     "FLDIPVSEG": " ",
+     "FLDIPVFIELD": " ",
+     "FLDFIELDDFLT": " ",
+     "DESCR100": " ",
+     "FLDUPPER": "0",
+     "FLDSTRIPCHAR": "~",
+     "PTFLDPADFIELD": "0"
+    },
+    {
+     "FLDDEFNNAME": "ZZ_FL_N3",
+     "FLDSEGNAME": "ZZ_FL_REC_B",
+     "FLDFIELDNAME": "PROCESS_DT",
+     "FLDSTART": "72",
+     "FLDLENGTH": "10",
+     "FLDOFFSET": "0",
+     "FLDFIELDTYPE": "4",
+     "DECIMAL_POS": "0",
+     "FLDTAG": "PROCESS_DT",
+     "FLDSEQNO": "10",
+     "FLDSUPPRESS": "0",
+     "FLDDATEFMT": "MMDDYYYY",
+     "FLDDATESEPARATOR": "/",
+     "FLDQUALIFIER": " ",
+     "FLDTRIMSPACES": "0",
+     "FLDIPVSEG": " ",
+     "FLDIPVFIELD": " ",
+     "FLDFIELDDFLT": " ",
+     "DESCR100": " ",
+     "FLDUPPER": "0",
+     "FLDSTRIPCHAR": " ",
+     "PTFLDPADFIELD": "0"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSFLDDEL": {
+   "columns": [
+    {
+     "name": "FLDDEFNNAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMPROG": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "PROGSEQ"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "NAMECOUNT"
+    },
+    {
+     "name": "PROGLEN"
+    },
+    {
+     "name": "PROGRUNLOC"
+    },
+    {
+     "name": "PROGFLAGS"
+    },
+    {
+     "name": "LICENSE_CODE"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "PROGEXTENDS"
+    },
+    {
+     "name": "PTTOOLSREL"
+    },
+    {
+     "name": "PROGTXT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMTXT": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "PROGSEQ"
+    },
+    {
+     "name": "HASH_SIGNATURE"
+    },
+    {
+     "name": "PCTEXT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMNAME": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "NAMENUM"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "REFNAME"
+    },
+    {
+     "name": "PACKAGEROOT"
+    },
+    {
+     "name": "QUALIFYPATH"
+    },
+    {
+     "name": "APPCLASSMETHOD"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMPROGDEL": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "FLM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "42",
+       "after": "43"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "3772",
+       "after": "3773"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "FLM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "42",
+       "after": "43"
+      }
+     }
+    }
+   ]
+  }
+ }
+}

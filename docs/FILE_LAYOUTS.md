@@ -9,7 +9,8 @@ File Layout) starts one. The MCP tools `psft_file_layout_*` make the same edits.
 
 Everything below was established by capturing App Designer's own saves on
 HRDMO (PeopleTools 8.62.09) -- `tools/corpus/save-protocol/results/fl01` to
-`fl15` -- and is replayed by `src/test/fileLayoutWriter.test.ts`.
+`fl15`, on lab records of delivered fields, `ZZ_FL_REC_A` (with a time and a
+datetime field) and `ZZ_FL_REC_B` -- and is replayed by `src/test/fileLayoutWriter.test.ts`.
 `tools/lab/file-layout-e2e.mts` rebuilds App Designer's two lab layouts through
 the writer and compares every column; App Designer then opened a writer-made
 layout and saved it, changing only what was edited (`nfl01`).
@@ -36,7 +37,7 @@ Rename also moves PJM. Project items are `OBJECTTYPE` 31, `OBJECTID1` 71.
 | File > New, Insert > Record, Save | fl01, fl07 | FIXED layout, all options off; one segment named and tagged as the record, ID Seq No 0, Max Rec Length = last position; each record field (PSRECFIELDDB order) at consecutive starts from 1, PSDBFIELD type / length / decimals (Time and Datetime +5), date format `MMDDYYYY` separator `/`, qualifier = the layout's |
 | Format CSV | fl02 | `FLDFORMAT` 1; definition qualifier `"` and delimiter `,` |
 | CSV options | fl03 | Qualifier Optional `FLDQUALIFIEROPT`, Convert Tabs `FLDCONVERTTABS`, Interpret Backslash `FLDINTRPBACKSLASH`, Strip White Space `FLDSTRIPSPACE`, Backslash Quote `FLDEMBQUOTEFMT` 1 |
-| Segment properties | fl04 | record ID `FLDSEGID` (start 1), ID length; Default Qualifier copied to every field; Field Delimiter Other = type 4 with its character; ID Seq No stored 1. "Increment start positions for all fields? (116,14)" Yes adds the ID length to every start. Max Rec Length is not recomputed |
+| Segment properties | fl04 | record ID `FLDSEGID` (start 1), ID length; Default Qualifier copied to every field; Field Delimiter Other = type 4 with its character; ID Seq No stored 1. "Increment start positions for all fields? (118,14)" Yes adds the ID length to every start. Max Rec Length is not recomputed |
 | Field properties | fl05, fl08 | as entered; OK writes strip characters with a `~` terminator (blank becomes `~`) and clears the date separator unless the field is a date, time or datetime. A FIXED length change moves no other field (overlaps are saved) |
 | Propagate `>>>` n | fl09 | this field's start and every later field's + n |
 | Insert Segment / ChildSegment / FileField | fl06 | empty segment: ID Seq No 1, Max Rec Length 0, the layout's qualifier, Comma; a file field: Character unless chosen, after the segment's last position |
@@ -45,7 +46,7 @@ Rename also moves PJM. Project items are `OBJECTTYPE` 31, `OBJECTID1` 71.
 | Save As | fl12 | every row copied under the new name |
 | Rename (78,6: closes open objects) | fl13 | rows re-keyed, layout restamped; `PSFLDDEL` (old name, new FLM); FLM, PJM, SYS + 1 |
 | Delete | fl14 | rows deleted; `PSFLDDEL` (name, new FLM); FLM, SYS + 1 |
-| Format XML, buffer | fl15 | `FLDFORMAT` 2, delimiter `,`, `FLDXMLBUFFSIZE` |
+| Format XML, buffer | fl15 | `FLDFORMAT` 2, delimiter `,`, `FLDXMLBUFFSIZE` as entered (a new XML layout's is 0) |
 
 Not captured, decided by analogy and marked in the code: Rename repointing
 project items (as App Designer does for message channels, chn17); a recreated

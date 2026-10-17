@@ -34,7 +34,3 @@ dist-test/
 *ou_fid*
 *[Ff]idelity*
 *FIDELITY*
-/tools/corpus/save-protocol/results/fl[0-9][0-9]-*/
-/tools/corpus/save-protocol/results/nfl01-ad-edit-of-writer/
-/src/test/fileLayoutWriter.test.ts
-/tools/lab/file-layout-e2e.mts
