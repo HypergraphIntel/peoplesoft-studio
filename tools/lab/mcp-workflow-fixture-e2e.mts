@@ -604,7 +604,9 @@ try{
  const pageCommits=pageNative.counts().committed;nativePageUi._receive({action:'timelineCompare',id:pageRevert.id,revision:pageRevert.revision,object:pageRevert.objects[0].id,timelineRevision:pageHistory.revisions[0].id});
  await until(async()=>nativePageUi.webview.html.includes('data-page-preview="history-"'));assert.equal(pageNative.counts().committed,pageCommits);
  check('bounded Page HTTP/UI staging captures native snapshots, renders visual and retained baseline comparisons, applies typed edits and verifies checkpoint reversal without raw row replay');
- const unsupported=await reviewRpc('tools/call',{name:'psft_edit_page',arguments:{connection:'FIXTURE',page:'ZZ_PREVIEW_PAGE',operations:[{op:'delete',id:1}]}});assert.equal(unsupported.isError,true);
+ // Deleting a control has no Page adapter: grouped into a Change Set it is refused, never written outside the set the developer reviews.
+ const structuralSet=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'Structural Page operation'}),committedBefore=pageNative.counts().committed;
+ const unsupported=await reviewRpc('tools/call',{name:'psft_edit_page',arguments:{connection:'FIXTURE',page:'ZZ_PREVIEW_PAGE',changeSetId:structuralSet.id,operations:[{op:'delete',id:1}]}});assert.equal(unsupported.isError,true,'a structural Page edit in a Change Set is refused');assert.match(unsupported.content[0].text,/inserted or deleted Page control is not staged.*cannot be grouped into a Change Set/,'refused by review routing, not by a write guard');assert.equal(pageNative.counts().committed,committedBefore,'nothing written');
  const maliciousSet=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'Unsupported native Page column'});
  const nativeBefore=await provider.readPageForReview('ZZ_PREVIEW_PAGE'), altered=structuredClone(nativeBefore.value);altered.tables.PSPNLFIELD[0].UNTOUCHED_COLUMN='must not be replayed';
  const malicious=await reviewCall('psft_stage_object_change',{changeSetId:maliciousSet.id,adapter:'page',key:'ZZ_PREVIEW_PAGE',after:altered});
@@ -656,8 +658,8 @@ try{
    ui._receive({action:'apply',id:reverse.id,revision:reverse.revision});await until(async()=>(await reviewService.store.get(reverse.id)).status==='APPLIED'&&(await reviewService.store.get(set.id)).status==='REVERTED');
    assert.equal(native.counts().commits,2);
    const history=await reviewCall('psft_get_object_timeline',{changeSetId:reverse.id,objectId:reverse.objects[0].id,checkLive:true});assert.equal(history.live.status,'MATCHES_RECORDED');assert.equal(history.revisions.length,2);
-   const count=(await reviewService.store.list()).length;
-   const refused=await reviewRpc('tools/call',{name:toolName,arguments:{...request,operations:[{op:family==='record'?'remove_field':'delete_section',field:'DESCR',section:'MAIN'}]}});assert.equal(refused.isError,true);assert.equal((await reviewService.store.list()).length,count);
+   const structural=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:family+' structural operation'});
+   const count=(await reviewService.store.list()).length;const refused=await reviewRpc('tools/call',{name:toolName,arguments:{...request,changeSetId:structural.id,operations:[{op:family==='record'?'remove_field':'delete_section',field:'DESCR',section:'MAIN'}]}});assert.equal(refused.isError,true,'a structural '+family+' edit in a Change Set is refused');assert.match(refused.content[0].text,/structural Record or App Engine operation is not staged.*cannot be grouped into a Change Set/,'refused by review routing, not by a write guard');assert.equal((await reviewService.store.list()).length,count);
    const drift=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:family+' unversioned native drift'});
    await reviewCall(toolName,{...request,expectedVersion:undefined,changeSetId:drift.id});ready=await reviewCall('psft_validate_change_set',{changeSetId:drift.id});await reviewUi.show(drift.id);
    ui._receive({action:'approve',id:drift.id,revision:ready.revision});await until(async()=>(await reviewService.store.get(drift.id)).status==='APPROVED');
