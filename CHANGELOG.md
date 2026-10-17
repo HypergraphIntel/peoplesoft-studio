@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Settings > Project Contents**: whether an AI agent places menus, Portal
+  Registry structures (content references and folders), and permission lists
+  and roles into projects (`peoplesoft.projects.includeMenus`,
+  `includePortalRegistry`, `includeSecurity`; all on by default). Some
+  organizations never migrate these in projects. Turned off, the agent still
+  creates the definitions, but `psft_add_to_project` leaves them out -- asked
+  for or brought along as related -- and reports them under `excluded` with the
+  setting that did it; `psft_project_related` lists them under
+  `excludedBySettings` instead of as missing. Adding a definition in the Studio
+  UI yourself is not gated.
+
 ## 0.9.3 — 2026-10-17
 
 ### Fixed

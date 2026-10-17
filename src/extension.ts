@@ -459,6 +459,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // MCP writes (mcp/writeTools.ts): the setting, the user's approval, and the editors' state.
   mcpController.writeHost = {
     mode: () => vscode.workspace.getConfiguration('peoplesoft.mcp').get<McpWriteMode>('writes', 'confirm'),
+    projectInclusion: () => {
+      const c = vscode.workspace.getConfiguration('peoplesoft.projects');
+      return { menus: c.get('includeMenus', true), portalRegistry: c.get('includePortalRegistry', true), security: c.get('includeSecurity', true) };
+    },
     confirm: async ({ title, detail }) => (await vscode.window.showWarningMessage(title, { modal: true, detail }, 'Allow')) === 'Allow',
     hasUnsavedEditor: (connectionId, key) => {
       if (key.type === DefinitionType.Query) return QueryDesignerPanel.hasUnsaved(connectionId, key.parts[0], key.parts[1]);

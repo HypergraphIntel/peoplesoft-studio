@@ -30,6 +30,9 @@ export interface PeopleSoftStudioSettings {
   'mcp.enabled': boolean;
   'mcp.port': number;
   'mcp.writes': 'confirm' | 'allow' | 'off';
+  'projects.includeMenus': boolean;
+  'projects.includePortalRegistry': boolean;
+  'projects.includeSecurity': boolean;
   'build.create.table': 'recreate' | 'skip';
   'build.create.view': 'recreate' | 'skip';
   'build.create.index': 'recreate' | 'ifModified';
@@ -143,7 +146,7 @@ export interface SettingInspection<T> {
   workspaceFolderValue?: T;
 }
 
-export type SettingSection = 'mcp' | 'buildCreate' | 'buildAlter' | 'advanced';
+export type SettingSection = 'mcp' | 'projects' | 'buildCreate' | 'buildAlter' | 'advanced';
 
 export interface EnumOption<T extends string> {
   value: T;
@@ -210,6 +213,30 @@ export const SETTING_DESCRIPTORS: readonly SettingDescriptor[] = [
       { value: 'off', label: 'Off', description: 'The MCP is read-only.' }
     ] },
     defaultValue: 'confirm'
+  },
+  {
+    key: 'projects.includeMenus',
+    section: 'projects',
+    label: 'Include menus in projects',
+    description: 'When an AI agent adds definitions to a project (psft_add_to_project), menus go in. Off: the agent still creates and edits menus, but leaves them out of projects.',
+    control: { kind: 'boolean' },
+    defaultValue: true
+  },
+  {
+    key: 'projects.includePortalRegistry',
+    section: 'projects',
+    label: 'Include Portal Registry structures in projects',
+    description: 'Content references and portal folders, including the ones a component brings along. Off: the agent still creates them, but leaves them out of projects.',
+    control: { kind: 'boolean' },
+    defaultValue: true
+  },
+  {
+    key: 'projects.includeSecurity',
+    section: 'projects',
+    label: 'Include permission lists and roles in projects',
+    description: 'Off: the agent still creates and grants permission lists and roles, but leaves them out of projects.',
+    control: { kind: 'boolean' },
+    defaultValue: true
   },
   {
     key: 'oracle.thickModeLibDir',

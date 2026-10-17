@@ -51,7 +51,7 @@ export const TYPICAL_OBJECTS: Record<RequestKind, TypicalObject[]> = {
     { type: D.Menu, kind: 'Menu', purpose: 'Menu registration for the run control component.' },
     { type: D.PortalRegistry, kind: 'Portal content reference', purpose: 'Navigation to the run control.' },
     { type: D.PermissionList, kind: 'Permission list access', purpose: 'Security for the run control and process.' },
-    { type: D.Project, kind: 'Project', purpose: 'Every object and the related definitions it needs, for migration: add them with psft_add_to_project (includeRelated, the default) and run psft_project_related before reporting the project built -- an App Engine program added alone migrates as a header with no sections, SQL or PeopleCode, and one without the SQL objects its code calls fails at run time in the target.' }
+    { type: D.Project, kind: 'Project', purpose: 'Every object and the related definitions it needs, for migration: add them with psft_add_to_project (includeRelated, the default) and run psft_project_related before reporting the project built -- an App Engine program added alone migrates as a header with no sections, SQL or PeopleCode, and one without the SQL objects its code calls fails at run time in the target. Menus, Portal Registry structures, and permission lists and roles go in only where Settings > Project Contents includes them; psft_add_to_project reports the rest as excluded.' }
   ],
   'ae-outbound-file': [
     { type: D.Record, kind: 'Record', purpose: 'A run control record; optionally a work/extract table.' },
@@ -67,7 +67,7 @@ export const TYPICAL_OBJECTS: Record<RequestKind, TypicalObject[]> = {
     { type: D.Menu, kind: 'Menu', purpose: 'Menu registration.' },
     { type: D.PortalRegistry, kind: 'Portal content reference', purpose: 'Navigation to the run control.' },
     { type: D.PermissionList, kind: 'Permission list access', purpose: 'Security for the run control and process.' },
-    { type: D.Project, kind: 'Project', purpose: 'Every object and the related definitions it needs, for migration: add them with psft_add_to_project (includeRelated, the default) and run psft_project_related before reporting the project built -- an App Engine program added alone migrates as a header with no sections, SQL or PeopleCode, and one without the SQL objects its code calls fails at run time in the target.' }
+    { type: D.Project, kind: 'Project', purpose: 'Every object and the related definitions it needs, for migration: add them with psft_add_to_project (includeRelated, the default) and run psft_project_related before reporting the project built -- an App Engine program added alone migrates as a header with no sections, SQL or PeopleCode, and one without the SQL objects its code calls fails at run time in the target. Menus, Portal Registry structures, and permission lists and roles go in only where Settings > Project Contents includes them; psft_add_to_project reports the rest as excluded.' }
   ],
   'ae-batch': [
     { type: D.Record, kind: 'Record', purpose: 'Run control, temporary and result tables.' },
@@ -77,7 +77,7 @@ export const TYPICAL_OBJECTS: Record<RequestKind, TypicalObject[]> = {
     { type: D.ProcessDefinition, kind: 'Process definition', purpose: 'Process Scheduler definition.' },
     { type: D.Page, kind: 'Page', purpose: 'The run control page.' },
     { type: D.Component, kind: 'Component', purpose: 'The run control component.' },
-    { type: D.Project, kind: 'Project', purpose: 'Every object and the related definitions it needs, for migration: add them with psft_add_to_project (includeRelated, the default) and run psft_project_related before reporting the project built -- an App Engine program added alone migrates as a header with no sections, SQL or PeopleCode, and one without the SQL objects its code calls fails at run time in the target.' }
+    { type: D.Project, kind: 'Project', purpose: 'Every object and the related definitions it needs, for migration: add them with psft_add_to_project (includeRelated, the default) and run psft_project_related before reporting the project built -- an App Engine program added alone migrates as a header with no sections, SQL or PeopleCode, and one without the SQL objects its code calls fails at run time in the target. Menus, Portal Registry structures, and permission lists and roles go in only where Settings > Project Contents includes them; psft_add_to_project reports the rest as excluded.' }
   ],
   'ib-integration': [
     { type: D.IbDocument, kind: 'Document definition', purpose: 'The payload schema, when a document (not a record message) fits.' },
@@ -88,7 +88,7 @@ export const TYPICAL_OBJECTS: Record<RequestKind, TypicalObject[]> = {
     { type: D.IbRouting, kind: 'Routing', purpose: 'Routings between the nodes.' },
     { type: D.MessageNode, kind: 'Node', purpose: 'The external system\'s node, if it does not exist.' },
     { type: D.PermissionList, kind: 'Permission list access', purpose: 'Service operation security.' },
-    { type: D.Project, kind: 'Project', purpose: 'Every object and the related definitions it needs, for migration: add them with psft_add_to_project (includeRelated, the default) and run psft_project_related before reporting the project built -- an App Engine program added alone migrates as a header with no sections, SQL or PeopleCode, and one without the SQL objects its code calls fails at run time in the target.' }
+    { type: D.Project, kind: 'Project', purpose: 'Every object and the related definitions it needs, for migration: add them with psft_add_to_project (includeRelated, the default) and run psft_project_related before reporting the project built -- an App Engine program added alone migrates as a header with no sections, SQL or PeopleCode, and one without the SQL objects its code calls fails at run time in the target. Menus, Portal Registry structures, and permission lists and roles go in only where Settings > Project Contents includes them; psft_add_to_project reports the rest as excluded.' }
   ],
   other: []
 };

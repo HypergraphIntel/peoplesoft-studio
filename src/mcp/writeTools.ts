@@ -11,6 +11,7 @@ import { buildPageLayout } from '../model/pageLayout.js';
 import { NEW_PAGE, PAGE_NAME } from '../providers/pageWriter.js';
 import { DatabaseProvider } from '../providers/database.js';
 import { relatedDefinitions, type RelatedDefinition } from '../model/projectClosure.js';
+import { INCLUDE_ALL, projectExclusion } from '../model/projectInclusion.js';
 import { projectItemIdentity as projectRowId } from '../model/projectItems.js';
 import { fieldCreateRefusal, type FieldLabelEdit } from '../providers/fieldWriter.js';
 import type { TranslateChange } from '../providers/translateWriter.js';
@@ -44,6 +45,8 @@ export interface McpWriteHost {
   hasUnsavedEditor(connectionId: string, key: DefinitionKey): boolean;
   /** After a write: refresh open editors and the trees; a PeopleCode save also leaves its report (the rows it replaced). */
   saved(connectionId: string, key: DefinitionKey, peopleCode?: PeopleCodeSaveResult): void;
+  /** Settings > Project Contents: the definition types placed into projects. All, when absent. */
+  projectInclusion?(): import('../model/projectInclusion.js').ProjectInclusion;
 }
 
 export const WRITE = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false } as const;
@@ -512,6 +515,8 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
       'the custom SQL objects the code calls (SQL.NAME, %SQL(NAME)); and the Message Catalog entries its MessageBox calls use. ' +
       'A program added alone migrates as a header with no logic, and one without its SQL objects fails at run time in the target. ' +
       'Message Catalog entries use type 25 with [set, number]. ' +
+      'Settings > Project Contents can leave menus, Portal Registry structures, or permission lists and roles out of projects: such items are reported under excluded, ' +
+      'not added -- create them as asked, but do not try to place them another way. ' +
       'AE sections use type 34 with [program, section]. AE PeopleCode uses type 43 with ' +
       '[program, section, market, platform, effectiveDate, step, OnExecute], or the packed key returned by search. ' + GATES,
     inputSchema: z.object({
@@ -534,11 +539,20 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
       related = found.filter((r) => r.addable && !inProject.has(projectRowId(r.key)) && !askedIds.has(projectRowId(r.key)));
       notAdded = found.filter((r) => !r.addable);
     }
-    const add = [...asked, ...related.map((r) => r.key)];
-    const listing = [...asked.map((k) => `  ${displayName(k)}`), ...related.map((r) => `  ${displayName(r.key)}    (${r.reason})`)].join('\n');
+    // Settings > Project Contents: types the organization does not package are left out, asked for or related.
+    const inclusion = host.projectInclusion?.() ?? INCLUDE_ALL;
+    const excluded = [...asked.map((k) => ({ key: k, reason: 'asked for' })), ...related]
+      .map((r) => ({ key: r.key, why: projectExclusion(r.key.type, inclusion) })).filter((x) => x.why);
+    const keep = (k: DefinitionKey) => !projectExclusion(k.type, inclusion);
+    const askedKept = asked.filter(keep);
+    related = related.filter((r) => keep(r.key));
+    const add = [...askedKept, ...related.map((r) => r.key)];
+    const excludedReport = excluded.length ? { excluded: excluded.map((x) => ({ definition: displayName(x.key), type: x.key.type, reason: x.why })) } : {};
+    if (!add.length) return jsonResult({ project: key.parts[0], added: 0, ...excludedReport });
+    const listing = [...askedKept.map((k) => `  ${displayName(k)}`), ...related.map((r) => `  ${displayName(r.key)}    (${r.reason})`)].join('\n');
     await approve(host, gate, key, `add ${add.length} item${add.length === 1 ? '' : 's'} to project ${key.parts[0]}`, listing);
     const r = await gate.provider.saveProject({ project: key.parts[0], operatorId: gate.operatorId, openedVersion, add });
-    return done(gate, key, { version: r.version, added: r.added.length, relatedAdded: related.length,
+    return done(gate, key, { version: r.version, added: r.added.length, relatedAdded: related.length, ...excludedReport,
       ...(notAdded.length ? { notAdded: notAdded.map((n) => ({ definition: displayName(n.key), type: n.key.type, reason: n.reason, note: n.note })) } : {}) });
   });
 
@@ -546,7 +560,7 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
     title: 'What a project still needs',
     description: 'Read-only: the related definitions a project\'s members need and the project does not yet contain -- sections, SQL statements and PeopleCode ' +
       'of its App Engine programs, its components\' PeopleCode, pages and content references, page and record PeopleCode, its fields\' translate values, ' +
-      'the custom SQL objects its code calls, the Message Catalog entries its code uses and the custom folders holding its content references. Run it before migrating a project; add what it lists with psft_add_to_project.',
+      'the custom SQL objects its code calls, the Message Catalog entries its code uses and the custom folders holding its content references. Types Settings > Project Contents leaves out of projects are reported under excludedBySettings, not as missing. Run it before migrating a project; add what it lists with psft_add_to_project.',
     inputSchema: z.object({ connection: z.string().min(1), project: z.string().min(1) }),
     annotations: READ_ONLY
   }, async ({ connection, project }) => {
@@ -555,8 +569,12 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
     const name = project.trim().toUpperCase();
     const members = (await provider.listProjectItems(name)).map((d) => d.key);
     if (!members.length) throw new Error(`Project ${name} has no items (or does not exist) on ${provider.displayName}.`);
-    const missing = await relatedDefinitions(members, provider.relatedLookup());
+    const inclusion = host.projectInclusion?.() ?? INCLUDE_ALL;
+    const found = await relatedDefinitions(members, provider.relatedLookup());
+    const missing = found.filter((m) => !projectExclusion(m.key.type, inclusion));
+    const excluded = found.filter((m) => projectExclusion(m.key.type, inclusion));
     return jsonResult({ project: name, members: members.length, missing: missing.length,
+      ...(excluded.length ? { excludedBySettings: excluded.map((m) => ({ definition: displayName(m.key), type: m.key.type, reason: projectExclusion(m.key.type, inclusion) })) } : {}),
       addable: missing.filter((m) => m.addable).map((m) => ({ type: m.key.type, parts: m.key.parts, definition: displayName(m.key), reason: m.reason })),
       notAddable: missing.filter((m) => !m.addable).map((m) => ({ type: m.key.type, definition: displayName(m.key), reason: m.reason, note: m.note })) });
   });

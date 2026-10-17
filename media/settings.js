@@ -54,6 +54,7 @@
   const SECTIONS = [
     { id: 'connections', title: 'Connections' },
     { id: 'mcp', title: 'AI Integration' },
+    { id: 'projects', title: 'Project Contents' },
     { id: 'build', title: 'Build Settings' },
     { id: 'advanced', title: 'Advanced' }
   ];
@@ -693,6 +694,8 @@
     root.replaceChildren(...[
       renderConnections(),
       renderMcp(),
+      renderSettingsSection('projects', 'Project Contents',
+        'Which definition types an AI agent places into projects. Some organizations never migrate these in projects; turning one off still lets the agent create the definitions.'),
       renderBuildSettings(),
       renderSettingsSection('advanced', 'Advanced', 'Database driver settings. Most installations need none of these.')
     ].filter(Boolean));

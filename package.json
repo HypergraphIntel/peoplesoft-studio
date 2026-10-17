@@ -1509,6 +1509,21 @@
           "default": "skip",
           "description": "Build Settings, Alter: when data is longer than a shortened field."
         },
+        "peoplesoft.projects.includeMenus": {
+          "type": "boolean",
+          "default": true,
+          "description": "Project Contents: when an AI agent adds definitions to a project, include menus. Off: menus are still created, but left out of projects."
+        },
+        "peoplesoft.projects.includePortalRegistry": {
+          "type": "boolean",
+          "default": true,
+          "description": "Project Contents: include Portal Registry structures (content references and folders) in projects. Off: they are still created, but left out of projects."
+        },
+        "peoplesoft.projects.includeSecurity": {
+          "type": "boolean",
+          "default": true,
+          "description": "Project Contents: include permission lists and roles in projects. Off: they are still created, but left out of projects."
+        },
         "peoplesoft.build.alter.adds": {
           "type": "boolean",
           "default": true,
