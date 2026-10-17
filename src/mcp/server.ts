@@ -154,6 +154,14 @@ function sendJson(
   );
 }
 
+/**
+ * The release the MCP handshake reports: package.json's own version, never a copy. A literal
+ * here was left at 0.9.1 through 0.9.2 and 0.9.3 and failed CI's handshake check on every
+ * push. esbuild inlines the file; the test build and tsx resolve it from the source tree.
+ */
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const STUDIO_VERSION: string = (require('../../package.json') as { version: string }).version;
+
 export async function startPeopleSoftMcpServer(
   workspace: Workspace,
   options: {
@@ -191,7 +199,7 @@ export async function startPeopleSoftMcpServer(
             name:
               'peoplesoft-studio',
             version:
-              '0.9.1'
+              STUDIO_VERSION
           }, {
             instructions: 'Start with psft_studio_reference or psft_capability_catalog to choose a supported workflow. Read the relevant framework reference before authoring. Select a connection with psft_list_connections; inspect effective customization policy, ownership and live configuration availability before proposing delivered-object changes. Catalog entries describe bounded implementation support, not release certification or permission. Read current definitions and concurrency tokens, preview supported saves, then save through guarded tools and read back. When Change Review tools are available, use durable Change Sets and poll status. SQL/HTML/freeform style sheet, PeopleCode, Query, Process and bounded existing-Page edits plus Record/AE description/comments edits stage proposals; only the developer can approve/apply in the persistent review workspace. Other mutation families retain legacy gates until adapters are verified. Planned features and preview analyses must remain explicit.'
           });
