@@ -32,6 +32,7 @@ const cases: Array<{ name: string; dir: string; id: number; kind: NewControlKind
   { name: 'Horizontal Rule', dir: '17-hrule', id: 12, kind: 'horizontalRule', rec: ' ', field: ' ' },
   { name: 'Edit Box on a datetime field', dir: '18-number-datetime', id: 13, kind: 'editBox', rec: 'ZZ_PCODE_LAB_T', field: 'LASTUPDDTTM', info: typed(6, 'LASTUPDDTTM', 'Last Update Date/Time', 26) },
   { name: 'Edit Box on a number field', dir: '18-number-datetime', id: 14, kind: 'editBox', rec: 'ZZ_PCODE_LAB_T', field: 'ZZ_PCODE_LAB_N1', info: typed(2, 'ZZ_PCODE_LAB_N1', 'Number 4', 4) },
+  { name: 'Edit Box on a date field', dir: '22-date-editbox', id: 28, kind: 'editBox', rec: 'ZZ_BNV_RUNCTL', field: 'ASOFDATE', info: typed(4, 'ASOFDATE', 'As Of Date', 10) },
   // Added in 0.8.2 -- captured on ZZ_PCODE_LAB_CT (in01, rb-fresh, le-fresh).
   { name: 'Static Image', dir: 'in01-insert-static-image', id: 2, kind: 'staticImage', rec: ' ', field: ' ', page: 'ZZ_PCODE_LAB_CT' },
   { name: 'Radio Button', dir: 'rb-fresh', id: 8, kind: 'radioButton', rec: 'ZZ_PCODE_LAB_T', field: 'ZZ_PCODE_LAB_C01', info: char('ZZ_PCODE_LAB_C01', 'Dummy Name'), page: 'ZZ_PCODE_LAB_CT' },
@@ -133,7 +134,8 @@ test('new controls are refused on fields the captures do not cover', () => {
   assert.match(newControlFieldRefusal('editBox', 'PERSON', 'NOPE', undefined)!, /not a field of record PERSON/);
   assert.equal(newControlFieldRefusal('editBox', 'R', 'N1', typed(2, 'N1', 'N', 4)), undefined); // number: 18
   assert.equal(newControlFieldRefusal('editBox', 'R', 'DT', typed(6, 'DT', 'D', 26)), undefined); // datetime: 18
-  assert.match(newControlFieldRefusal('editBox', 'JOB', 'EFFDT', typed(4, 'EFFDT', 'Eff Date', 10))!, /is a date field; .* character, number, datetime fields/);
+  assert.equal(newControlFieldRefusal('editBox', 'JOB', 'EFFDT', typed(4, 'EFFDT', 'Eff Date', 10)), undefined); // date: 22-date-editbox
+  assert.match(newControlFieldRefusal('editBox', 'R', 'TM', typed(5, 'TM', 'Time', 15))!, /is a time field; .* character, number, date, datetime fields/);
   assert.match(newControlFieldRefusal('dropDown', 'R', 'N1', typed(2, 'N1', 'N', 4))!, /is a number field/);
   assert.equal(newControlFieldRefusal('staticText', ' ', ' ', undefined), undefined);
   assert.match(newControlFieldRefusal('checkBox', 'PERSON', 'EMPLID', char('EMPLID', 'Empl ID', 11))!, /one-character field/);

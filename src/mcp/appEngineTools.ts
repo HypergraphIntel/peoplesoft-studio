@@ -5,6 +5,8 @@ import { DefinitionType, type DefinitionKey } from '../model/definitions.js';
 import { copyProgram, PROGRAM_NAME_MAX, type AeDocument } from '../model/aeDocument.js';
 import { applyOperation, operation, programSpec } from '../model/aeOperations.js';
 import { validateAppEngine, validateAppEngineReferences, type AeDiagnostic } from '../model/aeValidation.js';
+import { checkSqlTypes, checkSqlCallSites } from '../model/sqlTypeCheck.js';
+import { ACTION_LABELS } from '../model/appEngine.js';
 import { dependencies, executionFlow, explainProgram } from '../model/aeSemantics.js';
 import { diffSpec, documentFromSpec, specFromDocument, type AeProgramSpec } from '../model/aeSpec.js';
 import { compileForSave, prepareSourceForSave } from '../peoplecode/writeback/savePlan.js';
@@ -42,7 +44,47 @@ export async function deepValidate(p: DatabaseProvider, doc: AeDocument): Promis
         at: { section: s.name, variant: v, step: st.name, action: 'P' } });
     }
   }
+  await sqlTypeDiagnostics(p, doc, out);
   return out;
+}
+
+/*
+ * The SQL of every action checked against the record / field catalogue: fields
+ * that are on no state record, INSERT lists of unequal length, a column written
+ * from another type, and CreateSQL / SQLExec passing the wrong number of binds.
+ * None of this is caught at save time otherwise -- each one abends at run time.
+ */
+async function sqlTypeDiagnostics(p: DatabaseProvider, doc: AeDocument, out: AeDiagnostic[]): Promise<void> {
+  const stateRecords = doc.stateRecords.map((r: { record: string }) => r.record);
+  const texts: Array<{ path: string; at: AeDiagnostic['at']; sql?: string; peopleCode?: string }> = [];
+  for (const s of doc.sections) for (const v of s.variants) for (const st of v.steps) for (const a of st.actions) {
+    const at = { section: s.name, variant: v, step: st.name, action: a.type };
+    if (a.text?.trim()) texts.push({ path: `${s.name}.${st.name}.${ACTION_LABELS[a.type] ?? a.type}`, at, sql: a.text });
+    if (a.peopleCode?.trim()) texts.push({ path: `${s.name}.${st.name}.PeopleCode`, at, peopleCode: a.peopleCode });
+  }
+  if (!texts.length) return;
+
+  let catalog;
+  try { catalog = await p.sqlCatalog(stateRecords.concat(recordsNamed(texts.map((t) => t.sql ?? '').join('\n')))); }
+  catch { return; }  // the catalogue is a convenience: never fail a save because it could not be read
+  const stateFields = new Set<string>();
+  for (const r of stateRecords) for (const f of catalog.record(r) ?? []) stateFields.add(f);
+
+  const sqlIds = [...new Set(texts.flatMap((t) => [...(t.peopleCode ?? '').matchAll(/\bSQL\.(\w+)/g)].map((m) => m[1]!)))];
+  let shapes = new Map<string, { binds: number; columns: number }>();
+  try { shapes = await p.sqlDefinitionShapes(sqlIds); } catch { /* leave the call-site check off */ }
+
+  for (const t of texts) {
+    const problems = t.sql
+      ? checkSqlTypes(t.sql, { stateFields, catalog })
+      : checkSqlCallSites(t.peopleCode!, (id) => shapes.get(id.toUpperCase()));
+    for (const pr of problems) out.push({ severity: pr.severity, code: pr.code, path: t.path, message: pr.message, at: t.at });
+  }
+}
+
+/** The records a statement names as PS_<RECORD>, so their fields can be catalogued too. */
+function recordsNamed(sql: string): string[] {
+  return [...sql.matchAll(/\bPS_(\w+)/g)].map((m) => m[1]!.toUpperCase());
 }
 
 const brief = (ds: AeDiagnostic[]) => ({
@@ -55,11 +97,14 @@ export const AE_REFERENCE = `App Engine runtime, in brief (docs/APP_ENGINE_SEMAN
 - A program runs MAIN's steps in order; an Application Library has no MAIN (other programs call its Public sections).
 - A step's actions run in a fixed order: Do When, Do While, Do Select, PeopleCode, SQL or Call Section, Log Message, Do Until. A step has at most one of each, never both SQL and Call Section; XSLT only in Transform programs.
 - Do When: the step runs only if its SELECT returns a row. Do While: loops while it does. Do Until: loops until it does (tested after the actions). Do Select: for each row (fetched into the state record by %Select) runs the rest of the step.
+- Every Do When / Do While / Do Until SELECT must land its column in the state record with %Select(field), or call a %Sql() that does: %Select(TEMP_FLD) SELECT 'X' FROM PS_INSTALLATION WHERE %Bind(FIELD) = 'VALUE'. Without it the program abends at run time -- ABENDED at Step <section>.<step> (Do When) -- RC = ? -- with no SQL error; the statement shows in the .AET step trace and never in the SQL trace. Add a 1-character work field (TEMP_FLD) to the state record as the landing place. Of 4,285 delivered Do When / While / Until actions, 4,255 use %Select and 30 use %Sql(); none has neither.
 - Do Select types: Select/Fetch (one cursor; no commits inside while restart is on), Reselect (re-open per row; the step must change the data), Restartable (may commit inside; key the select so done rows drop out).
 - SQL: INSERT/UPDATE/DELETE, or SELECT with %Select (first row into the state record). No Rows: Abort / Section Break / Continue / Skip Step.
 - PeopleCode: OnExecute; returning False triggers On Return (Abort / Break / Skip Step). State record fields are RECORD.FIELD.
+- In a PeopleCode action with On Return Break, log a Warning- or Message-severity entry before Exit(1), never an Error or Cancel one: an Error-severity MessageBox aborts the run, so the Break never happens. Use On Return Abort when stopping is the intent.
 - State records (names end AET; one default) carry values between actions: %Bind(FIELD) reads them, %Select(FIELD) fills them. A table state record (with PROCESS_INSTANCE) survives restart; a Derived/Work one does not.
 - Run control: MAIN's first step usually %Select(...)s from the run control record WHERE OPRID = %Bind(OPRID) AND RUN_CNTL_ID = %Bind(RUN_CNTL_ID).
+- A save checks SQL against the record / field catalogue: %Bind and %Select fields must be on a state record, an INSERT column list and its SELECT list must be the same length and compatible types (char/long one family, number/signed one family, date / time / datetime distinct), %Select must name as many fields as the SELECT returns, and CreateSQL must pass exactly the definition's bind count (SQLExec may add the selected columns as outputs).
 - Commits: Commit After Default follows the section's Auto Commit; After Step; Later. Frequency (Do Select steps) commits every n rows. Restart (unless Disable Restart) resumes after the last commit.
 - Temporary tables (RECTYPE 7): Instance Count copies; %Table(REC) names this run's instance.
 - Design: set-based SQL (INSERT ... SELECT into a temporary table, then UPDATE) beats row-by-row; for row rules use a Restartable Do Select + PeopleCode + SQL in one step with a commit Frequency.

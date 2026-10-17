@@ -101,12 +101,32 @@ export async function saveAdministration(c: DbConnection, types: DbTypes, reques
     return stored;
   } catch (error) { await c.rollback(); throw error; }
 }
+/**
+ * The message set descriptions a save writes. A blank one keeps what is stored -- adding a
+ * sibling and editing a message alike -- and a supplied short description wins over one
+ * derived from the first ten characters of the long one.
+ */
+export function messageSetDescriptions(
+  input: { setDescription: string; setShortDescription?: string },
+  stored: { descr: string; short: string } | undefined
+): { descr: string; short: string } {
+  const long = input.setDescription.trim();
+  const given = (input.setShortDescription ?? '').trim();
+  return {
+    descr: long ? input.setDescription : stored?.descr ?? '',
+    short: given ? input.setShortDescription! : long ? input.setDescription.slice(0, 10) : stored?.short ?? ''
+  };
+}
+
 function matchesInput(doc: AdminDocument, input: AdminInput, existed: boolean): boolean {
   if (doc.kind === 'message') {
     const m = messageInput.parse(input);
     return String(doc.row.MESSAGE_TEXT ?? '') === m.text && trim(doc.row.MSG_SEVERITY) === m.severity
       && String(doc.row.DESCRLONG ?? '') === m.explanation
-      && (!existed || (trim(doc.parent?.DESCR) === m.setDescription.trim() && trim(doc.parent?.DESCRSHORT) === (m.setShortDescription || m.setDescription.slice(0, 10)).trim()));
+      // A blank description was kept, not set, so only a supplied one is checked.
+      && (!existed || !m.setDescription.trim() || trim(doc.parent?.DESCR) === m.setDescription.trim())
+      && (!existed || !(m.setShortDescription || m.setDescription).trim()
+        || trim(doc.parent?.DESCRSHORT) === (m.setShortDescription || m.setDescription.slice(0, 10)).trim());
   }
   if (doc.kind === 'url') {
     const u = urlInput.parse(input);
@@ -122,7 +142,11 @@ async function saveMessage(c: DbConnection, types: DbTypes, input: ReturnType<ty
     || (input.setShortDescription && input.setShortDescription.trim() !== trim(set.DESCRSHORT)))) {
     throw new Error('This message set already exists. Leave its description fields blank or use its current descriptions when adding a message.');
   }
-  const binds = { s: input.set, v: version, d: blank(input.setDescription), sd: blank(input.setShortDescription || input.setDescription.slice(0, 10)) };
+  // Blank set descriptions mean "keep the stored ones", on an edit as well as when adding a
+  // sibling. Writing them verbatim on an edit blanked PSMSGSETDEFN.DESCR / DESCRSHORT on HRDMO
+  // when an MCP agent followed the documented "leave them blank" guidance.
+  const { descr, short } = messageSetDescriptions(input, set ? { descr: trim(set.DESCR), short: trim(set.DESCRSHORT) } : undefined);
+  const binds = { s: input.set, v: version, d: blank(descr), sd: blank(short) };
   if (set && !current) await expectRows(c, 'UPDATE PSMSGSETDEFN SET VERSION=:v WHERE MESSAGE_SET_NBR=:s', { s: input.set, v: version }, 1, 'Updating message set version');
   else if (set) await expectRows(c, 'UPDATE PSMSGSETDEFN SET VERSION=:v,DESCR=:d,DESCRSHORT=:sd WHERE MESSAGE_SET_NBR=:s', binds, 1, 'Saving message set');
   else await expectRows(c, 'INSERT INTO PSMSGSETDEFN (MESSAGE_SET_NBR,VERSION,DESCR,DESCRSHORT) VALUES (:s,:v,:d,:sd)', binds, 1, 'Creating message set');

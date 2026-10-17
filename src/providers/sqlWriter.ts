@@ -75,6 +75,35 @@ async function readCounters(c: Connection, forUpdate: boolean): Promise<Counters
  * multi-line delivered SQL texts on HRDMO are CRLF, none bare LF), no
  * trailing whitespace (9,698 of 9,713 have none).
  */
+
+/**
+ * Any colon inside a block or line comment. PeopleSoft reads the whole statement
+ * text looking for bind variables, comments included, and message 2,166 states the
+ * rule: "Bind variables must be of the form ':n' (where n is a decimal number) or
+ * ':record.field'." So a colon-number marker in a comment is counted as a real bind,
+ * and a colon in ordinary prose is an invalid one -- both fail at run time with
+ * "Invalid SqlExec bind variable. (2,166)". Proved on HRDMO twice over: removing the
+ * documented :1 .. :7 from SQL.ZZ_BNV_PAYCAL2 was not enough, because the prose
+ * colons were still there. Of the 74 delivered standalone SQL objects (SQLTYPE 0)
+ * that open with a comment, not one contains a bare colon.
+ */
+export function bindMarkerInComment(text: string): string | undefined {
+  let i = 0;
+  while (i < text.length) {
+    const two = text.slice(i, i + 2);
+    const end = two === '/*' ? text.indexOf('*/', i + 2) : two === '--' ? text.indexOf('\n', i + 2) : -1;
+    if (end < 0 && (two === '/*' || two === '--')) { i = text.length; continue; }
+    if (two === '/*' || two === '--') {
+      const marker = /:[^\s]*/.exec(text.slice(i, end));
+      if (marker) return marker[0];
+      i = end + (two === '/*' ? 2 : 1);
+      continue;
+    }
+    i++;
+  }
+  return undefined;
+}
+
 export function prepareSqlText(text: string): string {
   return text.replace(/\r?\n/g, '\r\n').replace(/\s+$/, '');
 }
@@ -88,6 +117,10 @@ export async function saveSqlDefinition(c: Connection, request: SqlSaveRequest):
     if (scope) throw new SqlSaveRefusedError(scope);
     const text = prepareSqlText(request.text);
     if (text === '') throw new SqlSaveRefusedError('The SQL is empty.');
+    const commented = bindMarkerInComment(text);
+    if (commented) {
+      throw new SqlSaveRefusedError(`A colon (${commented}) appears inside a comment. PeopleSoft reads the whole statement text for bind variables, comments included, and every colon must begin one of the form ":n" or ":record.field" -- so a documented marker becomes an extra bind and a colon in prose is an invalid bind. Either way the call fails at run time with "Invalid SqlExec bind variable. (2,166)". Of the 74 delivered standalone SQL objects that open with a comment, not one contains a bare colon: write the comment without colons and name the binds in words ("bind 1 plan year").`);
+    }
     if (text.length > SQL_TEXT_ROW_LIMIT) {
       throw new SqlSaveRefusedError(`SQL longer than ${SQL_TEXT_ROW_LIMIT} characters is not saved here yet (how App Designer splits it is not established).`);
     }

@@ -5,6 +5,26 @@ import { editStateFor, setRecordProperties, type StoredRecord, type Row } from '
 import type { RecordSaveRequest } from '../providers/recordWriter.js';
 import type { AeDocument } from '../model/aeDocument.js';
 
+/**
+ * Whether one operation is the bounded header edit this adapter stages:
+ * the family's set-properties op carrying nothing but description/comments.
+ */
+export function isHeaderOnlyOperation(family: StructuredFamily, op: Record<string, unknown>): boolean {
+    const allowed = family === 'record' ? ['op', 'description', 'definition'] : ['op', 'description', 'comments'];
+    return op.op === (family === 'record' ? 'set_properties' : 'set_program') && Object.keys(op).every(k => allowed.includes(k));
+}
+
+/**
+ * Whether a whole request is stageable here. The caller routes anything else
+ * to the legacy per-write confirmation rather than refusing it: this adapter
+ * not modelling a structural edit is a reason not to STAGE it, not a reason
+ * the edit cannot be made -- creation already takes that legacy path.
+ */
+export function isHeaderOnlyRequest(family: StructuredFamily, operations: unknown): boolean {
+    return Array.isArray(operations) && operations.length > 0
+        && operations.every(op => !!op && typeof op === 'object' && isHeaderOnlyOperation(family, op as Record<string, unknown>));
+}
+
 /** This first slice excludes structural edits and every side effect outside these header columns. */
 export function headerChange(beforeValue: unknown, afterValue: unknown, family: StructuredFamily, name: string) {
     const before = structuredSnapshot(beforeValue, family), after = structuredSnapshot(afterValue, family);

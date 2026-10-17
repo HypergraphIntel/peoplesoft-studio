@@ -6,7 +6,7 @@
  * updated rows by key), so the tests read either. READ ONLY. Use
  * snapshot.ts (full sweep) for a first capture of a new kind of operation.
  *
- *   npx tsx tools/lab/def-capture.mts before|after <menu|ci|msg|chnl> CASE NAME
+ *   npx tsx tools/lab/def-capture.mts before|after <menu|ci|msg|chnl|fl> CASE NAME
  *
  * Connection: PSLAB_ACCESSID / PSLAB_ACCESSPSWD, PSLAB_AUDIT_CONNECT
  * (default 127.0.0.1:15210/hrdmo).
@@ -21,8 +21,8 @@ oracledb.fetchAsString = [oracledb.CLOB, oracledb.NUMBER];
 oracledb.fetchAsBuffer = [oracledb.BLOB];
 
 const [phase, kind, caseName, name] = process.argv.slice(2);
-if (!['before', 'after'].includes(phase) || !['menu', 'ci', 'msg', 'chnl'].includes(kind) || !caseName || !name) {
-  console.error('usage: def-capture.mts before|after <menu|ci|msg|chnl> CASE NAME');
+if (!['before', 'after'].includes(phase) || !['menu', 'ci', 'msg', 'chnl', 'fl'].includes(kind) || !caseName || !name) {
+  console.error('usage: def-capture.mts before|after <menu|ci|msg|chnl|fl> CASE NAME');
   process.exit(2);
 }
 const dir = join(process.cwd(), 'tools/corpus/save-protocol/results', caseName);
@@ -78,6 +78,14 @@ const TABLES: Record<string, Watch[]> = {
     { table: 'PSCHNLDEFNLANG', key: ['CHNLNAME', 'LANGUAGE_CD'], where: 'CHNLNAME = :p' },
     { table: 'PSCHNLDEL', key: ['CHNLNAME', 'VERSION'], where: 'CHNLNAME = :p' },
     { table: 'PSMSGDEFN', key: ['MSGNAME'], where: 'CHNLNAME = :p' }
+  ],
+  fl: [
+    { table: 'PSFLDDEFN', key: ['FLDDEFNNAME'], where: 'FLDDEFNNAME = :p' },
+    { table: 'PSFLDSEGDEFN', key: ['FLDDEFNNAME', 'FLDSEGNAME'], where: 'FLDDEFNNAME = :p' },
+    { table: 'PSFLDFIELDDEFN', key: ['FLDDEFNNAME', 'FLDSEGNAME', 'FLDFIELDNAME'], where: 'FLDDEFNNAME = :p' },
+    { table: 'PSFLDDEL', key: ['FLDDEFNNAME', 'VERSION'], where: 'FLDDEFNNAME = :p' },
+    // File Layout PeopleCode (project type 59): OBJECTID1 105 is a guess; an empty watch costs nothing.
+    ...pc(105)
   ]
 };
 const common: Watch[] = [

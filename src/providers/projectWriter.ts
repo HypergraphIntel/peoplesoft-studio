@@ -77,11 +77,35 @@ async function itemSlots(c: Connection): Promise<number> {
 
 /** Whether the definition itself exists, so a project never lists a missing one. */
 async function definitionExists(c: Connection, key: DefinitionKey): Promise<boolean> {
-  if (key.type === DefinitionType.RecordPeopleCode || key.type === DefinitionType.ApplicationClassPeopleCode || key.type===DefinitionType.AppEnginePeopleCode) {
+  if (key.type === DefinitionType.RecordPeopleCode || key.type === DefinitionType.ApplicationClassPeopleCode || key.type===DefinitionType.AppEnginePeopleCode
+    || key.type === DefinitionType.PagePeopleCode || key.type === DefinitionType.ComponentPeopleCode
+    || key.type === DefinitionType.ComponentRecordPeopleCode || key.type === DefinitionType.ComponentRecordFieldPeopleCode) {
     const parts = key.type === DefinitionType.ApplicationClassPeopleCode && key.parts.at(-1) !== 'OnExecute'
       ? [...key.parts, 'OnExecute'] : key.parts;
     const [r] = await select<{ N: number }>(c,
       `SELECT COUNT(*) AS N FROM PSPCMPROG WHERE ${VALUE_PREDICATE}`, valueBinds(pcmProgKeyParts({...key,parts:[...parts]})));
+    return Number(r?.N ?? 0) > 0;
+  }
+  if (key.type === DefinitionType.TranslateValue) {
+    const [r] = await select<{ N: number }>(c,
+      `SELECT COUNT(*) AS N FROM PSXLATITEM WHERE FIELDNAME = :f AND FIELDVALUE = :v AND EFFDT = TO_DATE(:d, 'YYYY-MM-DD')`,
+      { f: key.parts[0], v: key.parts[1], d: key.parts[2] });
+    return Number(r?.N ?? 0) > 0;
+  }
+  if (key.type === DefinitionType.ProcessDefinition) {
+    const [r] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PS_PRCSDEFN WHERE PRCSTYPE = :t AND PRCSNAME = :n`, { t: key.parts[0], n: key.parts[1] });
+    return Number(r?.N ?? 0) > 0;
+  }
+  if (key.type === DefinitionType.PortalRegistry) {
+    const [r] = await select<{ N: number }>(c,
+      `SELECT COUNT(*) AS N FROM PSPRSMDEFN WHERE PORTAL_NAME = :p AND PORTAL_REFTYPE = :t AND PORTAL_OBJNAME = :o`,
+      { p: key.parts[0], t: key.parts[1], o: key.parts[2] });
+    return Number(r?.N ?? 0) > 0;
+  }
+  if (key.type === DefinitionType.MessageCatalog) {
+    const [r] = await select<{ N: number }>(c,
+      `SELECT COUNT(*) AS N FROM PSMSGCATDEFN WHERE MESSAGE_SET_NBR = :s AND MESSAGE_NBR = :n`,
+      { s: Number(key.parts[0]), n: Number(key.parts[1]) });
     return Number(r?.N ?? 0) > 0;
   }
   if(key.type===DefinitionType.AppEngineSection){

@@ -3,9 +3,11 @@
 Ordered by what unblocks the most work, not by visibility. Full Application
 Designer parity is the goal; this is the path to it.
 
-## Current release: 0.9.0
+## Current release: 0.9.2
 
-0.9.0 adds Process Definition, Page and Field Configurator, Drop Zone and
+0.9.2 adds the File Layout Designer, Build Requests, project related-definition
+closure and run-time PeopleCode / SQL / App Engine checks; 0.9.1 added Change
+Review. 0.9.0 added Process Definition, Page and Field Configurator, Drop Zone and
 bounded OAuth editors; MCP orientation and a structured capability catalog;
 and Process Definition/PS Query workflows through existing writers. Native
 ownership keys now protect existing Queries and Process Definitions. Live HRDMO

@@ -57,3 +57,75 @@ export async function saveProcess(c: DbConnection, types: DbTypes, request: Proc
     return after;
   }catch(e){await c.rollback();throw e;}
 }
+
+/**
+ * The PRCSDEFN component's Add mode, from HRDMO evidence (docs/PROCESS_DEFINITIONS.md, "Creating"): the record's
+ * constant defaults (PSRECFIELD DEFFIELDNAME), DESCR defaulted to the name (DESCR FieldDefault), PRCSCATEGORY
+ * 'Default' when installed (PostBuild ValidateProcessCategory), OUTDESTFORMAT '0' (Any). Every other column is
+ * blank, zero or null, as every App Engine definition on HRDMO stores it.
+ */
+export const NEW_PROCESS_DEFAULTS: Readonly<Record<string, string | number>> = {
+  VERSION: 0, PARMLISTTYPE: '0', CMDLINETYPE: '0', WORKINGDIRTYPE: '0', OUTDESTTYPE: '0', OUTDESTSRC: '3', SQRRTFLAG: '0', LOGRQST: '1', APIAWARE: '1',
+  PRCSPRIORITY: '5', RUNLOCATION: '2', RESTARTENABLED: '0', RETRYCOUNT: 0, TIMEOUTMINUTES: 0, MAXCONCURRENT: 0, FILEDEPEND: '0', TIMEOUTMAXMINS: 0,
+  PT_PRCS_EN_GEN_RUN: 'N', PT_PRCS_RUNCNTLSEC: '0', PRCSREADONLY: '0', TIMESTENMODE: '0', PTPRCSIBMSGSLOGLEV: 'I', OUTDESTFORMAT: '0',
+  RETENTIONDAYS: 0, PT_RETENTIONDAYS: 0, PRCSSHOWURL: 0
+};
+
+export interface ProcessCreateRequest {
+  processType: string;
+  name: string;
+  /** Properties as psft_process_save takes them; absent ones take the Add-mode defaults. */
+  properties: Record<string, string>;
+  components: string[];
+  /** At least one: the component's SaveEdit refuses a definition without a process group ("Missing Process Group"). */
+  groups: string[];
+  operatorId: string;
+  dryRun?: boolean;
+}
+
+/** Adds a process definition as the PRCSDEFN component does: the Add-mode row, then the proven save (saveProcess) in the same transaction. */
+export async function createProcess(c: DbConnection, types: DbTypes, request: ProcessCreateRequest, read: (c: DbConnection) => Promise<ProcessView>): Promise<ProcessView> {
+  const t = request.processType.trim(), n = request.name.trim().toUpperCase();
+  const q = async <T>(sql: string, b: Record<string, unknown> = {}) => (await c.execute<T>(sql, b, { outFormat: types.OUT_FORMAT_OBJECT })).rows ?? [];
+  try {
+    if (!/^[A-Z0-9_#@$]{1,12}$/.test(n)) throw new Error(`${n || '(blank)'} is not a process name (at most 12 letters, digits or _).`);
+    const scope = writeScopeRefusal(n); if (scope) throw new Error(scope);
+    if (!request.groups.filter((g) => g.trim()).length) throw new Error('A process definition needs at least one process group (the component refuses "Missing Process Group").');
+    const [type] = await q<{ GENPRCSTYPE: number }>('SELECT GENPRCSTYPE FROM PS_PRCSTYPEDEFN WHERE PRCSTYPE=:t FETCH FIRST 1 ROWS ONLY', { t });
+    if (!type) throw new Error(`There is no process type ${t}.`);
+    if ((await q('SELECT PRCSNAME FROM PS_PRCSDEFN WHERE PRCSTYPE=:t AND PRCSNAME=:n', { t, n })).length) throw new Error(`Process definition ${t} ${n} already exists.`);
+    const row: Record<string, string | number> = { ...NEW_PROCESS_DEFAULTS };
+    // ValidateOutDestType: a type that is not SQR, COBOL, Crystal, Application Engine or nVision has output None, source None.
+    if (![1, 2, 3, 5, 7].includes(Number(type.GENPRCSTYPE))) { row.OUTDESTTYPE = '1'; row.OUTDESTSRC = '0'; }
+    const [category] = await q<{ PRCSCATEGORY: string }>("SELECT PRCSCATEGORY FROM PS_PRCS_CAT_TBL WHERE PRCSCATEGORY='Default'");
+    const columns = (await q<{ COLUMN_NAME: string; DATA_TYPE: string; NULLABLE: string }>(
+      "SELECT COLUMN_NAME, DATA_TYPE, NULLABLE FROM ALL_TAB_COLUMNS WHERE OWNER=SYS_CONTEXT('USERENV','CURRENT_SCHEMA') AND TABLE_NAME='PS_PRCSDEFN' ORDER BY COLUMN_ID"));
+    if (!columns.length) throw new Error('PS_PRCSDEFN is not visible to this connection.');
+    const binds: Record<string, unknown> = {}, names: string[] = [], values: string[] = [];
+    for (const col of columns) {
+      const name = col.COLUMN_NAME;
+      let v: unknown;
+      if (name === 'PRCSTYPE') v = t;
+      else if (name === 'PRCSNAME') v = n;
+      else if (name === 'DESCR') v = n;
+      else if (name === 'PRCSCATEGORY') v = category ? 'Default' : ' ';
+      else if (name === 'LASTUPDOPRID') v = request.operatorId;
+      else if (name in row) v = row[name];
+      else if (col.DATA_TYPE === 'NUMBER') v = 0;
+      else if (['DATE', 'CLOB'].includes(col.DATA_TYPE) || col.DATA_TYPE.startsWith('TIMESTAMP')) v = null;
+      else v = ' ';
+      names.push(name);
+      if (name === 'LASTUPDDTTM') { values.push('SYSTIMESTAMP'); continue; }
+      binds['b' + values.length] = v;
+      values.push(':b' + values.length);
+    }
+    const inserted = await c.execute(`INSERT INTO PS_PRCSDEFN (${names.join(',')}) VALUES (${values.join(',')})`, binds);
+    if (inserted.rowsAffected !== 1) throw new Error('Process create affected an unexpected number of rows.');
+    const added = await read(c);
+    const base = processEdit(added);
+    // The rest is the component's save of what was entered: properties, components, groups, PPC/SYS counters, stamp, verification.
+    const edit = { properties: { ...base.properties, ...request.properties }, components: [...new Set(request.components.map((x) => x.trim().toUpperCase()).filter(Boolean))],
+      groups: [...new Set(request.groups.map((x) => x.trim().toUpperCase()).filter(Boolean))] };
+    return await saveProcess(c, types, { key: [t, n], token: processToken(added), edit, operatorId: request.operatorId, ...(request.dryRun ? { dryRun: true } : {}) }, read);
+  } catch (e) { await c.rollback(); throw e; }
+}

@@ -272,7 +272,14 @@ export class ReviewService {
             active.abort();
             return;
         }
-        await this.store.exclusive(async () => { const set = await this.store.get(id); transition(set, 'CANCELLED'); await this.save(set); });
+        await this.store.exclusive(async () => {
+            const set = await this.store.get(id);
+            // A conflict after any write is recovery work, not something to discard.
+            if (set.status === 'CONFLICTED' && set.objects.some(c => c.application !== 'PENDING'))
+                throw new Error('Objects in this Change Set were written; it needs recovery, not cancellation.');
+            transition(set, 'CANCELLED');
+            await this.save(set);
+        });
     }
     /** Trusted UI apply; all preflight checks repeat under the store lock. */
     async apply(id: string, stopAfterFirst = false): Promise<ChangeSet> {

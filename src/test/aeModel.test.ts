@@ -93,6 +93,28 @@ test('reference validation asks the database about records, programs and message
   assert.deepEqual(bindFields('%Select(A, REC.B) SELECT 1 FROM X WHERE C = %Bind(C, NOQUOTES) AND D = %Bind(REC.D)').sort(), ['A', 'B', 'C', 'D']);
 });
 
+test('an Error-severity message before Exit(1) under On Return Break is refused; Warning is fine', async () => {
+  // ZZ_BENEFITS.B_CONTRB.RESPAY abended on HRDMO with message 25500,9 (E); the same step
+  // completed and broke cleanly once it logged 25500,20 (W).
+  const sev: Record<string, string> = { '25500,9': 'E', '25500,20': 'W', '25500,30': 'C' };
+  const lookup: AeReferenceLookup = {
+    recordType: async () => 0, recordFields: async () => [], programSections: async () => undefined,
+    messageExists: async () => true, messageSeverity: async (s, n) => sev[`${s},${n}`]
+  };
+  const step = (msg: number, onReturn: string) => {
+    const d = documentFromSpec({ ...SPEC, stateRecords: [], sections: [{ name: 'MAIN', steps: [{ name: 'RESPAY',
+      actions: [{ type: 'PeopleCode', peopleCode: `MessageBox(0, "", 25500, ${msg}, "No payroll.");\nExit(1);` }] }] }] });
+    d.sections[0]!.variants[0]!.steps[0]!.onReturn = onReturn;
+    return d;
+  };
+  const codes = async (d: ReturnType<typeof step>) => (await validateAppEngineReferences(d, lookup)).map((x) => x.code).filter((c) => c === 'break-error-message');
+  assert.deepEqual(await codes(step(9, 'B')), ['break-error-message']);
+  assert.deepEqual(await codes(step(30, 'B')), ['break-error-message']);
+  assert.deepEqual(await codes(step(20, 'B')), []);
+  // On Return Abort intends to stop, so an Error message there is right.
+  assert.deepEqual(await codes(step(9, 'A')), []);
+});
+
 test('the flow follows the runtime: MAIN, the sections it calls, recursion and dependencies', () => {
   const doc = documentFromSpec(SPEC);
   const flow = executionFlow(doc);

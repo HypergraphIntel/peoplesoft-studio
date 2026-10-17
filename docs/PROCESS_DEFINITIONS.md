@@ -85,3 +85,30 @@ from PRCSTYPE/PRCSNAME and the native save stamp; the agent delivered-object
 policy applies. Live HRDMO checks verified delivered ownership, rollback preview
 and stale-token refusal without committing a delivered Process Definition edit.
 See [MCP reference](MCP_REFERENCE.md) for schemas and validation scope.
+
+## Creating
+
+`psft_process_create` adds a definition as PeopleTools > Process Scheduler >
+Processes does in Add mode (`createProcess` in `src/providers/processWriter.ts`):
+it inserts the Add-mode row, then runs the same save as an edit in one
+transaction. The Add-mode row is evidence-backed on HRDMO 8.62.09:
+
+- PRCSDEFN's constant field defaults (PSRECFIELD `DEFFIELDNAME`): priority 5,
+  run location 2 (Server), API aware and log request 1, output type 0 (Any),
+  destination source 3 (User Specified), override modes 0, restart 0, IB log
+  level I, run control security 0, generic run N.
+- `DESCR` defaults to the process name (component `DESCR` FieldDefault);
+  `PRCSCATEGORY` to `Default` when installed (PostBuild
+  `ValidateProcessCategory`); a process type that is not SQR, COBOL, Crystal,
+  Application Engine or nVision gets output None / source None
+  (`ValidateOutDestType`). `OUTDESTFORMAT` is `0` (Any), the value 884 of 1,092
+  Application Engine definitions store.
+- At least one process group: the component's SaveEdit refuses a definition
+  without one ("Missing Process Group"). No message, notification,
+  distribution or transfer rows: the component inserts none unless those pages
+  are filled in (110 of 1,092 AE definitions have message rows).
+
+`tools/lab/process-create-e2e.mts` previews a create (rolled back): the would-be
+row matches the delivered BDG_ASSIGN definition in every non-identity column,
+nothing persists and the PPC/SYS counters are unchanged. A PIA Add capture has
+not been taken; the counter and stamp behaviour is the edit save's.

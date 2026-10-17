@@ -1,0 +1,48 @@
+/* File Layout window (src/editors/fileLayoutDesignerPanel.ts). */
+:root { --border: var(--vscode-panel-border, #8884); --muted: var(--vscode-descriptionForeground, #888); }
+body { background: var(--vscode-editor-background); color: var(--vscode-foreground); font: var(--vscode-font-size, 13px) var(--vscode-font-family, sans-serif); margin: 0; }
+#app { display: flex; flex-direction: column; height: 100vh; }
+.toolbar { display: flex; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--border); flex-wrap: wrap; align-items: center; }
+.toolbar .sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
+.toolbar .grow { flex: 1; }
+button { font: inherit; color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground); border: none; padding: 3px 10px; cursor: pointer; }
+button:hover:not(:disabled) { background: var(--vscode-button-secondaryHoverBackground, var(--vscode-button-secondaryBackground)); }
+button:disabled { opacity: .45; cursor: default; }
+button.small { margin: 8px 0; }
+.header { padding: 6px 10px; color: var(--muted); border-bottom: 1px solid var(--border); }
+.header strong { color: var(--vscode-foreground); }
+.badge { margin-left: 8px; border: 1px solid var(--border); border-radius: 9px; padding: 0 7px; font-size: 11px; }
+.badge.dirty { border-color: var(--vscode-editorWarning-foreground, #cca700); color: var(--vscode-editorWarning-foreground, #cca700); }
+.main { flex: 1; display: grid; grid-template-columns: minmax(260px, 1fr) minmax(320px, 420px); min-height: 0; }
+.tree { overflow: auto; padding: 6px 0; border-right: 1px solid var(--border); outline: none; }
+.node { padding: 2px 10px; cursor: pointer; white-space: nowrap; font-family: var(--vscode-editor-font-family, monospace); }
+.node:hover { background: var(--vscode-list-hoverBackground); }
+.node.selected { background: var(--vscode-list-activeSelectionBackground); color: var(--vscode-list-activeSelectionForeground); }
+.node .pad { white-space: pre; }
+.node .icon { display: inline-block; width: 18px; text-align: center; }
+.node.segment { font-weight: 600; }
+.node .hint { margin-left: 10px; color: var(--muted); font-size: 11px; font-family: var(--vscode-font-family, sans-serif); font-weight: normal; }
+.node.selected .hint { color: inherit; opacity: .8; }
+.props { overflow: auto; padding: 8px 14px 20px; }
+h3 { font-size: 13px; margin: 4px 0 10px; }
+h4 { font-size: 12px; margin: 14px 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.prop { display: grid; grid-template-columns: 140px 1fr; align-items: center; gap: 8px; margin: 4px 0; }
+.prop.wide { align-items: start; }
+.prop > span:first-child { color: var(--muted); }
+.ro { font-family: var(--vscode-editor-font-family, monospace); }
+input, select, textarea { font: inherit; color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border, var(--border)); padding: 3px 5px; box-sizing: border-box; width: 100%; }
+input[type=checkbox] { width: auto; }
+input:disabled, select:disabled, textarea:disabled { opacity: .5; }
+.check { display: flex; gap: 6px; align-items: center; margin: 4px 0 4px 148px; }
+.propagate { display: flex; gap: 6px; align-items: center; margin-top: 10px; }
+.propagate span { color: var(--muted); width: 134px; }
+.propagate input { width: 70px; }
+.positions table { border-collapse: collapse; width: 100%; font-family: var(--vscode-editor-font-family, monospace); font-size: 12px; }
+.positions th, .positions td { border: 1px solid var(--border); padding: 2px 6px; text-align: left; }
+.positions tr { cursor: pointer; }
+.positions tr.overlap td { color: var(--vscode-editorWarning-foreground, #cca700); }
+.output { border-top: 1px solid var(--border); padding: 6px 10px; max-height: 120px; overflow: auto; font-size: 12px; }
+.output .error { color: var(--vscode-errorForeground, #f14c4c); }
+.output .warning { color: var(--vscode-editorWarning-foreground, #cca700); }
+.output .status { color: var(--muted); }
+.empty { color: var(--muted); padding: 10px; }

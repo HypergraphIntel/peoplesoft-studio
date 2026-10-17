@@ -7,7 +7,11 @@ import { FieldType, RecordType } from '../model/record.js';
 import { layoutEditRefusal } from '../model/recordEdit.js';
 import { applyRecordOperations, type RecordOperation } from '../model/recordOperations.js';
 import { applyPageOperations, pageLayoutForAgent, type PageOperation } from '../model/pageOperations.js';
+import { buildPageLayout } from '../model/pageLayout.js';
+import { NEW_PAGE, PAGE_NAME } from '../providers/pageWriter.js';
 import { DatabaseProvider } from '../providers/database.js';
+import { relatedDefinitions, type RelatedDefinition } from '../model/projectClosure.js';
+import { projectItemIdentity as projectRowId } from '../model/projectItems.js';
 import { fieldCreateRefusal, type FieldLabelEdit } from '../providers/fieldWriter.js';
 import type { TranslateChange } from '../providers/translateWriter.js';
 import type { PeopleCodeSaveResult } from '../providers/peopleCodeWriter.js';
@@ -56,6 +60,7 @@ export interface Gate { provider: DatabaseProvider; operatorId: string }
  * The connection may be written and the name is in the write scope; throws the reason otherwise. null: no name to scope -- the write
  * is configuration data on a delivered object that changes no definition (a Page and Field Configurator configuration).
  */
+
 export async function writable(workspace: Workspace, host: McpWriteHost, connection: string, name: string | null): Promise<Gate> {
   if (host.mode() === 'off') {
     throw new Error('Writes through the MCP are off (peoplesoft.mcp.writes). The user can turn them on in PeopleSoft Studio Settings.');
@@ -112,7 +117,8 @@ const pageOperation = z.discriminatedUnion('op', [
   z.object({ op: z.literal('move'), id: z.number().int(), left: z.number(), top: z.number() }),
   z.object({ op: z.literal('resize'), id: z.number().int(), width: z.number(), height: z.number() }),
   z.object({ op: z.literal('set_label'), id: z.number().int(), text: z.string().optional(), labelType: z.number().int().optional().describe('0 None, 1 Text, 2 RFT Short, 3 RFT Long') }),
-  z.object({ op: z.literal('set_use'), id: z.number().int(), displayOnly: z.boolean().optional(), invisible: z.boolean().optional() }),
+  z.object({ op: z.literal('set_use'), id: z.number().int(), displayOnly: z.boolean().optional(), invisible: z.boolean().optional(),
+    deferProc: z.boolean().optional().describe('Allow Deferred Processing. false makes the field fire FieldChange when the user leaves it, rather than on the next server trip -- use it on a field whose FieldChange enables or fills others.') }),
   z.object({ op: z.literal('delete'), id: z.number().int() }),
   z.object({ op: z.literal('set_occurs_level'), id: z.number().int(), level: z.number().int().min(1).max(3) })
     .describe('A Scroll Bar / Grid / Scroll Area\'s Occurs Level: the controls after it in tab order are at it, up to the next scroll or Set to Level rule.'),
@@ -204,7 +210,8 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
       'Component PeopleCode (46: COMPONENT, MARKET, EVENT; 47: COMPONENT, MARKET, RECORD, EVENT; ' +
       '48: COMPONENT, MARKET, RECORD, FIELD, EVENT; created when new) or an Application Class (type 58; parts PACKAGE[, SUBPACKAGE...], CLASS, OnExecute). ' +
       'Saving an Application Class that does not exist yet creates it in its package. Read the current source with ' +
-      'psft_get_peoplecode first and send the whole program. ' + GATES,
+      'psft_get_peoplecode first and send the whole program. Read psft_peoplecode_reference before writing PeopleCode and run psft_validate_peoplecode first: ' +
+      'a save is refused when the code breaks a rule App Designer\'s compiler enforces (PC001-PC009). ' + 'An SQL definition is refused when a colon-number bind marker appears in a comment: PeopleSoft counts markers in the whole text, so it becomes an extra bind. '  + GATES,
     inputSchema: z.object({ connection: z.string().min(1), type: z.number().int(), parts: z.array(z.string()).min(1), source: z.string() }),
     annotations: WRITE
   }, async ({ connection, type, parts, source }) => {
@@ -313,6 +320,30 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
     if (dryRun) return jsonResult({ connection: { id: gate.provider.id, name: gate.provider.displayName }, definition: displayName(key), saved: false, preview: true,
       baseVersion: layout.version, hypotheticalVersion: r.version, controls: r.fieldCount, inserted: r.inserted, updated: r.updated, deleted: r.deleted, ...(r.snapshots ? { snapshots: r.snapshots } : {}) });
     return done(gate, key, { version: r.version, controls: r.fieldCount, inserted: r.inserted, updated: r.updated, deleted: r.deleted });
+  });
+
+  server.registerTool('psft_page_create', {
+    title: 'Create a page',
+    description:
+      'Create a classic page as App Designer\'s New Page and first save do: the same operations psft_edit_page takes, applied to a blank page ' +
+      '(at least one control -- App Designer will not save an empty page), with its checks and saveInvalid. A run control page is typically a ' +
+      'Subpage control showing PRCSRUNCNTL_SBP (record substitution PRCSRUNCNTL) plus the run control record\'s fields. Refused if the page exists. ' +
+      'Created with the legacy per-write confirmation (no Change Review adapter covers page creation). ' + GATES,
+    inputSchema: z.object({ connection: z.string().min(1), page: z.string().min(1), operations: z.array(pageOperation).min(1),
+      saveInvalid: z.boolean().optional().describe('Create it even though App Designer\'s page checks fail (its "Invalid page ... save anyway" Yes).') }),
+    annotations: WRITE
+  }, async ({ connection, page, operations, saveInvalid }) => {
+    const name = page.trim().toUpperCase();
+    if (!PAGE_NAME.test(name)) throw new Error(`${name || '(blank)'} is not a page name (a letter, then up to 17 letters, digits or _).`);
+    const key: DefinitionKey = { type: DefinitionType.Page, parts: [name] };
+    const gate = await writable(workspace, host, connection, name);
+    if (await gate.provider.pageInfo(name)) throw new Error(`A page named ${name} already exists; change it with psft_edit_page.`);
+    const blank = buildPageLayout(name, { page: { PNLNAME: name, VERSION: 0, ...NEW_PAGE }, fields: [], components: [] });
+    const { controls, properties } = applyPageOperations(blank, operations as PageOperation[]);
+    await approve(host, gate, key, `create page ${name}`,
+      `${operations.length} operation${operations.length === 1 ? '' : 's'}:\n${operations.map((o) => describeOperation(o)).join('\n')}`);
+    const r = await gate.provider.createPage({ pnlName: name, operatorId: gate.operatorId, controls, properties, ...(saveInvalid ? { saveInvalid } : {}) });
+    return done(gate, key, { created: true, version: r.version, controls: r.fieldCount });
   });
 
   server.registerTool('psft_create_record', {
@@ -473,22 +504,58 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
   server.registerTool('psft_add_to_project', {
     title: 'Add definitions to a project',
     description: 'Add definitions (type + key parts, as psft_search_definitions gives them) to a project as items. ' +
+      'By default it also adds what they need to work in a target (includeRelated): an App Engine program\'s sections, SQL statements and PeopleCode; ' +
+      'a component\'s PeopleCode, pages, content references and the custom portal folders above them; page and record PeopleCode; a field\'s translate values; ' +
+      'the custom SQL objects the code calls (SQL.NAME, %SQL(NAME)); and the Message Catalog entries its MessageBox calls use. ' +
+      'A program added alone migrates as a header with no logic, and one without its SQL objects fails at run time in the target. ' +
+      'Message Catalog entries use type 25 with [set, number]. ' +
       'AE sections use type 34 with [program, section]. AE PeopleCode uses type 43 with ' +
       '[program, section, market, platform, effectiveDate, step, OnExecute], or the packed key returned by search. ' + GATES,
     inputSchema: z.object({
       connection: z.string().min(1), project: z.string().min(1),
-      items: z.array(z.object({ type: z.number().int(), parts: z.array(z.string()).min(1) })).min(1)
+      items: z.array(z.object({ type: z.number().int(), parts: z.array(z.string()).min(1) })).min(1),
+      includeRelated: z.boolean().default(true).describe('Also add the related definitions the items need (default). false adds exactly the items given.')
     }),
     annotations: WRITE
-  }, async ({ connection, project, items }) => {
+  }, async ({ connection, project, items, includeRelated }) => {
     const key: DefinitionKey = { type: DefinitionType.Project, parts: [project.trim().toUpperCase()] };
     const gate = await writable(workspace, host, connection, key.parts[0]);
-    const add = items.map((i) => keyFromInput(i.type, i.parts));
+    const asked = items.map((i) => keyFromInput(i.type, i.parts));
     const openedVersion = await gate.provider.readProjectVersion(key.parts[0]);
     if (openedVersion === undefined) throw new Error(`There is no project named ${key.parts[0]} on ${gate.provider.displayName}.`);
-    await approve(host, gate, key, `add ${add.length} item${add.length === 1 ? '' : 's'} to project ${key.parts[0]}`, add.map((k) => `  ${displayName(k)}`).join('\n'));
+    let related: RelatedDefinition[] = [], notAdded: RelatedDefinition[] = [];
+    if (includeRelated) {
+      const inProject = new Set((await gate.provider.listProjectItems(key.parts[0])).map((d) => projectRowId(d.key)));
+      const askedIds = new Set(asked.map(projectRowId));
+      const found = await relatedDefinitions(asked, gate.provider.relatedLookup());
+      related = found.filter((r) => r.addable && !inProject.has(projectRowId(r.key)) && !askedIds.has(projectRowId(r.key)));
+      notAdded = found.filter((r) => !r.addable);
+    }
+    const add = [...asked, ...related.map((r) => r.key)];
+    const listing = [...asked.map((k) => `  ${displayName(k)}`), ...related.map((r) => `  ${displayName(r.key)}    (${r.reason})`)].join('\n');
+    await approve(host, gate, key, `add ${add.length} item${add.length === 1 ? '' : 's'} to project ${key.parts[0]}`, listing);
     const r = await gate.provider.saveProject({ project: key.parts[0], operatorId: gate.operatorId, openedVersion, add });
-    return done(gate, key, { version: r.version, added: r.added.length });
+    return done(gate, key, { version: r.version, added: r.added.length, relatedAdded: related.length,
+      ...(notAdded.length ? { notAdded: notAdded.map((n) => ({ definition: displayName(n.key), type: n.key.type, reason: n.reason, note: n.note })) } : {}) });
+  });
+
+  server.registerTool('psft_project_related', {
+    title: 'What a project still needs',
+    description: 'Read-only: the related definitions a project\'s members need and the project does not yet contain -- sections, SQL statements and PeopleCode ' +
+      'of its App Engine programs, its components\' PeopleCode, pages and content references, page and record PeopleCode, its fields\' translate values, ' +
+      'the custom SQL objects its code calls, the Message Catalog entries its code uses and the custom folders holding its content references. Run it before migrating a project; add what it lists with psft_add_to_project.',
+    inputSchema: z.object({ connection: z.string().min(1), project: z.string().min(1) }),
+    annotations: READ_ONLY
+  }, async ({ connection, project }) => {
+    const provider = await requireProvider(workspace, connection);
+    if (!(provider instanceof DatabaseProvider)) throw new Error('This needs a database connection.');
+    const name = project.trim().toUpperCase();
+    const members = (await provider.listProjectItems(name)).map((d) => d.key);
+    if (!members.length) throw new Error(`Project ${name} has no items (or does not exist) on ${provider.displayName}.`);
+    const missing = await relatedDefinitions(members, provider.relatedLookup());
+    return jsonResult({ project: name, members: members.length, missing: missing.length,
+      addable: missing.filter((m) => m.addable).map((m) => ({ type: m.key.type, parts: m.key.parts, definition: displayName(m.key), reason: m.reason })),
+      notAddable: missing.filter((m) => !m.addable).map((m) => ({ type: m.key.type, definition: displayName(m.key), reason: m.reason, note: m.note })) });
   });
 
   server.registerTool('psft_create_package', {

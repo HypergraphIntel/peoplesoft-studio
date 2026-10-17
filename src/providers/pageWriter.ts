@@ -1392,6 +1392,48 @@ export function planNewPage(pnlName: string, version: number, operatorId: string
  * PSLOCK) and `SYS` +1 (n01, n02). Refused when the name is taken or out of
  * the write scope, or (no template) when the page has no control.
  */
+/**
+ * Where a new page's controls sit in tab order, as App Designer's New Page and
+ * first save do. Added one by one, each goes after the one before it in reading
+ * order (newControlTabIndex). A column names its grid with intoGrid and goes
+ * right after that grid's last (0, 0) column instead, as planPageSave places
+ * one: without this a grid created with its columns in one call keeps none of
+ * them, the columns sort to the top-left as ordinary controls, and the page
+ * fails App Designer's "No data for scroll" (15,19).
+ */
+export function placeNewPageControls(requested: readonly EditedControl[]): EditedControl[] {
+  const controls: EditedControl[] = [];
+  const typeOfControl = (ctl: EditedControl) => ctl.add ? NEW_CONTROL_FIELDTYPE[ctl.add.kind] : Number(ctl.fieldType ?? -1);
+  const originColumn = (ctl: EditedControl) => ctl.fieldLeft === 0 && ctl.fieldTop === 0 && !SCROLL_FIELD_TYPES.has(typeOfControl(ctl));
+  for (const ctl of requested) {
+    const into = ctl.add?.intoGrid;
+    if (into !== undefined) {
+      let at = controls.findIndex((c) => c.pnlFldId === into);
+      if (at < 0 || !GRID_FIELD_TYPES.has(typeOfControl(controls[at]))) {
+        throw new PageSaveRefusedError(`Control ${into} is not a grid on the page to add a column to.`);
+      }
+      while (at + 1 < controls.length && originColumn(controls[at + 1])) at++;
+      controls.splice(at + 1, 0, { ...ctl, fieldLeft: 0, fieldTop: 0,
+        fieldRight: ctl.fieldRight ? Math.max(0, ctl.fieldRight - ctl.fieldLeft) : 0,
+        fieldBottom: ctl.fieldBottom ? Math.max(0, ctl.fieldBottom - ctl.fieldTop) : 0 });
+      continue;
+    }
+    if (ctl.add && GRID_ONLY.has(ctl.add.kind)) throw new PageSaveRefusedError(`A ${ctl.add.kind} goes only inside a grid, as one of its columns.`);
+    // A scroll has its own rule: after the last control whose top is at or above its
+    // bottom edge, so a second grid lands after the first grid's (0, 0) columns rather
+    // than between the grid and the columns it owns.
+    if (ctl.add && SCROLL_FIELD_TYPES.has(NEW_CONTROL_FIELDTYPE[ctl.add.kind])) { controls.splice(newScrollTabIndex(controls, ctl), 0, ctl); continue; }
+    if (ctl.add) controls.splice(newControlTabIndex(controls, ctl), 0, ctl); else controls.push(ctl);
+  }
+  // A grid counts the (0, 0) controls that follow it (GRDCOLUMNCOUNT), as a native save does.
+  return controls.map((ctl, i) => {
+    if (!GRID_FIELD_TYPES.has(typeOfControl(ctl))) return ctl;
+    let n = 0;
+    while (i + 1 + n < controls.length && originColumn(controls[i + 1 + n])) n++;
+    return { ...ctl, grdColumnCount: n };
+  });
+}
+
 export async function createPage(c: Connection, request: PageCreateRequest): Promise<PageSaveResult> {
   const pnlName = request.pnlName.trim().toUpperCase();
   const { operatorId } = request;
@@ -1400,11 +1442,7 @@ export async function createPage(c: Connection, request: PageCreateRequest): Pro
   if (scope) throw new PageSaveRefusedError(scope);
   const opError = validateOperatorId(operatorId);
   if (opError) throw new PageSaveRefusedError(opError);
-  // Added one by one, each control goes after the one before it in reading order (newControlTabIndex); pasted ones last.
-  const controls: EditedControl[] = [];
-  for (const ctl of request.template ? [] : request.controls ?? []) {
-    if (ctl.add) controls.splice(newControlTabIndex(controls, ctl), 0, ctl); else controls.push(ctl);
-  }
+  const controls: EditedControl[] = placeNewPageControls(request.template ? [] : request.controls ?? []);
   // Their levels, as App Designer assigns them (a new scroll at 1, the rest from the tab order), and its checks.
   const checked = controls.map((ctl) => ({ fieldType: ctl.add ? NEW_CONTROL_FIELDTYPE[ctl.add.kind] : Number(ctl.fieldType ?? -1),
     occursLevel: Number(ctl.occursLevel ?? 1), fieldUse: Number(ctl.fieldUse ?? 0), recName: ctl.add ? ctl.add.recName : ctl.recName ?? '',

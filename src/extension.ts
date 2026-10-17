@@ -4,6 +4,8 @@ import { PROPERTIES_SPECS } from './model/properties.js';
 import { setManualHistoryObserver } from './changeReview/manualHistory.js';
 import { databaseReviewAdapters } from './changeReview/adapters.js';
 import { ReviewStore } from './changeReview/store.js';
+import { BuildRequestStore } from './buildRequest/store.js';
+import { registerBuildRequests } from './views/buildRequestsView.js';
 import { ReviewService } from './changeReview/service.js';
 import { ReviewWorkspace } from './changeReview/workspace.js';
 import { ChangeReviewView } from './views/changeReviewView.js';
@@ -82,6 +84,8 @@ import { registerCustomizationStrategy } from './views/customizationView.js';
 import { registerIntelligenceCommands } from './intelligenceCommands.js';
 import { installCustomizationGuard } from './customizationGuard.js';
 import { ChannelDesignerPanel, setChannelDesignerExtensionUri } from './editors/channelDesignerPanel.js';
+import { FileLayoutDesignerPanel, setFileLayoutDesignerExtensionUri } from './editors/fileLayoutDesignerPanel.js';
+import { copyLayout, newLayout, type FileLayoutDocument } from './model/fileLayoutDocument.js';
 import { CHANNEL_NAME_MAX, copyChannel, type ChannelDocument } from './model/channelDocument.js';
 import { copyCi, type CiDocument } from './model/ciDocument.js';
 import { copyMenu, MENU_NAME_MAX, newMenu as newMenuDocument, type MenuDocument } from './model/menuDocument.js';
@@ -314,6 +318,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   setMenuDesignerExtensionUri(context.extensionUri);
   setCiDesignerExtensionUri(context.extensionUri);
   setChannelDesignerExtensionUri(context.extensionUri);
+  setFileLayoutDesignerExtensionUri(context.extensionUri);
   MenuDesignerPanel.register(context);
 
   const statusBar = new StatusBar(workspace);
@@ -334,6 +339,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   reviewTree = new ChangeReviewView(reviewService);
   context.subscriptions.push(reviewTree, vscode.window.registerTreeDataProvider('psft.changeReview', reviewTree));
   mcpController.reviewService = reviewService;
+  const buildRequests = new BuildRequestStore(path.join(context.globalStorageUri.fsPath, 'build-requests'));
+  mcpController.buildRequests = buildRequests;
+  registerBuildRequests(context, {
+    store: buildRequests, extensionUri: context.extensionUri,
+    connections: () => workspace.connections.filter((c) => c.kind !== 'projectFile').map((c) => c.name),
+    mcp: () => ({ running: mcpController.state.status === 'running', writes: !!mcpController.writeHost && mcpController.writeHost.mode() !== 'off' })
+  });
   setManualHistoryObserver((connection, key, write) => {
     if ([8,9,42,43,44,46,47,48,58].includes(key.type)) return reviewService.captureManual(connection, 'peoplecode', { type: key.type, parts: [...key.parts] }, write);
     if (key.type === DefinitionType.HtmlDefinition) return reviewService.captureManual(connection, 'html', key.parts[0], write);
@@ -455,6 +467,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (key.type === DefinitionType.Menu) return MenuDesignerPanel.sessionOf(connectionId, key.parts[0])?.dirty ?? false;
       if (key.type === DefinitionType.ComponentInterface) return CiDesignerPanel.sessionOf(connectionId, key.parts[0])?.dirty ?? false;
       if (key.type === DefinitionType.MessageChannel) return ChannelDesignerPanel.sessionOf(connectionId, key.parts[0])?.dirty ?? false;
+      if (key.type === DefinitionType.FileLayout) return FileLayoutDesignerPanel.sessionOf(connectionId, key.parts[0])?.dirty ?? false;
       const ibTypes:Partial<Record<DefinitionType, import('./model/ibDocument.js').IbKind>> = {[DefinitionType.IbMessage]:'message',[DefinitionType.IbDocument]:'document',[DefinitionType.IbService]:'service',[DefinitionType.IbServiceOperation]:'operation',[DefinitionType.MessageNode]:'node',[DefinitionType.IbRouting]:'routing'};
       if(ibTypes[key.type] && hasUnsavedIb(connectionId,ibTypes[key.type]!))return true;
       const uri = toUri(connectionId, key).toString();
@@ -470,6 +483,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       else if (key.type === DefinitionType.Menu) void MenuDesignerPanel.reloadIfOpen(connectionId, key.parts[0]);
       else if (key.type === DefinitionType.ComponentInterface) void CiDesignerPanel.reloadIfOpen(connectionId, key.parts[0]);
       else if (key.type === DefinitionType.MessageChannel) void ChannelDesignerPanel.reloadIfOpen(connectionId, key.parts[0]);
+      else if (key.type === DefinitionType.FileLayout) void FileLayoutDesignerPanel.reloadIfOpen(connectionId, key.parts[0]);
       else if (key.type === DefinitionType.Query) void QueryDesignerPanel.reloadIfOpen(connectionId, key.parts[0], key.parts[1]).catch(error => console.error('PeopleSoft Studio: could not reload Query:', error));
       else if (key.type === DefinitionType.ProcessDefinition) void ProcessEditorProvider.reloadIfOpen(connectionId, key).catch(error => console.error('PeopleSoft Studio: could not reload Process Definition:', error));
       else if (key.type === DefinitionType.ComponentInterfacePeopleCode) { PeopleSoftFileSystem.instance?.invalidate(toUri(connectionId, key)); void CiDesignerPanel.reloadIfOpen(connectionId, key.parts[0]); }
@@ -1069,6 +1083,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             await showChannelDesigner(workspace, provider, key.parts[0]);
             return;
           }
+          if (key.type === DefinitionType.FileLayout && provider instanceof DatabaseProvider) {
+            await showFileLayoutDesigner(workspace, provider, key.parts[0]);
+            return;
+          }
           if (key.type === DefinitionType.Image && provider instanceof DatabaseProvider) {
             const image = await provider.readImage(key);
             if (!image) throw new Error(`No image named ${key.parts[0]}.`);
@@ -1272,6 +1290,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('psft.newMenu', () => withError('New Menu', () => newMenu(workspace))),
     vscode.commands.registerCommand('psft.newComponentInterface', () => withError('New Component Interface', () => newComponentInterface(workspace))),
     vscode.commands.registerCommand('psft.newMessageChannel', () => withError('New Message Channel', () => newMessageChannel(workspace))),
+    vscode.commands.registerCommand('psft.newFileLayout', () => withError('New File Layout', () => newFileLayout(workspace))),
     vscode.commands.registerCommand('psft.newPageFluid', () => withError('New Page Fluid', () => newPageFluid(workspace))),
 
     vscode.commands.registerCommand('psft.newHtmlDefinition', () =>
@@ -1838,7 +1857,7 @@ async function pickRecordFieldPeopleCode(workspace: Workspace, connectionId: str
 async function newDefinition(workspace: Workspace): Promise<void> {
   type Item = vscode.QuickPickItem & {
     create?: TextDefinitionType | DefinitionType.Record | DefinitionType.Field | DefinitionType.Project | DefinitionType.ApplicationPackage
-      | DefinitionType.ApplicationClassPeopleCode | DefinitionType.Component | DefinitionType.Page | DefinitionType.AppEngineProgram | DefinitionType.Menu | DefinitionType.ComponentInterface | DefinitionType.MessageChannel;
+      | DefinitionType.ApplicationClassPeopleCode | DefinitionType.Component | DefinitionType.Page | DefinitionType.AppEngineProgram | DefinitionType.Menu | DefinitionType.ComponentInterface | DefinitionType.MessageChannel | DefinitionType.FileLayout;
     /** Page: New Page Fluid (from a Layout Page). */
     fluid?: boolean;
   };
@@ -1858,7 +1877,8 @@ async function newDefinition(workspace: Workspace): Promise<void> {
     { label: '$(gear) App Engine Program', description: 'MAIN with Step01, as App Designer starts one; the first save creates it', create: DefinitionType.AppEngineProgram },
     { label: '$(list-tree) Menu', description: 'Standard or Popup, as App Designer asks; the first save creates it, once it has an item', create: DefinitionType.Menu },
     { label: '$(plug) Component Interface', description: 'On a component, its properties defaulted from the component or not, as App Designer asks', create: DefinitionType.ComponentInterface },
-    { label: '$(radio-tower) Message Channel', description: 'App Designer\'s defaults; the first save creates it', create: DefinitionType.MessageChannel }
+    { label: '$(radio-tower) Message Channel', description: 'App Designer\'s defaults; the first save creates it', create: DefinitionType.MessageChannel },
+    { label: '$(file-text) File Layout', description: 'FIXED, empty; Insert Record builds a segment; the first save creates it', create: DefinitionType.FileLayout }
   ], { title: 'New Definition', placeHolder: 'Definition type' });
   if (!picked) return;
   // DefinitionType.Record is 0: test for absence, not falsiness.
@@ -1877,6 +1897,7 @@ async function newDefinition(workspace: Workspace): Promise<void> {
   else if (picked.create === DefinitionType.Menu) await newMenu(workspace);
   else if (picked.create === DefinitionType.ComponentInterface) await newComponentInterface(workspace);
   else if (picked.create === DefinitionType.MessageChannel) await newMessageChannel(workspace);
+  else if (picked.create === DefinitionType.FileLayout) await newFileLayout(workspace);
   else await newTextDefinition(workspace, picked.create);
 }
 
@@ -2447,6 +2468,64 @@ export async function showChannelDesigner(workspace: Workspace, provider: Databa
       }
     } : {})
   }, read.doc, read.token, doc ? { status: 'New message channel: Save creates it.' } : {});
+}
+
+/**
+ * A File Layout in its window (editors/fileLayoutDesignerPanel.ts): editable on a Writable Oracle connection with an
+ * Operator ID, for a name in the write scope; read-only otherwise. `doc` opens a new, unsaved layout.
+ */
+export async function showFileLayoutDesigner(workspace: Workspace, provider: DatabaseProvider, name: string, doc?: FileLayoutDocument): Promise<void> {
+  const operatorId = workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim();
+  const editable = provider.platform === 'oracle' && workspace.isWritable(provider.id) && !!operatorId && !writeScopeRefusal(name);
+  const read = doc ? { doc, token: 'absent' } : await provider.readFileLayoutDocument(name);
+  if (!read) throw new Error(`No File Layout named ${name}.`);
+  FileLayoutDesignerPanel.show({
+    connection: { id: provider.id, displayName: provider.displayName },
+    ...(editable ? {
+      save: async (d: FileLayoutDocument, token: string, dryRun?: boolean) => {
+        const result = await provider.saveFileLayoutDocument({ doc: d, openedToken: token, operatorId: operatorId!, ...(dryRun ? { dryRun } : {}) });
+        if (result.written && token === 'absent') void vscode.commands.executeCommand('psft.refresh');
+        return result;
+      },
+      saveAs: async (d: FileLayoutDocument, to: string) => {
+        const refusal = writeScopeRefusal(to);
+        if (refusal) throw new Error(refusal);
+        if (await provider.readFileLayoutDocument(to)) throw new Error(`A File Layout named ${to} already exists.`);
+        await provider.saveFileLayoutDocument({ doc: copyLayout(d, to), openedToken: 'absent', operatorId: operatorId! });
+        void vscode.commands.executeCommand('psft.refresh');
+        await showFileLayoutDesigner(workspace, provider, to);
+      },
+      rename: async (from: string, to: string, token: string) => {
+        const refusal = writeScopeRefusal(to);
+        if (refusal) throw new Error(refusal);
+        await provider.renameFileLayoutDefinition(from, to, token, operatorId!);
+        void vscode.commands.executeCommand('psft.refresh');
+        await showFileLayoutDesigner(workspace, provider, to);
+      },
+      remove: async (layout: string, token: string) => {
+        await provider.deleteFileLayoutDefinition(layout, token, operatorId!);
+        void vscode.commands.executeCommand('psft.refresh');
+        vscode.window.showInformationMessage(`Deleted File Layout ${layout} on ${provider.displayName}.`);
+      }
+    } : {}),
+    reload: async () => provider.readFileLayoutDocument(name),
+    recordFields: (record: string) => provider.fileLayoutRecordFields(record)
+  }, read.doc, read.token, doc ? { status: 'New File Layout (FIXED): Insert Record… builds a segment from a record; Save creates it.' } : {});
+}
+
+/** File > New > File Layout: a name (App Designer asks it at the first Save; here before, to open the window), then the window. */
+async function newFileLayout(workspace: Workspace): Promise<void> {
+  const provider = await pickWritableConnection(workspace, 'New File Layout');
+  if (!provider) return;
+  const name = await askDefinitionName(`New File Layout on ${provider.displayName}`, 30, 'File Layout name (at most 30 characters)');
+  if (!name) return;
+  if (await provider.readFileLayoutDocument(name)) {
+    vscode.window.showWarningMessage(`A File Layout named ${name} already exists.`);
+    return;
+  }
+  const refusal = writeScopeRefusal(name);
+  if (refusal) { vscode.window.showWarningMessage(refusal); return; }
+  await showFileLayoutDesigner(workspace, provider, name, newLayout(name));
 }
 
 /** File > New > Message Channel: a name (App Designer asks it at the first Save; here before, to open the window), then the window. */

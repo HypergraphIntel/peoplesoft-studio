@@ -8,6 +8,10 @@ import { portalInput, portalKey, type PortalIdentity } from '../model/portalDocu
 import { createHash } from 'node:crypto';
 import { listAdministration, readAdministration, saveAdministration, verifyAdministration, type AdminSaveRequest } from './administrationWriter.js';
 import { adminInputKey, validateAdminInput, type AdminKind } from '../model/administration.js';
+import { grantPermissionListAccess, type PermissionGrantRequest, type PermissionGrantResult } from './permissionListWriter.js';
+import { describeSemanticProblems, peopleCodeImports, type SemanticProblem } from '../peoplecode/semanticCheck.js';
+import { deleteFileLayout, fileLayoutDocumentOf, fileLayoutToken, readRecordFieldInfo, readStoredFileLayout, renameFileLayout, saveFileLayout, type FileLayoutSaveRequest, type FileLayoutSaveResult } from './fileLayoutWriter.js';
+import type { FileLayoutDocument, RecordFieldInfo } from '../model/fileLayoutDocument.js';
 import { witnessedCreation, recordCreation, type CreationReceipt, type DefinitionStamp } from './creationProvenance.js';
 import type { DbConnection as Connection, DbPool, DbTypes } from '../db/connection.js';
 import { openDatabase, type DatabasePlatform } from '../db/open.js';
@@ -31,6 +35,8 @@ import { createPackage as createPackageRow } from './packageWriter.js';
 import { saveStyleSheet as saveStyleSheetRows, verifyStyleSheetSave, type StyleSheetSaveRequest, type StyleSheetSaveResult } from './styleSheetWriter.js';
 import { saveHtmlDefinition as saveHtmlRows, verifyHtmlSave, type HtmlSaveRequest, type HtmlSaveResult } from './htmlWriter.js';
 import { saveSqlDefinition as saveSqlDefinitionRows, verifySqlSave, type SqlSaveRequest, type SqlSaveResult } from './sqlWriter.js';
+import { bindMarkerCount, selectList, type SqlCatalog, type FieldType as SqlFieldType } from '../model/sqlTypeCheck.js';
+import type { RelatedLookup } from '../model/projectClosure.js';
 import {
   FieldType, RecordDefinition, RecordField, RecordType, describeField
 } from '../model/record.js';
@@ -108,7 +114,7 @@ import {
   readQueryForEdit as readEditableQuery, saveQuery as writeQuery, verifyQuerySave,
   type QueryEdit, type QuerySaveRequest, type QuerySaveResult
 } from './queryWriter.js';
-import { saveProcess, type ProcessSaveRequest } from './processWriter.js';
+import { saveProcess, type ProcessSaveRequest, createProcess, type ProcessCreateRequest } from './processWriter.js';
 import { processToken } from '../model/processEdit.js';
 import type { ProcessView } from '../model/processDefinition.js';
 import { PROCESS_TRANSLATE_FIELDS, renderProcessDefinition } from '../model/processDefinition.js';
@@ -1299,8 +1305,49 @@ export class DatabaseProvider implements DefinitionProvider {
    * Saves PeopleCode natively (peopleCodeWriter.ts): one transaction on one
    * connection, then the committed state is verified again on another.
    */
+  /**
+   * App Designer's "class not found": each imported class must exist (PSAPPCLASSDEFN), and each wildcard import must
+   * name a package with classes (or, as delivered code relies on, a class: BN_COVERAGECODE:Validate:*).
+   */
+  async peopleCodeImportProblems(source: string): Promise<SemanticProblem[]> {
+    const imports = peopleCodeImports(source);
+    if (!imports.length) return [];
+    return this.withConnection(async (c) => {
+      const problems: SemanticProblem[] = [];
+      const one = async (sql: string, b: Record<string, unknown>) => ((await c.execute(sql, b)).rows ?? []).length > 0;
+      for (const i of imports) {
+        const parts = i.path.toUpperCase().split(':');
+        const shown = i.path.split(':');
+        if (i.wildcard) {
+          const pkg = parts.slice(0, -1), root = pkg[0], sub = pkg.slice(1).join(':');
+          const ok = sub
+            ? await one(`SELECT 1 FROM PSAPPCLASSDEFN WHERE UPPER(PACKAGEROOT) = :r AND (UPPER(QUALIFYPATH) = :q OR UPPER(QUALIFYPATH) LIKE :l
+                OR (UPPER(QUALIFYPATH) = :pq AND UPPER(APPCLASSID) = :c)) FETCH FIRST 1 ROWS ONLY`,
+                { r: root, q: sub, l: `${sub}:%`, pq: pkg.length > 2 ? pkg.slice(1, -1).join(':') : ':', c: pkg[pkg.length - 1] })
+            : await one('SELECT 1 FROM PSAPPCLASSDEFN WHERE UPPER(PACKAGEROOT) = :r FETCH FIRST 1 ROWS ONLY', { r: root });
+          if (!ok) problems.push({ code: 'PC006', offset: i.offset, message: `import ${i.path}: there is no application package ${shown.slice(0, -1).join(':')} with classes in this database.` });
+        } else {
+          const root = parts[0], cls = parts[parts.length - 1], q = parts.length > 2 ? parts.slice(1, -1).join(':') : ':';
+          if (!(await one('SELECT 1 FROM PSAPPCLASSDEFN WHERE UPPER(PACKAGEROOT) = :r AND UPPER(QUALIFYPATH) = :q AND UPPER(APPCLASSID) = :c', { r: root, q, c: cls }))) {
+            problems.push({ code: 'PC006', offset: i.offset, message: `import ${i.path}: class ${shown[shown.length - 1]} not found in package ${shown.slice(0, -1).join(':')}. Save an imported class before the code that imports it.` });
+          }
+        }
+      }
+      return problems;
+    });
+  }
+
+  /** Refuses PeopleCode whose imports name classes or packages this database does not have; `sources` from any document. */
+  private async assertPeopleCodeImports(sources: string[]): Promise<void> {
+    for (const source of sources) {
+      const problems = await this.peopleCodeImportProblems(source);
+      if (problems.length) throw new ProviderError(`App Designer would not save this PeopleCode:\n${describeSemanticProblems(source, problems)}`);
+    }
+  }
+
   async savePeopleCode(key: DefinitionKey, request: PeopleCodeSaveRequest): Promise<PeopleCodeSaveResult> {
     await this.guard(key, 'save');
+    if (request.source) await this.assertPeopleCodeImports([request.source]);
     return observeManualHistory(this.id, key, async () => {
     const types = this.types;
     const parts = pcmProgKeyParts(key);
@@ -1444,6 +1491,81 @@ export class DatabaseProvider implements DefinitionProvider {
           WHERE FIELDNAME = :n ORDER BY LABEL_ID`, { n: name });
       return renderField(name, defn.rows?.[0], labels.rows ?? []);
     });
+  }
+
+  /**
+   * The project closure's database side (src/model/projectClosure.ts): what each kind of
+   * member brings along, read from the definition tables themselves.
+   */
+  relatedLookup(): RelatedLookup {
+    const q = (sql: string, binds: Record<string, string> = {}) => this.withConnection((c) => this.uiRows(c, sql, binds));
+    const t = (v: unknown) => String(v ?? '').trim();
+    const raw = (v: unknown) => String(v ?? '').replace(/ +$/, '');
+    return {
+      appEngine: async (program) => {
+        if (!(await q('SELECT 1 AS X FROM PSAEAPPLDEFN WHERE AE_APPLID = :p', { p: program })).length) return undefined;
+        const sections = (await q('SELECT DISTINCT AE_SECTION AS S FROM PSAESECTDEFN WHERE AE_APPLID = :p ORDER BY 1', { p: program })).map((r) => t(r.S));
+        const statementSqlIds = (await q(`SELECT DISTINCT SQLID AS I FROM PSAESTMTDEFN WHERE AE_APPLID = :p AND TRIM(SQLID) IS NOT NULL ORDER BY 1`, { p: program })).map((r) => raw(r.I));
+        const peopleCode = (await q(`SELECT DISTINCT OBJECTVALUE2 AS V2, OBJECTVALUE3 AS V3, OBJECTVALUE4 AS V4, OBJECTVALUE5 AS V5, OBJECTVALUE6 AS V6, OBJECTVALUE7 AS V7
+            FROM PSPCMPROG WHERE OBJECTID1 = 66 AND OBJECTVALUE1 = :p`, { p: program }))
+          .map((r) => ({ type: DefinitionType.AppEnginePeopleCode, parts: [program, t(r.V2), t(r.V3), t(r.V4), t(r.V5), t(r.V6), t(r.V7)] }));
+        const pc = (await q('SELECT PCTEXT AS T FROM PSPCMTXT WHERE OBJECTID1 = 66 AND OBJECTVALUE1 = :p', { p: program })).map((r) => String(r.T ?? ''));
+        const sql = (await q('SELECT T.SQLTEXT AS T FROM PSAESTMTDEFN D, PSSQLTEXTDEFN T WHERE D.AE_APPLID = :p AND T.SQLID = D.SQLID', { p: program })).map((r) => String(r.T ?? ''));
+        return { sections, statementSqlIds, peopleCode, text: [...pc, ...sql].join('\n') };
+      },
+      component: async (name, market) => {
+        if (!(await q('SELECT 1 AS X FROM PSPNLGRPDEFN WHERE PNLGRPNAME = :c AND MARKET = :m', { c: name, m: market })).length) return undefined;
+        const rows = await q(`SELECT DISTINCT OBJECTID3 AS I3, OBJECTVALUE3 AS V3, OBJECTID4 AS I4, OBJECTVALUE4 AS V4, OBJECTID5 AS I5, OBJECTVALUE5 AS V5
+          FROM PSPCMPROG WHERE OBJECTID1 = 10 AND OBJECTVALUE1 = :c AND OBJECTVALUE2 = :m`, { c: name, m: market });
+        const peopleCode: DefinitionKey[] = [];
+        for (const r of rows) {
+          const [i3, i4, i5] = [Number(r.I3), Number(r.I4), Number(r.I5)];
+          if (i3 === 12) peopleCode.push({ type: DefinitionType.ComponentPeopleCode, parts: [name, market, t(r.V3)] });
+          else if (i3 === 1 && i4 === 12) peopleCode.push({ type: DefinitionType.ComponentRecordPeopleCode, parts: [name, market, t(r.V3), t(r.V4)] });
+          else if (i3 === 1 && i4 === 2 && i5 === 12) peopleCode.push({ type: DefinitionType.ComponentRecordFieldPeopleCode, parts: [name, market, t(r.V3), t(r.V4), t(r.V5)] });
+        }
+        const pages = (await q('SELECT DISTINCT PNLNAME AS P FROM PSPNLGROUP WHERE PNLGRPNAME = :c AND MARKET = :m ORDER BY 1', { c: name, m: market })).map((r) => t(r.P));
+        return { peopleCode, pages };
+      },
+      pagePeopleCode: async (page) => (await q('SELECT DISTINCT OBJECTVALUE2 AS E FROM PSPCMPROG WHERE OBJECTID1 = 9 AND OBJECTVALUE1 = :p', { p: page }))
+        .map((r) => ({ type: DefinitionType.PagePeopleCode, parts: [page, t(r.E)] })),
+      recordPeopleCode: async (record) => (await q(`SELECT DISTINCT OBJECTVALUE2 AS F, OBJECTVALUE3 AS E FROM PSPCMPROG
+          WHERE OBJECTID1 = 1 AND OBJECTID2 = 2 AND OBJECTID3 = 12 AND OBJECTVALUE1 = :r`, { r: record }))
+        .map((r) => ({ type: DefinitionType.RecordPeopleCode, parts: [record, t(r.F), t(r.E)] })),
+      translateValues: async (field) => (await q(`SELECT FIELDVALUE AS V, TO_CHAR(EFFDT, 'YYYY-MM-DD') AS D FROM PSXLATITEM WHERE FIELDNAME = :f ORDER BY 1, 2`, { f: field }))
+        .map((r) => ({ value: t(r.V), effdt: t(r.D) })),
+      classSource: async (path) => {
+        const binds: Record<string, string> = {};
+        const preds = path.map((p, i) => { binds[`v${i}`] = p; return `OBJECTVALUE${i + 1} = :v${i}`; });
+        const rows = await q(`SELECT PCTEXT AS T FROM PSPCMTXT WHERE OBJECTID1 = 104 AND ${preds.join(' AND ')}`, binds);
+        return rows.length ? rows.map((r) => String(r.T ?? '')).join('\n') : undefined;
+      },
+      sqlObject: async (id) => {
+        const [r] = await q(`SELECT LASTUPDOPRID AS O FROM PSSQLDEFN WHERE SQLID = :i AND SQLTYPE = 0`, { i: id });
+        return r ? { delivered: t(r.O) === 'PPLSOFT' } : undefined;
+      },
+      contentReferences: async (component, market) => {
+        const refs = await q(`SELECT PORTAL_NAME AS P, PORTAL_OBJNAME AS N FROM PSPRSMDEFN
+          WHERE PORTAL_REFTYPE = 'C' AND PORTAL_URI_SEG2 = :c AND PORTAL_URI_SEG3 = :m ORDER BY 1, 2`, { c: component, m: market });
+        return Promise.all(refs.map(async (r) => {
+          /*
+           * The custom folders above it, nearest first, up to the first delivered one. A folder
+           * is custom when Oracle did not last update it and its creator created nothing Oracle
+           * owns: a portal-wide bulk edit (HRDMO GUACUSER, 188 delivered folders) changes
+           * LASTUPDOPRID alone, but never OPRID, the creator.
+           */
+          const rows = await q(`SELECT LEVEL AS L, PORTAL_OBJNAME AS N,
+              CASE WHEN LASTUPDOPRID = 'PPLSOFT' OR EXISTS (SELECT 1 FROM PSPRSMDEFN D WHERE D.LASTUPDOPRID = 'PPLSOFT' AND D.OPRID = F.OPRID) THEN 1 ELSE 0 END AS DLV
+              FROM PSPRSMDEFN F WHERE PORTAL_NAME = :p AND PORTAL_REFTYPE = 'F'
+              START WITH PORTAL_NAME = :p AND PORTAL_REFTYPE = 'F' AND PORTAL_OBJNAME = (SELECT PORTAL_PRNTOBJNAME FROM PSPRSMDEFN WHERE PORTAL_NAME = :p AND PORTAL_REFTYPE = 'C' AND PORTAL_OBJNAME = :n)
+              CONNECT BY NOCYCLE PORTAL_OBJNAME = PRIOR PORTAL_PRNTOBJNAME AND PORTAL_NAME = PRIOR PORTAL_NAME AND PORTAL_REFTYPE = 'F'
+              ORDER BY 1`, { p: t(r.P), n: t(r.N) });
+          const folders: string[] = [];
+          for (const f of rows) { if (Number(f.DLV)) break; folders.push(t(f.N)); }
+          return { portal: t(r.P), refType: 'C', name: t(r.N), folders };
+        }));
+      }
+    };
   }
 
   /** Rows of one query, every CLOB column as text (DESCRLONG, PORTAL_URLTEXT ...), never a LOB handle. */
@@ -1705,6 +1827,21 @@ export class DatabaseProvider implements DefinitionProvider {
       groups: await this.uiRows(c, `SELECT * FROM PS_PRCSDEFNGRP WHERE PRCSTYPE = :t AND PRCSNAME = :n ORDER BY PRCSGRP`, binds),
       translates: await this.translates(c, PROCESS_TRANSLATE_FIELDS)
     };
+  }
+
+  /** Grants a permission list component pages and process groups as the Permission Lists component does (permissionListWriter.ts). */
+  async grantPermissionListAccess(request: PermissionGrantRequest): Promise<PermissionGrantResult> {
+    if (this.platform !== 'oracle') throw new ProviderError('Permission list grants are currently supported on Oracle.');
+    return this.withConnection(c => grantPermissionListAccess(c, this.types, request));
+  }
+
+  /** Adds a process definition as the PRCSDEFN component's Add mode does (processWriter.ts createProcess). */
+  async createProcessDocument(request: ProcessCreateRequest): Promise<ProcessView> {
+    if (this.platform !== 'oracle') throw new ProviderError('Process definition creation is currently supported on Oracle.');
+    const key = makeKey(DefinitionType.ProcessDefinition, request.processType.trim(), request.name.trim().toUpperCase());
+    const created = await this.withConnection(c => createProcess(c, this.types, request, connection => this.readProcessRows(connection, key)));
+    if (!request.dryRun && processToken(await this.readProcessDocument(key)) !== processToken(created)) throw new ProviderError('Process create committed but subsequent readback differs. Reopen the definition to inspect it.');
+    return created;
   }
 
   async saveProcessDocument(request: ProcessSaveRequest): Promise<ProcessView> {
@@ -2211,6 +2348,7 @@ export class DatabaseProvider implements DefinitionProvider {
    * connection after COMMIT. A dry run returns the plan and writes nothing.
    */
   async saveAppEngineDocument(request: AeSaveRequest): Promise<AeSaveResult> {
+    await this.assertPeopleCodeImports(peopleCodeSourcesIn(request.doc));
     if (this.platform !== 'oracle' && (request.captureSnapshots || request.expectedSnapshotToken)) throw new ProviderError('Reviewed Application Engine snapshots require Oracle.');
     if (!request.dryRun && request.openedToken !== 'absent') await this.guard(makeKey(DefinitionType.AppEngineProgram, request.doc.name), 'save');
     const key=makeKey(DefinitionType.AppEngineProgram,request.doc.name);
@@ -2259,6 +2397,7 @@ export class DatabaseProvider implements DefinitionProvider {
 
   /** Saves a menu document as App Designer does (menuWriter.ts, docs/MENUS.md), then proves it after COMMIT. */
   async saveMenuDocument(request: MenuSaveRequest): Promise<MenuSaveResult> {
+    await this.assertPeopleCodeImports(peopleCodeSourcesIn(request.doc));
     if (!request.dryRun && request.openedToken !== 'absent') await this.guard(makeKey(DefinitionType.Menu, request.doc.name), 'save');
     const types = this.types;
     const result = await this.withConnection((c) => saveMenu(c, types, request));
@@ -2566,6 +2705,48 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   /** A message channel as its window opens it (channelWriter.ts, docs/MESSAGE_CHANNELS.md), with its token; undefined when there is none. */
+  /** A File Layout as its window opens it (fileLayoutWriter.ts, docs/FILE_LAYOUTS.md), with its token and VERSION. */
+  async readFileLayoutDocument(name: string): Promise<{ doc: FileLayoutDocument; token: string; version: number } | undefined> {
+    return this.withConnection(async (c) => {
+      const stored = await readStoredFileLayout(c, this.types, name, false);
+      if (!stored.exists) return undefined;
+      return { doc: fileLayoutDocumentOf(stored, name), token: fileLayoutToken(stored), version: Number(stored.rows.layout.VERSION) };
+    });
+  }
+
+  /** Insert > Record's fields: PSRECFIELDDB order, PSDBFIELD type / length / decimals; empty when there is no such record. */
+  async fileLayoutRecordFields(record: string): Promise<RecordFieldInfo[]> {
+    return this.withConnection((c) => readRecordFieldInfo(c, record.trim().toUpperCase()));
+  }
+
+  /** Saves a File Layout as App Designer does, then proves it after COMMIT. */
+  async saveFileLayoutDocument(request: FileLayoutSaveRequest): Promise<FileLayoutSaveResult> {
+    if (this.platform !== 'oracle') throw new ProviderError('File Layout saves are currently supported on Oracle.');
+    if (!request.dryRun && request.openedToken !== 'absent') await this.guard(makeKey(DefinitionType.FileLayout, request.doc.name), 'save');
+    const types = this.types;
+    const result = await this.withConnection((c) => saveFileLayout(c, types, request));
+    if (result.written) {
+      const after = await this.withConnection((c) => readStoredFileLayout(c, types, request.doc.name, false));
+      if (fileLayoutToken(after) !== result.token) throw new ProviderError(`After COMMIT ${request.doc.name} is not what was written.`);
+    }
+    return result;
+  }
+
+  async deleteFileLayoutDefinition(name: string, token: string, operatorId: string): Promise<void> {
+    if (this.platform !== 'oracle') throw new ProviderError('File Layout deletes are currently supported on Oracle.');
+    await this.guard(makeKey(DefinitionType.FileLayout, name), 'delete');
+    const types = this.types;
+    await this.withConnection((c) => deleteFileLayout(c, types, name, token, operatorId));
+    if ((await this.withConnection((c) => readStoredFileLayout(c, types, name, false))).exists) throw new ProviderError(`After COMMIT ${name} still exists.`);
+  }
+
+  async renameFileLayoutDefinition(from: string, to: string, token: string, operatorId: string): Promise<{ token: string; version: number }> {
+    if (this.platform !== 'oracle') throw new ProviderError('File Layout renames are currently supported on Oracle.');
+    await this.guard(makeKey(DefinitionType.FileLayout, from), 'rename');
+    const types = this.types;
+    return this.withConnection((c) => renameFileLayout(c, types, from, to, token, operatorId));
+  }
+
   async readChannelDocument(name: string): Promise<{ doc: ChannelDocument; token: string } | undefined> {
     return this.withConnection(async (c) => {
       const stored = await readStoredChannel(c, this.types, name, false);
@@ -2744,6 +2925,47 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   /** What App Engine reference validation asks the database (model/aeValidation.ts). */
+  /**
+   * The record / field catalogue the SQL type checks read, loaded once per call
+   * and cached on the provider: PSDBFIELD for a field's type, PSRECFIELDDB for
+   * which fields a record has, PSSQLTEXTDEFN for a SQL definition's shape.
+   */
+  async sqlCatalog(records: readonly string[]): Promise<SqlCatalog> {
+    const fieldTypes = new Map<string, SqlFieldType>();
+    const recordFields = new Map<string, Set<string>>();
+    await this.withConnection(async (c) => {
+      for (const rec of new Set(records.map((r) => r.trim().toUpperCase()))) {
+        const rows = (await c.execute<{ F: string; T: number; L: number; D: number }>(
+          `SELECT R.FIELDNAME AS F, D.FIELDTYPE AS T, D.LENGTH AS L, D.DECIMALPOS AS D
+             FROM PSRECFIELDDB R, PSDBFIELD D WHERE R.RECNAME = :r AND D.FIELDNAME = R.FIELDNAME`, { r: rec })).rows ?? [];
+        if (!rows.length) continue;
+        const set = new Set<string>();
+        for (const row of rows) {
+          const f = String(row.F).trim().toUpperCase();
+          set.add(f);
+          fieldTypes.set(f, { type: Number(row.T), length: Number(row.L), decimals: Number(row.D) });
+        }
+        recordFields.set(rec, set);
+      }
+    });
+    return { field: (n) => fieldTypes.get(n.toUpperCase()), record: (r) => recordFields.get(r.toUpperCase()) };
+  }
+
+  /** A SQL definition's bind-marker count and select-list width, for the call-site check. */
+  async sqlDefinitionShapes(ids: readonly string[]): Promise<Map<string, { binds: number; columns: number }>> {
+    const out = new Map<string, { binds: number; columns: number }>();
+    if (!ids.length) return out;
+    await this.withConnection(async (c) => {
+      for (const id of new Set(ids.map((i) => i.trim().toUpperCase()))) {
+        const [row] = (await c.execute<{ T: string }>(`SELECT SQLTEXT AS T FROM PSSQLTEXTDEFN WHERE SQLID = :i`, { i: id })).rows ?? [];
+        if (!row?.T) continue;
+        const text = String(row.T);
+        out.set(id, { binds: bindMarkerCount(text), columns: selectList(text.replace(/\/\*[\s\S]*?\*\//g, ' '))?.length ?? 0 });
+      }
+    });
+    return out;
+  }
+
   appEngineReferenceLookup(): AeReferenceLookup {
     const one = <T>(sql: string, binds: Record<string, unknown>) =>
       this.withConnection(async (c) => (await c.execute<T>(sql, binds)).rows ?? []);
@@ -2767,6 +2989,10 @@ export class DatabaseProvider implements DefinitionProvider {
       messageExists: async (set, number) => {
         const [r] = await one<{ N: number }>(`SELECT COUNT(*) AS N FROM PSMSGCATDEFN WHERE MESSAGE_SET_NBR = :s AND MESSAGE_NBR = :n`, { s: set, n: number });
         return Number(r?.N) > 0;
+      },
+      messageSeverity: async (set, number) => {
+        const [r] = await one<{ V: string }>(`SELECT MSG_SEVERITY AS V FROM PSMSGCATDEFN WHERE MESSAGE_SET_NBR = :s AND MESSAGE_NBR = :n`, { s: set, n: number });
+        return r ? String(r.V).trim() : undefined;
       }
     };
   }
@@ -3290,4 +3516,19 @@ function keyBinds(parts: readonly string[]): Record<string, string> {
 /** WHERE clause matching all seven OBJECTVALUE columns, unused slots blank. */
 function keyPredicate(_key: DefinitionKey): string {
   return [1, 2, 3, 4, 5, 6, 7].map((n) => `OBJECTVALUE${n} = :v${n}`).join(' AND ');
+}
+
+/** Every `peopleCode` source in a document (App Engine actions, menu items ...), wherever it sits. */
+function peopleCodeSourcesIn(doc: unknown): string[] {
+  const out: string[] = [];
+  const walk = (v: unknown): void => {
+    if (Array.isArray(v)) { v.forEach(walk); return; }
+    if (!v || typeof v !== 'object') return;
+    for (const [k, x] of Object.entries(v)) {
+      if (k === 'peopleCode' && typeof x === 'string' && x.trim()) out.push(x);
+      else walk(x);
+    }
+  };
+  walk(doc);
+  return out;
 }

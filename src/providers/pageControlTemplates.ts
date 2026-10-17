@@ -4,7 +4,8 @@
  * (tools/corpus/save-protocol/results): 02-add-edit (Edit Box), 06-types
  * (Drop-Down List Box, Check Box, Push Button), 07-groupbox (Group Box),
  * 15-static-text, 16-frame, 17-hrule and 18-number-datetime (Edit Boxes on a
- * number and a datetime field). A new control is one of these rows with the
+ * number and a datetime field), 22-date-editbox (on a date field: Display Century set, and the
+ * character field's smart-prompt and Fluid slots). A new control is one of these rows with the
  * page, id, order, position, label and record field filled in.
  *
  * DSPLFORMAT varies across delivered controls (Edit Boxes carry 298 values,
@@ -31,7 +32,7 @@ export type NewControlKind = 'groupBox' | 'frame' | 'staticText' | 'horizontalRu
 
 /** PSDBFIELD.FIELDTYPE values per kind that a capture has shown App Designer's fresh row for. */
 export const FIELD_TYPES_SEEN: Partial<Record<NewControlKind, Record<number, string>>> = {
-  editBox: { 0: 'character', 2: 'number', 6: 'datetime' },
+  editBox: { 0: 'character', 2: 'number', 4: 'date', 6: 'datetime' },
   dropDown: { 0: 'character' },
   checkBox: { 0: 'character' },
   pushButton: { 0: 'character' },
@@ -236,10 +237,12 @@ function extByKind(kind: NewControlKind, field: FieldInfo | undefined, add?: New
     return { PTDISABLESMARTPROM: 0, FFSTYLELONG: FFSTYLELONG_SLOTS };
   }
   if (kind === 'image' || kind === 'chart' || kind === 'tree') return { PTDISABLESMARTPROM: 0, FFSTYLELONG: ' ' };
-  // The five-slot FFSTYLELONG rides on a text field -- character (02, rb-fresh) or long character (le-fresh);
-  // a number / datetime Edit Box (18) gets ' '. Smart-prompt is turned off only on a character Edit Box.
-  const textField = isRecordBound(kind) && (field?.fieldType === 0 || field?.fieldType === 1);
-  return { PTDISABLESMARTPROM: field?.fieldType === 0 && kind === 'editBox' ? 1 : 0, FFSTYLELONG: textField ? ' | | | | ' : ' ' };
+  // The five-slot FFSTYLELONG rides on a text field -- character (02, rb-fresh) or long character (le-fresh) -- and on a
+  // date Edit Box (22-date-editbox); a number / datetime Edit Box (18) gets ' '. Smart-prompt is turned off on a
+  // character or date Edit Box.
+  const dateEdit = kind === 'editBox' && field?.fieldType === 4;
+  const textField = isRecordBound(kind) && (field?.fieldType === 0 || field?.fieldType === 1 || dateEdit);
+  return { PTDISABLESMARTPROM: (field?.fieldType === 0 && kind === 'editBox') || dateEdit ? 1 : 0, FFSTYLELONG: textField ? ' | | | | ' : ' ' };
 }
 
 const FFSTYLELONG_SLOTS = ' | | | | ';
@@ -302,7 +305,9 @@ export function newControlRows(pnlName: string, pnlFldId: number, fieldNum: numb
   return {
     field: {
       PNLNAME: pnlName, PNLFLDID: pnlFldId, FIELDNUM: fieldNum, ...FIELD_COMMON, ...FIELD_BY_KIND[add.kind],
-      ...(add.kind === 'htmlArea' && !add.fieldName.trim() ? { DSPLFORMAT: 8193 } : {}), ...byDialog, ...extra,
+      ...(add.kind === 'htmlArea' && !add.fieldName.trim() ? { DSPLFORMAT: 8193 } : {}),
+      // A date Edit Box: App Designer ticks Display Century (0x10000) on its own (22-date-editbox).
+      ...(add.kind === 'editBox' && field?.fieldType === 4 ? { DSPLFORMAT: (FIELD_BY_KIND.editBox.DSPLFORMAT as number) | 0x10000 } : {}), ...byDialog, ...extra,
       FIELDTYPE: NEW_CONTROL_FIELDTYPE[add.kind], OCCURSLEVEL: Math.max(0, Math.round(placed.occursLevel ?? 0)),
       FIELDLEFT: placed.fieldLeft, FIELDTOP: placed.fieldTop, FIELDRIGHT: placed.fieldRight, FIELDBOTTOM: placed.fieldBottom,
       FIELDSIZETYPE: placed.fieldSizeType, LBLTYPE: placed.lblType, LABEL_ID: labelId, LBLTEXT: lblText,

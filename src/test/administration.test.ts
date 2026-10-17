@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { Script } from 'node:vm';
 import { adminInputKey, adminToken, inputForAdminDocument, validateAdminInput, urlProtocol, invalidTextTags, type AdminDocument } from '../model/administration.js';
 import { administrationHtml } from '../editors/administrationHtml.js';
+import { messageSetDescriptions } from '../providers/administrationWriter.js';
 
 test('message validation respects the custom range, severity and PeopleTools field lengths', () => {
   const valid = { set: 20000, number: 1, setDescription: 'Custom', setShortDescription: '', severity: 'M', text: 'Hello %1', explanation: '' };
@@ -61,4 +62,16 @@ test('all administration editors have searchable forms, readonly/busy controls a
     assert.doesNotThrow(() => new Script(script));
     assert.ok(!script.includes('innerHTML'), 'database values use textContent, never HTML');
   }
+});
+
+test('blank message set descriptions keep the stored ones, on an edit as well as a new sibling', () => {
+  const stored = { descr: 'Vendor Benefit Interface', short: 'Vendor' };
+  // Editing message 25500,9 with blank set descriptions blanked the set on HRDMO.
+  assert.deepEqual(messageSetDescriptions({ setDescription: '', setShortDescription: '' }, stored), stored);
+  assert.deepEqual(messageSetDescriptions({ setDescription: '   ' }, stored), stored);
+  // Supplied descriptions still change them; a missing short one is derived from the long one.
+  assert.deepEqual(messageSetDescriptions({ setDescription: 'New name', setShortDescription: 'Short' }, stored), { descr: 'New name', short: 'Short' });
+  assert.deepEqual(messageSetDescriptions({ setDescription: 'Benefits Interfaces', setShortDescription: '' }, stored), { descr: 'Benefits Interfaces', short: 'Benefits I' });
+  // A brand new set with nothing supplied stays blank.
+  assert.deepEqual(messageSetDescriptions({ setDescription: '' }, undefined), { descr: '', short: '' });
 });

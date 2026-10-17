@@ -210,3 +210,32 @@ test('operator ids are required and well formed', () => {
   assert.match(validateOperatorId('X'.repeat(31))!, /30/);
   assert.match(validateOperatorId(undefined)!, /required/);
 });
+
+test('the pre-edit gate reproduces a stored program the save-time rules would reject', () => {
+  // A program already in the database that breaks a save-time semantic rule
+  // (here PC003: Return with a value in Record PeopleCode) must still be
+  // replaceable. The gate asks whether this writer reproduces the stored
+  // rows, not whether App Designer would have saved them -- otherwise a
+  // non-compliant program could never be corrected through this writer,
+  // which is exactly the program that most needs correcting.
+  const ids = (...v: number[]) => [...v, ...Array(7 - v.length).fill(0)];
+  const vals = (...v: string[]) => [...v, ...Array(7 - v.length).fill(' ')];
+  const key = { objectIds: ids(1, 2, 12), objectValues: vals('ZZ_PCODE_LAB', 'ZZ_PCODE_LAB_C01', 'FieldChange') };
+  const target = targetForKey(key);
+  const offending = 'If &x = 1 Then\n   Return True;\nEnd-If;\n';
+
+  // Writing it is still refused: the rules gate the source being saved.
+  assert.throws(() => compileForSave(offending, target, TOOLS_RELEASE),
+    /App Designer would not save this PeopleCode/);
+
+  // Stored, the same text passes the gate, so a correcting save can proceed.
+  const compiled = compileForSave(offending, target, TOOLS_RELEASE, { checkSemantics: false });
+  const plan = planProgram(offending, compiled);
+  const stored = expectedProgram(key, plan, { version: 1, lastupddttm: '2026-01-01-00.00.00.000000', operatorId: 'PS' });
+  assert.doesNotThrow(() => checkStoredProgram(stored, target, TOOLS_RELEASE));
+
+  // Fidelity is untouched: text that does not re-encode to the stored bytes
+  // is still refused, semantic rules or not.
+  const tampered = { ...stored, text: stored.text.map((r) => ({ ...r, text: r.text.replace('Return True;', 'Return False;') })) };
+  assert.throws(() => checkStoredProgram(tampered, target, TOOLS_RELEASE), SaveRefusedError);
+});

@@ -29,3 +29,12 @@ dist-test/
 /tools/intelligence/tasks/
 /tools/corpus/appclass-metadata/manifest.local.txt
 /tools/corpus/appclass-metadata/required-classes.local.txt
+# Site-specific material (an institution's objects or a benefits vendor's interface) -- local only, never committed.
+*OU_*
+*ou_fid*
+*[Ff]idelity*
+*FIDELITY*
+/tools/corpus/save-protocol/results/fl[0-9][0-9]-*/
+/tools/corpus/save-protocol/results/nfl01-ad-edit-of-writer/
+/src/test/fileLayoutWriter.test.ts
+/tools/lab/file-layout-e2e.mts

@@ -182,6 +182,18 @@ function validateAction(sp: string, at: object, a: AeDocAction, add: (d: AeDiagn
   if ((a.type === 'H' || a.type === 'W' || a.type === 'N') && a.text && !/^\s*(%select\s*\([^)]*\)\s*)?select\b/i.test(a.text)) {
     add({ severity: 'warning', code: 'do-not-select', path: ap, at: where, message: `${ACTION_LABELS[a.type]} runs a SELECT: it continues while (or until) the SELECT returns a row.` });
   }
+  // A Do When / Do While / Do Until must land its selected column in the state record.
+  // Without %Select, App Engine builds the statement, never sends it, and abends
+  // "ABENDED at Step <s>.<step> (Do When) -- RC = ?" with no SQL error -- the statement
+  // appears in the .AET trace and never in the SQL (.trc) trace. Proved on HRDMO
+  // (ZZ_BENEFITS.INIT.DOPAYCAL). Of 4,285 delivered Do When / While / Until actions,
+  // 4,255 use %Select and the other 30 call %Sql(), which supplies it; none has neither.
+  if ((a.type === 'H' || a.type === 'W' || a.type === 'N') && a.text
+      && /^\s*select\b/i.test(a.text) && !/%select\s*\(/i.test(a.text) && !/%sql\s*\(/i.test(a.text)) {
+    add({ severity: 'error', code: 'do-when-select-into', path: ap, at: where,
+      message: `${ACTION_LABELS[a.type]} selects a column but does not put it in the state record, so Application Engine abends at run time ("-- RC = ?") before the statement reaches the database.`,
+      fix: 'Begin the SQL with %Select(field), e.g. "%Select(TEMP_FLD) SELECT \'X\' FROM PS_INSTALLATION WHERE %Bind(FIELD) = \'VALUE\'", and add that 1-character work field to the state record.' });
+  }
   if (a.type === 'S' && a.text && /^\s*select\b/i.test(a.text)) {
     add({ severity: 'info', code: 'sql-select', path: ap, at: where, message: 'An SQL action that is a SELECT must use %Select(...) to put its one row into the state record; its other rows are ignored.' });
   }
@@ -210,6 +222,8 @@ export interface AeReferenceLookup {
   programSections(program: string): Promise<{ name: string; isPublic: boolean }[] | undefined>;
   /** Whether a Message Catalog entry exists. */
   messageExists(set: number, number: number): Promise<boolean>;
+  /** A Message Catalog entry's MSG_SEVERITY (M / W / E / C), undefined when there is none. */
+  messageSeverity?(set: number, number: number): Promise<string | undefined>;
 }
 
 /** The %Bind / %Select field names an SQL text uses (the state-record side of its binds). */
@@ -262,6 +276,22 @@ export async function validateAppEngineReferences(doc: AeDocument, lookup: AeRef
     }
     if (st.actions.some((a) => a.type === 'M') && st.messageSet && st.messageNumber && !(await lookup.messageExists(st.messageSet, st.messageNumber))) {
       out.push({ severity: 'warning', code: 'message-missing', path: `${sp}.Log Message`, message: `Message ${st.messageSet}, ${st.messageNumber} is not in the Message Catalog.`, at: { ...at, action: 'M' } });
+    }
+    // A PeopleCode action whose On Return is Break logs an Error- or Cancel-severity message
+    // and then Exit(1)s: the run aborts anyway, so the Break never happens. Proved on HRDMO
+    // (ZZ_BENEFITS.B_CONTRB.RESPAY: the same step completed once its message was Warning).
+    // No delivered step with On Return Break logs one -- 31 log Message severity, none Error.
+    const pc = st.actions.find((a) => a.type === 'P')?.peopleCode ?? '';
+    if (st.onReturn.trim() === 'B' && lookup.messageSeverity && /\bExit\s*\(\s*1\s*\)/i.test(pc)) {
+      const code = pc.replace(/\/\*[\s\S]*?\*\//g, ' ');
+      for (const m of code.matchAll(/\bMessageBox\s*\(\s*\d+\s*,\s*"[^"]*"\s*,\s*(\d+)\s*,\s*(\d+)/gi)) {
+        const sev = (await lookup.messageSeverity(Number(m[1]), Number(m[2])))?.trim();
+        if (sev === 'E' || sev === 'C') {
+          out.push({ severity: 'error', code: 'break-error-message', path: `${sp}.PeopleCode`, at: { ...at, action: 'P' },
+            message: `On Return is Break, but this action logs message ${m[1]},${m[2]} (severity ${sev}) before Exit(1). An ${sev === 'E' ? 'Error' : 'Cancel'}-severity message aborts the run, so the Break never happens and the program abends.`,
+            fix: 'Log a Warning- or Message-severity entry instead (the step still Exit(1)s and breaks), or set On Return to Abort if stopping the run is intended.' });
+        }
+      }
     }
     if (!doc.stateRecords.length) continue;
     for (const a of st.actions) {

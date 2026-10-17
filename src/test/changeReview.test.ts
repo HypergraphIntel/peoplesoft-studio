@@ -7,6 +7,8 @@ import { ReviewStore } from '../changeReview/store.js';
 import { ReviewService, type ReviewAdapter } from '../changeReview/service.js';
 import { buildObjectTimeline } from '../changeReview/timeline.js';
 import { approvalHash, canonical, differences, hash, privacy, type Environment, type Json } from '../changeReview/model.js';
+import { isHeaderOnlyRequest } from '../changeReview/structuredHeaders.js';
+import { isStageablePageRequest } from '../model/pageOperations.js';
 async function fixture() {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'psft-review-')), store = new ReviewStore(root);
     let target: Environment = { connection: 'oracle:LAB', identity: 'database-schema-1', label: 'LAB' }, writable = true, fail = '', commitThenFail = false;
@@ -89,6 +91,18 @@ test('one-object application does not partially reverse checkpoints and still ch
         f.live.set('C', { value: { text: 'outside' }, token: '2' });
         assert.equal((await f.service.apply(set.id, true)).status, 'CONFLICTED');
         assert.deepEqual(f.writes, ['A']);
+    } finally { await f.close(); }
+});
+test('a Change Set that conflicted before any write can be cancelled', async () => {
+    const f = await fixture();
+    try {
+        let set = await f.service.create('Conflicted', 'oracle:LAB');
+        set = await f.service.stage(set.id, 'fixture', 'B', { text: 'new' });
+        f.live.set('B', { value: { text: 'outside' }, token: '9' });
+        assert.equal((await f.service.validate(set.id)).status, 'CONFLICTED');
+        await f.service.cancel(set.id);
+        assert.equal((await f.service.store.get(set.id)).status, 'CANCELLED');
+        assert.deepEqual(f.writes, []);
     } finally { await f.close(); }
 });
 test('remaining work is a durable fresh proposal after reconciliation; confirmed writes are never replayed', async () => {
@@ -652,4 +666,43 @@ test('changed policy/operator authorization stamp invalidates exact revision app
     finally {
         await f.close();
     }
+});
+
+test('only bounded header edits stage; a structural Record or App Engine edit takes the legacy write path', () => {
+    // The routing question, isolated: staging is for operations this adapter
+    // can carry an exact after-state for. Anything else must fall through to
+    // the legacy per-write confirmation -- refusing it would leave a
+    // structural edit with no route at all, since creation already writes
+    // that way and staging cannot represent it.
+    assert.equal(isHeaderOnlyRequest('ae', [{ op: 'set_program', comments: 'why this program exists' }]), true);
+    assert.equal(isHeaderOnlyRequest('ae', [{ op: 'set_program', description: 'Vendor interface' }]), true);
+    assert.equal(isHeaderOnlyRequest('record', [{ op: 'set_properties', description: 'Staging', definition: 'notes' }]), true);
+
+    // Structural: a different op, or the right op carrying more than the header.
+    assert.equal(isHeaderOnlyRequest('ae', [{ op: 'set_action', section: 'B_CONTRB', step: 'RESPAY', type: 'PeopleCode', onReturn: 'Break' }]), false);
+    assert.equal(isHeaderOnlyRequest('record', [{ op: 'insert_field', field: 'EMPLID' }]), false);
+    assert.equal(isHeaderOnlyRequest('ae', [{ op: 'set_program', comments: 'ok', messageSet: 25500 }]), false);
+
+    // A header edit mixed with a structural one is not stageable either.
+    assert.equal(isHeaderOnlyRequest('ae', [{ op: 'set_program', comments: 'ok' }, { op: 'rename_step', section: 'INIT', step: 'SETUP', to: 'PREP' }]), false);
+
+    // Nothing to stage is not a header edit.
+    assert.equal(isHeaderOnlyRequest('ae', []), false);
+    assert.equal(isHeaderOnlyRequest('ae', undefined), false);
+    assert.equal(isHeaderOnlyRequest('ae', [null]), false);
+});
+
+test('only bounded Page edits stage; inserting or deleting a control takes the legacy write path', () => {
+    assert.equal(isStageablePageRequest([{ op: 'move', id: 3, left: 10, top: 20 }], undefined), true);
+    assert.equal(isStageablePageRequest([{ op: 'set_use', id: 3, displayOnly: true }], undefined), true);
+    assert.equal(isStageablePageRequest([{ op: 'set_properties', description: 'Setup', comments: 'why' }], undefined), true);
+
+    // A grid column is an inserted control, so it is not stageable.
+    assert.equal(isStageablePageRequest([{ op: 'add', kind: 'editBox', left: 0, top: 0, intoGrid: 5 }], undefined), false);
+    assert.equal(isStageablePageRequest([{ op: 'delete', id: 1 }], undefined), false);
+    // set_properties carrying more than description/comments, and saveInvalid, are not stageable.
+    assert.equal(isStageablePageRequest([{ op: 'set_properties', fluidPage: true }], undefined), false);
+    assert.equal(isStageablePageRequest([{ op: 'move', id: 3, left: 0, top: 0 }], true), false);
+    assert.equal(isStageablePageRequest([], undefined), false);
+    assert.equal(isStageablePageRequest(undefined, undefined), false);
 });

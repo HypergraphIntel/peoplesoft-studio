@@ -1,3 +1,4 @@
+import { checkPeopleCodeSemantics, describeSemanticProblems } from '../semanticCheck.js';
 import {sameLexicalSource} from './sourceEquivalence.js';
 import { createHash } from 'node:crypto';
 import { encodeProgramArtifacts, type PeopleCodeReference } from '../encoder.js';
@@ -278,12 +279,42 @@ function nameTable(rows: readonly NameRow[]): NameTable {
 
 export interface Compiled { program: Buffer; names: NameRow[]; progextends: string }
 
+export interface CompileForSaveOptions {
+  /**
+   * Whether to apply the save-time semantic rules (semanticCheck.ts).
+   *
+   * True for source being written: refuse what App Designer would refuse.
+   *
+   * False when compiling text that is ALREADY STORED, to prove this writer
+   * reproduces it. Those rules gate what a save may introduce, not what the
+   * database already holds: a stored program was saved by something, so
+   * "App Designer would not save this" says nothing about whether we can
+   * re-encode it. Applying them there refuses to replace exactly the
+   * programs that most need replacing -- a non-compliant program could
+   * never be corrected through this writer. Fidelity is unaffected: the
+   * caller still compares the encode/decode round trip and the resulting
+   * bytes against the stored rows, so a program this writer does not
+   * reproduce is still refused.
+   */
+  checkSemantics?: boolean;
+}
+
 /**
  * Encodes `source` for `target` under the PeopleTools release, and proves
  * the result decodes back to it. Refuses rather than returning a program
  * the decoder reads differently.
  */
-export function compileForSave(source: string, target: CompileTarget, toolsRelease: string): Compiled {
+export function compileForSave(
+  source: string,
+  target: CompileTarget,
+  toolsRelease: string,
+  options: CompileForSaveOptions = {}
+): Compiled {
+  // App Designer's compiler checks the encoder does not make (semanticCheck.ts): refuse what App Designer would.
+  if (options.checkSemantics !== false) {
+    const semantic = checkPeopleCodeSemantics(source, { applicationClass: target.applicationClass });
+    if (semantic.length) throw new SaveRefusedError(`App Designer would not save this PeopleCode:\n${describeSemanticProblems(source, semantic)}`);
+  }
   let artifacts;
   try {
     artifacts = encodeProgramArtifacts(source, {
@@ -361,6 +392,11 @@ const sameNames = (a: readonly NameRow[], b: readonly NameRow[]) =>
  * its PSPCMTXT rows are split and signed as this writer would, and its
  * PSPCMPROG columns hold the values native saves were observed to write.
  * Anything else means the program is outside proven territory.
+ *
+ * This is a question of reproduction only. Whether the stored source obeys
+ * the save-time semantic rules is deliberately NOT asked: those gate the
+ * source being written, and asking them here would make a program that
+ * breaks them impossible to correct through this writer.
  */
 export function checkStoredProgram(program: StoredProgram, target: CompileTarget, toolsRelease: string): void {
   const refuse = (why: string) => {
@@ -398,7 +434,10 @@ export function checkStoredProgram(program: StoredProgram, target: CompileTarget
 
   let compiled: Compiled;
   try {
-    compiled = compileForSave(text, target, toolsRelease);
+    // The stored text only has to re-encode to the stored bytes. The
+    // save-time semantic rules gate the source being written, not what is
+    // already there -- see CompileForSaveOptions.checkSemantics.
+    compiled = compileForSave(text, target, toolsRelease, { checkSemantics: false });
   } catch (error) {
     refuse(error instanceof Error ? error.message : String(error));
     return;

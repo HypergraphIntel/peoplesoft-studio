@@ -1,5 +1,189 @@
 # Changelog
 
+## 0.9.2 — 2026-10-17
+
+### Added
+
+- **Projects carry related definitions** (`src/model/projectClosure.ts`).
+  `psft_add_to_project` now adds what its items need to work in a target by
+  default (`includeRelated`): an App Engine program's sections, SQL statements
+  and PeopleCode; a component's PeopleCode, pages and content references; page
+  and record PeopleCode; a field's translate values; and the custom SQL objects
+  the code calls (`SQL.NAME`, `%SQL(NAME)`). New read-only `psft_project_related`
+  lists what a project still needs. A build had put `ZZ_BENEFITS` and
+  `ZZ_BNV_RUN_CMP` into ZZ_BENEFITS as single items and the developer added 42
+  more by hand; from the build's 55 items the closure finds all 42, and on the
+  finished project it finds the 36 that were still missing -- including the 7
+  SQL objects whose absence would fail the program at run time in a target.
+  Project items can now be translate values, process definitions, page,
+  component, component record and component record field PeopleCode, and portal
+  registry entries. Each layout is the only one HRDMO's delivered projects use
+  for its type, and the component PeopleCode and process definition layouts are
+  also the rows App Designer wrote into ZZ_BENEFITS. Message Catalog entries the
+  code uses (`MessageBox(…, set, number, …)`) are added too: delivered projects
+  carry two layouts for them, and a capture settled it -- App Designer 8.62's
+  Insert > Definitions into Project wrote set 25500 into ZZ_BENEFITS as OBJECTTYPE
+  25, IDs 48/49, set and number unpadded, and left the other 116 rows untouched.
+  A content reference brings the custom folders above it (up to the first
+  delivered one); a folder counts as delivered when Oracle last updated it or its
+  creator created anything Oracle owns, since a portal-wide edit on HRDMO had
+  changed LASTUPDOPRID on 188 delivered folders. On the finished ZZ_BENEFITS (136
+  items) the closure finds nothing missing. Build request guidance now says the
+  same, and lists the setup component for configuration values.
+
+- **App Engine check `break-error-message`**: a PeopleCode action whose On Return
+  is Break, and which logs an Error- or Cancel-severity message before `Exit(1)`,
+  is refused. The message aborts the run, so the Break never happens and the
+  program abends. Proved on HRDMO: `ZZ_BENEFITS.B_CONTRB.RESPAY` abended with
+  message 25500,9 (E), and the same step broke cleanly once it logged 25500,20
+  (W). No delivered step with On Return Break logs one -- 31 log Message
+  severity, none Error. On Return Abort is untouched, since stopping is intended
+  there.
+
+- **`psft_edit_page` `set_use` takes `deferProc`** (Allow Deferred Processing,
+  `PSPNLFIELD.DEFERPROC`). The page writer already persisted it for the editor
+  (capture u03); the MCP operation simply did not expose it. Turning it off on
+  one field makes its FieldChange run when the user leaves the field instead of
+  on the next server trip -- needed wherever a field enables or fills others,
+  such as a run control's file type. 21,049 delivered fields across 5,763 pages
+  are set off. An untouched control keeps its stored value.
+
+- **SQL checked against the record and field catalogue** on every App Engine
+  save (`src/model/sqlTypeCheck.ts`, wired into `deepValidate`, so
+  `psft_ae_edit`, `psft_ae_create` and `psft_ae_validate` all run it). Five
+  checks, each for a mistake that otherwise surfaces only as a run-time abend:
+  `sql-bind-unknown` (a `%Bind` / `%Select` field on no state record, or an
+  INSERT column that is not a field of the record), `sql-insert-arity` (column
+  list and SELECT list of different length), `sql-type-mismatch` (a column
+  written from another type family -- char/long and number/signed count as one,
+  date, time and datetime stay distinct), `sql-select-arity` (`%Select` naming
+  a different number of fields than the SELECT returns), and `sql-call-arity`
+  (`CreateSQL` passing other than the definition's bind count, or `SQLExec`
+  outside binds..binds+columns). The catalogue is read from `PSDBFIELD` /
+  `PSRECFIELDDB` / `PSSQLTEXTDEFN`; if it cannot be read the save proceeds
+  rather than failing on a missing convenience.
+
+- **SQL definition check**: a save is refused when **any colon** appears inside
+  a comment. PeopleSoft reads the whole statement text for bind variables,
+  comments included, and message 2,166 gives the rule -- "Bind variables must
+  be of the form ':n' (where n is a decimal number) or ':record.field'." So a
+  documented `:1` becomes an extra bind, and a colon in ordinary prose
+  ("binds, in order:") is an invalid one; both fail at run time with `Invalid
+  SqlExec bind variable. (2,166)`. Proved twice on HRDMO -- removing the
+  markers alone was not enough, the prose colons still failed. Census: 0 of the
+  74 delivered standalone SQL objects that open with a comment contains a bare
+  colon. Write the comment without colons and name the binds in words.
+
+- **PeopleCode rule PC009**: a save is refused when a `NumberToString` format
+  carries a printf conversion. PeopleSoft's format is `%<width>[.<decimals>]`
+  with an optional `R`, `T`, `t` or `v`; `"%04d"` is taken literally and
+  corrupted 2026 into `d-ba`, which reached a staging table as the plan year.
+  The boundary is from the snapshot: 80 delivered programs, 48 distinct formats,
+  suffixes only `R T t v`, none containing a `d` (census flags 0).
+
+- **App Engine check `do-when-select-into`**: a Do When, Do While or Do Until
+  whose SELECT does not put its column into the state record is refused. Without
+  `%Select(field)` (or a `%Sql()` that supplies it) Application Engine builds the
+  statement, never sends it, and abends `ABENDED at Step <section>.<step> (Do
+  When) -- RC = ?` with no SQL error -- the statement appears in the `.AET` step
+  trace and never in the SQL trace. Census of the snapshot: 4,255 of 4,285
+  delivered Do When / While / Until actions use `%Select`, the other 30 use
+  `%Sql()`, none has neither. Found on a live HRDMO run; `psft_ae_reference` and
+  `docs/APP_ENGINE_SEMANTICS.md` carry it.
+
+- **PeopleCode rule PC008**: a save is refused when `SQL.Fetch` is given a
+  property or a class instance variable as an output parameter. Fetch binds its
+  outputs by reference, so a property -- reached through a getter -- cannot be
+  one; App Engine abends at run time with `SQL.Fetch: parameter 1 is neither a
+  record object nor a name. (2,284)`, which no compile-time check caught. Fetch
+  into Locals and assign afterwards. Same family as PC007. Found on a live
+  HRDMO run; `psft_peoplecode_reference` and `psft_validate_peoplecode` carry it.
+
+- **Build Requests** (development): a sidebar pane and page where a developer
+  gathers a business request (notes, specs, mapping spreadsheets, sample
+  files) and hands it to Claude Code, Codex or any MCP agent. The agent reads
+  it through new `psft_build_request_*` MCP tools, asks questions and proposes
+  a build spec; only the developer approves it in VS Code, and approval lapses
+  when the request or spec changes. The approved spec is then built through the
+  existing guarded tools and Change Review, with progress per object. Word,
+  Excel, PowerPoint and text attachments are read into text; Studio decides
+  from its capability catalog what it can build, and the rest (File Layouts,
+  new Process Definitions, Pages, Components, security) are manual steps. See
+  [docs/BUILD_REQUESTS.md](docs/BUILD_REQUESTS.md).
+- **Creating the rest of an interface through the MCP**: `psft_page_create`
+  (a classic page from the same operations as `psft_edit_page`, such as a run
+  control page with `PRCSRUNCNTL_SBP`), `psft_get_component`,
+  `psft_component_create` and `psft_component_edit` (pages and Use-tab
+  properties, on the App Designer-proven component writer),
+  `psft_process_create` (the PRCSDEFN component's Add-mode row, then the edit
+  writer) and `psft_security_grant` (permission list page and process group
+  access with the CLM/SYS counters). Build requests now route these instead of
+  leaving them as manual steps. See docs/PROCESS_DEFINITIONS.md and
+  docs/SECURITY.md.
+
+- **File Layout Designer**: File Layouts open in App Designer's File Layout
+  window -- the layout tree, File Layout / Segment / Field properties, Insert
+  Record / Segment / Child Segment / File Field, delete, move, Propagate, Save,
+  Save As, Rename and Delete -- and *New File Layout* starts one. The writer
+  replays fifteen captured App Designer saves column for column, and App
+  Designer reopened and saved a writer-made layout unchanged. MCP:
+  `psft_file_layout_reference`, `_get`, `_create`, `_edit`, `_copy`, `_rename`,
+  `_delete`. See docs/FILE_LAYOUTS.md.
+- **PeopleCode checks App Designer makes**: every PeopleCode save (editor,
+  MCP, App Engine and menu saves) now refuses code App Designer's compiler
+  would refuse, naming the line and the fix: a property declared `readonly`
+  or plain but given a `get` block, an instance variable named like a
+  property, `Return True` in event or App Engine PeopleCode, a Local
+  re-declaring a parameter or instance variable, an Application Class used
+  without an import, `None(&instanceVar)`, and (against the database) an
+  import of a class or package that does not exist. MCP:
+  `psft_peoplecode_reference` and `psft_validate_peoplecode`. No delivered
+  program trips a rule (`npx tsx tools/corpus/semantic-census.ts`). See
+  docs/PEOPLECODE_RULES.md.
+
+### Fixed
+
+- **Message Catalog saves no longer blank the message set's description.** Editing
+  an existing message with blank set descriptions wrote them verbatim, emptying
+  `PSMSGSETDEFN.DESCR` and `DESCRSHORT` for every message in the set -- while the
+  `psft_admin_reference` guidance told an agent to leave them blank, and the save's
+  own verification expected the blanked value, so nothing flagged it. Blank now
+  keeps the stored descriptions on an edit as it already did when adding a
+  sibling, and only supplied descriptions are verified. Found on HRDMO (set 25500).
+
+- `psft_page_create` keeps a grid's columns. Its placement loop is separate
+  from `psft_edit_page`'s and ignored `intoGrid`, so a grid created with its
+  columns in one call kept none of them: the columns sorted to the top-left as
+  ordinary level-0 controls and the page failed App Designer's "No data for
+  scroll" (15,19), with no way to tell why. Columns now follow their grid in
+  tab order at (0, 0), the grid counts them (GRDCOLUMNCOUNT), and a control
+  naming something that is not a grid is refused rather than quietly misplaced.
+  The same loop also placed a new scroll with the ordinary reading-order rule
+  instead of `newScrollTabIndex`, so a second grid landed between the first
+  grid and the columns it owns -- "No data for scroll" on one and "More than
+  one data record in scroll" on the other.
+- A structural `psft_edit_page`, `psft_edit_record` or `psft_ae_edit` operation
+  is no longer refused outright when Change Review is on. The header adapter stages only
+  description/comments edits, and everything else was being rejected rather
+  than handed on, so a change like an App Engine action's On Return setting
+  had no route at all: staging could not carry it and nothing else was
+  offered. Structural operations -- including inserting or deleting a Page
+  control -- now take the legacy per-write confirmation, as Record, Page and
+  App Engine *creation* already do. A fall-through refuses when the caller
+  supplied a `changeSetId`, rather than writing work the developer believes is
+  staged.
+- The new PeopleCode checks no longer make a non-compliant program
+  unrepairable. The writer's pre-edit gate asks whether it reproduces the
+  *stored* program; it was also applying the save-time rules to that stored
+  text, so a program already holding, say, `Return True` in App Engine
+  PeopleCode could not be replaced -- the save that would have corrected it
+  was refused because of the very code it was correcting. The rules now gate
+  the source being written only. Fidelity is unchanged: the stored text must
+  still re-encode to the stored PSPCMPROG and PSPCMNAME rows.
+- New Application Classes saved through the MCP are no longer staged in Change
+  Review, which cannot apply them; they save with the per-write confirmation.
+- A Change Set that conflicted before anything was written can be cancelled.
+
 ## 0.9.1 — 2026-10-15
 
 Release scope and acceptance evidence are tracked in

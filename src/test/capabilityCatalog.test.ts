@@ -16,7 +16,8 @@ test('catalog covers every modeled type exactly once and exposes bounded operati
   assert.equal(query.operations.delete.status, 'NOT_EXPOSED');
   const process = entries.find(entry => entry.type === DefinitionType.ProcessDefinition)!;
   assert.equal(process.operations.execute.status, 'NOT_EXPOSED');
-  assert.equal(process.operations.create.status, 'NOT_EXPOSED');
+  assert.deepEqual([process.operations.create.status, process.operations.create.tools], ['BOUNDED', ['psft_process_create']]);
+  assert.equal(process.operations.delete.status, 'NOT_EXPOSED');
 });
 
 test('catalog routes resolve to registered tools, filters compose and unknown types remain empty', () => {

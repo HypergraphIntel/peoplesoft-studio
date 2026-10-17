@@ -45,7 +45,10 @@ export const INSERTABLE_TYPES: ReadonlySet<DefinitionType> = new Set([
   DefinitionType.Record, DefinitionType.Field, DefinitionType.Page, DefinitionType.Menu,
   DefinitionType.Component, DefinitionType.RecordPeopleCode, DefinitionType.AppEngineProgram, DefinitionType.AppEngineSection, DefinitionType.AppEnginePeopleCode,
   DefinitionType.HtmlDefinition, DefinitionType.SqlDefinition, DefinitionType.ApplicationPackage,
-  DefinitionType.ApplicationClassPeopleCode, DefinitionType.StyleSheet, DefinitionType.MessageChannel, DefinitionType.UrlDefinition
+  DefinitionType.ApplicationClassPeopleCode, DefinitionType.StyleSheet, DefinitionType.MessageChannel, DefinitionType.UrlDefinition,
+  DefinitionType.TranslateValue, DefinitionType.ProcessDefinition, DefinitionType.PagePeopleCode, DefinitionType.ComponentPeopleCode,
+  DefinitionType.ComponentRecordPeopleCode, DefinitionType.ComponentRecordFieldPeopleCode, DefinitionType.PortalRegistry,
+  DefinitionType.MessageCatalog
 ]);
 
 export function canInsertIntoProject(type: DefinitionType): boolean {
@@ -107,6 +110,70 @@ const LAYOUTS: Readonly<Partial<Record<DefinitionType, (key: DefinitionKey) => P
     const values = key.parts.length >= 3 ? key.parts.slice(0, 3) : [name(key), name(key), '.'];
     return { objectType: 57, objectIds: [104, 116, 117], objectValues: values };
   },
+  /*
+   * The definitions App Designer's Insert Related Definitions brings along, and that a
+   * build left out of ZZ_BENEFITS until the developer added them by hand. Each layout is
+   * the only one HRDMO's delivered projects use for its type (counts below), and the
+   * component PeopleCode and process definition layouts are also the rows App Designer
+   * wrote into ZZ_BENEFITS itself.
+   */
+  // Delivered projects carry two layouts (48/49/50 with the set description in 880 rows,
+  // 48/49 in 414). App Designer 8.62 writes the second: Insert > Definitions into Project,
+  // set 25500 into ZZ_BENEFITS, saved as version 113 -- set and number unpadded, slots 3
+  // and 4 blank, the default statuses. A listed key may carry the description; it is dropped.
+  [DefinitionType.MessageCatalog]: (key) => {
+    const [set, number] = key.parts.map((p) => p.trim());
+    if (!/^\d+$/.test(set ?? '') || !/^\d+$/.test(number ?? '')) {
+      throw new ProjectSaveRefusedError('A Message Catalog project key is message set number, message number.');
+    }
+    return { objectType: 25, objectIds: [48, 49], objectValues: [String(Number(set)), String(Number(number))] };
+  },
+  // 9,596 rows: FIELDNAME, FIELDVALUE, EFFDT.
+  [DefinitionType.TranslateValue]: (key) => {
+    if (key.parts.length !== 3 || !/^\d{4}-\d{2}-\d{2}$/.test(key.parts[2] ?? '')) {
+      throw new ProjectSaveRefusedError('A translate value project key is field, value, effective date (YYYY-MM-DD).');
+    }
+    return { objectType: 4, objectIds: [6, 22, 21], objectValues: [name(key), key.parts[1]!, key.parts[2]!] };
+  },
+  // 308 rows: PRCSTYPE, PRCSNAME.
+  [DefinitionType.ProcessDefinition]: (key) => {
+    if (key.parts.length !== 2) throw new ProjectSaveRefusedError('A process definition project key is process type, process name.');
+    return { objectType: 20, objectIds: [29, 28], objectValues: [name(key), key.parts[1]!] };
+  },
+  // 1,781 rows: page, event.
+  [DefinitionType.PagePeopleCode]: (key) => {
+    if (key.parts.length !== 2) throw new ProjectSaveRefusedError('A page PeopleCode project key is page, event.');
+    return { objectType: 44, objectIds: [9, 12], objectValues: [name(key), key.parts[1]!] };
+  },
+  // 888 rows: component, market, event.
+  [DefinitionType.ComponentPeopleCode]: (key) => {
+    if (key.parts.length !== 3) throw new ProjectSaveRefusedError('A component PeopleCode project key is component, market, event.');
+    return { objectType: 46, objectIds: [10, 39, 12], objectValues: [name(key), key.parts[1]!, key.parts[2]!] };
+  },
+  // 488 rows: component, market, record, event.
+  [DefinitionType.ComponentRecordPeopleCode]: (key) => {
+    if (key.parts.length !== 4) throw new ProjectSaveRefusedError('A component record PeopleCode project key is component, market, record, event.');
+    return { objectType: 47, objectIds: [10, 39, 1, 12], objectValues: [name(key), key.parts[1]!, key.parts[2]!, key.parts[3]!] };
+  },
+  // 2,651 rows: component, market, record, then field and event packed into one slot --
+  // the field padded to 18, every one of them, because the item has only four key slots.
+  [DefinitionType.ComponentRecordFieldPeopleCode]: (raw) => {
+    // A listing or search gives the key packed, as stored: field and event in one 18-padded slot.
+    const key = raw.parts.length === 4 && raw.parts[3]!.length > 18
+      ? { ...raw, parts: [...raw.parts.slice(0, 3), raw.parts[3]!.slice(0, 18).trim(), raw.parts[3]!.slice(18).trim()] } : raw;
+    if (key.parts.length !== 5 || key.parts[3]!.trim().length > 18) {
+      throw new ProjectSaveRefusedError('A component record field PeopleCode project key is component, market, record, field (at most 18), event.');
+    }
+    return { objectType: 48, objectIds: [10, 39, 1, 2],
+      objectValues: [name(key), key.parts[1]!, key.parts[2]!, key.parts[3]!.trim().padEnd(18) + key.parts[4]!] };
+  },
+  // 7,358 rows: portal, C (content reference) or F (folder), object name.
+  [DefinitionType.PortalRegistry]: (key) => {
+    if (key.parts.length !== 3 || !['C', 'F'].includes(key.parts[1]!)) {
+      throw new ProjectSaveRefusedError('A portal registry project key is portal, C or F, object name.');
+    }
+    return { objectType: 55, objectIds: [99, 100, 101], objectValues: [name(key), key.parts[1]!, key.parts[2]!] };
+  },
   // root[:sub[:sub]]:class; project items carry no OnExecute event.
   [DefinitionType.ApplicationClassPeopleCode]: (key) => {
     const path = key.parts.at(-1) === 'OnExecute' ? key.parts.slice(0, -1) : [...key.parts];
@@ -147,4 +214,18 @@ export function itemKeyColumns(item: ProjectItem, slots: number): Record<string,
 /** "ZZ_PCODE_LAB_C02 (Fields)", for messages. */
 export function describeItem(key: DefinitionKey): string {
   return `${displayName(key)} (${typeLabel(key.type)})`;
+}
+
+/**
+ * A definition's identity as a project item: the row it becomes. Keys for the same
+ * definition arrive packed (from a listing or search) or unpacked (from a tool or the
+ * closure); comparing their rows treats them as the same item.
+ */
+export function projectItemIdentity(key: DefinitionKey): string {
+  try {
+    const i = projectItemFor(key);
+    return `${i.objectType}|${i.objectValues.map((v) => v.trim()).join('|')}`;
+  } catch {
+    return `?${key.type}|${key.parts.map((p) => p.trim()).join('|')}`;
+  }
 }

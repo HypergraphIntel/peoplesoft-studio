@@ -27,7 +27,7 @@ not run programs: nothing below has been verified by executing a program
 
 | Action | What it does |
 |---|---|
-| **Do When** | Runs its SELECT once. A row: the rest of the step runs. No row: the step's other actions are skipped. |
+| **Do When** | Runs its SELECT once. A row: the rest of the step runs. No row: the step's other actions are skipped. The SELECT **must** put its column into the state record with `%Select(field)` (or call a `%Sql()` that does) -- see below. |
 | **Do While** | Runs its SELECT before each pass; while it returns a row the rest of the step (the actions after it) runs, then the step loops. |
 | **Do Select** | Runs its SELECT and, for each row, puts the selected values into the state record (`%Select(...)`) and runs the rest of the step's actions for that row. **Select/Fetch**: one cursor, fetched row by row (no commits inside the loop while restart is enabled). **Reselect**: re-opens the SELECT after each iteration and takes the first row -- the step must change the data so processed rows drop out. **Restartable**: Select/Fetch that may commit inside the loop; on restart the SELECT must skip what was already processed (key it, e.g. on a processed flag or the last key in the state record). |
 | **PeopleCode** | Runs the OnExecute program. Returning `False` (`Exit(1)`) triggers **On Return**: Abort the program, Break out of the section, or Skip Step (the rest of the step). The state record's fields are the `RECORD.FIELD` values; `%This` is not available. |
@@ -102,6 +102,34 @@ next step; Suppress -- continue without logging.
   (INSERT ... SELECT) into a temporary table, then one UPDATE / INSERT.
 - Loops that end on a condition: **Do While** (test first) or **Do Until**
   (test after). Conditional steps: **Do When**.
+
+### A Do When without %Select abends with `RC = ?`
+
+`Do When`, `Do While` and `Do Until` select a column, and Application Engine
+needs somewhere to put it. Written without `%Select`, the program builds the
+statement, never sends it to the database, and abends:
+
+```text
+Process 606883 ABENDED at Step ZZ_BENEFITS.INIT.DOPAYCAL (Do When) -- RC = ?
+```
+
+There is no SQL error and no Oracle code, because the statement never ran. The
+tell is the pair of trace files: the statement appears in the `.AET` (step)
+trace and never in the `.trc` (SQL) trace. `RC = ?` rather than a number is the
+signature.
+
+Correct:
+
+```sql
+%Select(TEMP_FLD) SELECT 'X' FROM PS_INSTALLATION WHERE %Bind(ZZ_BNV_FILETYPE) = 'CONTRIB'
+```
+
+`TEMP_FLD` is the delivered convention: a 1-character work field added to the
+state record purely as the landing place. Census of the local snapshot: of
+4,285 delivered Do When / Do While / Do Until actions, 4,255 begin `%Select(`
+and the remaining 30 call `%Sql()`, which supplies it. None has neither.
+
+Studio refuses the save (`do-when-select-into`, `src/model/aeValidation.ts`).
 - Reusable logic: a Public section, Call Section'ed; a library program for
   sections shared between programs.
 - Commit in long loops (Frequency) only with Restartable selects and table

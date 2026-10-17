@@ -85,3 +85,27 @@ preservation using a database digest comparison, and unchanged cache counters.
 `tools/lab/security-mcp-e2e.mts` exercises the production HTTP MCP routes and
 off/dirty/approval gates. Results are in `tools/lab/results/security*-e2e.json`.
 No PeopleCode encoder or decoder changes are included.
+
+## Granting access (permission lists)
+
+`psft_security_grant` writes what PeopleTools > Security > Permission Lists
+(component `ACCESS_CNTRL_LISTX`) saves on its Pages and Process tabs
+(`src/providers/permissionListWriter.ts`):
+
+- `PSAUTHITEM`, one row per page of the component through the menu item it is
+  registered on: `BARITEMNAME` the menu item, `PNLITEMNAME` the component's
+  page item, `AUTHORIZEDACTIONS` the component's `ACTIONS` mask by default
+  (1 Add, 2 Update/Display, 4 Update/Display All, 8 Correction), as most HRDMO
+  grants store it.
+- `PSAUTHPRCS`, one row per process group.
+- `PSLOCK` CLM + 1 (component SavePreChange `UpdatePSLOCK`), `PSVERSION` CLM
+  and SYS + 1 and `PSCLASSDEFN.VERSION` = the new CLM, `LASTUPDDTTM` /
+  `LASTUPDOPRID` (SavePostChange `UpdateSystemVersions`,
+  `FUNCLIB_PTSEC.CLASSID`).
+
+The component's SavePostChange also grants the permission list on the portal
+registry's content references for the component (`GrantPermissionForComponent`).
+The tool does not write the registry; it lists those content references and
+whether each grants the permission list, for `psft_portal_edit`.
+`tools/lab/security-grant-e2e.mts` previews a grant on HRDMO (rolled back) and
+checks the rows, actions, version and that nothing persists.

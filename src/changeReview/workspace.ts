@@ -223,7 +223,7 @@ export class ReviewWorkspace implements vscode.Disposable {
   ${set.status === 'APPLIED' ? button('Prepare revert', 'reverse', reversal.supported) + `<p>${esc(reversal.reason)}</p>` : ''}
   ${set.status === 'REVERTED' || reversal.supported && !!set.reverses ? button('Prepare redo of reversal', 'redo') : ''}
   ${button('Export report', 'export')}
-  ${['DRAFT', 'READY_FOR_REVIEW', 'APPROVED', 'APPLYING'].includes(set.status) ? button('Cancel Change Set', 'cancel') : ''}
+  ${['DRAFT', 'READY_FOR_REVIEW', 'APPROVED', 'APPLYING'].includes(set.status) || set.status === 'CONFLICTED' && set.objects.every(c => c.application === 'PENDING') ? button('Cancel Change Set', 'cancel') : ''}
   </div></details></div>
   ${set.objects.some(c => c.operation === 'DELETE') ? '<label><input id="destructive" type="checkbox">Explicitly approve destructive deletion operations</label>' : ''}<h3>Objects</h3>${objects}
   ${selected && diff ? `<h3>${esc(selected.operation)} · ${esc(JSON.stringify(selected.key))}</h3><p>${esc(selected.operation === 'CREATE' ? (selected.application === 'VERIFIED' ? 'CREATE OBJECT — READBACK VERIFIED AT APPLICATION' : 'NEW OBJECT — ABSENT IN CAPTURED BASELINE') : selected.operation === 'DELETE' ? 'DELETE OBJECT' : 'UPDATE OBJECT')}</p>

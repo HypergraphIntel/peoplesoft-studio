@@ -20,7 +20,7 @@ export type PageOperation =
   | { op: 'move'; id: number; left: number; top: number }
   | { op: 'resize'; id: number; width: number; height: number }
   | { op: 'set_label'; id: number; text?: string; labelType?: number }
-  | { op: 'set_use'; id: number; displayOnly?: boolean; invisible?: boolean }
+  | { op: 'set_use'; id: number; displayOnly?: boolean; invisible?: boolean; deferProc?: boolean }
   | { op: 'delete'; id: number }
   /** A Scroll Bar's, Grid's or Scroll Area's own Occurs Level (1-3): the controls after it in tab order are at it. */
   | { op: 'set_occurs_level'; id: number; level: number }
@@ -125,6 +125,11 @@ export function applyPageOperations(layout: PageLayout, operations: readonly Pag
           c.fieldUse = o.invisible ? c.fieldUse | FIELD_USE_INVISIBLE : c.fieldUse & ~FIELD_USE_INVISIBLE;
           c.secureInvisible = o.invisible ? 1 : 0;
         }
+        // PSPNLFIELD.DEFERPROC, Allow Deferred Processing (capture u03). Off makes the
+        // field fire FieldChange on tab-out instead of on the next server trip -- needed
+        // when a field enables others, as a run control's file type does. 21,049
+        // delivered fields across 5,763 pages are set off.
+        if (o.deferProc !== undefined) c.deferProc = o.deferProc;
         const refusal = pageUseRefusal(c.add ? NEW_CONTROL_FIELDTYPE[c.add.kind] : c.fieldType, c.fieldUse, c.secureInvisible);
         if (refusal) throw new PageOperationError(refusal);
         break;
@@ -203,4 +208,22 @@ export function pageLayoutForAgent(layout: PageLayout): Record<string, unknown> 
       ...(c.type === 0 ? { useNote: 'Static Text does not support Display Only or Invisible.' } : {})
     }))
   };
+}
+
+/**
+ * The Page operations Change Review can carry an exact after-state for:
+ * geometry, labels/use and the page's description/comments. Everything else
+ * (inserting or deleting a control, saving an invalid page) is routed to the
+ * legacy per-write confirmation rather than refused -- see reviewRouting.
+ */
+export const STAGEABLE_PAGE_OPS = ['move', 'resize', 'set_label', 'set_use', 'set_properties'] as const;
+
+export function isStageablePageRequest(operations: unknown, saveInvalid: unknown): boolean {
+    if (saveInvalid === true || !Array.isArray(operations) || operations.length === 0) return false;
+    return operations.every(op => {
+        if (!op || typeof op !== 'object') return false;
+        const o = op as Record<string, unknown>;
+        if (!(STAGEABLE_PAGE_OPS as readonly string[]).includes(String(o.op))) return false;
+        return o.op !== 'set_properties' || Object.keys(o).every(k => ['op', 'description', 'comments'].includes(k));
+    });
 }

@@ -5,7 +5,7 @@ import type { Workspace } from '../workspace.js';
 import { jsonResult, requireProvider } from './tools.js';
 import { hasUnsavedSecurity } from '../editors/securityPanel.js';
 import { DefinitionType, makeKey } from '../model/definitions.js';
-import { READ_ONLY, WRITE, writable, approve, type McpWriteHost } from './writeTools.js';
+import { READ_ONLY, WRITE, GATES, writable, approve, type McpWriteHost } from './writeTools.js';
 import { SAML_BOUNDARY, securityDiagnostics } from '../model/security.js';
 const kind = z.enum(['oauth', 'saml']);
 export function registerSecurityTools(server: McpServer, workspace: Workspace, host?: McpWriteHost): void {
@@ -51,5 +51,35 @@ export function registerSecurityTools(server: McpServer, workspace: Workspace, h
     if (!dryRun) await approve(host, gate, definitionKey, 'edit OAuth application ' + key.join(' / '), JSON.stringify(changes, null, 2));
     const document = await gate.provider.saveOAuth({ key, expectedToken, changes, dryRun, operatorId: gate.operatorId });
     return jsonResult({ saved: !dryRun, dryRun, document, diagnostics: securityDiagnostics(document) });
+  });
+  server.registerTool('psft_security_grant', {
+    title: 'Grant a permission list component pages and process groups',
+    description: 'What PeopleTools > Security > Permission Lists saves on its Pages and Process tabs: PSAUTHITEM rows for a component\'s pages through the menu ' +
+      'it is registered on (actions default to the component\'s own actions mask -- Full Access -- as most grants store them), PSAUTHPRCS rows for process ' +
+      'groups, then PSLOCK CLM + 1, PSVERSION CLM and SYS + 1 and the permission list\'s VERSION/stamp, verified by readback. Existing grants are updated or ' +
+      'left. The component must already be registered on the menu (psft_menu_edit) and each process group used by a process definition. The Permission ' +
+      'Lists page also grants the content references for the component; the result lists them with whether each grants the permission list -- add it with ' +
+      'psft_portal_edit where it does not. dryRun rolls back. Write scope applies to the component names (or, granting only groups, the group names). ' + GATES,
+    inputSchema: z.object({
+      connection: z.string().min(1), permissionList: z.string().min(1),
+      components: z.array(z.object({ menu: z.string().min(1), component: z.string().min(1), market: z.string().default('GBL'),
+        pages: z.array(z.string()).optional().describe('Page item names; every page of the component when omitted.'),
+        actions: z.number().int().min(1).max(255).optional().describe('Bits 1 Add, 2 Update/Display, 4 Update/Display All, 8 Correction; the component\'s own mask when omitted.'),
+        displayOnly: z.boolean().optional() }).strict()).default([]),
+      processGroups: z.array(z.string().min(1)).default([]),
+      dryRun: z.boolean().default(false)
+    }).strict(), annotations: WRITE
+  }, async ({ connection, permissionList, components, processGroups, dryRun }) => {
+    const scopeNames = components.length ? components.map((g) => g.component.trim().toUpperCase()) : processGroups.map((g) => g.trim().toUpperCase());
+    const gate = await writable(workspace, host, connection, null);
+    const key = makeKey(DefinitionType.PermissionList, permissionList.trim());
+    if (!dryRun) await approve(host, gate, key, 'grant access on permission list ' + permissionList.trim(),
+      [...components.map((g) => `Pages of ${g.component.toUpperCase()}.${(g.market || 'GBL').toUpperCase()} via menu ${g.menu.toUpperCase()}${g.pages?.length ? ` (${g.pages.join(', ')})` : ' (all)'}${g.actions ? `, actions ${g.actions}` : ''}${g.displayOnly ? ', display only' : ''}`),
+        ...(processGroups.length ? [`Process groups: ${processGroups.join(', ')}`] : [])].join('\n'));
+    const result = await gate.provider.grantPermissionListAccess({ classId: permissionList, components, processGroups, operatorId: gate.operatorId, scopeNames, dryRun });
+    if (!dryRun) host.saved(gate.provider.id, key);
+    return jsonResult({ saved: !dryRun, dryRun, ...result,
+      next: result.contentReferences.filter((r) => !r.grantsPermissionList).length
+        ? 'Some content references for these components do not grant the permission list; add it with psft_portal_get / psft_portal_edit.' : undefined });
   });
 }

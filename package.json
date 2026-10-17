@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -76,6 +76,11 @@
           "name": "Definition Browser"
         },
         {
+          "icon": "./resources/hammer-brush.svg",
+          "id": "psft.buildRequests",
+          "name": "Build Requests"
+        },
+        {
           "id": "psft.changeReview",
           "name": "Change Review",
           "icon": "./resources/document.svg"
@@ -122,6 +127,10 @@
       {
         "view": "psft.projects",
         "contents": "Connect to an environment, then open a project by name.\n[Open Definition...](command:psft.openDefinitionDialog)\n[Open Recent Project](command:psft.openRecentProject)\n[New Definition...](command:psft.newDefinition)"
+      },
+      {
+        "view": "psft.buildRequests",
+        "contents": "Gather a business request's documents and notes, and let an AI agent analyze it, propose a build spec for your approval, and build it through PeopleSoft Studio.\n[New Build Request](command:psft.buildRequest.new)"
       }
     ],
     "customEditors": [
@@ -290,6 +299,11 @@
       {
         "command": "psft.newMessageChannel",
         "title": "New Message Channel...",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.newFileLayout",
+        "title": "New File Layout",
         "category": "PeopleSoft"
       },
       {
@@ -676,6 +690,29 @@
         "category": "PeopleSoft"
       },
       {
+        "command": "psft.buildRequest.new",
+        "title": "New Build Request",
+        "category": "PeopleSoft",
+        "icon": "$(add)"
+      },
+      {
+        "command": "psft.buildRequest.open",
+        "title": "Open Build Request",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.buildRequest.delete",
+        "title": "Delete Build Request",
+        "category": "PeopleSoft",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "psft.buildRequest.refresh",
+        "title": "Refresh Build Requests",
+        "category": "PeopleSoft",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "psft.changeReview.open",
         "title": "Open Change Review",
         "category": "PeopleSoft",
@@ -875,6 +912,16 @@
           "submenu": "psft.discovery.server",
           "when": "view == psft.discoveries",
           "group": "9_server"
+        },
+        {
+          "command": "psft.buildRequest.new",
+          "when": "view == psft.buildRequests",
+          "group": "navigation@1"
+        },
+        {
+          "command": "psft.buildRequest.refresh",
+          "when": "view == psft.buildRequests",
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [
@@ -982,6 +1029,11 @@
           "submenu": "psft.settings.mcp",
           "when": "view == psft.settings && viewItem == settings.mcp",
           "group": "1_mcp"
+        },
+        {
+          "command": "psft.buildRequest.delete",
+          "when": "view == psft.buildRequests && viewItem == buildRequest",
+          "group": "inline"
         }
       ],
       "editor/title/context": [
@@ -1105,6 +1157,14 @@
         },
         {
           "command": "psft.changeReview.objectHistory",
+          "when": "false"
+        },
+        {
+          "command": "psft.buildRequest.delete",
+          "when": "false"
+        },
+        {
+          "command": "psft.buildRequest.refresh",
           "when": "false"
         }
       ],
@@ -1621,6 +1681,21 @@
             "*PeopleSoft: Check for Knowledge Updates* downloads the server's latest bundle; it is installed only if its signature, key, expiry and version verify."
           ],
           "markdownDescription": "Downloading signed knowledge bundles from the discovery server (`peoplesoft.intelligence.serverUrl`). Bundles are data only: they never change what PeopleSoft Studio or an agent may write."
+        },
+        "peoplesoft.buildRequests.agent": {
+          "type": "string",
+          "enum": [
+            "claude",
+            "codex",
+            "clipboard"
+          ],
+          "enumDescriptions": [
+            "Start Claude Code in a terminal with the request.",
+            "Start Codex in a terminal with the request.",
+            "Copy the prompt, for any other agent connected to the PeopleSoft Studio MCP server."
+          ],
+          "default": "claude",
+          "description": "The AI agent a Build Request is handed to. The agent must have the PeopleSoft Studio MCP server configured (PeopleSoft: Configure AI Client)."
         }
       }
     },

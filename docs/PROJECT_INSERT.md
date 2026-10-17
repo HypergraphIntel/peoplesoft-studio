@@ -56,6 +56,22 @@ PeopleCode key). Each layout used is one HRDMO's delivered project items use:
 | HTML definition | 51 | 90, 95 | CONTNAME, CONTTYPE |
 | Application Package | 57 | 104, 116, 117 | PACKAGEID, PACKAGEROOT, QUALIFYPATH |
 | Application Class | 58 | 104, (105, 106,) 107 | root, sub-packages, class (no event) |
+| Translate value | 4 | 6, 22, 21 | FIELDNAME, FIELDVALUE, EFFDT |
+| Process definition | 20 | 29, 28 | PRCSTYPE, PRCSNAME |
+| Message Catalog entry | 25 | 48, 49 | MESSAGE_SET_NBR, MESSAGE_NBR, unpadded |
+| SQL statement (AE) | 30 | 65, 81 | SQLID, SQLTYPE (1) |
+| App Engine section | 34 | 66, 77 | AE_APPLID, AE_SECTION |
+| App Engine PeopleCode | 43 | 66, 77, 78, 12 | program, section+market+platform+effdt packed, step, OnExecute |
+| Page PeopleCode | 44 | 9, 12 | PNLNAME, event |
+| Component PeopleCode | 46 | 10, 39, 12 | PNLGRPNAME, MARKET, event |
+| Component record PeopleCode | 47 | 10, 39, 1, 12 | PNLGRPNAME, MARKET, RECNAME, event |
+| Component record field PeopleCode | 48 | 10, 39, 1, 2 | PNLGRPNAME, MARKET, RECNAME, FIELDNAME padded to 18 + event |
+| Portal registry | 55 | 99, 100, 101 | PORTAL_NAME, C or F, PORTAL_OBJNAME |
+
+Message Catalog entries have a second delivered layout (48, 49, 50 with the
+set description, 880 rows against 414). App Designer 8.62 writes the two-slot
+one: Insert > Definitions into Project, set 25500 into ZZ_BENEFITS (version
+113), and it left the 116 rows Studio had written there unchanged.
 
 Other types are refused. HRDMO's `PSPROJECTITEM` has four key slots; a key
 needing more is refused.

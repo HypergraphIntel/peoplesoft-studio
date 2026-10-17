@@ -2,7 +2,7 @@ import type { Workspace } from '../workspace.js';
 import { writable, type McpWriteHost } from './writeTools.js';
 import { makeKey, DefinitionType } from '../model/definitions.js';
 import { hash, type Json } from '../changeReview/model.js';
-import { headerProposal, recordHeaderRequest, aeHeaderDocument } from '../changeReview/structuredHeaders.js';
+import { headerProposal, recordHeaderRequest, aeHeaderDocument, isHeaderOnlyOperation } from '../changeReview/structuredHeaders.js';
 import type { StructuredFamily } from '../providers/structuredSnapshot.js';
 import { deepValidate } from './appEngineTools.js';
 
@@ -12,8 +12,7 @@ export async function prepareStructuredHeaderReview(workspace: Workspace, host: 
     const operations = args.operations as Record<string, unknown>[];
     const changes: { description?: string; comments?: string } = {};
     for (const op of operations) {
-        const allowed = family === 'record' ? ['op', 'description', 'definition'] : ['op', 'description', 'comments'];
-        if (op.op !== (family === 'record' ? 'set_properties' : 'set_program') || Object.keys(op).some(k => !allowed.includes(k)))
+        if (!isHeaderOnlyOperation(family, op))
             throw new Error('This review adapter supports existing-definition description/comments only; structural operations are not staged yet.');
         if (typeof op.description === 'string') changes.description = op.description.trim();
         const text = op[family === 'record' ? 'definition' : 'comments'];

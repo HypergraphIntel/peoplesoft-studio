@@ -13,8 +13,8 @@ writing the same rows Application Designer writes.
 > is experimental: read the [Disclaimer](#disclaimer) before writing to any
 > database.
 
-Current release: **0.9.1**; see the [release verification](docs/RELEASE_0_9_1.md)
-and [changelog](CHANGELOG.md).
+Current release: **0.9.2**; see the [changelog](CHANGELOG.md) (0.9.1:
+[release verification](docs/RELEASE_0_9_1.md)).
 
 ## Why PeopleSoft Studio
 
@@ -129,6 +129,14 @@ definitions, outages or any other damage.
 
 Goal long-term: replace Application Designer. **Today it reads many common definition types and edits the supported kinds below** -- PeopleCode, records, fields, pages, components, App Engine, menus, Component Interfaces, message channels, SQL, HTML, style sheets, translates, projects and a bounded PS Query workflow. Saving is experimental. The tables distinguish working editors from read-only viewers and features still planned.
 
+In **0.9.2**, File Layouts open in a File Layout Designer and save as App
+Designer saves them; Build Requests turn attached documents into a reviewed
+spec and a build; projects carry the related definitions their members need
+(sections, SQL, PeopleCode, translate values, Message Catalog entries, content
+references and their folders); and PeopleCode, SQL and App Engine saves are
+checked against run-time failures App Designer does not catch (see
+[docs/PEOPLECODE_RULES.md](docs/PEOPLECODE_RULES.md)).
+
 In **0.9.0**, Configuration Tools includes working Process Definition,
 Page and Field Configurator, Drop Zone and bounded OAuth editors. The MCP adds
 a structured capability catalog, Process Definition editing, and bounded PS
@@ -176,7 +184,7 @@ MCP exposes review/export/preview, with apply in the UI. See
 | **Menus** | Experimental | The Menu Designer — see [docs/MENUS.md](docs/MENUS.md) |
 | **Message Channels** | Experimental | App Designer's Message Channel window — see [docs/MESSAGE_CHANNELS.md](docs/MESSAGE_CHANNELS.md) |
 | **App Engine programs** (App Engine Designer) | Experimental | App Designer's App Engine window: the **Definition** view (sections and their market / platform / effective-date variants, steps, actions) and **Program Flow**, with a property panel for the program (General, State Records, Temp Tables, Advanced), each section, step and action. On Writable connections: Insert Section / Step/Action / Action, change an action's type, rename, move, Cut / Copy / Paste, delete, every property App Designer stores, SQL, XSLT and PeopleCode in VS Code editors, undo / redo, validation (App Designer's Edit Validation plus references and PeopleCode compiled), Preview Save, and *New Definition > App Engine Program* — saved as App Designer saves it (85 of 88 captured App Designer saves replay row for row; the rest differ only where App Designer leaves a hash row stale). See [docs/APP_ENGINE.md](docs/APP_ENGINE.md) and [docs/APP_ENGINE_SEMANTICS.md](docs/APP_ENGINE_SEMANTICS.md) |
-| **File Layouts** | Read-Only | Format, segments and fields — see [docs/FILE_LAYOUTS_COMPONENT_INTERFACES.md](docs/FILE_LAYOUTS_COMPONENT_INTERFACES.md) |
+| **File Layouts** | Experimental | File Layout Designer: create, edit, save, Save As, rename and delete; segments, fields, record insert and properties, saved as App Designer saves them — see [docs/FILE_LAYOUTS.md](docs/FILE_LAYOUTS.md) |
 | **Component Interfaces** | Experimental | CI Designer and MCP tools: create, edit, save, copy, rename and delete; keys, properties, collections, standard methods, synchronization and Methods PeopleCode — see [docs/COMPONENT_INTERFACES.md](docs/COMPONENT_INTERFACES.md) |
 | **Permission Lists**, **Roles** | Read-Only | A permission list's pages and actions, sign-on times, Web Libraries and more; a role's permission lists — see [docs/SECURITY_MESSAGES.md](docs/SECURITY_MESSAGES.md) |
 | **Queries** (Windows PS Query workflow) | Experimental | **Open PS Query** / **New PS Query**, also Configuration Tools > PS Query. Oracle / PeopleTools 8.62.09: open existing public or own private queries; create, edit, save and Save As for one SQL Table record with direct character fields and at most one equal-to constant/prompt criterion. Headings, ordering, prompts, SQL and bounded read-only results with Query access checks. MCP exposes matching bounded read/prepare/run/create/edit/copy workflows. Unsupported shapes remain readable, with a reason saving/running is refused — see [docs/PS_QUERY_WINDOWS.md](docs/PS_QUERY_WINDOWS.md) |
@@ -212,7 +220,7 @@ reproducing App Designer's saves; **Read-only** = viewer, from the database;
 | Component | Experimental | Structure, properties, page rows and Component PeopleCode, saved as App Designer saves — see [docs/COMPONENTS.md](docs/COMPONENTS.md) |
 | Component Interface | Experimental | CI Designer: create on a component (properties defaulted or not, as App Designer asks), edit, save, Save As, rename, delete as App Designer does — keys, properties and collections dragged from the component's buffer, Edit Property, Read Only, standard methods, synchronization, Methods PeopleCode; see [docs/COMPONENT_INTERFACES.md](docs/COMPONENT_INTERFACES.md) |
 | Field | Yes | Editor: length, labels and description; create. MCP additionally sets Character format to Uppercase or Mixed Case |
-| File Layout | Read-only | Format, segments and fields |
+| File Layout | Experimental | File Layout Designer — see [docs/FILE_LAYOUTS.md](docs/FILE_LAYOUTS.md) |
 | File Reference | Not yet | — |
 | HTML | Yes | Read, create and save — see [docs/HTML_SAVE.md](docs/HTML_SAVE.md) |
 | Image | Read-only | Shown in a panel (GIF, PNG, JPEG, SVG, BMP) |

@@ -1,6 +1,7 @@
 import { DefinitionType, type DefinitionKey } from '../model/definitions.js';
 import { pcmProgKeyParts, PEOPLECODE_OBJECTIDS } from '../model/peopleCodeKeys.js';
 import { compilerProfileForToolsRelease } from './compilerProfile.js';
+import { checkPeopleCodeSemantics } from './semanticCheck.js';
 import { encodeProgramArtifacts, UnsupportedPeopleCodeError } from './encoder.js';
 import { compileTargetFor, type PcmKey } from './writeback/savePlan.js';
 
@@ -49,6 +50,10 @@ export function validatePeopleCode(source: string, key: DefinitionKey, toolsRele
   const profile = compilerProfileForToolsRelease(toolsRelease);
   const text = source.replace(/\r\n/g, '\n');
   const pcmKey = pcmKeyFor(key);
+  // App Designer's compiler checks the encoder does not make (semanticCheck.ts).
+  const semantic = checkPeopleCodeSemantics(text, { applicationClass: key.type === DefinitionType.ApplicationClassPeopleCode })
+    .map((p) => ({ offset: p.offset, message: `${p.message} (${p.code})` }));
+  if (semantic.length) return { profile: profile.id, problems: semantic };
   if (!pcmKey) return { profile: profile.id, problems: [{ offset: 0, message: "PeopleSoft Studio's compiler does not compile this kind of PeopleCode yet." }] };
   let target;
   try {

@@ -1,4 +1,5 @@
 import type { ReviewService } from '../changeReview/service.js';
+import type { BuildRequestStore } from '../buildRequest/store.js';
 import * as vscode from 'vscode';
 
 import {
@@ -80,6 +81,9 @@ export class McpServerController
    * (and in tests) the server registers only its read-only tools.
    */
   reviewService?: ReviewService;
+
+  /** The build request store, set by the extension before the server starts. */
+  buildRequests?: BuildRequestStore;
 
   writeHost:
     McpWriteHost | undefined;
@@ -190,7 +194,8 @@ export class McpServerController
             port,
             writeHost:
               () => this.writeHost,
-            reviewService: this.reviewService
+            reviewService: this.reviewService,
+            buildRequests: this.buildRequests
           }
         );
 

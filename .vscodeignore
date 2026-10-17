@@ -61,3 +61,9 @@ node_modules/oracledb/NOTICE.txt
 node_modules/oracledb/THIRD_PARTY_LICENSES.txt
 # Design notes and agent prompts (repository only)
 CUSTOMIZATION_*.md
+
+# Site-specific material (an institution's objects or a benefits vendor's interface) -- never packaged.
+**/*OU_*
+**/*ou_fid*
+**/*[Ff]idelity*
+**/*FIDELITY*

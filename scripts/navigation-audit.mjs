@@ -21,7 +21,7 @@ export function auditNavigation(manifest) {
   }
   for (const menu of roots) visit(menu);
   for (const file of ['src/model/toolTrees.ts', 'src/model/customizationStrategy.ts', 'src/settings/settingsView.ts',
-    'src/views/discoveryView.ts', 'src/views/connections.ts', 'src/views/browser.ts', 'src/views/projects.ts', 'src/views/changeReviewView.ts']) {
+    'src/views/discoveryView.ts', 'src/views/connections.ts', 'src/views/browser.ts', 'src/views/projects.ts', 'src/views/changeReviewView.ts', 'src/views/buildRequestsView.ts']) {
     const source = readFileSync(path.join(root, file), 'utf8');
     for (const match of source.matchAll(/command:\s*(?:\{\s*(?:id|command):\s*)?['"](psft\.[^'"]+)['"]/g)) add(match[1], file);
   }
@@ -35,7 +35,7 @@ export function auditNavigation(manifest) {
   };
   for (const [command, choice] of Object.entries({ newPage: 'Page', newPageFluid: 'Page Fluid', newAppEngine: 'App Engine Program',
     newMenu: 'Menu', newComponentInterface: 'Component Interface', newMessageChannel: 'Message Channel',
-    newHtmlDefinition: 'HTML Definition', newSqlDefinition: 'SQL Definition', newStyleSheet: 'Style Sheet' })) {
+    newFileLayout: 'File Layout', newHtmlDefinition: 'HTML Definition', newSqlDefinition: 'SQL Definition', newStyleSheet: 'Style Sheet' })) {
     indirect['psft.' + command] = ['psft.newDefinition', 'New Definition picker → ' + choice];
   }
   for (const [command, [entry, label]] of Object.entries(indirect)) {

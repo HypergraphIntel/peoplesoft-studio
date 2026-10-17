@@ -301,6 +301,10 @@ Six saves made in a row, each bracketed retroactively between their commits:
   PTDISABLESMARTPROM is 0 and FFSTYLELONG `' '`, against 1 and `' | | | | '` on
   character fields (smart prompt is character typeahead). The window also
   holds a record save (ZZ_PCODE_LAB_N1 added to ZZ_PCODE_LAB_T, `RDM` +1).
+- 22-date-editbox: an Edit Box on a date field (ZZ_BNV_RUNCTL.ASOFDATE).
+  App Designer ticks Display Century itself (DSPLFORMAT 2162696, the
+  character value + 0x10000), and the row takes a character field's
+  PTDISABLESMARTPROM 1 and five-slot FFSTYLELONG. PDM / SYS + 1.
 - 19-props-descr, General tab: `DESCR` and `DESCRLONG` (a nullable CLOB, NULL
   until first set); `PDM`/`SYS` +1.
 

@@ -48,10 +48,20 @@ export function studioReference() {
       limits: ['defaultStrategy is a preference, not an enforced planning engine.', 'Configurable Search is discovered read only (configurations are not written); AE plug-in discovery is UNKNOWN.', 'Customization plans, customization registry and upgrade-impact analysis remain previews; do not claim they ran.', 'Knowledge evidence never grants write permission; local observations are not published verified knowledge.'],
       writeGates: 'Writable connection, Operator ID, write scope where applicable, MCP write mode, concurrency checks where supported, and agent delivered-object policy still apply. An agent cannot approve a user approval gate.'
     },
+    configurationData: {
+      principle: 'Configuration VALUES live in setup tables and are maintained by the people who own them, through a setup Component and its Pages. Building the setup record without the component that maintains it is an unfinished job: it leaves the only way in as raw INSERT/UPDATE or a Data Mover script, which is a migration and cutover tool, not how configuration is administered.',
+      workflow: ['Create the setup record(s) with psft_create_record; key a child map by the parent setup key plus its own row key so it can be a level 1 grid.', 'Build the maintenance page with psft_page_create: the parent record\'s fields at level 0, each child map as a grid.', 'Build the component with psft_component_create over the parent setup record, with Add so the first configuration set can be created.', 'Register it (psft_menu_create / psft_menu_edit), give it navigation (psft_portal_create_content_reference) and grant it (psft_security_grant).', 'The administrator then enters the values online. Seed rows, where a first row is genuinely needed to run at all, are data for Data Mover or the project\'s own load step -- not the maintenance route.'],
+      limits: 'Studio has no row-insert tool, deliberately: writing configuration rows directly would bypass the component\'s own validation, prompts, defaults and PeopleCode, and leaves no audit of who set a value. When an agent proposes configuration, the deliverable is the maintenance component, not INSERT statements.'
+    },
     projectMigration: {
       tools: ['psft_project_migration_review', 'psft_project_export_migration', 'psft_project_preview_migration'],
       scope: 'Studio versioned definition packages: supported fields, SQL Table/Derived Work records and full Application Engine documents. Unsupported members block export. Review is not complete dependency closure; preview does not apply changes.',
       limits: 'No MCP import/apply tool. Studio project packages are distinct from Data Mover data scripts and Data Migration Workbench; Studio creates Data Mover scripts from templates and uses RichardWood.peoplesoft-datamover for language support when installed; it does not run Data Mover. Data Migration Workbench remains planned.'
+    },
+    buildRequests: {
+      tools: ['psft_build_request_list', 'psft_build_request_get', 'psft_build_request_read_attachment', 'psft_build_request_ask', 'psft_build_request_propose_spec', 'psft_build_request_report'],
+      workflow: 'A developer assembles a request (narrative, attachments, kind, connection, project) in VS Code. Read it with psft_build_request_get and follow its workflow: ask questions, propose a build spec, stop for the developer\'s review; build only when buildAuthorized is true, reporting each object.',
+      limits: 'Only the developer approves a spec, answers questions or edits the request, in VS Code. Approval lapses when the request or spec changes. These tools write the local request only; building uses the ordinary psft_* tools and all their gates. Objects without a catalog create/edit route are manual steps; pages, components, process definitions, permission list grants and File Layouts have tools.'
     },
     evidence: 'For release-specific claims use psft_knowledge_capability and psft_knowledge_evidence, and inspect the connected database. UNKNOWN and unsupported coverage must remain explicit.'
   };

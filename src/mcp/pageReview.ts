@@ -1,5 +1,5 @@
 import type { Workspace } from '../workspace.js';
-import { applyPageOperations, type PageOperation } from '../model/pageOperations.js';
+import { applyPageOperations, STAGEABLE_PAGE_OPS, type PageOperation } from '../model/pageOperations.js';
 import { DefinitionType, makeKey } from '../model/definitions.js';
 import { writable, type McpWriteHost } from './writeTools.js';
 import type { Json } from '../changeReview/model.js';
@@ -12,7 +12,7 @@ export async function preparePageReview(workspace: Workspace, host: McpWriteHost
     if (args.saveInvalid) throw new Error('Saving an invalid Page is not supported through staged review.');
     const operations = args.operations as PageOperation[];
     for (const op of operations) {
-        if (!['move', 'resize', 'set_label', 'set_use', 'set_properties'].includes(op.op)) throw new Error('Page staging currently supports existing-control geometry, labels/use and description/comments only.');
+        if (!(STAGEABLE_PAGE_OPS as readonly string[]).includes(op.op)) throw new Error('Page staging currently supports existing-control geometry, labels/use and description/comments only.');
         if (op.op === 'set_properties' && Object.keys(op).some(k => !['op', 'description', 'comments'].includes(k))) throw new Error('Other Page property changes are not staged yet.');
     }
     const name = String(args.page).trim().toUpperCase(), key = makeKey(DefinitionType.Page, name), gate = await writable(workspace, host, String(args.connection), name);

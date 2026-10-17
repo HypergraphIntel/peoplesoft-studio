@@ -51,6 +51,11 @@ import { registerDiscoveryTools } from './discoveryTools.js';
 import { registerAdministrationTools } from './administrationTools.js';
 import { registerIbTools } from './ibTools.js';
 import { runToolsAsAgent } from './agentOrigin.js';
+import { registerBuildRequestTools } from './buildRequestTools.js';
+import { registerComponentTools } from './componentTools.js';
+import { registerFileLayoutTools } from './fileLayoutTools.js';
+import { registerPeopleCodeTools } from './peopleCodeTools.js';
+import type { BuildRequestStore } from '../buildRequest/store.js';
 
 import {
   DEFAULT_MCP_PORT
@@ -157,6 +162,8 @@ export async function startPeopleSoftMcpServer(
     /** The VS Code side of MCP writes; absent, the server is read-only. */
     writeHost?: () => McpWriteHost | undefined;
     reviewService?: ReviewService;
+    /** Build requests the developer assembles in VS Code; absent, no build request tools. */
+    buildRequests?: BuildRequestStore;
   } = {}
 ): Promise<RunningPeopleSoftMcpServer> {
   const host =
@@ -254,6 +261,10 @@ export async function startPeopleSoftMcpServer(
         registerQueryTools(server, workspace, writeHost);
         registerIbTools(server, workspace, writeHost);
         registerPortalTools(server, workspace, writeHost);
+        registerBuildRequestTools(server, options.buildRequests, () => !!writeHost);
+        registerComponentTools(server, workspace, writeHost);
+        registerFileLayoutTools(server, workspace, writeHost);
+        registerPeopleCodeTools(server, workspace);
 
         if (writeHost) {
           registerPeopleSoftWriteTools(

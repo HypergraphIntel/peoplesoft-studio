@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { copyControlRows, FLUID_USETEMP2, FLUID_USETMP, fluidClassSlots, NEW_PAGE_LICENSE_CODE, planNewPage, planPageProperties, planPageSave, PageSaveRefusedError, type EditedControl, type StoredControl } from '../providers/pageWriter.js';
+import { copyControlRows, FLUID_USETEMP2, FLUID_USETMP, fluidClassSlots, NEW_PAGE_LICENSE_CODE, planNewPage, planPageProperties, planPageSave, placeNewPageControls, PageSaveRefusedError, type EditedControl, type StoredControl } from '../providers/pageWriter.js';
 import type { NewControlKind } from '../providers/pageControlTemplates.js';
 import { NEW_CONTROL_FIELDTYPE } from '../providers/pageControlTemplates.js';
 import { checkPageScrolls } from '../model/pageLevels.js';
@@ -846,4 +846,51 @@ test('a Tree\'s TREECTRLID follows its FIELDNUM, with its levels; a deleted tree
   assert.deepEqual(plan.treeRekeys, [{ from: 2, to: 3 }]);
   const gone = planPageSave(stored, [edit(stored[0])], 4);
   assert.deepEqual(gone.treeDeletes, [2]);
+});
+
+test('a new page keeps a grid\'s columns: intoGrid places them after it and the grid counts them', () => {
+  // The create path has its own placement loop, separate from planPageSave. It
+  // used to ignore intoGrid, so a grid built with its columns in one call kept
+  // none: the (0, 0) columns sorted to the top-left as ordinary level-0
+  // controls and the grid failed App Designer's "No data for scroll" (15,19).
+  const key = newCtl({ kind: 'editBox', recName: 'PARENT', fieldName: 'KEYF' }, 190, 12, 290, 30);
+  const grid = newCtl({ kind: 'grid', recName: 'CHILD', fieldName: '' }, 10, 45, 530, 185);
+  const col1 = newCtl({ kind: 'editBox', recName: 'CHILD', fieldName: 'C1', intoGrid: -2 }, 0, 0, 60, 18);
+  const col2 = newCtl({ kind: 'editBox', recName: 'CHILD', fieldName: 'C2', intoGrid: -2 }, 0, 0, 80, 18);
+  // pageOperations numbers added controls -1, -2, ... in request order.
+  const placed = placeNewPageControls([{ ...key, pnlFldId: -1 }, { ...grid, pnlFldId: -2 },
+    { ...col1, pnlFldId: -3 }, { ...col2, pnlFldId: -4 }]);
+
+  assert.deepEqual(placed.map((c) => c.add!.fieldName), ['KEYF', '', 'C1', 'C2'], 'columns follow their grid in tab order');
+  assert.equal(placed[1].grdColumnCount, 2, 'the grid counts its columns');
+  // Columns are stored at (0, 0) with their size, as a native save writes them.
+  assert.deepEqual([placed[2].fieldLeft, placed[2].fieldTop, placed[2].fieldRight, placed[2].fieldBottom], [0, 0, 60, 18]);
+
+  // A control naming something that is not a grid is refused, not silently dropped.
+  assert.throws(() => placeNewPageControls([{ ...key, pnlFldId: -1 },
+    { ...newCtl({ kind: 'editBox', recName: 'CHILD', fieldName: 'C1', intoGrid: -1 }, 0, 0), pnlFldId: -2 }]), /is not a grid/);
+  // A Tab Separator outside a grid is refused on create too.
+  assert.throws(() => placeNewPageControls([{ ...newCtl({ kind: 'tabSeparator', recName: '', fieldName: '' }, 10, 10), pnlFldId: -1 }]), /only inside a grid/);
+});
+
+test('a second grid on a new page goes after the first grid\'s columns, not between them', () => {
+  // A scroll is placed by newScrollTabIndex, not newControlTabIndex: the first
+  // grid's columns sit at (0, 0), which reading order treats as the top-left, so
+  // the ordinary rule dropped the second grid straight after the first grid and
+  // swallowed its columns -- "No data for scroll" on the first grid and "More
+  // than one data record in scroll" on the second.
+  const key = newCtl({ kind: 'editBox', recName: 'PARENT', fieldName: 'KEYF' }, 190, 12, 290, 30);
+  const gridA = newCtl({ kind: 'grid', recName: 'A', fieldName: '' }, 10, 45, 530, 175);
+  const gridB = newCtl({ kind: 'grid', recName: 'B', fieldName: '' }, 10, 190, 530, 320);
+  const placed = placeNewPageControls([
+    { ...key, pnlFldId: -1 },
+    { ...gridA, pnlFldId: -2 },
+    { ...newCtl({ kind: 'editBox', recName: 'A', fieldName: 'A1', intoGrid: -2 }, 0, 0, 60, 18), pnlFldId: -3 },
+    { ...newCtl({ kind: 'editBox', recName: 'A', fieldName: 'A2', intoGrid: -2 }, 0, 0, 60, 18), pnlFldId: -4 },
+    { ...gridB, pnlFldId: -5 },
+    { ...newCtl({ kind: 'editBox', recName: 'B', fieldName: 'B1', intoGrid: -5 }, 0, 0, 60, 18), pnlFldId: -6 }]);
+
+  assert.deepEqual(placed.map((c) => c.add!.fieldName || c.add!.recName), ['KEYF', 'A', 'A1', 'A2', 'B', 'B1']);
+  assert.equal(placed[1].grdColumnCount, 2, 'the first grid keeps both its columns');
+  assert.equal(placed[4].grdColumnCount, 1, 'the second grid counts only its own');
 });

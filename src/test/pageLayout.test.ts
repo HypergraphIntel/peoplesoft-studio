@@ -21,6 +21,21 @@ test('MCP Page operations refuse Static Text field-control flags and advertise t
   assert.doesNotThrow(() => applyPageOperations(layout, [{ op: 'set_use', id: 1, displayOnly: false, invisible: false }]));
 });
 
+test('set_use turns Allow Deferred Processing off for one field and leaves the rest alone', () => {
+  // A run control's File Type enables Mode in FieldChange. Under deferred processing that waits for
+  // the next server trip, so Mode stays greyed after the user types the file type and tabs out.
+  const layout = buildPageLayout('P', view([
+    field({ FIELDNUM: 1, FIELDTYPE: 4, RECNAME: 'R', FIELDNAME: 'FILE_TYPE', DEFERPROC: 1 }),
+    field({ FIELDNUM: 2, FIELDTYPE: 5, RECNAME: 'R', FIELDNAME: 'MODE', DEFERPROC: 1 })
+  ]));
+  const out = applyPageOperations(layout, [{ op: 'set_use', id: 1, deferProc: false }]);
+  assert.equal(out.controls.find((c) => c.pnlFldId === 1)?.deferProc, false);
+  // Untouched: undefined means "keep the stored DEFERPROC"; the writer only sends it when set.
+  assert.equal(out.controls.find((c) => c.pnlFldId === 2)?.deferProc, undefined);
+  // Display Only / Invisible are untouched when only deferProc is given.
+  assert.equal(out.controls.find((c) => c.pnlFldId === 1)?.fieldUse, 0);
+});
+
 test('a control keeps its stored rectangle; the shape follows FIELDTYPE', () => {
   const layout = buildPageLayout('P', view([
     field({ FIELDNUM: 1, FIELDTYPE: 4, RECNAME: 'JOB', FIELDNAME: 'EMPLID', LBLTEXT: 'Person ID',
