@@ -300,7 +300,9 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
       'Fluid Page, and the Fluid tab\'s style classes and Suppress System-Specific Style Classes. Coordinates are pixels from the page\'s top-left. ' +
       'Every save assigns each control\'s scroll level from the tab order and runs App Designer\'s checks (No data for scroll, More than one data ' +
       'record in scroll, Invalid field level, Invalid related display); a page that fails them is not saved unless saveInvalid is true ' +
-      '(App Designer\'s "Invalid page. Do you still want to save?" Yes). dryRun executes the same writer and in-transaction verification, then rolls back without save approval or editor refresh; its version/counts are hypothetical. ' + GATES,
+      '(App Designer\'s "Invalid page. Do you still want to save?" Yes). ' +
+      'Rows follow the connected PeopleTools release\'s tables: a column a later release added (8.62\'s Smart Prompt, PSPNLFIELDEXT.PTDISABLESMARTPROM) is left out on an earlier one, as its App Designer does. ' +
+      'dryRun executes the same writer and in-transaction verification, then rolls back without save approval or editor refresh; its version/counts are hypothetical. ' + GATES,
     inputSchema: z.object({ connection: z.string().min(1), page: z.string().min(1), operations: z.array(pageOperation).min(1),
       saveInvalid: z.boolean().optional().describe('Save even though App Designer\'s page checks fail (its "Invalid page ... save anyway" Yes).'),
       dryRun: z.boolean().optional(), includeSnapshots: z.boolean().optional().describe('dryRun only: return full native before/after images for the Page writer table scope; save stamps/version are separate from content.'), expectedVersion: z.number().int().nonnegative().optional().describe('Version from psft_get_page_layout; reject a stale preview/save before approval.') }),
@@ -328,6 +330,7 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
       'Create a classic page as App Designer\'s New Page and first save do: the same operations psft_edit_page takes, applied to a blank page ' +
       '(at least one control -- App Designer will not save an empty page), with its checks and saveInvalid. A run control page is typically a ' +
       'Subpage control showing PRCSRUNCNTL_SBP (record substitution PRCSRUNCNTL) plus the run control record\'s fields. Refused if the page exists. ' +
+      'Rows follow the connected PeopleTools release\'s tables: a column a later release added (8.62\'s Smart Prompt, PSPNLFIELDEXT.PTDISABLESMARTPROM) is left out on an earlier one, as its App Designer does. ' +
       'Created with the legacy per-write confirmation (no Change Review adapter covers page creation). ' + GATES,
     inputSchema: z.object({ connection: z.string().min(1), page: z.string().min(1), operations: z.array(pageOperation).min(1),
       saveInvalid: z.boolean().optional().describe('Create it even though App Designer\'s page checks fail (its "Invalid page ... save anyway" Yes).') }),
