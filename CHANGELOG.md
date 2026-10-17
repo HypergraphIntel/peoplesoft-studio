@@ -15,6 +15,7 @@
   now reads as NULL where the column is missing. Pages and OAuth applications
   were opened read-only on the 8.61.15 database to confirm.
 
+## 0.9.2 — 2026-10-17
 
 ### Added
 
