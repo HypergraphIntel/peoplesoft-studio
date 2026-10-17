@@ -3,9 +3,10 @@
 Ordered by what unblocks the most work, not by visibility. Full Application
 Designer parity is the goal; this is the path to it.
 
-## Current release: 0.9.2
+## Current release: 0.9.3
 
-0.9.2 adds the File Layout Designer, Build Requests, project related-definition
+0.9.3 fixes pages, Integration Broker creates and OAuth applications on
+PeopleTools 8.61. 0.9.2 added the File Layout Designer, Build Requests, project related-definition
 closure and run-time PeopleCode / SQL / App Engine checks; 0.9.1 added Change
 Review. 0.9.0 added Process Definition, Page and Field Configurator, Drop Zone and
 bounded OAuth editors; MCP orientation and a structured capability catalog;

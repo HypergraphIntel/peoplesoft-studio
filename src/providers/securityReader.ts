@@ -1,4 +1,5 @@
 import type { DbConnection, DbTypes } from '../db/connection.js';
+import { columnOrNull, tableColumns } from './tableColumns.js';
 import { OAUTH_COLUMNS, SAML_COLUMNS, securityKey, securityToken, type SecurityKind, type SecurityRow, type SecurityDocument, type SecurityList, type SecurityChoices } from '../model/security.js';
 
 const text = (v: unknown) => String(v ?? '').trim();
@@ -17,8 +18,10 @@ export async function listSecurity(c: DbConnection, types: DbTypes, kind: Securi
 }
 export async function readSecurity(c: DbConnection, types: DbTypes, kind: SecurityKind, key: string[]): Promise<SecurityDocument | undefined> {
   securityKey(kind, key);
+  const have = kind === 'oauth' ? await tableColumns(c, 'PSPTSEC_TOKEN') : undefined;
   const [properties] = kind === 'oauth'
-    ? await rows(c, types, 'SELECT ' + OAUTH_COLUMNS.join(',') + ' FROM PSPTSEC_TOKEN WHERE PTAPP_NAME=:name AND PTAUTHSERVER=:server', { name: key[0], server: key[1] })
+    // PTJWTEXP is an 8.62 column (not on 8.61.15): one this release's table lacks reads as NULL.
+    ? await rows(c, types, 'SELECT ' + OAUTH_COLUMNS.map(col => columnOrNull(have!, 'T', col)).join(',') + ' FROM PSPTSEC_TOKEN T WHERE PTAPP_NAME=:name AND PTAUTHSERVER=:server', { name: key[0], server: key[1] })
     : await rows(c, types, 'SELECT ' + SAML_COLUMNS.map(col => col === 'LASTUPDDTTM' ? "TO_CHAR(LASTUPDDTTM,'YYYY-MM-DD HH24:MI:SS.FF6') AS LASTUPDDTTM" : col).join(',') + ' FROM PS_PTWSSINBSAML WHERE CERTALIAS=:name AND PTISSUER=:issuer AND PTSUBJECTNAME=:subject AND PTQUALIFIERNAME=:qualifier', { name: key[0], issuer: key[1] || ' ', subject: key[2] || ' ', qualifier: key[3] || ' ' });
   if (!properties) return;
   // Project only explicit public configuration fields, even if a driver returns unexpected columns.

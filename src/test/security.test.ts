@@ -9,10 +9,11 @@ import { saveOAuth } from '../providers/securityWriter.js';
 import type { DbConnection, DbTypes } from '../db/connection.js';
 const fixture = JSON.parse(readFileSync('src/test/fixtures/security-8.62.09/oauth-native.json', 'utf8'));
 const types = { OUT_FORMAT_OBJECT: 4002 } as DbTypes;
-function database() {
+function database(columns: string[] = Object.keys(fixture.before)) {
   let row = { ...fixture.before }; let committed = 0, rolledBack = 0;
   const statements: string[] = [];
-  const c = { async execute(sql: string, binds: Record<string, unknown> = {}) {
+  const c = { catalog: { columns: async (_c: unknown, table: string) => (table === 'PSPTSEC_TOKEN' ? columns : []).map(name => ({ name, dataType: 'VARCHAR2' })), tableExists: async () => true },
+    async execute(sql: string, binds: Record<string, unknown> = {}) {
     statements.push(sql);
     if (sql.includes('FROM PSSTATUS')) return { rows: [{ TOOLSREL: '8.62', PTPATCHREL: 9 }] };
     if (sql.includes('FROM PSOPRDEFN')) return { rows: [{ OPRID: 'TEST' }] };
@@ -32,6 +33,15 @@ test('security readers exclude extra driver fields and never query secrets/token
   assert.ok(doc && oauthEditable(doc)); assert.deepEqual(Object.keys(doc.properties), [...OAUTH_COLUMNS]);
   assert.doesNotMatch(JSON.stringify(doc), /driver-extra|PTCLIENT_SECRET|PTACCESS_TOKEN/);
   assert.doesNotMatch(db.statements.join('\n'), /SELECT \*|PTCLIENT_SECRET|PTACCESS_TOKEN|PSPTSECUSERTOKN/);
+});
+test('on PeopleTools 8.61 (no PTJWTEXP) an OAuth application still opens, the column read as NULL', async () => {
+  // HCDEV 8.61.15's PSPTSEC_TOKEN has every OAuth column but PTJWTEXP, which 8.62 added.
+  const db = database(Object.keys(fixture.before).filter(k => k !== 'PTJWTEXP'));
+  const doc = await readSecurity(db.c, types, 'oauth', ['ZZ_STUDIO_OAUTH_01', 'CU']);
+  assert.ok(doc);
+  const select = db.statements.find(sql => sql.startsWith('SELECT') && sql.includes('FROM PSPTSEC_TOKEN'))!;
+  assert.match(select, /NULL AS PTJWTEXP/);
+  assert.doesNotMatch(select, /T\.PTJWTEXP/);
 });
 test('writer replays native OAuth edit, preserving public state and related rows', async () => {
   const db = database(); const doc = (await readSecurity(db.c, types, 'oauth', ['ZZ_STUDIO_OAUTH_01', 'CU']))!;

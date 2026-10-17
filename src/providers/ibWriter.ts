@@ -42,11 +42,13 @@ function put(plan:IbPlan,table:IbTable,before:Row|undefined,after:Row,types:DbTy
  if(before){const where=predicate(table.keys,before);plan.statements.push({sql:`UPDATE ${table.table} SET ${fields.map((k,i)=>k+'='+placeholders[i]).join(',')} WHERE ${where.sql}`,binds:{...binds,...where.binds},expect:1});}
  else plan.statements.push({sql:`INSERT INTO ${table.table} (${fields.join(',')}) VALUES (${placeholders.join(',')})`,binds,expect:1});
 }
-async function checkedRow(c:DbConnection,table:IbTable,input:Row,before:Row|undefined,parent:Row):Promise<Row> {
+export async function checkedRow(c:DbConnection,table:IbTable,input:Row,before:Row|undefined,parent:Row):Promise<Row> {
  const columns=await c.catalog.columns(c,table.table);if(!columns.length)throw new Error(`${table.table} is not installed.`);
  const names=new Set(columns.map(c=>c.name));
  for(const key of Object.keys(input))if(!names.has(key))throw new Error(`${table.table}.${key} is not a stored column.`);
  const row:Row={...(before??table.defaults),...input,...parent};
+ // A creation default for a column this release lacks (8.62's PSOPERATION.URL_ID, PSMSGNODEDEFN.PTIB_NOPING on 8.61.15) is not written.
+ for(const key of Object.keys(row))if(!names.has(key))delete row[key];
  for(const col of columns){
   if(IB_STAMPS.has(col.name))continue;
   if(!(col.name in row)){

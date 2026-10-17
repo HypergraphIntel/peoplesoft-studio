@@ -138,6 +138,23 @@ behave as DB2 LUW (the SQL used is common to both); it has not been run.
 - `ibm_db`'s array insert crashes the process on LOB columns; the extension
   does not use it (the lab loader inserts LOB rows one at a time).
 
+## PeopleTools releases
+
+Later PeopleTools releases add columns to PeopleTools tables. Studio reads and
+writes by the columns the connected database actually has
+(`src/providers/tableColumns.ts`): a column a later release added is selected
+as NULL and left out of inserts, as that release's App Designer does; an edit
+that sets one to a non-default value is refused, naming it.
+
+Compared table by table, 8.61.15 lacks these 8.62.09 columns among the
+PeopleTools tables Studio names: `PSPNLFIELDEXT.PTDISABLESMARTPROM` and
+`PTDISABLESMARTSEL` (Smart Prompt / Smart Select), `PSOPERATION.URL_ID`,
+`PSMSGNODEDEFN.PTIB_NOPING`, `PSPTSEC_TOKEN.PTJWTEXP`, `PSQUEUEDEFN.PTIB_QUEUE_PRI`
+and the Smart Prompt / Smart Select / worklist settings on `PSOPTIONS`. No
+table Studio names is missing on 8.61. A record field's `PSRECFIELD.LASTUPDDTTM`
+is not a reliable "added in" date: several columns stamped 2022-2023 exist on
+8.61.
+
 ## Two-tier sign-on (2 Tier)
 
 *Add Connection* also offers **2 Tier (Oracle)**, **2 Tier (MS SQL)** and

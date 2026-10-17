@@ -13,8 +13,8 @@ writing the same rows Application Designer writes.
 > is experimental: read the [Disclaimer](#disclaimer) before writing to any
 > database.
 
-Current release: **0.9.2**; see the [changelog](CHANGELOG.md) (0.9.1:
-[release verification](docs/RELEASE_0_9_1.md)).
+Current release: **0.9.3** (PeopleTools 8.61 fixes); see the
+[changelog](CHANGELOG.md) (0.9.1: [release verification](docs/RELEASE_0_9_1.md)).
 
 ## Why PeopleSoft Studio
 

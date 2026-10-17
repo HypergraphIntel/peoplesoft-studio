@@ -1,6 +1,20 @@
 # Changelog
 
-## 0.9.2 — 2026-10-17
+## 0.9.3 — 2026-10-17
+
+### Fixed
+
+- **PeopleTools 8.61: Integration Broker creates and OAuth applications.**
+  Every PeopleTools table Studio names (234) was compared between an 8.61.15
+  and an 8.62.09 database: 9 have columns 8.61 lacks, and Studio named three
+  of those besides Smart Prompt (fixed in 0.9.2). A new service operation or
+  node wrote its 8.62.09 creation defaults `PSOPERATION.URL_ID` and
+  `PSMSGNODEDEFN.PTIB_NOPING`, which fails with ORA-00904 on 8.61; defaults for
+  columns the table lacks are now left out (a value supplied for one is still
+  refused). Opening an OAuth application selected `PSPTSEC_TOKEN.PTJWTEXP`; it
+  now reads as NULL where the column is missing. Pages and OAuth applications
+  were opened read-only on the 8.61.15 database to confirm.
+
 
 ### Added
 
