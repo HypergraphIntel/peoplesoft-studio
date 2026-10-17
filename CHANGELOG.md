@@ -143,6 +143,15 @@
 
 ### Fixed
 
+- **Pages save and open on PeopleTools 8.61.** Saving a new page with a
+  run-control subpage on 8.61.12 failed with `ORA-00904:
+  "PTDISABLESMARTPROM": invalid identifier`: Smart Prompt is an 8.62 column,
+  and the page reader and writer named it (and the other PSPNLFIELDEXT
+  settings) outright. They now go by the columns the database actually has: a
+  missing one reads as NULL and is left out of inserts, as that release's App
+  Designer does. An edit that sets one to a non-default value is refused,
+  naming the column (`src/providers/tableColumns.ts`).
+
 - **Message Catalog saves no longer blank the message set's description.** Editing
   an existing message with blank set descriptions wrote them verbatim, emptying
   `PSMSGSETDEFN.DESCR` and `DESCRSHORT` for every message in the set -- while the

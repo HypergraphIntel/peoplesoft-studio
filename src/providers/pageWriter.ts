@@ -1,6 +1,7 @@
 import type { DbConnection as Connection, DbTypes } from '../db/connection.js';
 import { readPageSnapshot, type PagePreviewSnapshots } from './pageSnapshot.js';
 import { writeScopeRefusal } from './writeScope.js';
+import { columnOrNull, presentOnly, tableColumns } from './tableColumns.js';
 import { PAGE_SIZE_BITS, PAGE_SIZE_CUSTOM, PAGE_SIZE_PRESETS, pageSizeChoice } from '../model/pageLayout.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
@@ -512,6 +513,17 @@ const EDITABLE: Array<{ col: string; of: (c: EditedControl) => number | string; 
   { col: 'DISPFMTNAME', of: (c) => nameValue(c.displayFormatName), key: 'displayFormatName' },
 ];
 
+/** The stored controls' columns the save plan reads: PSPNLFIELD's, then PSPNLFIELDEXT's (FFSTYLELONG, a CLOB, apart). */
+const STORED_FIELD_COLUMNS = ['PNLFLDID', 'FIELDNUM', 'FIELDTYPE', 'FIELDLEFT', 'FIELDTOP', 'FIELDRIGHT', 'FIELDBOTTOM', 'EDITLBLLEFT', 'EDITLBLTOP',
+  'EDITLBLRIGHT', 'EDITLBLBOTTOM', 'FIELDSIZETYPE', 'LBLTYPE', 'LBLTEXT', 'FIELDUSE', 'SECUREINVISIBLE', 'FIELDSTYLE', 'PNLFIELDNAME', 'PTADJHIDDENFIELDS',
+  'ENABLEASANCHOR', 'FIELDUSETMP', 'DSPLFORMAT', 'CONTNAME', 'GRDLBLMSGSET', 'GRDLBLMSGNUM', 'ONVALUE', 'OFFVALUE', 'LBLLOC', 'RECNAME', 'FIELDNAME',
+  'DEFERPROC', 'OCCURSCOUNT1', 'GRDSHOWCOLHDG', 'GRDSHOWROWHDG', 'GRDALLOWCOLSORT', 'OCCURSLEVEL', 'POPUPMENU', 'ASSOCFIELDNUM', 'LABELSTYLE', 'LABEL_ID',
+  'USEDEFAULTLABEL', 'PTHIDEFIELDS', 'PTCOLLAPSEDATAAREA', 'PTDFLTVIEWEXPANDED', 'PTLBLIMGCOLLAPSE', 'PTLBLIMGEXPAND', 'LABELSIZETYPE', 'PTLEBEXPANDFIELD',
+  'DSPLFILL', 'FORMATFAMILY', 'DISPFMTNAME', 'TREECTRLID', 'GRDCOLUMNCOUNT'];
+const STORED_EXT_COLUMNS = ['PLHTYPE', 'PLACEHOLDER', 'PLH_MSG_SET_NBR', 'PLH_MSG_NBR', 'MESSAGE_SET_NBR', 'MESSAGE_NBR', 'GRPBOXTYPE', 'GRPBOXHTMLTYPE',
+  'SCROLLBARS', 'PTGBRELTXTINFO', 'PTGBRELACTINFO', 'PTGBRELACTFLD', 'PTPOPUPPNL', 'HTML_INPUT_TYPE', 'MINNUMBER', 'MAXNUMBER', 'STEPNUMBER',
+  'PTDISABLESMARTPROM', 'PT_NUMFLD1', 'FIELDUSETEMP2'];
+
 /** The PSPNLFIELDEXT columns a Group Box's dialog sets, written only when the editor sends them. */
 const EXT_EDITABLE: Array<{ col: string; of: (c: EditedControl) => number | string; key: keyof EditedControl }> = [
   { col: 'MESSAGE_SET_NBR', of: (c) => Number(c.popupMsgSet ?? 0), key: 'popupMsgSet' },
@@ -932,16 +944,15 @@ export async function savePage(c: Connection, request: PageSaveRequest, types?: 
     const before = request.captureSnapshots || request.expectedSnapshotToken ? await readPageSnapshot(c, types!, pnlName) : undefined;
     if (request.expectedSnapshotToken && before?.token !== request.expectedSnapshotToken) throw new PageSaveRefusedError('Native Page snapshot changed before the writer; restage and review.');
 
+    // Named one by one against this release's tables: a column a later PeopleTools added reads as NULL (tableColumns.ts).
+    const fieldCols = await tableColumns(c, 'PSPNLFIELD');
+    const extCols = await tableColumns(c, 'PSPNLFIELDEXT');
     const storedRows = await select<Record<string, number | string>>(c,
-      `SELECT F.PNLFLDID, F.FIELDNUM, F.FIELDTYPE, F.FIELDLEFT, F.FIELDTOP, F.FIELDRIGHT, F.FIELDBOTTOM, F.EDITLBLLEFT, F.EDITLBLTOP, F.EDITLBLRIGHT, F.EDITLBLBOTTOM,
-              F.FIELDSIZETYPE, F.LBLTYPE, F.LBLTEXT, F.FIELDUSE, F.SECUREINVISIBLE, F.FIELDSTYLE, F.PNLFIELDNAME, F.PTADJHIDDENFIELDS, F.ENABLEASANCHOR,
-              F.FIELDUSETMP, F.DSPLFORMAT, F.CONTNAME, F.GRDLBLMSGSET, F.GRDLBLMSGNUM, F.ONVALUE, F.OFFVALUE, F.LBLLOC, F.RECNAME, F.FIELDNAME, F.DEFERPROC,
-              F.OCCURSCOUNT1, F.GRDSHOWCOLHDG, F.GRDSHOWROWHDG, F.GRDALLOWCOLSORT, F.OCCURSLEVEL, F.POPUPMENU, F.ASSOCFIELDNUM,
-              F.LABELSTYLE, F.LABEL_ID, F.USEDEFAULTLABEL, F.PTHIDEFIELDS, F.PTCOLLAPSEDATAAREA, F.PTDFLTVIEWEXPANDED, F.PTLBLIMGCOLLAPSE, F.PTLBLIMGEXPAND,
-              F.LABELSIZETYPE, F.PTLEBEXPANDFIELD, E.PLHTYPE, E.PLACEHOLDER, E.PLH_MSG_SET_NBR, E.PLH_MSG_NBR,
-              E.MESSAGE_SET_NBR, E.MESSAGE_NBR, E.GRPBOXTYPE, E.GRPBOXHTMLTYPE, E.SCROLLBARS, E.PTGBRELTXTINFO, E.PTGBRELACTINFO, E.PTGBRELACTFLD,
-              F.DSPLFILL, F.FORMATFAMILY, F.DISPFMTNAME, E.PTPOPUPPNL, E.HTML_INPUT_TYPE, E.MINNUMBER, E.MAXNUMBER, E.STEPNUMBER, E.PTDISABLESMARTPROM, E.PT_NUMFLD1,
-              DBMS_LOB.SUBSTR(E.FFSTYLELONG, 4000, 1) AS FFSTYLELONG, E.FIELDUSETEMP2, F.TREECTRLID, F.GRDCOLUMNCOUNT
+      `SELECT ${[
+        ...STORED_FIELD_COLUMNS.map((col) => columnOrNull(fieldCols, 'F', col)),
+        ...STORED_EXT_COLUMNS.map((col) => columnOrNull(extCols, 'E', col)),
+        columnOrNull(extCols, 'E', 'FFSTYLELONG', 'FFSTYLELONG', (x) => `DBMS_LOB.SUBSTR(${x}, 4000, 1)`)
+      ].join(', ')}
          FROM PSPNLFIELD F LEFT JOIN PSPNLFIELDEXT E ON E.PNLNAME = F.PNLNAME AND E.PNLFLDID = F.PNLFLDID WHERE F.PNLNAME = :n`, { n: pnlName });
     // HTML Areas' Constant values (PSPNLHTMLAREA, a CLOB read as text).
     const htmlRows = await select<{ PNLFLDID: number; HTMLAREA: string | null }>(c, `SELECT PNLFLDID, HTMLAREA FROM PSPNLHTMLAREA WHERE PNLNAME = :n`, { n: pnlName });
@@ -1074,6 +1085,10 @@ export async function savePage(c: Connection, request: PageSaveRequest, types?: 
     for (const r of plan.treeRekeys) await c.execute(`UPDATE PSPNLTREECTRL SET TREECTRLID = :nt WHERE PNLNAME = :n AND TREECTRLID = :t`, { n: pnlName, t: -r.to, nt: r.to });
 
     for (const u of plan.updates) {
+      const { row: present, dropped } = presentOnly(u.columns, fieldCols);
+      refuseMissingSettings(dropped, u.columns, 'PSPNLFIELD');
+      u.columns = present as typeof u.columns;
+      if (!Object.keys(u.columns).length) continue;
       const binds: Record<string, unknown> = { n: pnlName, id: u.pnlFldId };
       const sets = Object.entries(u.columns).map(([col, value], i) => {
         if (col === 'LBLTEXT') return `${col} = ${quoteText(String(value))}`;
@@ -1084,7 +1099,11 @@ export async function savePage(c: Connection, request: PageSaveRequest, types?: 
     }
 
     for (const u of plan.extUpdates) {
+      const { row: present, dropped } = presentOnly(u.columns, extCols);
+      refuseMissingSettings(dropped, u.columns, 'PSPNLFIELDEXT');
+      u.columns = present as typeof u.columns;
       const cols = Object.keys(u.columns);
+      if (!cols.length) continue;
       await expectRows(c, `UPDATE PSPNLFIELDEXT SET ${cols.map((col, i) => `${col} = :v${i}`).join(', ')} WHERE PNLNAME = :n AND PNLFLDID = :id`,
         { ...Object.fromEntries(cols.map((col, i) => [`v${i}`, u.columns[col]])), n: pnlName, id: u.pnlFldId }, 1, `Updating PSPNLFIELDEXT ${u.pnlFldId}`);
     }
@@ -1329,7 +1348,18 @@ async function readFieldInfo(c: Connection, recName: string, fieldName: string):
 }
 
 /** One whole row, every column bound. */
-async function insertRow(c: Connection, table: string, row: ColumnValues): Promise<void> {
+/**
+ * An edit to a column this release does not have: a blank or zero is what the column would hold anyway, so it is left
+ * out; anything else is a setting this PeopleTools release cannot store (Smart Prompt before 8.62), refused.
+ */
+function refuseMissingSettings(dropped: readonly string[], values: Record<string, unknown>, table: string): void {
+  const set = dropped.filter((col) => { const v = values[col]; return !(v === null || v === 0 || (typeof v === 'string' && !v.trim())); });
+  if (set.length) throw new PageSaveRefusedError(`This PeopleTools release has no ${table} ${set.join(', ')}; that setting cannot be saved here.`);
+}
+
+async function insertRow(c: Connection, table: string, full: ColumnValues): Promise<void> {
+  // A column this release's table lacks is one its App Designer never writes (tableColumns.ts).
+  const { row } = presentOnly(full, await tableColumns(c, table));
   const cols = Object.keys(row);
   const binds = Object.fromEntries(cols.map((col, i) => [`b${i}`, row[col]]));
   await expectRows(c, `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${cols.map((_, i) => `:b${i}`).join(', ')})`,

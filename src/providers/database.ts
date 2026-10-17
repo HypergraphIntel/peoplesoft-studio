@@ -137,6 +137,7 @@ import {
   type PeopleCodeSaveRequest, type PeopleCodeSaveResult
 } from './peopleCodeWriter.js';
 import { writeScopeRefusal } from './writeScope.js';
+import { columnOrNull, tableColumns } from './tableColumns.js';
 
 export interface DatabaseConnectionConfig {
   name: string;
@@ -2066,16 +2067,16 @@ export class DatabaseProvider implements DefinitionProvider {
       const [page] = await this.uiRows(c, `SELECT P.*, ${UI_STAMP} FROM PSPNLDEFN P WHERE PNLNAME = :n`, { n: name });
       if (!page) throw new ProviderError(`No page named ${name}.`);
       // Each control's PSPNLFIELDEXT Fluid settings ride along (FFSTYLELONG is a CLOB: read as text).
+      // PSPNLFIELDEXT's columns by this release's table: one a later PeopleTools added reads as NULL (tableColumns.ts).
+      const ext = await tableColumns(c, 'PSPNLFIELDEXT');
+      const extList = [
+        columnOrNull(ext, 'E', 'FFSTYLELONG', 'EXT_FFSTYLELONG', (x) => `DBMS_LOB.SUBSTR(${x}, 4000, 1)`),
+        ...['FIELDUSETEMP2', 'GRPBOXTYPE', 'GRPBOXHTMLTYPE', 'SCROLLBARS', 'MESSAGE_SET_NBR', 'MESSAGE_NBR', 'PTGBRELTXTINFO', 'PTGBRELACTINFO',
+          'PTGBRELACTFLD', 'PLHTYPE', 'PLACEHOLDER', 'PLH_MSG_SET_NBR', 'PLH_MSG_NBR', 'PTPOPUPPNL', 'HTML_INPUT_TYPE', 'MINNUMBER', 'MAXNUMBER',
+          'STEPNUMBER', 'PTDISABLESMARTPROM', 'PT_NUMFLD1'].map((col) => columnOrNull(ext, 'E', col, `EXT_${col}`))
+      ].join(', ');
       const fields = await this.uiRows(c,
-        `SELECT F.*, DBMS_LOB.SUBSTR(E.FFSTYLELONG, 4000, 1) AS EXT_FFSTYLELONG, E.FIELDUSETEMP2 AS EXT_FIELDUSETEMP2,
-                E.GRPBOXTYPE AS EXT_GRPBOXTYPE, E.GRPBOXHTMLTYPE AS EXT_GRPBOXHTMLTYPE, E.SCROLLBARS AS EXT_SCROLLBARS,
-                E.MESSAGE_SET_NBR AS EXT_MESSAGE_SET_NBR, E.MESSAGE_NBR AS EXT_MESSAGE_NBR,
-                E.PTGBRELTXTINFO AS EXT_PTGBRELTXTINFO, E.PTGBRELACTINFO AS EXT_PTGBRELACTINFO, E.PTGBRELACTFLD AS EXT_PTGBRELACTFLD,
-                H.HTMLAREA AS EXT_HTMLAREA, E.PLHTYPE AS EXT_PLHTYPE, E.PLACEHOLDER AS EXT_PLACEHOLDER,
-                E.PLH_MSG_SET_NBR AS EXT_PLH_MSG_SET_NBR, E.PLH_MSG_NBR AS EXT_PLH_MSG_NBR,
-                E.PTPOPUPPNL AS EXT_PTPOPUPPNL, E.HTML_INPUT_TYPE AS EXT_HTML_INPUT_TYPE, E.MINNUMBER AS EXT_MINNUMBER,
-                E.MAXNUMBER AS EXT_MAXNUMBER, E.STEPNUMBER AS EXT_STEPNUMBER, E.PTDISABLESMARTPROM AS EXT_PTDISABLESMARTPROM,
-                E.PT_NUMFLD1 AS EXT_PT_NUMFLD1,
+        `SELECT F.*, ${extList}, H.HTMLAREA AS EXT_HTMLAREA,
                 R.PNLFLDID AS RTE_PNLFLDID, R.PTRTECFGSETTINGSID AS RTE_CFG, R.PTRTEIMGLOCURLID AS RTE_IMG, R.PTRTEPLUGIN AS RTE_PLUGIN,
                 R.PTRTETEMPLATE AS RTE_TEMPLATE, R.PTRTESTYLE AS RTE_STYLE
            FROM PSPNLFIELD F LEFT JOIN PSPNLFIELDEXT E ON E.PNLNAME = F.PNLNAME AND E.PNLFLDID = F.PNLFLDID
