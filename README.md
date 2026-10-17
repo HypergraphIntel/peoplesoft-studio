@@ -257,7 +257,21 @@ See [docs/ROADMAP.md](docs/ROADMAP.md) for the longer path.
 
 **Project export** — App Designer XML on disk. No DB credentials; PeopleCode is the plain source App Designer already wrote. Scope is that project only.
 
-UI code talks only to a `DefinitionProvider` interface; capabilities (write, global search, build) are declared per backend.
+A backend is where definitions come from. The two front ends — the VS Code UI
+and the [MCP server](docs/MCP_REFERENCE.md) for AI clients — sit on top of both:
+
+```text
+   VS Code UI          MCP server (AI clients)      <- front ends
+        \                    /
+         DefinitionProvider interface
+        /                    \
+ Database backend      Project export backend       <- backends
+```
+
+Both front ends talk only to the `DefinitionProvider` interface, through the
+same readers and writers. Capabilities (write, global search, build) are
+declared per backend, so an AI client gets exactly what the editors get, and a
+fix to a reader or writer reaches both.
 
 ## PeopleCode storage
 
