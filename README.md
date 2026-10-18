@@ -13,8 +13,10 @@ writing the same rows Application Designer writes.
 > is experimental: read the [Disclaimer](#disclaimer) before writing to any
 > database.
 
-Current release: **0.9.3** (PeopleTools 8.61 fixes); see the
-[changelog](CHANGELOG.md) (0.9.1: [release verification](docs/RELEASE_0_9_1.md)).
+Current release: **0.9.4** (native save parity and PeopleTools 8.61 support);
+see the [release notes](docs/releases/0.9.4.md) and [changelog](CHANGELOG.md).
+Portal MCP callers must migrate `publicAccess` to `access`; content-reference
+saves can grant permission lists to ancestor folders, as PIA does.
 
 ## Why PeopleSoft Studio
 
@@ -23,8 +25,8 @@ Current release: **0.9.3** (PeopleTools 8.61 fixes); see the
   menu, Component Interface, App Engine and message channel windows, rebuilt as
   VS Code editors. SQL, HTML and style sheets as plain text.
 - **Saves Application Designer recognizes.** Writers use captured native
-  saves on HRDMO (PeopleTools database release 8.62.09), with tests that replay
-  those captures. Supported writes are checked by native reopen and readback;
+  saves on PeopleTools 8.62.09 and 8.61.15, with tests that replay the captured
+  behavior. Supported writes are checked by native reopen and readback;
   unsupported changes are refused.
 - **A PeopleCode compiler checked at scale.** Recorded corpus comparisons
   reproduced stored bytecode for 30,205 of 30,209 HCDEV programs, and matched
@@ -83,8 +85,8 @@ definitions, outages or any other damage.
   fields, pages, components and the other definitions their own tables; and
   `PSVERSION` / `PSLOCK` -- using an independently developed compiler and save
   routines, not Oracle's. Save protocols are calibrated from native saves on
-  HRDMO (database release 8.62.09). Other PeopleTools releases, patches and
-  configurations may behave differently.
+  PeopleTools 8.62.09 and 8.61.15 within each writer's supported scope. Other
+  releases, patches and configurations may behave differently.
 - **Compiling with Application Designer is still recommended.** After saving
   PeopleCode from VS Code, open the program in Application Designer and save
   (compile) it there, so PeopleTools' own compiler validates it. Do this

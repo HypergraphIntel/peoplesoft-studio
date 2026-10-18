@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.9.4 — 2026-10-18
+
+### Compatibility
+
+- Portal MCP callers must replace `publicAccess` with `access` (`public`,
+  `author` or `permissions`). Saving a content reference can grant its
+  permission lists to non-public ancestor folders, as PIA does. Review the
+  [release notes](docs/releases/0.9.4.md) before upgrading.
 
 ### Added
 
