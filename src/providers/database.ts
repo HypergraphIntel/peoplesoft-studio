@@ -125,7 +125,7 @@ import type { ImageContent } from '../editors/imageHtml.js';
 import { IB_TRANSLATE_FIELDS, renderMessage as renderIbMessage, renderOperation, renderService } from '../model/ibDefinitions.js';
 import { listIb, readIb, validateIb } from './ibReader.js';
 import type { IbKind, IbDocument } from '../model/ibDocument.js';
-import { saveIb, type IbSaveRequest } from './ibWriter.js';
+import { presentIbInput, saveIb, type IbSaveRequest } from './ibWriter.js';
 import { ibDefinitionKey, IB_DEFINITION_TYPES, ibWriteInput } from '../model/ibOperations.js';
 import { newIbInput, type IbNewOptions } from '../model/ibNew.js';
 import { safeRows as ibSafeRows, rows as ibRows } from './ibReader.js';
@@ -1646,7 +1646,8 @@ export class DatabaseProvider implements DefinitionProvider {
       const [config] = await ibSafeRows(c,this.types,'PSIBSVCSETUP','1=1',{});
       const [language] = await ibRows(c,this.types,'SELECT LANGUAGE_CD FROM PSOPTIONS');
       const [service] = options.service ? await ibSafeRows(c,this.types,'PSSERVICE','IB_SERVICENAME=:n',{n:options.service}) : [];
-      return newIbInput(kind,key,options,config??{},String(language?.LANGUAGE_CD??'').trim(),service);
+      const [status] = await ibRows(c,this.types,'SELECT TOOLSREL FROM PSSTATUS');
+      return presentIbInput(c,newIbInput(kind,key,options,config??{},String(language?.LANGUAGE_CD??'').trim(),service,String(status?.TOOLSREL??'').trim()));
     });
   }
 

@@ -40,7 +40,10 @@ again afterward. Credentials and secret property values are excluded from reads
 and preserved by partial updates.
 
 The native write protocol is calibrated on **PeopleTools 8.62.09** and refuses
-other releases. The tested creation paths are standard/REST services,
+other releases, except **8.61.15** for the shapes matched to PIA there: nonrowset
+messages, standard services, standard synchronous operations without handlers,
+and flat string documents, created and edited. On 8.61.15, REST services and
+operations, nodes, routings and handlers are refused. The tested creation paths are standard/REST services,
 standard synchronous and REST GET operations, nonrowset messages, external PIA
 nodes without authentication, manual routings and flat string documents.
 Application class OnRequest handlers can be added after creating the operation;
@@ -73,7 +76,7 @@ Document and physical SQL versions are one above their allocated cache sequence.
 
 `PS_MSGDEFN_AUX` is a view over PSMSGDEFN, not a child table to insert into.
 Document generated schema CHUNKSIZE is twice the base64 character length.
-Compressed bytes may differ by zlib implementation; decompressed native schema
+Compressed bytes match PIA's (reference zlib through pako); decompressed native schema
 XML is compared exactly. Native JSON's required placement is preserved.
 
 - `src/test/fixtures/ib-native-8.62.09/documents.json`: three PIA golden schemas.
@@ -85,6 +88,28 @@ XML is compared exactly. Native JSON's required placement is preserved.
   saves, stale tokens and off/dirty gates.
 - `tools/lab/ib-edit-e2e.mts`: two-element document schema edits and confirmation.
 - `tools/lab/results/ib-write-e2e.json`: tested custom definition keys.
+
+### PeopleTools 8.61.15
+
+On an 8.61.15 database, PIA made a nonrowset message, a standard service, a
+synchronous operation on them, and a one-element flat string document. Studio
+made the same through `psft_ib_new` / `psft_ib_create`, and edited a service
+description as PIA did. Every row was equal apart from names and stamps, with
+the same counter increments as 8.62.09. For documents the inflated bodies are
+equal. PIA opens Studio's document and reports it valid. What 8.61 changes:
+
+- The 8.62 columns PSOPERATION.URL_ID and PSMSGNODEDEFN.PTIB_NOPING do not
+  exist; `psft_ib_new` leaves them out of a new input.
+- The JSON physical schema has no `m_bFilterBlankElements` (every 8.62 save
+  since 2025 writes it; no 8.61 save does).
+- On both releases, the generated JSON schema's `$id` is Service
+  Configuration's REST Target Location at save time, followed by
+  `/<package>.<document>.<version>.json` (`http://ORACLE_ENDPOINT` when blank).
+  The 8.62.09 capture had a blank location.
+- PIA compresses with reference zlib at level 6. Node's zlib (Chromium's fork)
+  gives different bytes for the same text, so Studio compresses with pako, a
+  port of reference zlib. It reproduces every captured PIA body byte for byte:
+  six on 8.61.15 and three on 8.62.09.
 
 PIA opened and natively saved the MCP-created standard service and operation.
 It validated and saved the MCP-created two-element document, saved the manual

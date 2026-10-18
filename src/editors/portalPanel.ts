@@ -42,7 +42,7 @@ export async function openPortalStructure(workspace: Workspace, provider: Databa
         if (!writable()) throw new Error('Set this connection to Writable and configure an Operator ID before creating entries.');
         if (m.refType !== 'F' && m.refType !== 'C') throw new Error('Choose Folder or Content Reference.');
         doc = undefined; creating = true;
-        await show({ portal, refType: m.refType, name: '', parent: m.parent || 'PORTAL_ROOT_OBJECT', label: '', description: '', sequence: 0, owner: '', publicAccess: false, permissions: [] });
+        await show({ portal, refType: m.refType, name: '', parent: m.parent || 'PORTAL_ROOT_OBJECT', label: '', description: '', sequence: 0, owner: '', access: 'author', permissions: [] });
       } else if (m.type === 'save') {
         if (!writable()) throw new Error('Set this connection to Writable and configure an Operator ID before saving.');
         const input = portalInput.parse(m.input);

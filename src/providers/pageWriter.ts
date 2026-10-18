@@ -1385,6 +1385,9 @@ export const NEW_PAGE: ColumnValues = {
  */
 export const NEW_PAGE_LICENSE_CODE = ' ';
 
+/** PSPNLFIELDEXT PARENTPNLFLDID / PAGEPNLFLDID of a control placed on a page that has no name yet (n01, XX_PG_AD). */
+export const NEW_PAGE_CONTROL_PAGE_REF = '$0';
+
 export interface PageCreateRequest {
   pnlName: string;
   operatorId: string;
@@ -1488,6 +1491,8 @@ export async function createPage(c: Connection, request: PageCreateRequest): Pro
     const [{ N: taken }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSPNLDEFN WHERE PNLNAME = :n`, { n: pnlName });
     if (Number(taken)) throw new PageSaveRefusedError(`There is already a page named ${pnlName}.`);
     if (!request.saveInvalid) await refuseInvalidPage(c, pnlName, checked);
+    // A Subpage takes its subpage's own rectangle on a new page too (App Designer 8.61.15, XX_PG_AD; sbp-fresh on 8.62).
+    for (const [i, ctl] of controls.entries()) controls[i] = await placeSubpage(c, ctl);
 
     let template: { defn: ColumnValues; fields: ColumnValues[]; exts: ColumnValues[] } | undefined;
     if (request.template) {
@@ -1507,7 +1512,12 @@ export async function createPage(c: Connection, request: PageCreateRequest): Pro
       rows.push({ field: { ...f, PNLNAME: pnlName }, ext: { ...template!.exts.find((e) => e.PNLFLDID === f.PNLFLDID)!, PNLNAME: pnlName },
         ...(await controlDataRows(c, { pnlName: request.template!.trim().toUpperCase(), pnlFldId: Number(f.PNLFLDID) }, { pnlName, pnlFldId: Number(f.PNLFLDID) })) });
     }
-    for (const [i, control] of controls.entries()) rows.push(await insertedControlRows(c, pnlName, { pnlFldId: i + 1, fieldNum: i + 1, control }));
+    // Placed before the page had a name, a new page's controls name no page: App Designer writes PARENTPNLFLDID and
+    // PAGEPNLFLDID '$0' (n01 on 8.62.09, XX_PG_AD on 8.61.15); a control added to an existing page gets '<page>$0'.
+    for (const [i, control] of controls.entries()) {
+      const r = await insertedControlRows(c, pnlName, { pnlFldId: i + 1, fieldNum: i + 1, control });
+      rows.push({ ...r, ext: { ...r.ext, PARENTPNLFLDID: NEW_PAGE_CONTROL_PAGE_REF, PAGEPNLFLDID: NEW_PAGE_CONTROL_PAGE_REF } });
+    }
     if (template && rows.some((r) => !r.ext.PNLFLDID)) throw new PageSaveRefusedError(`${request.template} has a control without a PSPNLFIELDEXT row.`);
     if (request.properties && request.properties.description.trim().length > 30) {
       throw new PageSaveRefusedError('The page description is limited to 30 characters (PSPNLDEFN.DESCR).');

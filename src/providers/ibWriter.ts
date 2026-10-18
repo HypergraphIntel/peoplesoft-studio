@@ -1,5 +1,12 @@
 import { flatStringElements } from '../model/ibDocumentSchema.js';
-import { deflateSync } from 'node:zlib';
+import { requireCalibratedRelease } from './calibratedRelease.js';
+import { deflate } from 'pako';
+/**
+ * PIA compresses document bodies with reference zlib at level 6. Node's zlib (Chromium's
+ * fork) gives other bytes for the same text; pako, a port of reference zlib, reproduced every
+ * PIA body captured (six on 8.61.15, three on 8.62.09) byte for byte.
+ */
+export const ibDeflate=(data:Buffer):Buffer=>Buffer.from(deflate(data,{level:6}));
 import { XMLValidator, XMLParser } from 'fast-xml-parser';
 import type { DbConnection, DbTypes } from '../db/connection.js';
 import { ibDocument, ibIdentity, type IbDocument, type IbDiagnostic, } from '../model/ibDocument.js';
@@ -9,6 +16,7 @@ import { isSecretProperty } from '../model/miscDefinitions.js';
 import { readIb, rows, safeRows, propertyRows, validateIb } from './ibReader.js';
 import { operatorExists, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
 import { writeScopeRefusal } from './writeScope.js';
+import { presentOnly, tableColumns } from './tableColumns.js';
 
 export interface IbSaveRequest { input:IbWriteInput; expectedToken:string; operatorId:string; dryRun?:boolean; }
 export interface IbStatement { sql:string; binds:Record<string,unknown>; expect?:number; }
@@ -41,6 +49,29 @@ function put(plan:IbPlan,table:IbTable,before:Row|undefined,after:Row,types:DbTy
  });
  if(before){const where=predicate(table.keys,before);plan.statements.push({sql:`UPDATE ${table.table} SET ${fields.map((k,i)=>k+'='+placeholders[i]).join(',')} WHERE ${where.sql}`,binds:{...binds,...where.binds},expect:1});}
  else plan.statements.push({sql:`INSERT INTO ${table.table} (${fields.join(',')}) VALUES (${placeholders.join(',')})`,binds,expect:1});
+}
+/** The shapes matched to PIA on 8.61.15 as well as 8.62.09; REST, nodes, routings and handlers were matched on 8.62.09 only. */
+export function ibStandardShape(input:IbWriteInput):boolean {
+ const none=(...names:string[])=>names.every(n=>!(input.sections[n]??[]).length);
+ switch(input.kind){
+  case 'message':return none('records','fields','parts','attributes')&&(input.sections.versions??[]).every(v=>Number(v.IB_MSGTYPE)===2);
+  case 'service':return input.serviceKind==='standard';
+  case 'operation':return !str(input.properties.IB_RESTMETHOD)&&none('handlers','applicationClassHandlers','applicationEngineHandlers','componentInterfaceHandlers','dataMoverHandlers','uriTemplates','uriMessages','contentTypes');
+  case 'document':return !!input.document;
+  default:return false;
+ }
+}
+/**
+ * A new input as this release's tables can store it. The creation defaults name 8.62
+ * columns (PSOPERATION.URL_ID, PSMSGNODEDEFN.PTIB_NOPING) that 8.61.15 lacks, and the
+ * writer refuses any column an input names that its table does not have.
+ */
+export async function presentIbInput(c:DbConnection,input:IbWriteInput):Promise<IbWriteInput> {
+ type Stored=IbWriteInput['properties'];
+ const keep=async(table:string,row:Stored)=>{const have=await tableColumns(c,table);return have.size?presentOnly(row,have).row as Stored:row;};
+ const sections:IbWriteInput['sections']={};
+ for(const [name,list] of Object.entries(input.sections)){const table=IB_SECTIONS[input.kind][name];sections[name]=table?await Promise.all(list.map(r=>keep(table.table,r))):list;}
+ return {...input,properties:await keep(IB_PARENTS[input.kind].table,input.properties),sections};
 }
 export async function checkedRow(c:DbConnection,table:IbTable,input:Row,before:Row|undefined,parent:Row):Promise<Row> {
  const columns=await c.catalog.columns(c,table.table);if(!columns.length)throw new Error(`${table.table} is not installed.`);
@@ -175,7 +206,7 @@ async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,open
   if(logical!.physicalSchemas.some(p=>!['XML','JSON','HTML'].includes(p.name)))throw new Error('Relational/custom physical schemas need a separately calibrated protocol.');
   if((opened?.sections.dependencies??[]).length)throw new Error('Compound/document dependency writes need a separately calibrated protocol.');
   if((await rows(c,types,'SELECT 1 AS N FROM PSDOCLODEFN WHERE (IB_PACKAGEID=:p AND IB_SCHEMANAME=:d AND IB_VARIANTNAME=:v) OR (IB_PACKAGE2=:p AND IB_SCHEMANAME2=:d AND IB_VARIANTNAME2=:v) FETCH FIRST 1 ROWS ONLY',{p:input.key[0],d:input.key[1],v:input.key[2]})).length)throw new Error('This document is used by a Document Layout; resynchronization must be handled in PIA.');
-  const body=Buffer.from(logical!.logicalSchema,'utf8');properties.COMPDATALEN=deflateSync(body).length;properties.UNCOMPDATALEN=body.length;
+  const body=Buffer.from(logical!.logicalSchema,'utf8');properties.COMPDATALEN=ibDeflate(body).length;properties.UNCOMPDATALEN=body.length;
   if(!str(properties.DESCR))properties.DESCR=input.key[1].slice(0,30);
  }
  const parentChanged=!opened||Object.keys(properties).some(k=>!IB_STAMPS.has(k)&&!same(opened.properties[k],properties[k]));
@@ -236,7 +267,7 @@ async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,open
  if(input.kind==='document'){
   const where=predicate(parentTable.keys,parentKey);
   const body=(table:string,extra:Row,xml:string)=>{
-   const data=deflateSync(Buffer.from(xml,'utf8'));
+   const data=ibDeflate(Buffer.from(xml,'utf8'));
    const keys={...parentKey,...extra};const condition=predicate(Object.keys(keys),keys);
    plan.statements.push({sql:`DELETE FROM ${table} WHERE ${condition.sql}`,binds:condition.binds});
    put(plan,{table,keys:[...Object.keys(keys),'SEQNO'],defaults:{}},undefined,{...keys,SEQNO:0,IB_ZIPDATA:data},types);
@@ -250,7 +281,7 @@ async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,open
    put(plan,{table:'PSPHYSSCHDEFN',keys:[...parentTable.keys,'IB_PHYSSCHEMANAME'],defaults:{}},old,{...parentKey,IB_PHYSSCHEMANAME:p.name,IB_PHYSSCHEMATYPE:p.type,...sizes,VERSION:++physicalSequence+1,...stamp,OBJECTOWNERID:properties.OBJECTOWNERID,DESCR:properties.DESCR,DESCRLONG:properties.DESCRLONG},types);
   }
   for(const [table,text] of [['PSDOCSCMADATA',logical!.xmlSchema],['PSDOCJSCMADATA',logical!.jsonSchema]]){
-   const data=deflateSync(Buffer.from(text,'utf8')).toString('base64');
+   const data=ibDeflate(Buffer.from(text,'utf8')).toString('base64');
    plan.statements.push({sql:`DELETE FROM ${table} WHERE ${where.sql}`,binds:where.binds});
    put(plan,{table,keys:[...parentTable.keys,'CHUNKSEQUENCE'],defaults:{}},undefined,{...parentKey,CHUNKSEQUENCE:0,CHUNKSIZE:data.length*2,DATACHUNK:data},types);
   }
@@ -266,8 +297,7 @@ export async function saveIb(c:DbConnection,types:DbTypes,request:IbSaveRequest)
  const scope=writeScopeRefusal(input.kind==='document'?input.key[0]:input.key[0]);if(scope)throw new Error(scope);
  if(!request.expectedToken)throw new Error('An expectedToken is required; use absent only to create.');
  if(!await operatorExists(c,request.operatorId))throw new Error('A valid PeopleSoft Operator ID is required.');
- const [release]=await rows(c,types,'SELECT TOOLSREL,PTPATCHREL FROM PSSTATUS');
- if(str(release?.TOOLSREL)!=='8.62'||Number(release?.PTPATCHREL)!==9)throw new Error('Integration Broker writes are calibrated on PeopleTools 8.62.09 only.');
+ await requireCalibratedRelease(c,ibStandardShape(input)?'integrationBrokerStandard':'integrationBroker');
  try{
   if(!request.dryRun){const table=IB_PARENTS[input.kind],key=Object.fromEntries(table.keys.map((k,i)=>[k,input.key[i]])),where=predicate(table.keys,key);await rows(c,types,`SELECT ${table.keys.join(',')} FROM ${table.table} WHERE ${where.sql} FOR UPDATE`,where.binds);}
   const opened=await readIb(c,types,input.kind,input.key);

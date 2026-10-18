@@ -79,14 +79,17 @@ export function applyQueryOp(source: QueryView, op: QueryOp, metadata: Record<st
     info=metadata[op.field];
     if (!info || info.type!==0) throw new QueryUnsupportedError('Only record character fields are calibrated for editing.');
     f=view.fields.find(row=>s(row.FIELDNAME)===op.field && n(row.SELNUM)===1 && n(row.FLDRCDNUM)===1);
-    if (!f && op.kind==='select' && op.selected) {
+    // Windows Query's New Criteria on an unselected field adds it as a criteria-only
+    // field: no column, heading None (8.61.15 XX_QRY_AD2, as an unselect leaves it).
+    const criterion=op.kind==='constant' || op.kind==='prompt';
+    if (!f && (op.kind==='select' && op.selected || criterion)) {
       f={...k,QRYFLDNAME:`${s(view.records[0].CORRNAME)}.${op.field}`,SELNUM:1,FLDNUM:Math.max(0,...view.fields.map(row=>n(row.FLDNUM)))+1,
-        RECNAME:s(view.records[0].RECNAME),FIELDNAME:op.field,FLDRCDNUM:1,FLDEXPNUM:0,HDGTYPE:3,HEADING:' ',
+        RECNAME:s(view.records[0].RECNAME),FIELDNAME:op.field,FLDRCDNUM:1,FLDEXPNUM:0,HDGTYPE:criterion?1:3,HEADING:' ',
         COLUMNNUM:0,GROUPBYNUM:0,ORDERBYNUM:0,ORDERBYDIR:' ',TTLTYPE:1,SUBTTLNUM:0,USECOUNT:0,
         XLATTYPE:1,XLATEXPRTYPE:6,XLATFLDNUM:0,XLATEXPNUM:0,AGGREGATEFUNC:' '};
       view.fields.push(f);
     }
-    if (!f) throw new Error('Select that field before editing its properties or criteria.');
+    if (!f) throw new Error('Select that field before editing its properties.');
   }
   switch (op.kind) {
     case 'select': {

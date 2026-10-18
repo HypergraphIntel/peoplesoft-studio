@@ -9,7 +9,7 @@ oracledb.outFormat = oracledb.OUT_FORMAT_OBJECT;
 const native = await oracledb.getConnection({ user: process.env.PSLAB_ACCESSID, password: process.env.PSLAB_ACCESSPSWD, connectString: process.env.PSLAB_ORACLE ?? '127.0.0.1:15210/hrdmo' });
 const c = native as unknown as DbConnection;
 const operatorId = process.env.PSLAB_OPRID ?? 'JARED', seed = String(Date.now() % 100000).padStart(5, '0');
-const folder = { portal: 'EMPLOYEE', refType: 'F' as const, name: 'ZZ_PORTAL_F_' + seed, parent: 'PORTAL_ROOT_OBJECT', label: 'Studio Portal Test', description: 'Registry writer integration test', sequence: 9999, owner: '', publicAccess: false, permissions: [{ type: 'P' as const, name: 'PTPT1000', cascade: true }] };
+const folder = { portal: 'EMPLOYEE', refType: 'F' as const, name: 'ZZ_PORTAL_F_' + seed, parent: 'PORTAL_ROOT_OBJECT', label: 'Studio Portal Test', description: 'Registry writer integration test', sequence: 9999, owner: '', access: 'author', permissions: [{ type: 'P' as const, name: 'PTPT1000', cascade: true }] };
 const checks: string[] = [], check = (s: string) => { checks.push(s); console.log('PASS ' + s); };
 const save = (input: unknown, expectedToken: string, dryRun = false) => savePortalDocument(c, oracledb, { input, expectedToken, operatorId, dryRun });
 const read = (refType: 'F' | 'C', name: string) => readPortalDocument(c, oracledb, { portal: 'EMPLOYEE', refType, name });

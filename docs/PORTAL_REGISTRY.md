@@ -37,8 +37,7 @@ Select a folder, then New Folder or New Content Reference. The selected folder
 is the draft parent; the parent can be changed before saving. New references
 support a PeopleSoft component (node, menu, component, market, optional page
 and URL parameters) or an external HTTP(S) URL. Save writes the label,
-description, sequence, parent, owner, optional public access, and permission
-list/role grants. Folder grants may cascade to children. Component/iScript
+description, sequence, parent, owner, access, and permission list/role grants. Folder grants may cascade to children. Component/iScript
 references accept permission lists rather than roles, following
 [Oracle's registry security rules](https://docs.oracle.com/cd/E92519_02/pt856pbr3/eng/pt/tpcr/concept_UnderstandingthePortalRegistry-071095.html).
 
@@ -66,10 +65,39 @@ iScripts, attribute editing, renaming and deletion are not offered yet.
 All writes support dryRun (the transaction is rolled back), use the standard
 MCP write/approval gates, and refuse to write while that portal editor has
 unsaved changes. Create tools use an absent token internally and cannot
-overwrite an existing entry. Omit target, permissions or publicAccess on an
+overwrite an existing entry. Omit target, permissions or access on an
 edit to preserve those properties. Permissions supplied to Save are the entry's
 own grants, including each folder grant's cascade flag; inherited permissions
 are evaluated from ancestors rather than copied into the entry.
+
+## Access and security (PIA's rules)
+
+Measured on PeopleTools 8.61.15 and 8.62.09, in Folder and Content Ref
+Administration and their delivered PeopleCode:
+
+- `PSPRSMDEFN.PORTAL_ISPUBLIC` holds three settings, not a yes/no flag:
+  **0 public**, **1 Author Access**, **2 neither** (only the entry's own or
+  inherited grants). The portal root and Portal Objects folders are 0. Studio's
+  `access` input is `public`, `author` or `permissions`. A new folder or
+  content reference defaults to `author` (Public N, Author Access Y), as PIA's
+  work records do. Before this fix Studio wrote 1 for "public" and 0 for
+  "restricted", so its restricted entries were public.
+- An entry that is neither public nor Author Access needs a grant of its own or
+  one cascaded from an ancestor folder; otherwise PIA refuses it ("No security
+  authorizations exist and Author Access isn't selected", 95,49), and so does
+  Studio.
+- A content reference to a component, iScript or worklist on a local node
+  inherits its permission lists from that object's security; PIA shows the
+  grid read only (`IsPermEditable`). For a component, PIA grants every
+  permission list authorized to the component's menu item (PSAUTHITEM; 15 of
+  15 on 8.61.15). Studio derives the same list and refuses a different one.
+- A portal holds one content reference per URL: PIA refuses a second
+  ("... already exists", 96,3), and so does Studio.
+- A new folder gets three system attributes, `PORTAL_ABN_DISABLE_MOUSE_OVER`,
+  `PORTAL_DEFAULT_CHART_NAV` and `PORTAL_IS_FOLDER_NAV`, each `N`
+  (PSPRSMSYSATTR / PSPRSMSYSATTRVL). A plain content reference gets none.
+- One save: PRSM and SYS +1, and the parent folder takes the entry's version
+  (an attempt PIA refused still used up one PRSM version).
 
 ## Evidence and verification
 

@@ -138,6 +138,12 @@ const NEW_EXTENSION: Readonly<Record<string, Value>> = {
 const TOOLBAR_SAVE = 0x1;
 const TOOLBAR_ADD = 0x10;
 
+/**
+ * A new component's Actions as App Designer's Component Properties opens them: Add and Update/Display (8.61.15 and
+ * 8.62.09; the 8.62 capture c01 had Add cleared by hand). XX_CMP_AD on HCDEV: ACTIONS 3, the Add toolbar button on.
+ */
+export const NEW_COMPONENT_ACTIONS = { add: true, updateDisplay: true, updateDisplayAll: false, correction: false } as const;
+
 /** The Item Label App Designer gives an inserted page: its name in title case ("ZZ_PCODE_LAB_PG2" -> "Zz Pcode Lab Pg2", c01 / c02). */
 export function defaultItemLabel(pageName: string): string {
   return pageName.trim().split('_').filter(Boolean).map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(' ');

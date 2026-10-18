@@ -94,7 +94,7 @@ import { copyProgram as copyAeProgram, newProgram as newAeProgram, PROGRAM_NAME_
 import { PagePanel, type PageLookup } from './editors/pagePanel.js';
 import { imageDimensions, imageMimeType, sniffImageMimeType } from './editors/imageHtml.js';
 import { ComponentPanel } from './editors/componentPanel.js';
-import { ComponentSaveRefusedError, defaultItemLabel } from './providers/componentWriter.js';
+import { ComponentSaveRefusedError, defaultItemLabel, NEW_COMPONENT_ACTIONS } from './providers/componentWriter.js';
 import { NEW_PAGE, PageInvalidError, PageSaveRefusedError } from './providers/pageWriter.js';
 import { buildPageLayout, type PageLayout } from './model/pageLayout.js';
 import type { ComponentDefinition } from './model/componentDefinition.js';
@@ -2072,7 +2072,7 @@ async function newComponent(workspace: Workspace): Promise<void> {
       items: [{ pageName: page, itemName: page, itemLabel: defaultItemLabel(page), folderTabLabel: '', hidden: false }],
       properties: {
         description, comments: '', searchRecord, addSearchRecord: '', detailPage: '', forceSearch: false,
-        actions: { add: false, updateDisplay: true, updateDisplayAll: false, correction: false }, disableSave: false, includeInNavigation: true
+        actions: { ...NEW_COMPONENT_ACTIONS }, disableSave: false, includeInNavigation: true
       }
     });
   } catch (error) {

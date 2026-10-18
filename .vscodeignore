@@ -49,6 +49,7 @@ node_modules/@modelcontextprotocol/**
 node_modules/zod/**
 node_modules/hono/**
 node_modules/@hono/**
+node_modules/pako/**
 
 # OracleDB non-runtime material
 node_modules/oracledb/examples/**

@@ -323,7 +323,12 @@ export function insertField(state: RecordEditState, name: string, at = state.fie
   if (at < 0 || at > state.fields.length) throw new RecordSaveRefusedError(`Cannot insert at position ${at + 1}.`);
   const fields = [...state.fields];
   fields.splice(at, 0, { name: field, useEdit: NEW_FIELD_USE_EDIT, isNew: true });
-  return { ...state, fields };
+  const inserted = { ...state, fields };
+  // App Designer's Insert > Field makes EFFDT a descending key defaulting to %date, on its own (captured on
+  // 8.61.15 and 8.62.09; three in four EFFDT record fields on both carry %date). EFFSEQ, EFF_STATUS and other
+  // date fields get nothing.
+  if (field === 'EFFDT') return setDefault(setUse(inserted, at, { key: true, descending: true }), at, { constant: '%date' });
+  return inserted;
 }
 
 /** Inserts a subrecord (App Designer's Insert > Subrecord, r53): a Derived/Work record's only, and not twice. */

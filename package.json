@@ -1768,6 +1768,7 @@
     "@modelcontextprotocol/node": "^2.1.0",
     "@modelcontextprotocol/server": "^2.1.0",
     "oracledb": "^6.6.0",
+    "pako": "^2.2.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
@@ -1775,6 +1776,7 @@
     "@types/mssql": "^12.3.0",
     "@types/node": "^20.14.0",
     "@types/oracledb": "^6.10.4",
+    "@types/pako": "^2.0.4",
     "@types/vscode": "^1.90.0",
     "@vscode/vsce": "^3.2.0",
     "better-sqlite3": "^12.11.1",

@@ -42,7 +42,7 @@ export function registerSecurityTools(server: McpServer, workspace: Workspace, h
   if (!host) return;
   server.registerTool('psft_oauth_save', {
     title: 'Edit existing OAuth public configuration',
-    description: 'Calibrated Oracle PeopleTools 8.62.09 edit for existing CUSTOM / Client Only / Client Credentials applications. Updates only client ID, issuer, token endpoint and scope URL; preserves secrets, registration state, roles, audiences and tokens. Read psft_security_get first; supply its token. dryRun validates and rolls back. No token retrieval or application creation.',
+    description: 'Calibrated Oracle PeopleTools 8.62.09 edit for existing CUSTOM / Client Only / Client Credentials applications (8.61 has no CUSTOM authorization server, so it is refused there). Updates only client ID, issuer, token endpoint and scope URL; preserves secrets, registration state, roles, audiences and tokens. Read psft_security_get first; supply its token. dryRun validates and rolls back. No token retrieval or application creation.',
     inputSchema: z.object({ connection: z.string().min(1), key: z.tuple([z.string().min(1), z.string().min(1)]), expectedToken: z.string().min(1), changes: z.object({ PTCLIENT_ID: z.string().optional(), PTISS: z.string().optional(), PTTOKENURL: z.string().optional(), PTSCOPE_URL: z.string().optional() }).strict(), dryRun: z.boolean().default(false) }), annotations: WRITE
   }, async ({ connection, key, expectedToken, changes, dryRun }) => {
     const gate = await writable(workspace, host, connection, key[0]);

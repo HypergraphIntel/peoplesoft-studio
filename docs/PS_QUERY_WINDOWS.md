@@ -196,9 +196,32 @@ native save completed; it shows no changes. `qry14-properties-saved` reuses the
 same original baseline and records the completed save. Only the completed
 capture is used for the properties replay test.
 
+### PeopleTools 8.61.15
+
+On a PeopleTools 8.61.15 database, a private query was built in the 8.61
+Windows Query client (App Designer's Go menu): STATE_TBL, select STATE and DESCR,
+then New Criteria on the unselected COUNTRY with the constant `USA`. Studio's
+writer then made the same query from the same typed operations. Every row of
+PSQRYDEFN, PSQRYSELECT, PSQRYRECORD, PSQRYFIELD, PSQRYCRITERIA, PSQRYEXPR and
+PSQRYBIND was equal apart from the key and stamps, including the timestamp
+formats. The counters moved the same way as on 8.62 (QDM and SYS +1). Windows Query
+reopened Studio's query with the same SQL. The 8.61.15 query tables have the
+8.62.09 columns; 8.62 adds only PSQRYHDFTTEXT (header/footer text), which
+Studio neither reads nor writes.
+
+- New Criteria on an unselected field adds it as a criteria-only field: the
+  next field number, column 0, heading None (HDGTYPE 1), use count 1. It is the
+  same row an unselect leaves (qry12). Studio's `constant` and `prompt`
+  operations do the same when the field is not selected.
+- PIA Query Manager saves the same query differently: QRYAPPROVED `U`
+  instead of `A`, and the constant expression's USECOUNT 2 instead of 1. Studio
+  follows Windows Query. Studio saves only queries whose QRYAPPROVED is `A`,
+  so a PIA-made query opens and runs but is refused for saving.
+
 ### Deliberate limits and next evidence
 
-This first release is calibrated on **Oracle / PeopleTools 8.62.09** for one
+This first release is calibrated on **Oracle / PeopleTools 8.62.09 and
+8.61.15** (other releases are refused) for one
 SQL Table record without subrecords, direct character fields, and at most one
 ungrouped equal-to criterion with a character constant or uppercase/mixed-case
 prompt. It does not yet edit/run joins, unions, subqueries, effective-date

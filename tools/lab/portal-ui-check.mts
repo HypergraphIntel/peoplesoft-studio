@@ -15,7 +15,7 @@ function run(){try{
  {PORTAL_REFTYPE:'F',PORTAL_OBJNAME:'PORTAL_ROOT_OBJECT',PORTAL_PRNTOBJNAME:' ',PORTAL_LABEL:'Root'},
  {PORTAL_REFTYPE:'F',PORTAL_OBJNAME:'ZZ_FOLDER',PORTAL_PRNTOBJNAME:'PORTAL_ROOT_OBJECT',PORTAL_LABEL:'Folder'},
  {PORTAL_REFTYPE:'C',PORTAL_OBJNAME:'ZZ_REF',PORTAL_PRNTOBJNAME:'ZZ_FOLDER',PORTAL_LABEL:'Reference'}]});
- receive({type:'entry',creating:true,editable:true,input:{portal:'EMPLOYEE',refType:'C',name:'',parent:'ZZ_FOLDER',label:'',description:'',sequence:0,owner:'',publicAccess:false,permissions:[]}});
+ receive({type:'entry',creating:true,editable:true,input:{portal:'EMPLOYEE',refType:'C',name:'',parent:'ZZ_FOLDER',label:'',description:'',sequence:0,owner:'',access:'author',permissions:[]}});
  assert($('tree').querySelectorAll('details').length===2,'nested folder tree');
  assert([...$('tree').querySelectorAll('button')].some(b=>b.textContent==='Reference'),'expanded ancestor reveals reference');
  assert(!$('editor').hidden&&!$('save').disabled,'editable new-entry form');

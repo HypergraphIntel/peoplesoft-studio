@@ -61,15 +61,22 @@ export async function saveProcess(c: DbConnection, types: DbTypes, request: Proc
 /**
  * The PRCSDEFN component's Add mode, from HRDMO evidence (docs/PROCESS_DEFINITIONS.md, "Creating"): the record's
  * constant defaults (PSRECFIELD DEFFIELDNAME), DESCR defaulted to the name (DESCR FieldDefault), PRCSCATEGORY
- * 'Default' when installed (PostBuild ValidateProcessCategory), OUTDESTFORMAT '0' (Any). Every other column is
- * blank, zero or null, as every App Engine definition on HRDMO stores it.
+ * 'Default' when installed (PostBuild ValidateProcessCategory). Every other column is blank, zero or null, as
+ * every App Engine definition on HRDMO stores it. A PIA Add on 8.61.15 (one process group, nothing else entered)
+ * left OUTDESTFORMAT at its record default, blank, and set RESTARTENABLED from the program (page Activate,
+ * the same code on 8.62.09: see restartEnabled).
  */
 export const NEW_PROCESS_DEFAULTS: Readonly<Record<string, string | number>> = {
   VERSION: 0, PARMLISTTYPE: '0', CMDLINETYPE: '0', WORKINGDIRTYPE: '0', OUTDESTTYPE: '0', OUTDESTSRC: '3', SQRRTFLAG: '0', LOGRQST: '1', APIAWARE: '1',
   PRCSPRIORITY: '5', RUNLOCATION: '2', RESTARTENABLED: '0', RETRYCOUNT: 0, TIMEOUTMINUTES: 0, MAXCONCURRENT: 0, FILEDEPEND: '0', TIMEOUTMAXMINS: 0,
-  PT_PRCS_EN_GEN_RUN: 'N', PT_PRCS_RUNCNTLSEC: '0', PRCSREADONLY: '0', TIMESTENMODE: '0', PTPRCSIBMSGSLOGLEV: 'I', OUTDESTFORMAT: '0',
+  PT_PRCS_EN_GEN_RUN: 'N', PT_PRCS_RUNCNTLSEC: '0', PRCSREADONLY: '0', TIMESTENMODE: '0', PTPRCSIBMSGSLOGLEV: 'I', OUTDESTFORMAT: ' ',
   RETENTIONDAYS: 0, PT_RETENTIONDAYS: 0, PRCSSHOWURL: 0
 };
+
+/** Page PRCSDEFN Activate: an Application Engine process restarts unless its program has Disable Restart. */
+export function restartEnabled(processType: string, aeDisableRestart: string | undefined): string | undefined {
+  return processType === 'Application Engine' ? (aeDisableRestart?.trim() === 'Y' ? '0' : '1') : undefined;
+}
 
 export interface ProcessCreateRequest {
   processType: string;
@@ -98,6 +105,9 @@ export async function createProcess(c: DbConnection, types: DbTypes, request: Pr
     // ValidateOutDestType: a type that is not SQR, COBOL, Crystal, Application Engine or nVision has output None, source None.
     if (![1, 2, 3, 5, 7].includes(Number(type.GENPRCSTYPE))) { row.OUTDESTTYPE = '1'; row.OUTDESTSRC = '0'; }
     const [category] = await q<{ PRCSCATEGORY: string }>("SELECT PRCSCATEGORY FROM PS_PRCS_CAT_TBL WHERE PRCSCATEGORY='Default'");
+    const [program] = t === 'Application Engine' ? await q<{ AE_DISABLE_RESTART: string }>('SELECT AE_DISABLE_RESTART FROM PSAEAPPLDEFN WHERE AE_APPLID=:n', { n }) : [];
+    const restart = restartEnabled(t, program?.AE_DISABLE_RESTART);
+    if (restart) row.RESTARTENABLED = restart;
     const columns = (await q<{ COLUMN_NAME: string; DATA_TYPE: string; NULLABLE: string }>(
       "SELECT COLUMN_NAME, DATA_TYPE, NULLABLE FROM ALL_TAB_COLUMNS WHERE OWNER=SYS_CONTEXT('USERENV','CURRENT_SCHEMA') AND TABLE_NAME='PS_PRCSDEFN' ORDER BY COLUMN_ID"));
     if (!columns.length) throw new Error('PS_PRCSDEFN is not visible to this connection.');

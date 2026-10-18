@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { componentRequestRefusal, defaultItemLabel, planComponentSave, type ComponentSaveRequest } from '../providers/componentWriter.js';
+import { componentRequestRefusal, defaultItemLabel, NEW_COMPONENT_ACTIONS, planComponentSave, type ComponentSaveRequest } from '../providers/componentWriter.js';
 
 /*
  * The component writer's plan replays App Designer's nine captured saves of
@@ -169,4 +169,17 @@ test('the Internet, Fluid and Style tabs: the plan reproduces each one-control A
     for (const [k, v] of afterItems) items.set(k, v);
   }
   assert.equal(checked, 69);
+});
+
+test('a new component defaults to Add and Update/Display, the Add toolbar button with it, as App Designer opens it', () => {
+  // XX_CMP_AD, App Designer 8.61.15 on HCDEV (8.62.09 opens the same defaults): ACTIONS 3, TBARBTNS 29225779.
+  const request: ComponentSaveRequest = {
+    name: 'XX_CMP', market: 'GBL', operatorId: 'JARED',
+    items: [{ pageName: 'XX_PG', itemName: 'XX_PG', itemLabel: defaultItemLabel('XX_PG'), folderTabLabel: '', hidden: false }],
+    properties: { description: '', comments: '', searchRecord: 'XX_RC', addSearchRecord: '', detailPage: '', forceSearch: false,
+      actions: { ...NEW_COMPONENT_ACTIONS }, disableSave: false, includeInNavigation: true }
+  };
+  const plan = planComponentSave(undefined, request);
+  assert.equal(plan.defn.ACTIONS, 3);
+  assert.equal(plan.defn.TBARBTNS, 29225779);
 });

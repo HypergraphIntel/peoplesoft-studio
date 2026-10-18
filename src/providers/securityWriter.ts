@@ -1,13 +1,13 @@
 import type { DbConnection, DbTypes } from '../db/connection.js';
 import { readSecurity } from './securityReader.js';
+import { requireCalibratedRelease } from './calibratedRelease.js';
 import { oauthEditable, securityKey, validateOAuthChanges, type SecurityDocument } from '../model/security.js';
 export interface OAuthSaveRequest { key: string[]; expectedToken: string; changes: unknown; operatorId: string; dryRun?: boolean }
 export async function saveOAuth(c: DbConnection, types: DbTypes, request: OAuthSaveRequest): Promise<SecurityDocument> {
   securityKey('oauth', request.key);
   const changes = validateOAuthChanges(request.changes);
   try {
-    const status = (await c.execute<{ TOOLSREL: string; PTPATCHREL: number }>('SELECT TOOLSREL,PTPATCHREL FROM PSSTATUS', {}, { outFormat: types.OUT_FORMAT_OBJECT })).rows?.[0];
-    if (String(status?.TOOLSREL).trim() !== '8.62' || Number(status?.PTPATCHREL) !== 9) throw new Error('OAuth writes are calibrated only on PeopleTools 8.62.09.');
+    await requireCalibratedRelease(c, 'oauth');
     if (!(await c.execute('SELECT OPRID FROM PSOPRDEFN WHERE OPRID=:op', { op: request.operatorId }, { outFormat: types.OUT_FORMAT_OBJECT })).rows?.length) throw new Error('PeopleSoft Operator ID does not exist.');
     await c.execute('SELECT PTAPP_NAME FROM PSPTSEC_TOKEN WHERE PTAPP_NAME=:name AND PTAUTHSERVER=:server FOR UPDATE', { name: request.key[0], server: request.key[1] });
     const before = await readSecurity(c, types, 'oauth', request.key);

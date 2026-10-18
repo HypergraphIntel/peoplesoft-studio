@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Script } from 'node:vm';
 import { portalHtml } from '../editors/portalHtml.js';
-import { portalInput, portalInputForDocument, portalTargetColumns, portalToken, portalUrlChecksum, type PortalDocument } from '../model/portalDocument.js';
+import { PORTAL_ACCESS, portalAccess, portalInput, portalInputForDocument, portalTargetColumns, portalToken, portalUrlChecksum, type PortalDocument } from '../model/portalDocument.js';
 
 test('registry identity is portal-scoped; cycles and unsupported folder targets are rejected', () => {
   const folder = { portal: 'EMPLOYEE', refType: 'F', name: 'ZZ_FOLDER', parent: 'PORTAL_ROOT_OBJECT', label: 'Folder' };
@@ -28,7 +28,7 @@ test('opening advanced references preserves targets and public settings, and ret
     row: { PORTAL_PRNTOBJNAME: 'FOLDER', PORTAL_LABEL: 'Reference', PORTAL_SEQ_NUM: 10, PORTAL_CREF_URLT: 'USCR', PORTAL_URLTEXT: 's/ISCRIPT', PORTAL_ISPUBLIC: 2 },
     permissions: [{ PORTAL_PERMTYPE: 'P', PORTAL_PERMNAME: 'PTPT1000', PORTAL_ISCASCADE: 1 }], attributes: [], token: 'test' };
   const input = portalInputForDocument(doc);
-  assert.equal(input.target, undefined); assert.equal(input.publicAccess, undefined);
+  assert.equal(input.target, undefined); assert.equal(input.access, 'permissions');
   assert.deepEqual(input.permissions, [{ type: 'P', name: 'PTPT1000', cascade: true }]);
   assert.equal(portalInput.parse(input).target, undefined);
 });
@@ -47,4 +47,13 @@ test('portal editor script parses and connection/portal captions are escaped', (
   const script = html.match(/<script nonce="testnonce">([\s\S]*?)<\/script>/)![1];
   assert.doesNotThrow(() => new Script(script));
   assert.ok(html.includes('New Folder')); assert.ok(html.includes('New Content Reference'));
+});
+
+test('PORTAL_ISPUBLIC holds three access settings, not a yes/no flag', () => {
+  // The portal API's PublicAccess and AuthorAccess share the column: 0 public, 1 Author
+  // Access, 2 neither. PIA's Folder Security for a new folder (Public N, Author Access Y)
+  // stores 1; the portal root is 0. Studio used to write 1 for public and 0 for restricted.
+  assert.deepEqual([0, 1, 2, 3].map(portalAccess), ['public', 'author', 'permissions', undefined]);
+  assert.deepEqual(Object.entries(PORTAL_ACCESS), [['public', 0], ['author', 1], ['permissions', 2]]);
+  assert.throws(() => portalInput.parse({ portal: 'EMPLOYEE', refType: 'F', name: 'ZZ_F', parent: 'PORTAL_ROOT_OBJECT', label: 'F', publicAccess: false }));
 });

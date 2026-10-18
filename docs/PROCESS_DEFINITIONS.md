@@ -101,8 +101,12 @@ transaction. The Add-mode row is evidence-backed on HRDMO 8.62.09:
   `PRCSCATEGORY` to `Default` when installed (PostBuild
   `ValidateProcessCategory`); a process type that is not SQR, COBOL, Crystal,
   Application Engine or nVision gets output None / source None
-  (`ValidateOutDestType`). `OUTDESTFORMAT` is `0` (Any), the value 884 of 1,092
-  Application Engine definitions store.
+  (`ValidateOutDestType`). `OUTDESTFORMAT` keeps its record default, blank
+  (a PIA Add on 8.61.15; Studio used to write `0`, the value most stored AE
+  definitions have).
+- An Application Engine process's `RESTARTENABLED` comes from its program:
+  the page's Activate PeopleCode (identical on 8.61.15 and 8.62.09) sets `0`
+  when the program has Disable Restart and `1` otherwise, and greys the box.
 - At least one process group: the component's SaveEdit refuses a definition
   without one ("Missing Process Group"). No message, notification,
   distribution or transfer rows: the component inserts none unless those pages
@@ -111,4 +115,8 @@ transaction. The Add-mode row is evidence-backed on HRDMO 8.62.09:
 `tools/lab/process-create-e2e.mts` previews a create (rolled back): the would-be
 row matches the delivered BDG_ASSIGN definition in every non-identity column,
 nothing persists and the PPC/SYS counters are unchanged. A PIA Add capture has
-not been taken; the counter and stamp behaviour is the edit save's.
+not been taken on 8.62.09; the counter and stamp behaviour is the edit save's.
+On 8.61.15 an App Engine definition added in PIA (one process group) and one
+created by `psft_process_create` have equal rows in PS_PRCSDEFN and
+PS_PRCSDEFNGRP. PPC follows max(PSVERSION, PSLOCK) + 1, so it can move by two
+when PSLOCK is ahead.

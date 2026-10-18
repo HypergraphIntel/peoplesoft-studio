@@ -380,3 +380,23 @@ test('the System ID Field takes Auto-Update, as R4\'s did (r54)', () => {
   const plan = planRecordSave(stored, setRecordProperties(editStateFor(stored), { systemIdField: 'N2' }), { ts: 'NOW', operatorId: 'J' });
   assert.deepEqual([plan.recordColumns.SYSTEMIDFIELDNAME, plan.fields[0].USEEDIT], ['N2', 75497472]);
 });
+
+test('inserting EFFDT makes it a descending key defaulting to %date, as App Designer does; other fields get nothing', () => {
+  // App Designer 8.61.15 (HCDEV) and 8.62.09 (HRDMO), Insert > Field: EFFDT arrives Key, Descending, Default %date;
+  // EFFSEQ, EFF_STATUS, CHECK_DT and PROCESS_DT arrive with none of it.
+  const base: RecordEditState = { recname: 'XX_REC', recordType: RecordType.Table, openedVersion: 0, fields: [], isNew: true } as RecordEditState;
+  let s = insertField(insertField(insertField(base, 'EMPLID'), 'effdt'), 'CHECK_DT');
+  const effdt = s.fields[1]!;
+  assert.ok(effdt.useEdit & UseEdit.Key, 'key');
+  assert.ok(effdt.useEdit & UseEdit.DescendingKey, 'descending');
+  assert.equal(effdt.defaultField, '%date');
+  assert.equal(effdt.defaultRecord, '');
+  for (const f of [s.fields[0]!, s.fields[2]!]) {
+    assert.equal(f.useEdit & (UseEdit.Key | UseEdit.DescendingKey), 0, `${f.name} untouched`);
+    assert.equal(f.defaultField ?? '', '');
+  }
+  // A later explicit choice still wins: the developer can make it ascending or drop the default.
+  s = setDefault(setUse(s, 1, { descending: false }), 1, null);
+  assert.equal(s.fields[1]!.useEdit & UseEdit.DescendingKey, 0);
+  assert.equal(s.fields[1]!.defaultField, '');
+});

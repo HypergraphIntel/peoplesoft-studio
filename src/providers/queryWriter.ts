@@ -4,6 +4,7 @@ import { QUERY_TABLES, queryRows, queryToken, canonicalQueryRows, planQuerySave,
 import { prepareQueryExecution } from './queryRunner.js';
 import { expectRows } from './peopleCodeWriter.js';
 import { writeScopeRefusal } from './writeScope.js';
+import { requireCalibratedRelease } from './calibratedRelease.js';
 
 const TABLES=Object.keys(QUERY_TABLES) as QueryTable[];
 const TIME_FORMAT=`'YYYY-MM-DD"T"HH24:MI:SS.FF9'`;
@@ -79,8 +80,7 @@ export async function saveQuery(c: DbConnection, types: DbTypes, request: QueryS
   if (refusal) throw new Error(refusal);
   if (!/^[A-Z][A-Z0-9_]*$/.test(name)) throw new Error('Invalid query name.');
   try {
-    const [release]=(await c.execute<{TOOLSREL:string;PTPATCHREL:number}>('SELECT TOOLSREL,PTPATCHREL FROM PSSTATUS')).rows ?? [];
-    if (!release || String(release.TOOLSREL).trim()!=='8.62' || Number(release.PTPATCHREL)!==9) throw new Error('Query saves are currently calibrated for PeopleTools 8.62.09.');
+    await requireCalibratedRelease(c,'query');
     await prepareQueryExecution(c,request.view,request.operatorId);
     validateShape(request.view);
     const [limits]=(await c.execute<{LENGTH:number}>('SELECT LENGTH FROM PSDBFIELD WHERE FIELDNAME=:f',{f:'QRYNAME'})).rows ?? [];

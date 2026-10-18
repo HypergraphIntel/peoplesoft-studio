@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import { DefinitionType, type DefinitionKey } from '../model/definitions.js';
 import type { ComponentDefinition } from '../model/componentDefinition.js';
-import { defaultItemLabel, type ComponentItemEdit, type ComponentPropertyEdits } from '../providers/componentWriter.js';
+import { defaultItemLabel, NEW_COMPONENT_ACTIONS, type ComponentItemEdit, type ComponentPropertyEdits } from '../providers/componentWriter.js';
 import { DatabaseProvider } from '../providers/database.js';
 import { Workspace } from '../workspace.js';
 import { jsonResult, requireProvider } from './tools.js';
@@ -105,7 +105,7 @@ export function registerComponentTools(server: McpServer, workspace: Workspace, 
   server.registerTool('psft_component_create', {
     title: 'Create a component',
     description: 'Create a component as App Designer\'s New Component and first save do (c01): its pages in order and its Use-tab properties; the Internet, ' +
-      'Fluid and Style tabs take App Designer\'s defaults. A search record is required. A classic run control component is usually search record ' +
+      'Fluid and Style tabs take App Designer\'s defaults; Actions default to Add and Update/Display, as App Designer opens them. A search record is required. A classic run control component is usually search record ' +
       'PRCSRUNCNTL with Add and Update/Display (1,504 of 1,523 on HRDMO). Register it on a menu with psft_menu_edit and give it security ' +
       'separately. Refused if it exists. ' + GATES,
     inputSchema: z.object({
@@ -122,7 +122,7 @@ export function registerComponentTools(server: McpServer, workspace: Workspace, 
     if (await gate.provider.componentExists(name, mkt)) throw new Error(`A component ${name}.${mkt} already exists; change it with psft_component_edit.`);
     const items = pages.map(item);
     const properties = applyProperties({ description: '', comments: '', searchRecord: '', addSearchRecord: '', detailPage: '', forceSearch: false,
-      actions: { add: false, updateDisplay: true, updateDisplayAll: false, correction: false }, disableSave: false, includeInNavigation: true }, props);
+      actions: { ...NEW_COMPONENT_ACTIONS }, disableSave: false, includeInNavigation: true }, props);
     await checkPages(gate.provider, items);
     await checkRecords(gate.provider, properties);
     await approve(host, gate, key, `create component ${name}.${mkt}`, describe(items, properties));

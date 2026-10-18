@@ -63,6 +63,12 @@ export interface StructurePlacement {
   controls: number[];
   /** Whether each placement is on a system page (systemPages: the Fluid header or side page), not the component's own. */
   system: boolean[];
+  /**
+   * Whether each placement is on a secondary page opened from a secondary page (two or more secondary-page hops; subpages
+   * do not count). In the buffer, but App Designer's Component Interface defaulting does not look there (HRDMO 8.62 and
+   * HCDEV 8.61: PRCSRUNCNTL_SBP > PRCSRQSTDLG > PRCSRQSTCDMAUTH; the ZZ_CI_XP0 > XS1 > XS2 experiment).
+   */
+  nested?: boolean[];
 }
 
 export interface ComponentStructure {
@@ -88,7 +94,7 @@ const trim = (v: unknown) => String(v ?? '').trim();
 
 interface Node { level: number; primary?: string; recs: string[]; kids: Node[]; into?: Node; placed?: Record<string, StructurePlacement[]> }
 interface Context { rec: string; level: number; id: number }
-interface FieldEvent { kind: 'field'; level: number; rec: string; field: string; use: number; control: number; system: boolean; ctx?: Context; node?: Node }
+interface FieldEvent { kind: 'field'; level: number; rec: string; field: string; use: number; control: number; system: boolean; nested: boolean; ctx?: Context; node?: Node }
 interface ScrollEvent { kind: 'scroll'; level: number; rec: string }
 
 /**
@@ -106,7 +112,7 @@ export function buildComponentStructure(pages: readonly string[], searchRecord: 
 
   const events: Array<FieldEvent | ScrollEvent> = [];
   let contexts = 0;
-  const walk = (page: string, base: number, subst: Record<string, string>, ctx: Context | undefined, seen: Set<string>, system: boolean) => {
+  const walk = (page: string, base: number, subst: Record<string, string>, ctx: Context | undefined, seen: Set<string>, system: boolean, secondaryHops = 0) => {
     if (seen.has(page)) return; // a page that includes itself
     const inner = new Set(seen).add(page);
     for (const f of fields(page)) {
@@ -120,12 +126,12 @@ export function buildComponentStructure(pages: readonly string[], searchRecord: 
           if (from && from !== rec && (!toDerived || typeOf(from) === SUBRECORD)) next = { ...subst, [from]: rec };
           if (!toDerived) nextCtx = { rec, level, id: ++contexts };
         }
-        walk(sub, level, next, nextCtx, inner, system);
+        walk(sub, level, next, nextCtx, inner, system, secondaryHops + (type === SECONDARY_PAGE ? 1 : 0));
         continue;
       }
       const record = subst[rec] ?? rec;
       if (SCROLLS.has(type)) events.push({ kind: 'scroll', level, rec: record });
-      else if (record && trim(f.FIELDNAME) && !(Number(f.FIELDUSE) & RELATED_DISPLAY)) events.push({ kind: 'field', level, rec: record, field: trim(f.FIELDNAME), use: Number(f.FIELDUSE), control: type, system, ...(ctx ? { ctx } : {}) });
+      else if (record && trim(f.FIELDNAME) && !(Number(f.FIELDUSE) & RELATED_DISPLAY)) events.push({ kind: 'field', level, rec: record, field: trim(f.FIELDNAME), use: Number(f.FIELDUSE), control: type, system, nested: secondaryHops >= 2, ...(ctx ? { ctx } : {}) });
     }
   };
   for (const p of pages) walk(p, 0, {}, undefined, new Set(), systemPages.has(p));
@@ -180,10 +186,11 @@ export function buildComponentStructure(pages: readonly string[], searchRecord: 
     if (!node.recs.includes(e.rec)) node.recs.push(e.rec);
     const list = (node.placed![e.rec] ??= []);
     let p = list.find((x) => x.field === e.field);
-    if (!p) list.push(p = { field: e.field, uses: [], controls: [], system: [] });
+    if (!p) list.push(p = { field: e.field, uses: [], controls: [], system: [], nested: [] });
     p.uses.push(e.use);
     p.controls.push(e.control);
     p.system.push(e.system);
+    (p.nested ??= []).push(e.nested);
   }
 
   const out = (n: Node): StructureScroll => {

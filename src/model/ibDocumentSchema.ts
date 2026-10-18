@@ -1,4 +1,4 @@
-/** Native 8.62.09 schemaDefn serialization, calibrated on PIA flat-string documents.
+/** Native schemaDefn serialization, calibrated on PIA flat-string documents (8.62.09, 8.61.15).
  * Other shapes remain opaque; no collection/compound ABI is fabricated. */
 import { XMLParser } from 'fast-xml-parser';
 import * as z from 'zod/v4';
@@ -16,7 +16,19 @@ const description=(label:string)=>f('m_atmLabel',label)+f('m_nDescriptionLength'
 const flags=()=>f('m_bIsPrimitive',1)+f('m_bIsCompound',0)+f('m_bIsCollection',0);
 const wrap=(data:string)=>"<?xml version='1.0'?><schemaDefn>"+data+'</schemaDefn>';
 function name(value:string){if(!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value)||/^xml/i.test(value))throw new Error('Document and element names must be XML-compatible identifiers and cannot start with XML.');}
-export function buildStringDocument(key:readonly string[],elements:readonly IbStringElement[],schemaNamespace:string,language:string):NonNullable<IbWriteInput['document']>{
+/**
+ * What the saving environment changes in a schema package. restTargetLocation: Service
+ * Configuration's REST Target Location at save time names the generated JSON schema's $id
+ * (http://ORACLE_ENDPOINT when blank; every saved document on two databases follows it).
+ * filterBlankElements: the JSON physical schema's m_bFilterBlankElements, written by 8.62
+ * and never by 8.61.15.
+ */
+export interface IbDocumentProfile { restTargetLocation:string; filterBlankElements:boolean; }
+export const IB_DOCUMENT_PROFILE_86209:IbDocumentProfile={restTargetLocation:'',filterBlankElements:true};
+export function ibDocumentProfile(toolsRelease:string,restTargetLocation:string):IbDocumentProfile{
+ return {restTargetLocation:restTargetLocation.trim(),filterBlankElements:Number(toolsRelease)>=8.62};
+}
+export function buildStringDocument(key:readonly string[],elements:readonly IbStringElement[],schemaNamespace:string,language:string,profile:IbDocumentProfile=IB_DOCUMENT_PROFILE_86209):NonNullable<IbWriteInput['document']>{
  if(key.length!==3||!elements.length||elements.length>100)throw new Error('A flat document needs a three-part key and 1..100 string elements.');
  key.forEach(name);elements.forEach(e=>{name(e.name);ibStringElement.parse(e);});if(new Set(elements.map(e=>e.name)).size!==elements.length)throw new Error('Document element names must be unique.');
  if(!schemaNamespace.trim()||!language.trim())throw new Error('Configured schema namespace and base language are required.');
@@ -27,7 +39,7 @@ export function buildStringDocument(key:readonly string[],elements:readonly IbSt
  const xmlPrefix=f('m_eXmlType',0)+'<m_pTargetNamespace>'+rs('XmlNamespace',32,[f('m_nPrefixLen',0)+nil('m_pszPrefix')+f('m_nURILen',(uri.length+1)*2)+buffer('m_pszURI',uri)])+'</m_pTargetNamespace>'+f('m_nTargetNamespaceCount',1)+nil('m_pImportedNamespaces')+f('m_nImportedNamespaceCount',0)+f('m_eDefaultPrimitiveNodeType',1)+f('m_bTrimWhitespace',0)+f('m_bFilterBlankElements',0)+f('m_bIncludeCollectionTags',0)+f('m_bIncludeDescriptionsAsComments',0)+f('m_bIncludeMetadata',0)+f('m_bNoNamespace',0)+f('m_nAttributes',0)+f('m_bAbsolutePath',0);
  const physicalSchemas=(['XML','JSON','HTML'] as const).map(kind=>{
   const type={XML:160,JSON:177,HTML:191}[kind];
-  const pre=kind==='XML'?xmlPrefix:kind==='JSON'?f('m_atmPrimaryJsonName',key[1])+f('m_bHideObject',0)+f('m_bFilterBlankElements',1):f('m_atmPrimaryHtmlName',key[1]);
+  const pre=kind==='XML'?xmlPrefix:kind==='JSON'?f('m_atmPrimaryJsonName',key[1])+f('m_bHideObject',0)+(profile.filterBlankElements?f('m_bFilterBlankElements',1):''):f('m_atmPrimaryHtmlName',key[1]);
   const root=pre+meta()+f('m_key.m_atmPhysicalSchemaName',kind)+f('m_eType',type)+f('m_szSubtype','')+f('m_bIsReadOnly',0)+f('m_bIsValid',0)+keys(key)+f('szLanguageCd','')+description(key[1])+f('m_nElementCount',elements.length);
   const children=elements.map((e,i)=>{
    const tag=(kind==='XML'?f('m_nNamespacePrefixLen',0)+nil('m_pszNamespacePrefix'):'')+f('m_nTagNameLen',(e.name.length+1)*2)+buffer('m_pszTagName',e.name)+(kind==='XML'?'':f('m_nNotLastSequence',0))+f('m_nId',i+1)+flags();
@@ -39,7 +51,7 @@ export function buildStringDocument(key:readonly string[],elements:readonly IbSt
  const xmlSchema='<?xml version="1.0"?>\r\n'+`<xsd:schema attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="${escape(uri)}" xmlns="${escape(uri)}" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><xsd:element name="${escape(key[1])}" type="${escape(key[1])}_TypeShape"/><xsd:complexType name="${escape(key[1])}_TypeShape"><xsd:sequence>`+elements.map(e=>`<xsd:element ${e.required?'':'minOccurs="0" '}name="${escape(e.name)}" type="${escape(e.name)}_TypeDef"/>`).join('')+'</xsd:sequence></xsd:complexType>'+elements.map(e=>`<xsd:simpleType name="${escape(e.name)}_TypeDef"><xsd:restriction base="xsd:string"><xsd:maxLength value="${e.length}"/><xsd:whiteSpace value="preserve"/></xsd:restriction></xsd:simpleType>`).join('')+'</xsd:schema>';
  const required=elements.filter(e=>e.required);
  // PIA emits required inside properties, as its generated schema stores it; do not "correct" native data here.
- const jsonSchema='{\n"$schema": "http://json-schema.org/draft-06/schema#", \n"$id":'+JSON.stringify('http://ORACLE_ENDPOINT/'+key.join('.')+'.json')+', \n"title": '+JSON.stringify(key[1])+', \n"type": "object", \n"properties": {\n'+elements.map(e=>JSON.stringify(e.name)+': { \n"type": "string", "maxLength": '+e.length+'}').join(', \n')+(required.length?', \n"required": ['+required.map(e=>JSON.stringify(e.name)).join(',')+']':'')+'}\n}\n';
+ const jsonSchema='{\n"$schema": "http://json-schema.org/draft-06/schema#", \n"$id":'+JSON.stringify((profile.restTargetLocation.replace(/\/$/,'') || 'http://ORACLE_ENDPOINT')+'/'+key.join('.')+'.json')+', \n"title": '+JSON.stringify(key[1])+', \n"type": "object", \n"properties": {\n'+elements.map(e=>JSON.stringify(e.name)+': { \n"type": "string", "maxLength": '+e.length+'}').join(', \n')+(required.length?', \n"required": ['+required.map(e=>JSON.stringify(e.name)).join(',')+']':'')+'}\n}\n';
  return {logicalSchema,physicalSchemas,xmlSchema,jsonSchema};
 }
 const parser=new XMLParser({ignoreAttributes:false,parseTagValue:false,trimValues:false});

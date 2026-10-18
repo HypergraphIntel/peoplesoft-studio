@@ -46,9 +46,18 @@ is made of it [ci01-ci04]:
   search keys as Create keys.
 - Level 0 takes a number. Then each record of a scroll, in the order its fields
   first appear on the pages: an SQL table's or dynamic view's every field in
-  record order, any other record's keys and its fields placed in the scroll (a
-  view's or derived record's other fields are not in the buffer); each field a
+  record order -- and an SQL view's when it is the scroll's primary record
+  (PRCSRQSTDLGLIST under PRCSRUNCNTL_SBP, on 8.62.09 and 8.61.15) -- any other
+  record's keys and its fields placed in the scroll (a non-primary view's or
+  derived record's other fields are not in the buffer [ci02]); each field a
   number. Then each child scroll a number, and its records likewise.
+- *Default the properties?* Yes offers a field shown in a data control on the
+  component's pages, their subpages, or a secondary page they open -- not on a
+  secondary page opened from a secondary page. Such a field and its scrolls are
+  in the buffer (numbered, on the Structure tab) but not defaulted. Proved on
+  HRDMO with ZZ_CI_XCMP (page > secondary > secondary: the last page's field not
+  offered) and by PRCSRUNCNTL_SBP > PRCSRQSTDLG > PRCSRQSTCDMAUTH / PRCSRQST_FILE /
+  PRCSRQSTITEMS_DLG on 8.62.09 and 8.61.15.
 - A Fluid component's system pages follow its own: the side page
   (`PT_SIDE2PAGE`), then the header page (`PT_HEADERPAGE`), unless the
   component's *No System Side Page* / *No System Header Page* is set; their

@@ -45,8 +45,15 @@ const INVISIBLE = 0x2;
 const SQL_TABLE = 0;
 const DERIVED = 2;
 const DYNAMIC_VIEW = 5;
+const SQL_VIEW = 1;
 /** The record types whose every field is in the buffer, placed or not (ci02: an SQL view has only its placed fields; ci04: a dynamic view all). */
 const WHOLE_RECORD = new Set([SQL_TABLE, DYNAMIC_VIEW]);
+/**
+ * An SQL view that is its scroll's primary record is in the buffer whole too, field by field in record order:
+ * PRCSRQSTDLGLIST, the level-1 primary of PRCSRUNCNTL_SBP's process list, numbered so by App Designer on 8.62.09
+ * (ZZ_CI_RCTEST) and 8.61.15 (XX_CI_AD). A view that is not the primary keeps only its placed fields (ci02).
+ */
+const wholeRecord = (type: number, rec: string, primary: string | undefined) => WHOLE_RECORD.has(type) || (type === SQL_VIEW && rec === primary);
 
 export class CiEditError extends Error {
   constructor(message: string) { super(message); this.name = 'CiEditError'; }
@@ -238,15 +245,16 @@ export function ciBuffer(src: CiSource): CiBuffer {
     if (scroll.level === 0) for (const f of src.recordFields(src.searchRecord) ?? []) if (f.useEdit & UseEdit.SearchKey) keysHere.add(f.name);
     const out: CiBufferScroll = { seq: collSeq, level: scroll.level, scrollNum, scrollName, record, records, fields: [], scrolls: [], system: true };
     for (const rec of records) {
-      const whole = WHOLE_RECORD.has(src.recordType(rec));
+      const whole = wholeRecord(src.recordType(rec), rec, scroll.primary);
       const recordFields = src.recordFields(rec) ?? [];
       const placements = new Map((scroll.placed?.[rec] ?? []).map((p) => [p.field, p]));
       const fields = whole ? recordFields : recordFields.filter((f) => placements.has(f.name) || (f.useEdit & UseEdit.Key));
       for (const f of fields) {
         const p = placements.get(f.name);
-        const all = p ? p.controls.map((c, i) => ({ c, u: p.uses[i], sys: p.system?.[i] ?? false })) : [];
+        const all = p ? p.controls.map((c, i) => ({ c, u: p.uses[i], sys: p.system?.[i] ?? false, nested: p.nested?.[i] ?? false })) : [];
         const own = all.filter((x) => !x.sys);
-        const shown = own.filter((x) => DATA_CONTROLS.has(x.c) && !(x.u & INVISIBLE));
+        // Defaulting looks at the component's pages and the secondary pages they open, not further (StructurePlacement.nested).
+        const shown = own.filter((x) => DATA_CONTROLS.has(x.c) && !(x.u & INVISIBLE) && !x.nested);
         const isKey = !!(f.useEdit & UseEdit.Key);
         const ancestorKey = isKey && aboveKeys.has(f.name);
         const system = all.length > 0 && own.length === 0;

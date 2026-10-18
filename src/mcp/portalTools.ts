@@ -27,7 +27,7 @@ export function registerPortalTools(server: McpServer, workspace: Workspace, hos
   }, async args => jsonResult({ portal: args.portal, root: 'PORTAL_ROOT_OBJECT', nodes: await (await provider(args.connection)).portalStructure(args.portal) }));
   server.registerTool('psft_portal_get', {
     title: 'Portal Registry: read folder or content reference',
-    description: 'Read a folder (F) or content reference (C) by portal and name. Returns its editable input, raw stored properties, security grants, attributes and token. Use the input and token with psft_portal_edit. Omitted target/publicAccess fields preserve the stored values; advanced target types remain intact.',
+    description: 'Read a folder (F) or content reference (C) by portal and name. Returns its editable input, raw stored properties, security grants, attributes and token. Use the input and token with psft_portal_edit. Omitted target/access fields preserve the stored values; advanced target types remain intact.',
     inputSchema: portalIdentity.extend({ connection }), annotations: READ_ONLY
   }, async ({ connection, ...id }) => {
     const document = await (await provider(connection)).readPortalDocument(id);
@@ -51,7 +51,7 @@ export function registerPortalTools(server: McpServer, workspace: Workspace, hos
   };
   server.registerTool('psft_portal_create_folder', {
     title: 'Portal Registry: create folder',
-    description: 'Create a folder in a selected portal under an existing parent folder (PORTAL_ROOT_OBJECT for top-level content). Supply label and sequence; optional description, owner, publicAccess and security. Cannot overwrite an existing folder. dryRun validates and rolls back. ' + GATES,
+    description: 'Create a folder in a selected portal under an existing parent folder (PORTAL_ROOT_OBJECT for top-level content). Supply label and sequence; optional description, owner, access (public, author or permissions; a new entry defaults to author, as PIA does) and security. A reference to a component on a local node takes its permission lists from the component\'s security, as PIA does; do not supply them. Cannot overwrite an existing folder. dryRun validates and rolls back. ' + GATES,
     inputSchema: z.object({ connection, input: portalInputFields.omit({ refType: true, target: true }), dryRun: z.boolean().default(false) }), annotations: WRITE
   }, args => save(args.connection, { ...args.input, refType: 'F' }, 'absent', args.dryRun));
   server.registerTool('psft_portal_create_content_reference', {
@@ -61,7 +61,7 @@ export function registerPortalTools(server: McpServer, workspace: Workspace, hos
   }, args => save(args.connection, { ...args.input, refType: 'C' }, 'absent', args.dryRun));
   server.registerTool('psft_portal_edit', {
     title: 'Portal Registry: edit folder or content reference',
-    description: 'Edit the input returned by psft_portal_get, supplying its token as expectedToken. Supports label, description, parent folder (move), sequence, owner, publicAccess, direct security, and ordinary content-reference targets. Identity stays the same; omitted target/security/publicAccess values preserve them. Existing attributes, translations, Fluid and advanced settings are preserved. Root edits and folder cycles are refused. ' + GATES,
+    description: 'Edit the input returned by psft_portal_get, supplying its token as expectedToken. Supports label, description, parent folder (move), sequence, owner, access, direct security, and ordinary content-reference targets. Identity stays the same; omitted target/security/publicAccess values preserve them. Existing attributes, translations, Fluid and advanced settings are preserved. Root edits and folder cycles are refused. ' + GATES,
     inputSchema: z.object({ connection, input: portalInput, expectedToken: z.string().min(1).refine(v => v !== 'absent', 'Read the existing entry first'), dryRun: z.boolean().default(false) }), annotations: WRITE
   }, args => save(args.connection, args.input, args.expectedToken, args.dryRun));
 }

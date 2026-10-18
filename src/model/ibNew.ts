@@ -1,9 +1,9 @@
 import { IB_PARENTS, IB_SECTIONS, IB_STAMPS, ibSecretColumn, type IbWriteInput } from './ibOperations.js';
 import { ibIdentity, type IbKind } from './ibDocument.js';
-import { buildStringDocument, type IbStringElement } from './ibDocumentSchema.js';
+import { buildStringDocument, ibDocumentProfile, type IbStringElement } from './ibDocumentSchema.js';
 import type { Row } from './ibDefinitions.js';
 export interface IbNewOptions {serviceKind?:'standard'|'rest';restRole?:'consumer'|'provider';service?:string;method?:'GET'|'POST'|'PUT'|'DELETE'|'HEAD'|'PATCH';operationType?:'A'|'S'|'R'|'N'|'X';messageVersion?:string;elements?:IbStringElement[];}
-export function newIbInput(kind:IbKind,key:string[],options:IbNewOptions,config:Row,language:string,service?:Row):IbWriteInput {
+export function newIbInput(kind:IbKind,key:string[],options:IbNewOptions,config:Row,language:string,service?:Row,toolsRelease='8.62'):IbWriteInput {
  ibIdentity(kind,key);
  const properties=Object.fromEntries(Object.entries(IB_PARENTS[kind].defaults).filter(([k])=>!IB_STAMPS.has(k)&&!ibSecretColumn(k)&&!['IB_REST_SERVICE','IB_PSOFTSERVICE','GENERATED','IB_LOCALIDFLG'].includes(k)));
  const input:IbWriteInput={kind,key:[...key],properties:properties as IbWriteInput['properties'],sections:{}};
@@ -27,7 +27,7 @@ export function newIbInput(kind:IbKind,key:string[],options:IbNewOptions,config:
  if(kind==='message')input.sections.versions=[{...IB_SECTIONS.message.versions.defaults,APMSGVER:options.messageVersion??'V1'}] as IbWriteInput['sections'][string];
  if(kind==='routing')input.sections.parameters=[];
  if(kind==='document'){
-  input.properties.DESCR=key[1].slice(0,30);input.document=buildStringDocument(key,options.elements??[{name:'value',length:100,required:false}],String(config.IB_SCHEMANAMESPACE??'').trim(),language);
+  input.properties.DESCR=key[1].slice(0,30);input.document=buildStringDocument(key,options.elements??[{name:'value',length:100,required:false}],String(config.IB_SCHEMANAMESPACE??'').trim(),language,ibDocumentProfile(toolsRelease,String(config.IB_RESTTGTLOC??'')));
  }
  return input;
 }

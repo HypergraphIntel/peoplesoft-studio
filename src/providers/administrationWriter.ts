@@ -76,11 +76,21 @@ export async function readAdministration(c: DbConnection, types: DbTypes, kind: 
 }
 
 /** Delivered SavePreChange uses the returned SYS version on sets and URLs. */
+/**
+ * The delivered SavePreChange's UpdateSysVersion() (PSMSGSETDEFN.VERSION, PSURLDEFN.VERSION).
+ * A PIA Message Catalog save on 8.61.15 moved PSVERSION and PSLOCK PPC by one and SYS by one,
+ * and stored the new PPC as the set's VERSION; message sets and URL definitions share that
+ * counter. PPC follows max(PSVERSION, PSLOCK) + 1, as Process Definitions' does.
+ */
 async function bumpSystemVersion(c: DbConnection): Promise<number> {
-  const [r] = await select<{ VERSION: number }>(c, "SELECT VERSION FROM PSVERSION WHERE OBJECTTYPENAME='SYS' FOR UPDATE");
-  if (!r) throw new Error('PSVERSION SYS is missing.');
-  const next = Number(r.VERSION) + 1;
-  await expectRows(c, "UPDATE PSVERSION SET VERSION=:v WHERE OBJECTTYPENAME='SYS'", { v: next }, 1, 'Updating SYS version');
+  const counters = await select<{ OBJECTTYPENAME: string; VERSION: number }>(c, "SELECT OBJECTTYPENAME,VERSION FROM PSVERSION WHERE OBJECTTYPENAME IN ('PPC','SYS') ORDER BY OBJECTTYPENAME FOR UPDATE");
+  const [lock] = await select<{ VERSION: number }>(c, "SELECT VERSION FROM PSLOCK WHERE OBJECTTYPENAME='PPC' FOR UPDATE");
+  const ppc = counters.find(r => String(r.OBJECTTYPENAME).trim() === 'PPC'), sys = counters.find(r => String(r.OBJECTTYPENAME).trim() === 'SYS');
+  if (!ppc || !sys || !lock) throw new Error('PSVERSION PPC/SYS or PSLOCK PPC is missing.');
+  const next = Math.max(Number(ppc.VERSION), Number(lock.VERSION)) + 1;
+  await expectRows(c, "UPDATE PSVERSION SET VERSION=:v WHERE OBJECTTYPENAME='PPC'", { v: next }, 1, 'Updating PPC version');
+  await expectRows(c, "UPDATE PSLOCK SET VERSION=:v WHERE OBJECTTYPENAME='PPC'", { v: next }, 1, 'Updating PPC lock');
+  await expectRows(c, "UPDATE PSVERSION SET VERSION=:v WHERE OBJECTTYPENAME='SYS'", { v: Number(sys.VERSION) + 1 }, 1, 'Updating SYS version');
   return next;
 }
 export interface AdminSaveRequest { kind: AdminKind; input: unknown; expectedToken: string; operatorId: string }

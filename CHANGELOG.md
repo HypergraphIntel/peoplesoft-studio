@@ -14,6 +14,82 @@
   setting that did it; `psft_project_related` lists them under
   `excludedBySettings` instead of as missing. Adding a definition in the Studio
   UI yourself is not gated.
+- **PS Query saves on PeopleTools 8.61.15**, besides 8.62.09. A query made in
+  the 8.61 Windows Query client and the same query made by Studio have equal
+  rows, and Windows Query reopens Studio's. Other releases are still refused,
+  and the refusal now names the database's release.
+- **Integration Broker writes on PeopleTools 8.61.15** for the shapes matched to
+  PIA there: nonrowset messages, standard services, standard operations without
+  handlers and flat string documents, created and edited. REST, nodes,
+  routings and handlers stay 8.62.09-only. OAuth edits stay 8.62.09-only: they
+  cover CUSTOM applications, and 8.61 has no CUSTOM authorization server.
+- **PS Query: a criterion on a field that is not selected** (`constant` /
+  `prompt`) adds it as a criteria-only field, as Windows Query's *New
+  Criteria* does. Studio used to require selecting the field first.
+
+### Fixed
+
+Calibrated against App Designer 8.61.15 on an 8.61 database (and rechecked on
+8.62.09): fields, records, pages, components, menus, SQL, App Engine, record
+PeopleCode (compiled bytes included), application packages, HTML, style
+sheets, File Layouts, projects and Component Interfaces created by Studio now
+match App Designer's own row for row, except where noted. Every fix applies to
+all releases.
+
+- **Records: EFFDT comes in as App Designer inserts it** -- a descending key
+  defaulting to `%date`. Studio inserted it as a plain field (EFFSEQ,
+  EFF_STATUS and other date fields get nothing, in both).
+- **New pages: a Subpage takes its subpage's own rectangle**, as it already did
+  when added to an existing page; created with a page it was stored at 0,0,0,0.
+  A new page's controls also name no page (`PARENTPNLFLDID` / `PAGEPNLFLDID`
+  `$0`), as App Designer writes them before the page has a name.
+- **New components default to Add and Update/Display**, the Actions App
+  Designer opens a new component with (`psft_component_create` and *New
+  Component*); Studio defaulted to Update/Display only.
+- **Component Interface defaulting matches App Designer's.** *Default the
+  properties* now skips fields shown only on a secondary page opened from a
+  secondary page (a run control's process-request dialogs had 28 extra
+  properties), and an SQL view that is its scroll's primary record is numbered
+  field by field.
+- **Integration Broker documents: the generated JSON schema's `$id`** is now
+  Service Configuration's REST Target Location, as PIA writes it, on every
+  release. Studio always wrote `http://ORACLE_ENDPOINT`, which PIA uses only
+  when no location is configured. On 8.61 the JSON physical schema also leaves
+  out `m_bFilterBlankElements`, which 8.61 does not write.
+- **Portal Registry: "restricted" entries were public.** `PORTAL_ISPUBLIC` holds
+  three settings (0 public, 1 Author Access, 2 neither), not yes/no. Studio wrote
+  0 for restricted (public) and 1 for public (Author Access). The input's
+  `publicAccess` is replaced by `access`: `public`, `author` or `permissions`.
+  New entries default to `author`, as PIA does. Entries Studio created before
+  this fix should be checked; `psft_portal_get` now shows their real access.
+- **Portal Registry follows PIA's security rules.** A reference to a component
+  on a local node takes its permission lists from the component's security
+  (PIA shows them read only). An entry that is neither public nor Author Access
+  needs its own or an inherited grant. A portal can't hold two references to
+  the same URL. A new folder gets the three system attributes Folder
+  Administration writes. Studio's new folder and component reference now match
+  PIA's rows on 8.61.15, and PIA opens them.
+- **New process definitions match PIA's Add.** An Application Engine process's
+  *Restart Enabled* now follows its program, as the page sets it (on unless
+  the program disables restart); Studio always left it off. The output format
+  now stays blank, the record default; Studio wrote `0`.
+- **Integration Broker document bodies compress to PIA's exact bytes.** Node's
+  zlib produced different bytes and lengths for the same text; Studio now uses
+  pako (new dependency), a port of the reference zlib PIA uses. It reproduces
+  every captured PIA body on 8.61.15 and 8.62.09.
+- **Message Catalog and URL definitions take PIA's version number.**
+  `UpdateSysVersion()` advances the PPC counter (PSVERSION and PSLOCK) as well
+  as SYS, and the message set or URL stores the new PPC. Studio bumped only SYS
+  and stored that. A Studio-made set and message now equal PIA's rows on
+  8.61.15.
+- **`psft_ib_new` on 8.61 no longer offers 8.62-only columns** (a new
+  operation's `URL_ID`); the writer refused its own new input with "URL_ID is
+  not a stored column".
+- Known, not changed: `LICENSE_CODE` on new pages and App Engine programs is
+  App Designer's own generated value (left blank); App Designer adds signature
+  comments (`/+ Returns String +/`) to application class methods on save, which
+  Studio does not add yet; a new SQL table's tablespace is App Designer's
+  prompt, Studio takes the first.
 
 ## 0.9.3 — 2026-10-17
 

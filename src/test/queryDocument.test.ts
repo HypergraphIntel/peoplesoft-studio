@@ -67,3 +67,28 @@ test('webview operations cannot replace raw rows, change ownership or coerce str
   assert.throws(()=>parseQueryOp({kind:'properties',description:'x',comments:'',OPRID:'OTHER'}));
   assert.throws(()=>parseQueryOp({kind:'replaceRows',rows:[]}));
 });
+
+test('a criterion on an unselected field adds it criteria-only, as Windows Query\'s New Criteria does', () => {
+  // PeopleTools 8.61.15 Windows Query: select two fields, then New Criteria on a third,
+  // unselected one. Its row is the next field number with no column and heading None,
+  // the row an unselect leaves (qry12), used once by the criterion.
+  let view=newQueryDocument('ZZ_QRY_LAB03','JARED','AAP_TBL');
+  view=applyQueryOp(view,{kind:'select',field:'DESCR',selected:true},metadata);
+  view=applyQueryOp(view,{kind:'constant',field:'ESTABID',value:'USA'},metadata);
+  const pick=(r: Row)=>({FIELDNAME:r.FIELDNAME,FLDNUM:r.FLDNUM,COLUMNNUM:r.COLUMNNUM,HDGTYPE:r.HDGTYPE,HEADING:r.HEADING,USECOUNT:r.USECOUNT});
+  assert.deepEqual(view.fields.map(pick),[
+    {FIELDNAME:'DESCR',FLDNUM:1,COLUMNNUM:1,HDGTYPE:3,HEADING:' ',USECOUNT:0},
+    {FIELDNAME:'ESTABID',FLDNUM:2,COLUMNNUM:0,HDGTYPE:1,HEADING:' ',USECOUNT:1}
+  ]);
+  assert.equal(view.criteria[0].LCRTFLDNUM,2);
+  assert.equal(view.expressions[0].EXPRESSIONTEXT,'USA');
+  assert.equal(view.expressions[0].USECOUNT,1);
+  assert.equal(view.selects[0].FLDCOUNT,2);
+  // The same rows as selecting the field, adding the criterion and unselecting it.
+  let viaUnselect=newQueryDocument('ZZ_QRY_LAB03','JARED','AAP_TBL');
+  for (const op of [{kind:'select',field:'DESCR',selected:true},{kind:'select',field:'ESTABID',selected:true},
+    {kind:'constant',field:'ESTABID',value:'USA'},{kind:'select',field:'ESTABID',selected:false}] as QueryOp[]) viaUnselect=applyQueryOp(viaUnselect,op,metadata);
+  for (const table of Object.keys(QUERY_TABLES) as QueryTable[]) assert.equal(canonicalQueryRows(queryRows(view,table)),canonicalQueryRows(queryRows(viaUnselect,table)),table);
+  // Headings and order still need a selected field.
+  assert.throws(()=>applyQueryOp(newQueryDocument('ZZ_QRY_LAB03','JARED','AAP_TBL'),{kind:'heading',field:'DESCR',mode:'short'},metadata),/Select that field/);
+});

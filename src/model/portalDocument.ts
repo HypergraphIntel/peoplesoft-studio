@@ -12,7 +12,8 @@ export const portalTarget = z.discriminatedUnion('type', [
 export const portalInputFields = portalIdentity.extend({
   parent: name, label: z.string().min(1).max(30).refine(s => !!s.trim(), 'Label is required'), description: z.string().max(254).default(''),
   sequence: z.number().int().min(0).max(2147483647).default(0), owner: z.string().max(4).default(''),
-  publicAccess: z.boolean().optional().describe('Omit on edit to preserve the stored public-access setting.'),
+  access: z.enum(['public', 'author', 'permissions']).optional()
+    .describe('Who sees the entry: public (everyone), author (Author Access plus its permissions) or permissions (its own or inherited grants only). A new entry defaults to author, as PIA does. Omit on edit to preserve.'),
   target: portalTarget.optional().describe('Required for a new content reference. Omit on edit to preserve its current target.'),
   permissions: z.array(z.object({ type: z.enum(['P', 'R']), name: z.string().min(1).max(30), cascade: z.boolean().default(false) }).strict()).max(1000).optional()
     .describe('Permission lists (P) and roles (R) assigned to this entry; cascade applies to folders. Omit to preserve them; an empty array removes them. Ancestor permissions are separate.')
@@ -24,6 +25,17 @@ export const portalInput = portalInputFields.superRefine((v, ctx) => {
     ctx.addIssue({ code: 'custom', message: 'Duplicate security grants.', path: ['permissions'] });
 });
 export type PortalInput = z.infer<typeof portalInput>;
+export type PortalAccess = NonNullable<PortalInput['access']>;
+/**
+ * PSPRSMDEFN.PORTAL_ISPUBLIC is not a yes/no flag: the portal API's PublicAccess and
+ * AuthorAccess share it. 0 public, 1 Author Access, 2 neither (security by grants only).
+ * Folder and Content Ref Administration default a new entry to Author Access (1). On
+ * 8.61.15 and 8.62.09 alike, the portal root is 0 and 1,140 of 1,153 entries stored 0 have no grants.
+ */
+export const PORTAL_ACCESS: Record<PortalAccess, number> = { public: 0, author: 1, permissions: 2 };
+export function portalAccess(value: unknown): PortalAccess | undefined {
+  return (Object.keys(PORTAL_ACCESS) as PortalAccess[]).find(k => PORTAL_ACCESS[k] === Number(value));
+}
 export type PortalIdentity = z.infer<typeof portalIdentity>;
 export type PortalRow = Record<string, unknown>;
 export interface PortalDocument { identity: PortalIdentity; row: PortalRow; permissions: PortalRow[]; attributes: PortalRow[]; token: string }
@@ -49,6 +61,6 @@ export function portalInputForDocument(doc: PortalDocument): PortalInput {
   const s = (column: string) => String(doc.row[column] ?? '').trim();
   // The target is intentionally omitted: opening and saving an advanced reference must preserve it.
   return { ...doc.identity, parent: s('PORTAL_PRNTOBJNAME'), label: s('PORTAL_LABEL'), description: s('DESCR254'),
-    sequence: Number(doc.row.PORTAL_SEQ_NUM), owner: s('OBJECTOWNERID'),
+    sequence: Number(doc.row.PORTAL_SEQ_NUM), owner: s('OBJECTOWNERID'), access: portalAccess(doc.row.PORTAL_ISPUBLIC),
     permissions: doc.permissions.map(p => ({ cascade: Number(p.PORTAL_ISCASCADE) === 1, type: String(p.PORTAL_PERMTYPE).trim() as 'P' | 'R', name: String(p.PORTAL_PERMNAME).trim() })) };
 }
