@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CRITERIA_OPERATORS, checkCriterion, criteriaOf, criterionKey, describeCriterion, withCriterion, withCriterionValue, withoutCriterion } from '../model/pfcCriteria.js';
-import { catalogCriteriaRow, criteriaDefaultText, type PfcCatalogField } from '../providers/pfcCatalog.js';
+import { catalogCriteriaRow, catalogFieldRow, criteriaDefaultText, type PfcCatalogField } from '../providers/pfcCatalog.js';
 
 /*
  * A configuration's criteria (model/pfcCriteria.ts) on the shapes of Oracle's
@@ -11,7 +11,7 @@ import { catalogCriteriaRow, criteriaDefaultText, type PfcCatalogField } from '.
 
 const SEQ = { SEQUENCE_NBR: 1, EOCC_SEQUENCE_NBR: 1 };
 const ACTION: PfcCatalogField = {
-  pageField: '0.DERIVED_JOB_HDR.ACTION.22.0.P', level: 0, record: 'DERIVED_JOB_HDR', field: 'ACTION', pnlfldid: 22, ownLevel: 0,
+  pageField: '0.DERIVED_JOB_HDR.ACTION.22.0.P', level: 0, occursLevel: 0, record: 'DERIVED_JOB_HDR', field: 'ACTION', pnlfldid: 22, ownLevel: 0,
   page: 'HR_JOBDATA_LVL_SBF', componentPage: 'HR_JOBDATA_LVL_SBF', label: 'Action', fieldType: 5, fieldUse: 0, record1: '', field1: '', recordBase: 'DERIVED_JOB_HDR'
 };
 
@@ -62,4 +62,17 @@ test('criteria read as the configurator summarizes them', () => {
   assert.equal(describeCriterion({ LBLTEXT: 'Nature of Action Code', EOCC_CRITERIA_SYM: 'C', EOCC_VALUE_MATCH: '899' }), 'Nature of Action Code greater than 899');
   assert.equal(describeCriterion({ LBLTEXT: 'Hire Date', EOCC_CRITERIA_SYM: 'I', EOCC_VALUE_MATCH: '2026-01-01', EOCC_VALUE_MATCH2: '2026-12-31' }), 'Hire Date between 2026-01-01 and 2026-12-31');
   assert.equal(describeCriterion({ RECNAME: 'JOB', FIELDNAME: 'DEPTID', EOCC_CRITERIA_SYM: 'H' }), 'JOB.DEPTID contains value');
+});
+
+test('a field on a secondary page reached from a scroll takes that level in OCCURSLEVEL, its own in SECOCCURSLEVEL', () => {
+  // The shape of rows saved on 8.61.15: a level-2 field of a secondary page whose control is at level 1.
+  const onSecondary: PfcCatalogField = {
+    pageField: '2.ZZ_REC.DESCR.44.2.S', level: 2, occursLevel: 3, record: 'ZZ_REC', field: 'DESCR', pnlfldid: 44, ownLevel: 2,
+    page: 'ZZ_LAB_SBF', componentPage: 'ZZ_LAB_SCF', label: 'Description', fieldType: 4, fieldUse: 0, record1: '', field1: '', recordBase: ''
+  };
+  const row = catalogFieldRow(onSecondary, SEQ);
+  assert.deepEqual([row.OCCURSLEVEL, row.SECOCCURSLEVEL, row.EOCC_SBP_LEVEL, row.STDPNLNAME, row.PNLNAME], [3, 2, 2, 'ZZ_LAB_SCF', 'ZZ_LAB_SBF']);
+  // A component page's field: OCCURSLEVEL is its level, SECOCCURSLEVEL 0.
+  const onPage = catalogFieldRow({ ...ACTION, pageField: '1.ZZ_REC.DESCR.5.1.P', level: 1, occursLevel: 1, ownLevel: 1 }, SEQ);
+  assert.deepEqual([onPage.OCCURSLEVEL, onPage.SECOCCURSLEVEL], [1, 0]);
 });

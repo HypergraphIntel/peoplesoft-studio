@@ -1,0 +1,101 @@
+# Next release: native save parity and PeopleTools 8.61 support
+
+Draft prepared October 18, 2026. No release version, tag or publication has
+been assigned. The installed extension may still be an earlier build.
+
+Studio now supports the calibrated PS Query and standard Integration Broker
+workflows on PeopleTools 8.61.15 as well as 8.62.09. This work also corrects
+native save behavior across Portal Registry, records, application classes,
+process definitions and the customization tools.
+
+## Compatibility and administrator actions
+
+- **Portal MCP input changed:** replace `publicAccess` with `access` using
+  `public`, `author` or `permissions`. Update saved tool calls and automation.
+  Review portal entries created by earlier Studio builds: the old boolean
+  conversion could store the wrong access setting. `psft_portal_get` reports
+  the actual stored access.
+- **Portal saves can grant access to ancestor folders.** Saving a content
+  reference adds its permission lists to non-public folders above it, stopping
+  at the first public folder, as PIA does. Moving a reference leaves the old
+  folder's grants in place. Review the intended parent chain before saving.
+- **Application Class saves regenerate signature comments.** Method and
+  property accessor bodies receive App Designer's parameter, return and
+  inheritance comments, replacing existing signature lines.
+- **PFC mapping depends on the installed configurator.** On 8.61, save the
+  configuration, then use **Map to content references…** or
+  `psft_page_field_config_apply`. Choose **Apply Configuration** or **Remove
+  Mapping** and the intended content references. On 8.62, saving continues
+  to update Event Mapping automatically. The read tool reports `mapsOnSave`.
+
+## New capabilities
+
+- PS Query saves on 8.61.15, compared with Windows Query. A criterion can use
+  a character field without selecting it in the output.
+- Standard Integration Broker creation and edits on 8.61.15: nonrowset
+  messages, standard services, standard operations without handlers and flat
+  string documents. REST, handlers, nodes and routings retain their 8.62
+  calibration requirement.
+- Other patches within a calibrated 8.61 or 8.62 release are accepted for
+  Query, Integration Broker and 8.62 OAuth when the required table column names and types
+  match the stored fingerprints. A mismatch is refused with the differing
+  tables named. This check does not constitute native calibration of that patch.
+- SQL Table creation and conversion now offer a tablespace picker. MCP
+  callers can use `psft_list_tablespaces` and pass `tablespace` to
+  `psft_create_record` or `psft_edit_record`. Without an MCP choice, the first
+  catalog entry remains the default. Existing SQL Table saves do not prompt.
+- Project Contents settings control whether agents add menus, portal entries
+  and security definitions to projects; manual Studio additions remain available.
+
+## Save corrections
+
+- Portal access values, inherited component permissions, required security,
+  duplicate URL validation, new-folder attributes and ancestor folder grants
+  follow the calibrated PIA behavior.
+- PFC fields reached through secondary pages use the correct component level.
+  Added or changed field rows receive the observed `EOCC_SET_BLANK` default;
+  untouched rows retain their stored value.
+- Reconfiguring Drop Zone menus clears their menu removal markers. PFC's
+  8.61 mapping clears content-reference removal markers when appropriate;
+  8.62 retains them. Service removal markers remain intact.
+- Integration Broker document compression matches captured PIA bytes; JSON
+  schema identifiers use the configured REST Target Location. Generated 8.61
+  inputs omit columns absent from that release.
+- Application Engine process restart defaults follow the program; output
+  format retains the native blank default. Message Catalog and URL saves
+  advance the PPC and SYS counters.
+- Record EFFDT insertion, new-page subpage geometry, component action defaults
+  and Component Interface defaults follow the captured App Designer saves.
+
+## Validation and limits
+
+The calibration handoff records native 8.61.15 comparisons for Query, standard
+Integration Broker, portal, process definitions, Message Catalog, tablespace
+selection, Event Mapping, Drop Zones and PFC. Its disposable calibration
+objects were cleaned up. The detailed scope and evidence remain in the
+individual feature documents and CHANGELOG.
+
+The October 18 continuation additionally verified:
+
+- `npm run verify`: typecheck, bundle, 2,005 passing tests, one skipped, and
+  activation of 108 commands, 10 views and three custom editors.
+- Node 20 test discovery: 2,030 passing tests, one skipped (includes additional
+  discovered test files beyond the npm test glob).
+- Production HTTP MCP and editor fixture checks, including PFC apply/remove
+  routing and gates, secondary field levels, tablespace discovery, and the
+  real record save and PFC panel handlers. These fixtures perform no database
+  writes.
+- Headless Chromium checks for PFC, Drop Zones, Portal, Process and Security.
+  These verify generated panels; they are not a manual VS Code acceptance pass.
+- HRDMO 8.62.09 PFC save preview: the actual writer executed and rolled back
+  the proposed rows and mappings, with no warnings or committed changes.
+- HRDMO 8.62.09 Application Class save: removed signature lines from the
+  input of an existing lab class, saved through the current source writer,
+  then read back identical original source, compiled bytes and reference
+  rows. Only normal save versions and stamps advanced; no new object remains.
+
+Query authoring remains bounded by its documented supported shapes. PFC
+Change Tracking remains read only; runtime behavior still requires Event
+Mapping. OAuth retains its separate 8.62 calibration and schema gate; 8.61
+OAuth writes remain refused. None of these
+checks establishes universal PeopleTools parity or runtime execution coverage.

@@ -212,7 +212,9 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
       'Component Interface PeopleCode (42: INTERFACE, Methods -- its user methods are its Functions), ' +
       'Component PeopleCode (46: COMPONENT, MARKET, EVENT; 47: COMPONENT, MARKET, RECORD, EVENT; ' +
       '48: COMPONENT, MARKET, RECORD, FIELD, EVENT; created when new) or an Application Class (type 58; parts PACKAGE[, SUBPACKAGE...], CLASS, OnExecute). ' +
-      'Saving an Application Class that does not exist yet creates it in its package. Read the current source with ' +
+      'Saving an Application Class that does not exist yet creates it in its package. An Application Class save writes App Designer\'s ' +
+      'signature comments (/+ &param as Type +/, /+ Returns Type +/, /+ Extends/implements Pkg:Class.method +/) into each method, get and set ' +
+      'body, replacing any already there; the stored source is returned as storedSource. Read the current source with ' +
       'psft_get_peoplecode first and send the whole program. Read psft_peoplecode_reference before writing PeopleCode and run psft_validate_peoplecode first: ' +
       'a save is refused when the code breaks a rule App Designer\'s compiler enforces (PC001-PC009). ' + 'An SQL definition is refused when a colon-number bind marker appears in a comment: PeopleSoft counts markers in the whole text, so it becomes an extra bind. '  + GATES,
     inputSchema: z.object({ connection: z.string().min(1), type: z.number().int(), parts: z.array(z.string()).min(1), source: z.string() }),
@@ -356,10 +358,12 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
     title: 'Create a record',
     description: 'Create an SQL Table or Derived/Work record definition using the same field and property operations as psft_edit_record. ' +
       'Insert existing fields with insert_field, then set their keys/edits/defaults/labels and record properties. An AE state record name ends AET. ' +
-      'This creates metadata only; building a physical SQL table is a separate operation. ' + GATES,
-    inputSchema: z.object({connection:z.string().min(1),record:z.string().min(1),recordType:z.enum(['sqlTable','derivedWork']),operations:z.array(recordOperation).min(1)}),
+      'This creates metadata only; building a physical SQL table is a separate operation. An SQL Table goes in tablespace (a ' +
+      'psft_list_tablespaces name, as App Designer asks on the first save); omitted, the catalog\'s first entry. ' + GATES,
+    inputSchema: z.object({connection:z.string().min(1),record:z.string().min(1),recordType:z.enum(['sqlTable','derivedWork']),operations:z.array(recordOperation).min(1),
+      tablespace:z.string().min(1).max(8).optional().describe('SQL Table only: PSTBLSPCCAT.DDLSPACENAME from psft_list_tablespaces.')}),
     annotations: WRITE
-  }, async ({connection,record,recordType,operations}) => {
+  }, async ({connection,record,recordType,operations,tablespace}) => {
     const name=record.trim().toUpperCase();
     if(!/^[A-Z0-9_]{1,15}$/.test(name))throw new Error('Record name must be 1 to 15 letters, digits or underscores.');
     const key:DefinitionKey={type:DefinitionType.Record,parts:[name]};
@@ -368,7 +372,7 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
     const type=recordType==='sqlTable'?RecordType.Table:RecordType.DerivedWork;
     const edit=applyRecordOperations({recname:name,recordType:type,openedVersion:0,fields:[],isNew:true},type,operations as RecordOperation[]);
     await approve(host,gate,key,`create record ${name}`,`${recordType} definition:\n${operations.map(o=>describeOperation(o)).join('\n')}`);
-    const result=await gate.provider.saveRecord({edit,operatorId:gate.operatorId});
+    const result=await gate.provider.saveRecord({edit,operatorId:gate.operatorId,...(tablespace?{tablespace}:{})});
     return done(gate,key,{created:true,version:result.version,recordType:edit.recordType,fields:edit.fields.map(f=>f.name)});
   });
 
@@ -379,10 +383,12 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
       '(by name), insert a subrecord, set a field\'s Use (key, search key, list box ...), Edits (required, prompt ' +
       'table, translate, yes/no), default, label; set Record Properties or the record type. The rules App Designer ' +
       'keeps (Search Key needs Key, observed type changes only ...) are enforced. Read it with psft_get_definition ' +
-      '(type 0) first. dryRun executes/verifies the shared writer and rolls back; returned versions are hypothetical. expectedVersion rejects stale input. ' + GATES,
-    inputSchema: z.object({ connection: z.string().min(1), record: z.string().min(1), operations: z.array(recordOperation).min(1), dryRun: z.boolean().optional(), expectedVersion: z.number().int().optional() }),
+      '(type 0) first. dryRun executes/verifies the shared writer and rolls back; returned versions are hypothetical. expectedVersion rejects stale input. ' +
+      'A record that becomes an SQL Table goes in tablespace (psft_list_tablespaces); omitted, the catalog\'s first entry. ' + GATES,
+    inputSchema: z.object({ connection: z.string().min(1), record: z.string().min(1), operations: z.array(recordOperation).min(1), dryRun: z.boolean().optional(), expectedVersion: z.number().int().optional(),
+      tablespace: z.string().min(1).max(8).optional().describe('When the record type becomes SQL Table: PSTBLSPCCAT.DDLSPACENAME from psft_list_tablespaces.') }),
     annotations: WRITE
-  }, async ({ connection, record, operations, dryRun, expectedVersion }) => {
+  }, async ({ connection, record, operations, dryRun, expectedVersion, tablespace }) => {
     const key: DefinitionKey = { type: DefinitionType.Record, parts: [record.trim().toUpperCase()] };
     const gate = await writable(workspace, host, connection, key.parts[0]);
     const layout = await gate.provider.readRecordLayout(key);
@@ -396,12 +402,12 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
       fields: layout.fields.map((f) => ({ name: f.name, useEdit: f.useEdit, useEdit2: f.useEdit2 ?? 0, isNew: false, ...(f.isSubrecord ? { isSubrecord: true } : {}) }))
     }, layout.recordType, operations as RecordOperation[]);
     if (dryRun) {
-      const preview = await gate.provider.saveRecord({ edit: state, operatorId: gate.operatorId, dryRun: true });
+      const preview = await gate.provider.saveRecord({ edit: state, operatorId: gate.operatorId, dryRun: true, ...(tablespace ? { tablespace } : {}) });
       return jsonResult({ saved: false, preview: true, baseVersion: layout.version, hypotheticalVersion: preview.version, plan: preview.plan, languageReferrers: preview.languageReferrers });
     }
     await approve(host, gate, key, `edit record ${key.parts[0]}`,
       `${operations.length} change${operations.length === 1 ? '' : 's'}:\n${operations.map((o) => describeOperation(o)).join('\n')}`);
-    const r = await gate.provider.saveRecord({ edit: state, operatorId: gate.operatorId });
+    const r = await gate.provider.saveRecord({ edit: state, operatorId: gate.operatorId, ...(tablespace ? { tablespace } : {}) });
     return done(gate, key, { version: r.version, languageReferrers: r.languageReferrers });
   });
 

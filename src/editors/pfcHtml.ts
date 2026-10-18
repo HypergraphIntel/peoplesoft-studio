@@ -4,16 +4,16 @@ export function pfcHtml(nonce: string): string {
 <style nonce="${nonce}">
 body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-editor-background);padding:24px;max-width:1200px}h1{font-size:24px}h2{font-size:18px}p{line-height:1.5}.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}button,select{padding:7px 12px;background:var(--vscode-button-background);color:var(--vscode-button-foreground);border:0;cursor:pointer}button:disabled,select:disabled{opacity:.5;cursor:default}table{border-collapse:collapse;width:100%}td,th{padding:10px;text-align:left;border-bottom:1px solid var(--vscode-panel-border)}section{border:1px solid var(--vscode-panel-border);padding:16px;margin:16px 0}small{opacity:.75}pre{white-space:pre-wrap}#notice{color:var(--vscode-foreground)}
 </style></head><body><h1>Page and Field Configurator</h1><p id="context">Loading…</p>
-<p>Configure fields without changing delivered definitions. Saving generates the configuration’s Event Mapping.</p>
+<p id="intro">Configure fields without changing delivered definitions.</p>
 <div class="toolbar"><label>Configuration <select id="kind"><option value="STD">Standard</option><option value="MASK">Masking</option></select></label><button id="preview" disabled>Preview changes</button><button id="save" disabled>Save</button><button id="reload">Reload / Revert</button></div>
 <p id="access"></p><h2 id="description"></h2><div class="toolbar"><button id="header" disabled>Set description</button><button id="active" disabled>Deactivate configuration</button><button id="addSequence" disabled>Add sequence</button></div>
 <div class="toolbar"><button id="applyLevel" disabled>Apply level</button><button id="headerTarget" disabled>Applies to…</button></div><p id="who"></p>
-<p id="mapping"></p><div id="sequences"></div><pre id="notice" role="status" aria-live="polite"></pre>
+<p id="mapping"></p><div class="toolbar"><button id="map" disabled hidden>Map to content references…</button></div><div id="sequences"></div><pre id="notice" role="status" aria-live="polite"></pre>
 <script nonce="${nonce}">
 const vscode=acquireVsCodeApi(), el=id=>document.getElementById(id);let state,busy=true;
-function controls(){document.querySelectorAll('button,select').forEach(b=>{b.disabled=busy||(!state?.editable&&!['reload','kind'].includes(b.id))});el('save').disabled=el('preview').disabled=busy||!state?.editable||!state?.dirty;}
+function controls(){document.querySelectorAll('button,select').forEach(b=>{b.disabled=busy||(!state?.editable&&!['reload','kind'].includes(b.id))});el('save').disabled=el('preview').disabled=busy||!state?.editable||!state?.dirty;el('map').disabled=busy||!state?.editable||!!state?.dirty;}
 function send(type,extra={}){busy=true;controls();vscode.postMessage({type,...extra});}
-for(const id of ['preview','save','reload','header','active','addSequence','applyLevel'])el(id).onclick=()=>send(id);
+for(const id of ['preview','save','reload','header','active','addSequence','applyLevel','map'])el(id).onclick=()=>send(id);
 el('headerTarget').onclick=()=>send('target',{index:-1});
 el('kind').onchange=()=>send('switch',{configType:el('kind').value});
 function text(tag,value){const n=document.createElement(tag);n.textContent=value;return n;}
@@ -25,7 +25,9 @@ el('description').textContent=m.configuration.header.DESCR||'New configuration �
 el('active').textContent=(m.configuration.header.EFF_STATUS||'A')==='I'?'Activate configuration':'Deactivate configuration';
 el('applyLevel').textContent=m.headerLevel?'Set who per sequence':'Set who for the whole configuration';el('headerTarget').hidden=!m.headerLevel;
 el('who').textContent=m.headerLevel?'Applies to: '+m.headerTarget+' (every sequence)':'Who it applies to is set on each sequence.';
-el('mapping').textContent=m.contentReferences.length?m.contentReferences.map(c=>c.cref+': '+c.mappingRows+' mapped events'+(c.inSync?' · in sync':' · needs regeneration')).join(' | '):'No registered content reference. Register this component and save again to apply its configuration.';
+el('intro').textContent='Configure fields without changing delivered definitions. '+(m.mapsOnSave?'Saving generates the configuration’s Event Mapping.':'On this release saving does not map it: map it to the content references it should apply on (the configurator’s Map to Portal Registry).');
+el('map').hidden=m.mapsOnSave||!m.exists;
+el('mapping').textContent=m.contentReferences.length?m.contentReferences.map(c=>c.cref+': '+c.mappingRows+' mapped events'+(c.inSync?' · in sync':m.mapsOnSave?' · needs regeneration':c.mappingRows?' · map again to update':' · not mapped')).join(' | '):'No registered content reference. Register this component'+(m.mapsOnSave?' and save again':' and map it')+' to apply its configuration.';
 el('notice').textContent=m.message;el('sequences').replaceChildren();
 if(!m.configuration.sequences.length)el('sequences').append(text('p','Add a sequence, then select fields from the component’s page catalog.'));
 m.configuration.sequences.forEach((s,index)=>{const box=document.createElement('section');box.append(text('h2','Sequence '+s.EOCC_SEQUENCE_NBR+(s.DESCR?' · '+s.DESCR:'')));

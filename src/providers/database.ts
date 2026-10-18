@@ -88,8 +88,8 @@ import type { PfcDiscovery } from '../model/pageFieldConfigurator.js';
 import { derivePfcMappings, pfcContentReferences, type PfcMapping } from './pfcMapper.js';
 import { pfcCatalogFields, pfcCatalogPages, pfcFieldTypes, pfcMaskProfiles, type PfcCatalogField, type PfcCatalogPage, type PfcMaskProfile } from './pfcCatalog.js';
 import {
-  PFC_TARGETING_TABLES, compactRow, isTypeService, mappingSignature, pfcToken, rowsOf, type ListTable, readPfcColumns, readPfcConfiguration, savePfcConfiguration, storedSignature,
-  type PfcSaveRequest, type PfcSaveResult
+  PFC_TARGETING_TABLES, applyPfcMapping, compactRow, isTypeService, mappingSignature, pfcSaveMaps, pfcToken, rowsOf, type ListTable, readPfcColumns, readPfcConfiguration, savePfcConfiguration, storedSignature,
+  type PfcApplyRequest, type PfcApplyResult, type PfcSaveRequest, type PfcSaveResult
 } from './pfcWriter.js';
 import { dropZoneToken, readDropZoneState, saveDropZones, type DropZoneOwner, type DropZoneSaveRequest, type DropZoneSaveResult } from './dropZoneWriter.js';
 import type { DropZone } from '../model/dropZones.js';
@@ -751,6 +751,14 @@ export class DatabaseProvider implements DefinitionProvider {
    * Saves a record definition as App Designer does (recordWriter.ts): one
    * transaction, then verified again on another connection after COMMIT.
    */
+  /** The tablespace catalog (PSTBLSPCCAT), as App Designer's "Change Space" prompt lists it. */
+  async tablespaces(): Promise<{ name: string; database: string; comments: string }[]> {
+    return this.withConnection(async (c) => ((await c.execute<{ N: string; D: string; C: string }>(
+      `SELECT DDLSPACENAME AS N, DBNAME AS D, COMMENTS AS C FROM PSTBLSPCCAT ORDER BY DDLSPACENAME`, {},
+      { outFormat: this.types.OUT_FORMAT_OBJECT, fetchInfo: { C: { type: this.types.STRING } } })).rows ?? [])
+      .map((r) => ({ name: String(r.N).trim(), database: String(r.D).trim(), comments: String(r.C ?? '').trim() })));
+  }
+
   async saveRecord(request: RecordSaveRequest): Promise<RecordSaveResult> {
     const key=makeKey(DefinitionType.Record,request.edit.recname);
     if (this.platform !== 'oracle' && (request.captureSnapshots || request.expectedSnapshotToken)) throw new ProviderError('Reviewed Record snapshots require Oracle.');
@@ -2498,6 +2506,8 @@ export class DatabaseProvider implements DefinitionProvider {
     exists: boolean; token: string; configuration?: { header: Record<string, unknown>; sequences: Record<string, unknown>[]; criteria: Record<string, unknown>[];
       pages: Record<string, unknown>[]; fields: Record<string, unknown>[] } & { [K in ListTable]?: Record<string, unknown>[] };
     derived: PfcMapping[]; contentReferences: Array<{ cref: string; menu: string; mappingRows: number; inSync: boolean }>;
+    /** False where a save maps nothing and Apply Configuration maps chosen content references (8.61.15; applyPageFieldMapping). */
+    mapsOnSave: boolean;
   }> {
     const comp = component.trim().toUpperCase(), mkt = market.trim().toUpperCase(), t = type.trim().toUpperCase();
     return this.withConnection(async (c) => {
@@ -2513,7 +2523,7 @@ export class DatabaseProvider implements DefinitionProvider {
       }
       const compact = (table: ListTable) => rowsOf(config, table).map((r) => compactRow(columns, table, r));
       return {
-        exists: !!config.header, token: pfcToken(config), derived, contentReferences,
+        exists: !!config.header, token: pfcToken(config), derived, contentReferences, mapsOnSave: await pfcSaveMaps(c),
         ...(config.header ? { configuration: {
           header: compactRow(columns, 'header', config.header), sequences: compact('sequences'), criteria: compact('criteria'), pages: compact('pages'), fields: compact('fields'),
           // Who it applies to; a list left out when empty.
@@ -2529,7 +2539,7 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   /** The fields the configurator offers on a page of that list, each with the values its field row takes (pfcCatalog.ts). */
-  async readPageFieldCatalogFields(page: string, type: 'P' | 'S', options: { mask?: boolean; criteria?: boolean } = {}): Promise<PfcCatalogField[]> {
+  async readPageFieldCatalogFields(page: string, type: 'P' | 'S', options: { mask?: boolean; criteria?: boolean; secondaryLevel?: number } = {}): Promise<PfcCatalogField[]> {
     return this.withConnection((c) => pfcCatalogFields(c, page.trim().toUpperCase(), type, options));
   }
 
@@ -2570,6 +2580,14 @@ export class DatabaseProvider implements DefinitionProvider {
       if (after.token !== result.token) throw new ProviderError(`After COMMIT ${request.component}'s configuration is not what was written.`);
     }
     return result;
+  }
+
+  /**
+   * Apply Configuration or Remove Mapping (the Map to Portal Registry tab) for chosen content references, where a save maps nothing
+   * (pfcWriter.ts applyPfcMapping), in one transaction, verified before COMMIT.
+   */
+  async applyPageFieldMapping(request: PfcApplyRequest): Promise<PfcApplyResult> {
+    return this.withConnection((c) => applyPfcMapping(c, request));
   }
 
   /** A content reference's Event Mapping configuration as the Configure Event Mapping page lists it, with its token (eventMappingWriter.ts). */

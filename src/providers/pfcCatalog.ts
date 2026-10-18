@@ -17,6 +17,10 @@ import { select } from './peopleCodeWriter.js';
  *   ("S" on a secondary page), the record substituted when a subpage's primary
  *   record is (RECNAME_BASE the original), PNLNAME the (sub)page it is on,
  *   STDPNLNAME the component page (the secondary page itself for "S");
+ * - OCCURSLEVEL the key's level; on a secondary page the key's level plus the
+ *   level the secondary page is reached at, with SECOCCURSLEVEL the key's level
+ *   (0 on a component page) (EOCC_SELECT_FIELDS SEARCH_BTN: "Correct the level
+ *   of the fields from secondary page");
  * - a related display field (FIELDUSE 0x10) carries its control field in
  *   RECNAME1 / FIELDNAME1;
  * - the label: the page field's text, or its record field label (short/long
@@ -35,6 +39,8 @@ export interface PfcCatalogField {
   /** PTCS_PNLFLDNAME: level.record.field.pnlfldid.ownLevel.(P|S). */
   pageField: string;
   level: number;
+  /** OCCURSLEVEL: the level, plus the secondary page's own level on a secondary page. */
+  occursLevel: number;
   record: string;
   field: string;
   pnlfldid: number;
@@ -59,6 +65,8 @@ export interface PfcCatalogPage {
   type: 'P' | 'S';
   /** For a secondary page, the component page it is reached from. */
   from?: string;
+  /** For a secondary page, the level it is reached at (its control's level, subpages' levels not added, as GetSecondaryPageList counts). */
+  level?: number;
   fields: PfcCatalogField[];
 }
 
@@ -144,7 +152,7 @@ class Catalog {
   }
 
   /** PageFieldsList: the catalog rows of a page (invisible fields left out, related display fields' controls found). */
-  async pageFieldsList(page: string, componentPage: string, type: 'P' | 'S', criteria = false): Promise<PfcCatalogField[]> {
+  async pageFieldsList(page: string, componentPage: string, type: 'P' | 'S', criteria = false, secondaryLevel = 0): Promise<PfcCatalogField[]> {
     const raw: Raw[] = [];
     await this.pageFields(page, '', '', 0, '', raw, criteria);
     const out: PfcCatalogField[] = [];
@@ -168,7 +176,7 @@ class Catalog {
         }
       }
       out.push({
-        pageField: `${r.key}.${type}`, level: Number(parts[0]), record: parts[1], field: parts[2], pnlfldid: Number(parts[3]), ownLevel: Number(parts[4]),
+        pageField: `${r.key}.${type}`, level: Number(parts[0]), occursLevel: Number(parts[0]) + (type === 'S' ? secondaryLevel : 0), record: parts[1], field: parts[2], pnlfldid: Number(parts[3]), ownLevel: Number(parts[4]),
         page: r.page, componentPage, label: r.label, fieldType: r.fieldType, fieldUse: r.fieldUse, record1, field1, recordBase
       });
     }
@@ -189,7 +197,7 @@ class Catalog {
   }
 }
 
-/** The component's pages, then each one's secondary pages (first reached from), as the Select Fields page offers them; no fields. */
+/** The component's pages, then each one's secondary pages (first reached from, at that level), as the Select Fields page offers them; no fields. */
 export async function pfcCatalogPages(c: Connection, component: string, market: string): Promise<Array<Omit<PfcCatalogPage, 'fields'>>> {
   const cat = new Catalog(c);
   const pages = await select<{ P: string; L: string }>(c,
@@ -201,11 +209,11 @@ export async function pfcCatalogPages(c: Connection, component: string, market: 
     out.push({ page, label: t(p.L).replace(/&/g, '') || page, type: 'P' });
     const secondary: Array<[string, number]> = [];
     await cat.secondaryPages(page, 0, secondary);
-    for (const [s] of secondary) {
+    for (const [s, level] of secondary) {
       if (seen.has(s)) continue;
       seen.add(s);
       const [d] = await select<{ D: string }>(c, `SELECT DESCR AS D FROM PSPNLDEFN WHERE PNLNAME = :p`, { p: s });
-      out.push({ page: s, label: t(d?.D) || s, type: 'S', from: page });
+      out.push({ page: s, label: t(d?.D) || s, type: 'S', from: page, level });
     }
   }
   return out;
@@ -214,9 +222,10 @@ export async function pfcCatalogPages(c: Connection, component: string, market: 
 /**
  * The fields the configurator offers on one page of the catalog (a component page "P" or a secondary page "S"). For a
  * Masking configuration (EOCC_MSKFLD_DVW.LBLTEXT FieldFormula) long fields (PSDBFIELD.FIELDTYPE 1) are left out.
+ * secondaryLevel: for a secondary page, the level it is reached at (PfcCatalogPage.level).
  */
-export async function pfcCatalogFields(c: Connection, page: string, type: 'P' | 'S', options: { mask?: boolean; criteria?: boolean } = {}): Promise<PfcCatalogField[]> {
-  const fields = await new Catalog(c).pageFieldsList(page, page, type, !!options.criteria);
+export async function pfcCatalogFields(c: Connection, page: string, type: 'P' | 'S', options: { mask?: boolean; criteria?: boolean; secondaryLevel?: number } = {}): Promise<PfcCatalogField[]> {
+  const fields = await new Catalog(c).pageFieldsList(page, page, type, !!options.criteria, options.secondaryLevel ?? 0);
   if (!options.mask || !fields.length) return fields;
   const names = [...new Set(fields.map((f) => f.field))];
   const long = new Set<string>();
@@ -237,7 +246,7 @@ export async function pfcCatalogFields(c: Connection, page: string, type: 'P' | 
 export function catalogCriteriaRow(f: PfcCatalogField, dbFieldType: number, sequence: { SEQUENCE_NBR: number; EOCC_SEQUENCE_NBR: number }, symbol: string): Record<string, unknown> {
   return {
     SEQUENCE_NBR: sequence.SEQUENCE_NBR, EOCC_SEQUENCE_NBR: sequence.EOCC_SEQUENCE_NBR, RECNAME: f.record, FIELDNAME: f.field, PNLFLDID: f.pnlfldid,
-    EOCC_CRITERIA_SYM: symbol, PNLNAME: f.page, EOCC_VALUE_MATCH: criteriaDefaultText(dbFieldType), OCCURSLEVEL: f.level, EOCC_FIELD_TYPE: dbFieldType,
+    EOCC_CRITERIA_SYM: symbol, PNLNAME: f.page, EOCC_VALUE_MATCH: criteriaDefaultText(dbFieldType), OCCURSLEVEL: f.occursLevel, EOCC_FIELD_TYPE: dbFieldType,
     LBLTEXT: f.label, RECNAME1: f.record1 || ' ', FIELDNAME1: f.field1 || ' ', RECNAME_BASE: f.recordBase || ' '
   };
 }
@@ -282,15 +291,15 @@ export async function pfcMaskProfiles(c: Connection): Promise<{ profiles: PfcMas
 /** The whole catalog: every page with its fields. */
 export async function pfcFieldCatalog(c: Connection, component: string, market: string): Promise<PfcCatalogPage[]> {
   const out: PfcCatalogPage[] = [];
-  for (const p of await pfcCatalogPages(c, component, market)) out.push({ ...p, fields: await pfcCatalogFields(c, p.page, p.type) });
+  for (const p of await pfcCatalogPages(c, component, market)) out.push({ ...p, fields: await pfcCatalogFields(c, p.page, p.type, { secondaryLevel: p.level }) });
   return out;
 }
 
 /** A configuration field row (by column) for a catalog field, as the page's Add fills it in. */
 export function catalogFieldRow(f: PfcCatalogField, sequence: { SEQUENCE_NBR: number; EOCC_SEQUENCE_NBR: number }): Record<string, unknown> {
   return {
-    SEQUENCE_NBR: sequence.SEQUENCE_NBR, EOCC_SEQUENCE_NBR: sequence.EOCC_SEQUENCE_NBR, RECNAME: f.record, FIELDNAME: f.field, OCCURSLEVEL: f.level,
-    LBLTEXT: f.label, PTCS_PNLFLDNAME: f.pageField, FIELDTYPE: f.fieldType, FIELDUSE: f.fieldUse, STDPNLNAME: f.componentPage, PNLNAME: f.page,
+    SEQUENCE_NBR: sequence.SEQUENCE_NBR, EOCC_SEQUENCE_NBR: sequence.EOCC_SEQUENCE_NBR, RECNAME: f.record, FIELDNAME: f.field, OCCURSLEVEL: f.occursLevel,
+    SECOCCURSLEVEL: f.pageField.endsWith('.S') ? f.level : 0, LBLTEXT: f.label, PTCS_PNLFLDNAME: f.pageField, FIELDTYPE: f.fieldType, FIELDUSE: f.fieldUse, STDPNLNAME: f.componentPage, PNLNAME: f.page,
     RECNAME1: f.record1 || ' ', FIELDNAME1: f.field1 || ' ', RECNAME_BASE: f.recordBase || ' ', EOCC_SBP_LEVEL: f.ownLevel, EOCC_PROF_STATUS: ' '
   };
 }

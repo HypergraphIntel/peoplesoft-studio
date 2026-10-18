@@ -371,7 +371,11 @@ scratch; R2 in r35, by Save As) inserts:
   record does): App Designer gave R1 and R4 AAAPP / PSHRDMOB, the first
   entry of the tablespace catalog `PSTBLSPCCAT` (82 entries, by name); R4 again
   when re-created (r47). ZZ_FIELD_REC's AALARGE (f06) was chosen in App
-  Designer, not its default
+  Designer, not its default. Studio takes the tablespace asked for (the record
+  editor prompts on the save that makes an SQL Table; `psft_create_record` and
+  `psft_edit_record` take `tablespace`; `psft_list_tablespaces` lists the
+  catalog; a name not in it is refused), with that entry's own `DBNAME`, and
+  otherwise the catalog's first entry
 - PSVERSION RDM, SYS + 1; PSLOCK RDM + 1
 
 The record writer creates SQL Table and Derived/Work records this

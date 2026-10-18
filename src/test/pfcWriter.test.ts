@@ -8,7 +8,7 @@ import type { CounterState } from '../providers/dropZoneWriter.js';
 import type { StoredConfiguration } from '../providers/eventMappingWriter.js';
 import type { PfcMapping } from '../providers/pfcMapper.js';
 import {
-  PFC_TARGETING_TABLES, checkConfiguration, maxEventNumber, normalizeConfiguration, normalizeRow, planPfcMappings, planPfcRows, pfcToken, utilityServices,
+  PFC_TARGETING_TABLES, checkConfiguration, maxEventNumber, normalizeConfiguration, normalizeRow, planPfcMappings, planPfcRows, pfcToken, utilityServices, withSetBlankDefaults,
   type PfcColumns, type PfcConfiguration, type PfcTable
 } from '../providers/pfcWriter.js';
 
@@ -246,4 +246,37 @@ test('configuration checks: keys, sequences, statuses; the page\'s warnings', ()
   });
   assert.deepEqual(checkConfiguration(warn).errors, []);
   assert.equal(checkConfiguration(warn).warnings.length, 1);
+});
+
+test('on 8.61 configuring a content reference again deletes the tombstones of its earlier removals, before its service row; elsewhere they stay', () => {
+  const options = {
+    component: 'C', type: 'STD', active: true, targets: [{ cref: 'A', menu: 'M', stored: empty('A') }], derived: [POSTBUILD],
+    counters: counters({ RCSCM: 10, SCNFM: 20, SYS: 100 }, { RCSCM: 10, SCNFM: 20 }), ts: 'x', operatorId: 'JARED', tracked: TRACKED
+  };
+  assert.ok(!planPfcMappings(options).statements.some((st) => st.sql.startsWith('DELETE FROM PSPTCSSRVCFGDEL')), 'kept unless the release clears them');
+  const plan = planPfcMappings({ ...options, clearServiceTombstones: true });
+  const at = (prefix: string) => plan.statements.findIndex((st) => st.sql.startsWith(prefix));
+  const del = plan.statements[at('DELETE FROM PSPTCSSRVCFGDEL')];
+  assert.deepEqual(del.binds, { p: '_PTCS_PTEVMAP', n: 'A' });
+  assert.ok(at('DELETE FROM PSPTCSSRVCFGDEL') < at('INSERT INTO PSPTCS_SRVCFG'));
+  assert.equal(planned(plan, 'DELETE FROM', 'PSPTCSSRVCNFDEL').length, 0, 'the services\' tombstones stay');
+  assert.deepEqual([plan.counters.version.RCSCM, plan.counters.version.SCNFM, plan.counters.version.SYS], [11, 21, 102]);
+});
+
+test('a field row the page adds or changes has EOCC_SET_BLANK N, as its RowInit sets it [pfc01, pfc02; HCDEV JOB_FAMILY]', () => {
+  const columns = { ...(Object.fromEntries(PFC_TARGETING_TABLES.map((t) => [t, []])) as unknown as PfcColumns),
+    header: [], sequences: [], criteria: [], pages: [],
+    fields: ['PNLGRPNAME', 'MARKET', 'EOCC_CONFIG_TYPE', 'SEQUENCE_NBR', 'EOCC_SEQUENCE_NBR', 'RECNAME', 'FIELDNAME', 'OCCURSLEVEL', 'RECNAME1', 'FIELDNAME1',
+      'EOCC_VISIBLE_FLAG', 'EOCC_DISABLED', 'EOCC_SET_BLANK'].map((name) => ({ name, type: /NBR|LEVEL/.test(name) ? 'NUMBER' : 'VARCHAR2' })) } as PfcColumns;
+  const f = (field: string, more: Row = {}) => normalizeRow(columns, 'fields', { PNLGRPNAME: 'C', MARKET: 'GBL', EOCC_CONFIG_TYPE: 'STD', SEQUENCE_NBR: 1, EOCC_SEQUENCE_NBR: 1,
+    RECNAME: 'R', FIELDNAME: field, OCCURSLEVEL: 1, EOCC_VISIBLE_FLAG: 'Y', EOCC_DISABLED: 'N', ...more });
+  const config = (fields: Row[]): PfcConfiguration => ({ component: 'C', market: 'GBL', type: 'STD', sequences: [], criteria: [], pages: [], fields });
+  // Delivered rows hold blanks: untouched, kept; a hidden one changed while hidden, kept; one changed while shown, N.
+  const stored = config([f('KEPT'), f('HIDDEN', { EOCC_VISIBLE_FLAG: 'N' }), f('SHOWN')]);
+  const next = withSetBlankDefaults(stored, config([f('KEPT'), f('HIDDEN', { EOCC_VISIBLE_FLAG: 'N', EOCC_DISABLED: 'Y' }), f('SHOWN', { EOCC_VISIBLE_FLAG: 'N' }),
+    f('ADDED', { EOCC_VISIBLE_FLAG: 'N' }), f('BLANK_ROW', { RECNAME: ' ', FIELDNAME: ' ' }), f('CHOSEN', { EOCC_SET_BLANK: 'Y', EOCC_VISIBLE_FLAG: 'N' })]));
+  assert.deepEqual(next.fields.map((r) => r.EOCC_SET_BLANK), [' ', ' ', 'N', 'N', 'N', 'Y']);
+  // Without the column (a release without it), nothing is added.
+  const bare = { ...config([{ RECNAME: 'R', FIELDNAME: 'X' }]) };
+  assert.deepEqual(withSetBlankDefaults(config([]), bare).fields, [{ RECNAME: 'R', FIELDNAME: 'X' }]);
 });

@@ -26,7 +26,8 @@ await (p as any).withConnection(async (c: any) => {
       cmp('STDPNLNAME', f.componentPage, r.STDPNLNAME);
       cmp('FIELDTYPE', f.fieldType, r.FIELDTYPE);
       cmp('FIELDUSE', f.fieldUse, r.FIELDUSE);
-      cmp('OCCURSLEVEL', f.level, r.OCCURSLEVEL);
+      cmp('OCCURSLEVEL', f.occursLevel, r.OCCURSLEVEL);
+      cmp('SECOCCURSLEVEL', kind === 'S' ? f.level : 0, r.SECOCCURSLEVEL);
       cmp('RECNAME1', f.record1, r.RECNAME1);
       cmp('FIELDNAME1', f.field1, r.FIELDNAME1);
       cmp('RECNAME_BASE', f.recordBase, r.RECNAME_BASE);

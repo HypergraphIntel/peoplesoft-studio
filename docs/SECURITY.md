@@ -29,7 +29,9 @@ last-update/operator columns.
 
 PeopleTools 8.61.15 has no CUSTOM authorization server (its `PTAUTHSERVER`
 translates are AZURE, IDCS, OKTA and PING; 8.62 adds CUSTOM), so no 8.61
-application is of the edited type and OAuth saves stay 8.62.09-only. 8.61
+application is of the edited type and OAuth saves remain in the 8.62 family.
+Other 8.62 patches are accepted only when the OAuth tables' column names and
+types match the calibrated 8.62.09 fingerprints. 8.61
 applications are readable; PSPTSEC_TOKEN there also has no `PTJWTEXP`.
 
 Other application types and grants are available for inspection. Application

@@ -14,11 +14,11 @@ export async function pickCatalogField(provider: DatabaseProvider, component: st
   const page = await vscode.window.showQuickPick(pages.map((p) => ({ label: p.label, description: `${p.page}${p.type === 'S' ? ` · secondary page, from ${p.from}` : ''}`, p })),
     { title: `Configure a field: the page (${component}.${market})`, matchOnDescription: true });
   if (!page) return undefined;
-  const catalog = await provider.readPageFieldCatalogFields(page.p.page, page.p.type, { mask });
+  const catalog = await provider.readPageFieldCatalogFields(page.p.page, page.p.type, { mask, secondaryLevel: page.p.level });
   const taken = new Set(seqFields.map(fieldRowKey));
   const field = await vscode.window.showQuickPick(catalog.map((f) => {
     const r = catalogFieldRow(f, { SEQUENCE_NBR: Number(seq.SEQUENCE_NBR), EOCC_SEQUENCE_NBR: Number(seq.EOCC_SEQUENCE_NBR) });
-    return { label: f.label || `${f.record}.${f.field}`, description: `${f.record}.${f.field}${f.level ? ` · level ${f.level}` : ''}${f.page !== f.componentPage ? ` · ${f.page}` : ''}${taken.has(fieldRowKey(r)) ? ' · already configured' : ''}`, f, r };
+    return { label: f.label || `${f.record}.${f.field}`, description: `${f.record}.${f.field}${f.occursLevel ? ` · level ${f.occursLevel}` : ''}${f.page !== f.componentPage ? ` · ${f.page}` : ''}${taken.has(fieldRowKey(r)) ? ' · already configured' : ''}`, f, r };
   }), { title: `Configure a field on ${page.p.label} (${page.p.page})`, matchOnDescription: true });
   if (!field) return undefined;
   return { row: seqFields.find((r) => fieldRowKey(r) === fieldRowKey(field.r)) ?? field.r, pageLabel: field.f.label };

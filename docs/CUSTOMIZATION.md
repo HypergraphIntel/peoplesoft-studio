@@ -349,6 +349,13 @@ and inserted when it exists). For a drop zone whose subpage changed:
 - **removed** [dz02]: link, folder, menu (`PSPTCSMNUTBLDEL` at the next RCMTM),
   map and configuration (`PSPTCSSRVCNFDEL` at the next SCNFM) deleted; the
   service definition kept.
+- **configured again** (8.61.15 PIA; the delivered `PSPTCS_MENU_TBL.PTCS_MENUID`
+  FieldFormula does it on 8.62 too): the menu's `PSPTCSMNUTBLDEL` tombstones
+  from earlier removals are deleted; the configuration's tombstones are kept.
+
+On 8.61.15 (HCDEV, JOB_FAMILY's delivered drop zone, a XX_ subpage) PIA's
+configure, remove and configure-again are equal to Studio's: rows, counters
+and tracking.
 
 A counter's next value is one past the larger of PSVERSION and PSLOCK and
 both are set to it (HRDMO RCSDM: 10 and 13 -> 14); SYS moves once per step.
@@ -434,6 +441,44 @@ the type's rows, and a content reference left with no Event Mapping loses
 a configuration needs more than exist (refused: save once in PIA), and
 change-tracking (TRK) configurations (none on HRDMO to check against).
 
+**On PeopleTools 8.61 the save maps nothing.** 8.61.15's `EOCC_CONFIGURE`
+SavePreChange has no `AddEventMapping` / `RemoveEventMapping` call. Instead,
+the Map to Portal Registry tab maps the content references selected there:
+**Apply Configuration** (`EOCC_CONFIG_WRK.EOCC_MAP_PB` FieldChange,
+`Mapper.GenerateMapping`) and **Remove Mapping** (`EOCC_REMOVE_PB`,
+`Mapper.DeleteMapping`). Both commit at once, without a save. The Mapper class
+is byte-for-byte the same on 8.61.15 and 8.62.09. Studio tells the two apart
+by whether that SavePreChange references `EOCC_CONFIG_WRK.NAVIGATION`, where
+8.62 declares `AddEventMapping` (`pfcSaveMaps`).
+
+Where the save does not map, Studio's save writes the configuration rows only
+(`mapsOnSave` false in its result and in `psft_page_field_config_get`). The
+configurator editor's *Map to content references…* and MCP
+`psft_page_field_config_apply` then apply or remove the mapping
+(`applyPfcMapping`). As the button does, Apply maps the saved configuration
+whatever the header's status.
+
+This was matched to PIA on HCDEV (8.61.15, 2026-10-18), on JOB_FAMILY,
+restricted to a role nobody holds:
+
+- **Save.** Header, sequence, a hidden Short Description and an included role
+  are equal column for column, and no counter moves.
+- **Apply.** PSPTCS_SRVCFG and four mapping rows are written; RCSCM +1,
+  SCNFM +4, SYS +5. The mapping rows equal PIA's.
+- **Remove.** Four PSPTCSSRVCNFDEL tombstones and a PSPTCSSRVCFGDEL, with the
+  same counter steps.
+- **Apply again.** Configuring a content reference again deletes its
+  PSPTCSSRVCFGDEL tombstones; the services' tombstones stay. Studio does the
+  same on 8.61 only. The PeopleCode is the same on both releases; the
+  deletion happens in PeopleTools' own `%metadata` save of the service
+  configuration. On 8.62.09 the only observed re-add, the classic Event
+  Mapping page [em08], kept the tombstone, so on other releases Studio keeps
+  it too. The Event Mapping writer keeps it on every release.
+
+On HCDEV the mapper derivation matches every applied configuration (8 of 8:
+tools/lab/pfc-mapper-check.mts), and the delivered field-list code differs
+from 8.62's only in criteria mode.
+
 **The field catalog** (src/providers/pfcCatalog.ts; MCP
 `psft_page_field_config_fields`) lists the fields a configuration can name as
 the configurator's Select Fields page does (`EOCC_PGFLDS_DVW.LBLTEXT`
@@ -446,7 +491,20 @@ display field (0x10) carrying its control in `RECNAME1`/`FIELDNAME1`; the key
 `level.record.field.pnlfldid.ownLevel.P` (`S` on a secondary page); `PNLNAME`
 the (sub)page the field is on, `STDPNLNAME` the page chosen; the label the page
 field's text, its record field label by label type, or a message catalog
-text. Checked against every stored field row on HRDMO
+text.
+
+A field chosen from a secondary page takes, in `OCCURSLEVEL`, its key's level
+plus the level the secondary page is reached at. `SECOCCURSLEVEL` holds the
+key's level; it is 0 for a component page's field
+(`EOCC_SELECT_FIELDS` `SEARCH_BTN`: "Correct the level of the fields from
+secondary page"). The secondary page's level is its control's occurs level,
+as `GetSecondaryPageList` counts it. HCDEV's configurations showed this on
+secondary pages opened from a grid; HRDMO's are all reached at level 0. On
+HCDEV, 22 of 24 page-field rows match on every column. The other two are page
+changes made after the configuration (a re-delivered subpage, a relabelled
+button).
+
+Checked against every stored field row on HRDMO
 (tools/lab/pfc-catalog-check.mts): 460 of 477 page-field rows match on every
 column; the other 17 name fields their pages have since made invisible,
 removed or relabelled (EE_HR_PROC_FL's 2017 rows, `HR_JOBDATA_SUM_FL` changed
@@ -529,6 +587,13 @@ to blank (`EOCC_SET_BLANK` Y) applies to a hidden or display-only field only
 sequence has no criteria. These columns are written only when they change:
 Oracle's rows hold blanks where the flags are off.
 
+The one exception is `EOCC_SET_BLANK` on a row the save writes. RowInit sets
+it to N on a field shown and enterable, and the page shows a row it adds
+before the row is hidden. So every row PIA adds carries N, and so does a
+stored row it changes that was, or is now, shown and enterable [pfc01, pfc02,
+HCDEV]. The writer does the same (`withSetBlankDefaults`); rows the save
+leaves alone keep their blanks. Studio used to write a blank.
+
 At run time: Job Title (`JOBCODE_TBL.DESCR`) saved display only
 through these rules showed display only on Define Job Code.
 
@@ -567,7 +632,7 @@ out deleted.
 | A new row's instance ID | Two random runs of digits (4 and 5), at least 1,000,000, unused on the content reference |
 | The Event Map Parameter, uppercased [em04] | PSPTCS_MAPFLDS EV_PARAM, the value in PTCS_PNLFLDNAME; a new row gets one only when it has a parameter; a stored one is kept |
 | A row deleted [em06] | Its rows deleted; PSPTCSSRVCNFDEL at the next SCNFM, after the kept rows' |
-| A content reference configured for the first time [em03, em08] | PSPTCS_SRVCFG: menu and component from the registry, ExpandFrame `N`, frame location `B`, VERSION the next RCSCM |
+| A content reference configured for the first time [em03, em08] | PSPTCS_SRVCFG: menu and component from the registry, ExpandFrame `N`, frame location `B`, VERSION the next RCSCM; PSPTCSSRVCFGDEL tombstones of earlier removals kept [em08] |
 | The list's Remove [em07] | Every row deleted with its tombstone; PSPTCS_SRVCFG deleted, PSPTCSSRVCFGDEL at the next RCSCM; services keep EV_PARAM |
 | A re-added content reference [em08] | Its tombstones stay |
 | A service mapped for the first time [em03] | PSPTCS_PARAMS EV_PARAM (`For Event Mapping`), the service's VERSION the next RCSDM |

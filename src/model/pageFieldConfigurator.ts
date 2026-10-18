@@ -110,7 +110,7 @@ export function pfcDiscoveryFor(subject: string, installed: boolean, crefs: stri
   if (configs.length) {
     evidence.push(appliedOn.length
       ? `Applied (EOCC Event Mapping) on ${appliedOn.length} of ${crefs.length}: ${appliedOn.join(', ')}${appliedOn.length < crefs.length ? ' -- opened through the others, the configuration does not run' : ''}.`
-      : 'Not applied: no EOCC Event Mapping on its content references, so the configuration has no effect at run time (save it on PeopleTools 8.62, or Apply Configuration on earlier releases).');
+      : 'Not applied: no EOCC Event Mapping on its content references, so the configuration has no effect at run time (a save maps it on PeopleTools 8.62; on 8.61 Apply Configuration does: psft_page_field_config_apply).');
   }
   return { ...base, state: 'VERIFIED_AVAILABLE', evidence };
 }

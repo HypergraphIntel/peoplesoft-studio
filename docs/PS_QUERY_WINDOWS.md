@@ -218,10 +218,17 @@ Studio neither reads nor writes.
   follows Windows Query. Studio saves only queries whose QRYAPPROVED is `A`,
   so a PIA-made query opens and runs but is refused for saving.
 
+### Other patches
+
+Another patch of 8.61 or 8.62 (8.61.12, say) is accepted when the seven query
+tables have exactly the columns and types they have on the calibrated patch.
+Studio compares fingerprints of the tables (`src/providers/calibratedSchemas.ts`)
+and refuses a mismatch, naming the tables that differ. Other releases are refused.
+
 ### Deliberate limits and next evidence
 
 This first release is calibrated on **Oracle / PeopleTools 8.62.09 and
-8.61.15** (other releases are refused) for one
+8.61.15** for one
 SQL Table record without subrecords, direct character fields, and at most one
 ungrouped equal-to criterion with a character constant or uppercase/mixed-case
 prompt. It does not yet edit/run joins, unions, subqueries, effective-date

@@ -91,6 +91,14 @@ Administration and their delivered PeopleCode:
   grid read only (`IsPermEditable`). For a component, PIA grants every
   permission list authorized to the component's menu item (PSAUTHITEM; 15 of
   15 on 8.61.15). Studio derives the same list and refuses a different one.
+- Saving a content reference grants its permission lists to its folders, as
+  Content Ref Administration does. From the parent up, every folder that is not
+  public gets the lists it lacks, not cascading, and is saved with its own PRSM
+  version (PRSM and SYS +1 per folder). The walk passes folders that already
+  hold them and stops at the first public folder. A folder the reference moves
+  out of keeps its lists. On 8.61.15, PIA and Studio produced equal grants,
+  versions and counters across two levels, a public parent, a fully-held parent
+  and a move.
 - A portal holds one content reference per URL: PIA refuses a second
   ("... already exists", 96,3), and so does Studio.
 - A new folder gets three system attributes, `PORTAL_ABN_DISABLE_MOUSE_OVER`,

@@ -412,8 +412,17 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
     if (!(provider instanceof DatabaseProvider) || !operatorId || !this.workspace.isWritable(provider.id)) {
       throw new Error(`${doc.recname} cannot be saved: the connection is not Writable with an Operator ID.`);
     }
+    // A record that becomes an SQL Table needs a tablespace: App Designer prompts for it ("Change Space").
+    let tablespace: string | undefined;
+    if (doc.state.recordType === RecordType.Table && (doc.state.isNew || doc.layout?.recordType !== RecordType.Table)) {
+      const spaces = await provider.tablespaces();
+      const pick = await vscode.window.showQuickPick(spaces.map((s) => ({ label: s.name, description: s.database, detail: s.comments || undefined })),
+        { title: `Tablespace for ${doc.recname}`, placeHolder: 'The tablespace this SQL Table is built in', ignoreFocusOut: true, matchOnDescription: true });
+      if (!pick) throw new Error(`${doc.recname} was not saved: an SQL Table needs a tablespace.`);
+      tablespace = pick.label;
+    }
     try {
-      await provider.saveRecord({ edit: doc.state, operatorId });
+      await provider.saveRecord({ edit: doc.state, operatorId, ...(tablespace ? { tablespace } : {}) });
       RecordEditorProvider.pendingNew.delete(doc.uri.toString());
     } catch (err) {
       const reason = err instanceof RecordSaveRefusedError ? err.message : `Saving ${doc.recname} failed: ${(err as Error).message}`;

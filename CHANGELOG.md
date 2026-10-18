@@ -16,13 +16,27 @@
   UI yourself is not gated.
 - **PS Query saves on PeopleTools 8.61.15**, besides 8.62.09. A query made in
   the 8.61 Windows Query client and the same query made by Studio have equal
-  rows, and Windows Query reopens Studio's. Other releases are still refused,
-  and the refusal now names the database's release.
+  rows, and Windows Query reopens Studio's. Another patch of 8.61 or 8.62
+  (8.61.12, say) is accepted when the query tables have the calibrated patch's
+  columns and types; the refusal names any table that differs. Other releases
+  are still refused, and the refusal names the database's release.
 - **Integration Broker writes on PeopleTools 8.61.15** for the shapes matched to
   PIA there: nonrowset messages, standard services, standard operations without
   handlers and flat string documents, created and edited. REST, nodes,
-  routings and handlers stay 8.62.09-only. OAuth edits stay 8.62.09-only: they
+  routings and handlers stay in the calibrated 8.62 family. Other 8.61 and 8.62 patches are
+  accepted the same way as for PS Query, when the tables match. OAuth edits stay in the calibrated 8.62 family: they
   cover CUSTOM applications, and 8.61 has no CUSTOM authorization server.
+- **Page and Field Configurator on PeopleTools 8.61.** On 8.61 the
+  configurator's save does not map a configuration. The Map to Portal Registry
+  tab's *Apply Configuration* maps it to the content references you select,
+  and *Remove Mapping* unmaps them. Studio now does the same on such a release:
+  the save writes the configuration's rows only. The configurator editor's new
+  *Map to content references…* and the new MCP tool
+  `psft_page_field_config_apply` apply or remove the mapping.
+  `psft_page_field_config_get` reports `mapsOnSave`. On 8.62 nothing changes.
+  Matched to PIA on an 8.61.15 database (save, apply, remove and apply again):
+  rows, counters and tombstones are equal. Event Mapping and Drop Zones saves
+  were also matched to PIA on 8.61.15.
 - **PS Query: a criterion on a field that is not selected** (`constant` /
   `prompt`) adds it as a criteria-only field, as Windows Query's *New
   Criteria* does. Studio used to require selecting the field first.
@@ -33,8 +47,8 @@ Calibrated against App Designer 8.61.15 on an 8.61 database (and rechecked on
 8.62.09): fields, records, pages, components, menus, SQL, App Engine, record
 PeopleCode (compiled bytes included), application packages, HTML, style
 sheets, File Layouts, projects and Component Interfaces created by Studio now
-match App Designer's own row for row, except where noted. Every fix applies to
-all releases.
+match App Designer's own row for row, except where noted. Fixes apply across
+the supported releases unless a release-specific rule is noted below.
 
 - **Records: EFFDT comes in as App Designer inserts it** -- a descending key
   defaulting to `%date`. Studio inserted it as a plain field (EFFSEQ,
@@ -67,7 +81,9 @@ all releases.
   (PIA shows them read only). An entry that is neither public nor Author Access
   needs its own or an inherited grant. A portal can't hold two references to
   the same URL. A new folder gets the three system attributes Folder
-  Administration writes. Studio's new folder and component reference now match
+  Administration writes. Saving a content reference grants its permission lists
+  to the folders above it up to the first public one, as PIA does. Without that,
+  a Studio-made reference could be missing from navigation. Studio's new folder and component reference now match
   PIA's rows on 8.61.15, and PIA opens them.
 - **New process definitions match PIA's Add.** An Application Engine process's
   *Restart Enabled* now follows its program, as the page sets it (on unless
@@ -85,11 +101,35 @@ all releases.
 - **`psft_ib_new` on 8.61 no longer offers 8.62-only columns** (a new
   operation's `URL_ID`); the writer refused its own new input with "URL_ID is
   not a stored column".
+- **Application Class saves write App Designer's signature comments**
+  (`/+ &param as Type, +/`, `/+ Returns Type +/`,
+  `/+ Extends/implements Pkg:Class.method +/`) into each method, get and set
+  body, so the stored source and compiled program are App Designer's. The rules
+  reproduce 1,382 of 1,387 classes in an 8.61 corpus exactly; App Designer
+  re-saved a Studio-made class to identical compiled bytes and name rows.
+- **Choose a new SQL Table's tablespace**, as App Designer's "Change Space"
+  prompt does. The record editor asks when a save makes an SQL Table (a new
+  one, or a type change); `psft_create_record` and `psft_edit_record` take
+  `tablespace`, and the new `psft_list_tablespaces` lists the catalog. The name
+  must be in PSTBLSPCCAT. Without one, the catalog's first entry is used, as
+  before.
+- **Page and Field Configurator: fields on a secondary page opened from a
+  grid had the wrong level.** Such a field's `OCCURSLEVEL` is its own level
+  plus the level the secondary page is opened from, and `SECOCCURSLEVEL` holds
+  its own level, as the configurator's field search sets them. Studio wrote the
+  field's own level and 0. Secondary pages opened at level 0 were not affected.
+- **Page and Field Configurator: field rows Studio adds or changes now carry
+  `EOCC_SET_BLANK` `N`**, as PIA writes them: the row's RowInit sets it on a
+  field shown and enterable. Studio wrote a blank. Rows a save leaves alone keep
+  their value.
+- **Configuring a Drop Zone again deletes its menu's earlier removal
+  tombstones** (`PSPTCSMNUTBLDEL`), as the delivered menu code does on every
+  release. On 8.61, mapping a Page and Field Configurator configuration to a
+  content reference again also deletes that reference's `PSPTCSSRVCFGDEL`
+  tombstones, as 8.61's PIA does. Service-configuration tombstones stay.
+  Studio used to leave all of these in place.
 - Known, not changed: `LICENSE_CODE` on new pages and App Engine programs is
-  App Designer's own generated value (left blank); App Designer adds signature
-  comments (`/+ Returns String +/`) to application class methods on save, which
-  Studio does not add yet; a new SQL table's tablespace is App Designer's
-  prompt, Studio takes the first.
+  App Designer's own generated value (left blank).
 
 ## 0.9.3 — 2026-10-17
 

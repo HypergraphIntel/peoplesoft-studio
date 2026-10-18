@@ -450,6 +450,22 @@ export function registerPeopleSoftTools(
   );
 
   server.registerTool(
+    'psft_list_tablespaces',
+    {
+      title: 'List tablespaces',
+      description: 'The tablespace catalog (PSTBLSPCCAT): the names psft_create_record and psft_edit_record take for an SQL Table, ' +
+        'as App Designer\'s "Change Space" prompt lists them, with each one\'s database name and comments.',
+      inputSchema: z.object({ connection: z.string().min(1) }),
+      annotations: READ_ONLY
+    },
+    async ({ connection }) => {
+      const provider = await requireProvider(workspace, connection);
+      if (!(provider instanceof DatabaseProvider)) throw new Error('Tablespaces need a database connection.');
+      return jsonResult({ tablespaces: await provider.tablespaces() });
+    }
+  );
+
+  server.registerTool(
     'psft_list_definition_types',
     {
       title:

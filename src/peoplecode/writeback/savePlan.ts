@@ -377,6 +377,13 @@ function storedBytes(program: StoredProgram): Buffer {
   return Buffer.concat([...program.program].sort((a, b) => a.progseq - b.progseq).map((r) => r.bytes));
 }
 
+/** An Application Class's source: its PSPCMTXT text, or the decoded program when it has none (delivered classes). */
+export function storedClassSource(program: StoredProgram): string {
+  const text = storedText(program);
+  if (text.trim() !== '' || program.program.length === 0) return text;
+  return decodeProgram(storedBytes(program), nameTable(program.names), { mode: 'auto', isApplicationClass: true }).text;
+}
+
 /**
  * The rows the compiler models: NAMENUM, RECNAME, REFNAME. The descriptive
  * columns are compile history in older stored programs (an earlier

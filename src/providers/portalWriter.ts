@@ -34,6 +34,22 @@ async function componentPermissionLists(c: DbConnection, menu: string, component
   return (await select<{ CLASSID: string }>(c, `SELECT DISTINCT A.CLASSID FROM PSAUTHITEM A JOIN PSMENUITEM M ON M.MENUNAME=A.MENUNAME AND M.BARNAME=A.BARNAME AND M.ITEMNAME=A.BARITEMNAME
     WHERE A.MENUNAME=:m AND M.PNLGRPNAME=:c AND M.MARKET=:k ORDER BY A.CLASSID`, { m: menu, c: component, k: market })).map(r => ({ type: 'P' as const, name: trim(r.CLASSID), cascade: false }));
 }
+export interface FolderSecurity { folder: string; public: boolean; held: { type: 'P' | 'R'; name: string }[] }
+/**
+ * The grants a reference's save adds to its folders, nearest first (chain: the parent, then
+ * its parent ...). Each folder that is not public gets the reference's lists it lacks; the
+ * first public folder ends the walk.
+ */
+export function folderGrants(own: { type: 'P' | 'R'; name: string }[], chain: FolderSecurity[]): { folder: string; grants: Grant[] }[] {
+  const out: { folder: string; grants: Grant[] }[] = [];
+  for (const f of chain) {
+    if (f.public) break;
+    const held = new Set(f.held.map(g => g.type + ':' + g.name));
+    const missing = own.filter(g => !held.has(g.type + ':' + g.name)).map(g => ({ type: g.type, name: g.name, cascade: false }));
+    if (missing.length) out.push({ folder: f.folder, grants: missing });
+  }
+  return out;
+}
 async function localNode(c: DbConnection, node: string): Promise<boolean> {
   if (node === 'LOCAL_NODE') return true;
   return !!(await select(c, 'SELECT MSGNODENAME FROM PSMSGNODEDEFN WHERE MSGNODENAME=:n AND LOCALNODE=1', { n: node })).length;
@@ -130,11 +146,30 @@ export async function savePortalDocument(c: DbConnection, types: DbTypes, reques
       await c.execute(`DELETE FROM PSPRSMPERM WHERE ${where}`, b);
       for (const p of permissions) await expectRows(c, `INSERT INTO PSPRSMPERM (PORTAL_NAME,PORTAL_REFTYPE,PORTAL_OBJNAME,PORTAL_PERMNAME,PORTAL_PERMTYPE,PORTAL_ISCASCADE) VALUES (:p,:t,:n,:pn,:pt,:cascade)`, { ...b, pn: p.name, pt: p.type, cascade: p.cascade ? 1 : 0 }, 1, 'Saving direct security grant');
     }
+    // Content Ref Administration grants a reference's permission lists to its folders: from the
+    // parent up, each folder that is not public gets the ones it lacks (not cascading) and is
+    // saved with its own PRSM version and SYS; the walk ends at the first public folder. A folder
+    // the reference leaves keeps its lists (8.61.15 captures: two levels, a public parent, a move).
+    const own = input.refType === 'C' ? permissions ?? (current?.permissions ?? []).map(p => ({ type: trim(p.PORTAL_PERMTYPE) as Grant['type'], name: trim(p.PORTAL_PERMNAME), cascade: false })) : [];
+    const chain: FolderSecurity[] = [];
+    if (own.length) for (const folder of ancestors) {
+      const [row] = await select<{ PORTAL_ISPUBLIC: number }>(c, "SELECT PORTAL_ISPUBLIC FROM PSPRSMDEFN WHERE PORTAL_NAME=:p AND PORTAL_REFTYPE='F' AND PORTAL_OBJNAME=:n", { p: input.portal, n: folder });
+      if (!row) break;
+      const held = (await select<{ T: string; N: string }>(c, "SELECT PORTAL_PERMTYPE AS T, PORTAL_PERMNAME AS N FROM PSPRSMPERM WHERE PORTAL_NAME=:p AND PORTAL_REFTYPE='F' AND PORTAL_OBJNAME=:n", { p: input.portal, n: folder })).map(r => ({ type: trim(r.T) as Grant['type'], name: trim(r.N) }));
+      chain.push({ folder, public: portalAccess(row.PORTAL_ISPUBLIC) === 'public', held });
+      if (chain.at(-1)!.public) break;
+    }
+    const granted = folderGrants(own, chain);
+    for (const [i, { folder, grants }] of granted.entries()) {
+      for (const g of grants) await expectRows(c, "INSERT INTO PSPRSMPERM (PORTAL_NAME,PORTAL_REFTYPE,PORTAL_OBJNAME,PORTAL_PERMNAME,PORTAL_PERMTYPE,PORTAL_ISCASCADE) VALUES (:p,'F',:n,:pn,:pt,0)", { p: input.portal, n: folder, pn: g.name, pt: g.type }, 1, 'Granting the folder the reference\'s security');
+      await expectRows(c, "UPDATE PSPRSMDEFN SET VERSION=:v,LASTUPDOPRID=:o,LASTUPDDTTM=SYSTIMESTAMP WHERE PORTAL_NAME=:p AND PORTAL_REFTYPE='F' AND PORTAL_OBJNAME=:n", { p: input.portal, n: folder, v: version + 1 + i, o: request.operatorId }, 1, 'Saving a folder the reference grants to');
+    }
     // Observed em02: the immediate parent takes PRSM and a new stamp; its operator stays unchanged.
     const parents = new Set([input.parent, ...(current ? [trim(current.row.PORTAL_PRNTOBJNAME)] : [])]);
-    for (const p of parents) if (p) await expectRows(c, "UPDATE PSPRSMDEFN SET VERSION=:v,LASTUPDDTTM=SYSTIMESTAMP WHERE PORTAL_NAME=:p AND PORTAL_REFTYPE='F' AND PORTAL_OBJNAME=:n", { p: input.portal, n: p, v: version }, 1, 'Restamping parent folder');
+    for (const p of parents) if (p && !granted.some(g => g.folder === p)) await expectRows(c, "UPDATE PSPRSMDEFN SET VERSION=:v,LASTUPDDTTM=SYSTIMESTAMP WHERE PORTAL_NAME=:p AND PORTAL_REFTYPE='F' AND PORTAL_OBJNAME=:n", { p: input.portal, n: p, v: version }, 1, 'Restamping parent folder');
+    // One PRSM and SYS step for the entry and one for each folder saved with it.
     for (const row of versions) {
-      const next = Number(row.VERSION) + 1;
+      const next = Number(row.VERSION) + 1 + granted.length;
       await expectRows(c, 'UPDATE PSVERSION SET VERSION=:v WHERE OBJECTTYPENAME=:t', { v: next, t: row.OBJECTTYPENAME }, 1, 'Updating registry cache version');
       if (row.OBJECTTYPENAME === 'PRSM') await c.execute("UPDATE PSLOCK SET VERSION=:v WHERE OBJECTTYPENAME='PRSM'", { v: next });
     }

@@ -45,7 +45,8 @@ export function registerPageFieldConfiguratorTools(server: McpServer, workspace:
     return jsonResult({
       connection: p.displayName, component: `${component.toUpperCase()}.${(market ?? 'GBL').toUpperCase()}`, type: type ?? 'STD', ...r,
       derived: r.derived.map((m) => [m.serviceId, m.level, m.record ? `${m.record}${m.field ? `.${m.field}` : ''}` : m.page ?? '', m.event].filter(Boolean).join(' ')),
-      ...(r.exists ? {} : { note: 'No configuration of this type; psft_page_field_config_save with expectedToken "absent" creates one.' })
+      ...(r.exists ? {} : { note: 'No configuration of this type; psft_page_field_config_save with expectedToken "absent" creates one.' }),
+      ...(r.mapsOnSave ? {} : { mapping: 'On this release a save maps nothing: psft_page_field_config_apply maps the saved configuration to the content references chosen (Apply Configuration) or unmaps them (Remove Mapping).' })
     });
   });
 
@@ -69,7 +70,9 @@ export function registerPageFieldConfiguratorTools(server: McpServer, workspace:
     if (!page) return jsonResult({ connection: p.displayName, component: `${component.toUpperCase()}.${(market ?? 'GBL').toUpperCase()}`, pages: await p.readPageFieldCatalogPages(component, market ?? 'GBL') });
     const f = (filter ?? '').toLowerCase();
     const masks = mask ? await p.readPageFieldMaskProfiles() : undefined;
-    const fields = (await p.readPageFieldCatalogFields(page, type ?? 'P', { mask: !!mask, criteria: !!criteria }))
+    // A secondary page's fields take the level it is reached at in this component.
+    const secondaryLevel = type === 'S' ? (await p.readPageFieldCatalogPages(component, market ?? 'GBL')).find((x) => x.type === 'S' && x.page === page.toUpperCase())?.level : undefined;
+    const fields = (await p.readPageFieldCatalogFields(page, type ?? 'P', { mask: !!mask, criteria: !!criteria, secondaryLevel }))
       .filter((x) => !f || x.label.toLowerCase().includes(f) || `${x.record}.${x.field}`.toLowerCase().includes(f));
     if (criteria) {
       const types = await p.readFieldDatabaseTypes(fields.slice(0, 300).map((x) => x.field));
@@ -83,7 +86,7 @@ export function registerPageFieldConfiguratorTools(server: McpServer, workspace:
     }
     return jsonResult({
       page: page.toUpperCase(), type: type ?? 'P', count: fields.length,
-      fields: fields.slice(0, 300).map((x) => ({ label: x.label, recordField: `${x.record}.${x.field}`, level: x.level, ...(x.page !== x.componentPage ? { onSubpage: x.page } : {}),
+      fields: fields.slice(0, 300).map((x) => ({ label: x.label, recordField: `${x.record}.${x.field}`, level: x.occursLevel, ...(x.page !== x.componentPage ? { onSubpage: x.page } : {}),
         row: (({ SEQUENCE_NBR: _a, EOCC_SEQUENCE_NBR: _b, ...rest }) => rest)(masks
           ? withMask(catalogFieldRow(x, { SEQUENCE_NBR: 0, EOCC_SEQUENCE_NBR: 0 }), defaultMaskFor(x.field, masks.profiles, masks.fieldDefaults))
           : catalogFieldRow(x, { SEQUENCE_NBR: 0, EOCC_SEQUENCE_NBR: 0 })) })),
@@ -98,7 +101,9 @@ export function registerPageFieldConfiguratorTools(server: McpServer, workspace:
     title: 'Page and Field Configurator: save a component\'s configuration',
     description: 'Saves a component\'s Page and Field Configurator configuration as the EOCC_CONFIGURE page saves it: the rows given become the ' +
       'configuration (rows are by column name, as psft_page_field_config_get returns them; a column left out takes its blank or record default), ' +
-      'then the type\'s Event Mapping is regenerated on each of the component\'s content references (header EFF_STATUS A), or removed (I). ' +
+      'then the type\'s Event Mapping is regenerated on each of the component\'s content references (header EFF_STATUS A), or removed (I); ' +
+      'where the release\'s configurator maps on Apply instead (8.61; psft_page_field_config_get mapsOnSave false) the save maps nothing and ' +
+      'psft_page_field_config_apply maps it. ' +
       'Standard (STD) and Masking (MASK) configurations are written. Take field and criteria rows from psft_page_field_config_fields. ' +
       'Who a sequence applies to is its EOCC_APPLY_TO (A everyone but seqExcludedRoles/seqExcludedUsers, R ROLENAME but seqExcludedUsers, S ' +
       'seqRoles but seqExcludedUsers, U seqUsers), or the header\'s with the header lists when its EOCC_APPLY_LVL is H (the default); list rows ' +
@@ -130,6 +135,41 @@ export function registerPageFieldConfiguratorTools(server: McpServer, workspace:
     await approve(host, gate, key, `save the ${request.type} Page and Field Configurator configuration of ${name}.${mkt}`, changes.slice(0, 25).join('\n'));
     const result = await gate.provider.savePageFieldConfiguration(request);
     host.saved(gate.provider.id, key);
-    return jsonResult({ saved: result.written, changes: [...result.rows.changes, ...(result.mappings?.changes ?? [])], warnings: result.warnings, token: result.token });
+    return jsonResult({
+      saved: result.written, changes: [...result.rows.changes, ...(result.mappings?.changes ?? [])], warnings: result.warnings, token: result.token,
+      ...(result.mapsOnSave ? {} : { note: 'Saved, not mapped: on this release psft_page_field_config_apply maps the configuration to content references.' })
+    });
+  });
+
+  server.registerTool('psft_page_field_config_apply', {
+    title: 'Page and Field Configurator: map a configuration to content references',
+    description: 'Where the configurator maps on Apply rather than on save (8.61; psft_page_field_config_get mapsOnSave false): the Map to Portal ' +
+      'Registry tab\'s Apply Configuration, or with remove its Remove Mapping, for the content references chosen (from psft_page_field_config_get ' +
+      'contentReferences). Apply maps the saved configuration\'s Event Mapping (the same rows a save maps on 8.62); Remove takes the type\'s Event ' +
+      'Mapping off. expectedToken is the configuration\'s token from psft_page_field_config_get. dryRun returns the changes without writing. ' +
+      'Refused where a save maps. Writes need a Writable connection with an Operator ID; unless peoplesoft.mcp.writes is "allow", the user approves each write.',
+    inputSchema: z.object({
+      connection: z.string().min(1), component: z.string().min(1), market: z.string().optional(), type: z.enum(['STD', 'MASK']).optional(),
+      contentReferences: z.array(z.string().min(1)).min(1).describe('PORTAL_OBJNAME of each content reference to map or unmap.'),
+      remove: z.boolean().optional().describe('Remove Mapping instead of Apply Configuration.'),
+      expectedToken: z.string().min(1), dryRun: z.boolean().optional()
+    }),
+    annotations: WRITE
+  }, async ({ connection, component, market, type, contentReferences, remove, expectedToken, dryRun }) => {
+    const name = component.trim().toUpperCase();
+    const mkt = (market ?? 'GBL').trim().toUpperCase();
+    const key: DefinitionKey = { type: DefinitionType.Component, parts: [name, mkt] };
+    const gate = await writable(workspace, host, connection, null);
+    const request = { component: name, market: mkt, type: type ?? 'STD', contentReferences, remove: !!remove, openedToken: expectedToken, operatorId: gate.operatorId };
+    const preview = await gate.provider.applyPageFieldMapping({ ...request, dryRun: true });
+    if (dryRun || !preview.mappings.statements.length) {
+      return jsonResult({ applied: false, reason: dryRun ? 'dry run' : 'nothing to change', changes: preview.mappings.changes,
+        derived: preview.derived.map((m) => `${m.serviceId} ${m.level} ${m.record ?? m.page ?? ''}`.trim()) });
+    }
+    await approve(host, gate, key, `${remove ? 'remove the Event Mapping of' : 'map'} the ${request.type} Page and Field Configurator configuration of ${name}.${mkt} ${remove ? 'from' : 'to'} ${contentReferences.join(', ')}`,
+      preview.mappings.changes.slice(0, 25).join('\n'));
+    const result = await gate.provider.applyPageFieldMapping(request);
+    host.saved(gate.provider.id, key);
+    return jsonResult({ applied: result.written, changes: result.mappings.changes });
   });
 }

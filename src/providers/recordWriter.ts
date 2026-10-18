@@ -27,6 +27,11 @@ export interface RecordSaveRequest {
   operatorId: string;
   /** Existing-definition rollback preview only; creation keeps its normal path. */
   dryRun?: boolean;
+  /**
+   * PSTBLSPCCAT.DDLSPACENAME for a record that becomes an SQL Table (created, or its type
+   * changed): App Designer prompts for it ("Change Space"). Without one, the catalog's first.
+   */
+  tablespace?: string;
   captureSnapshots?: boolean;
   expectedSnapshotToken?: string;
 }
@@ -145,9 +150,19 @@ export const NEW_RECDEFN_VALUES: Readonly<Row> = {
  * r35; docs/RECORD_SAVE.md): PSRECDEFN, PSRECFIELD / PSRECFIELDDB, the key
  * index and keys when it has keys, and for an SQL Table its PSRECTBLSPC row
  * (every SQL Table has one, no Derived/Work record does) in the tablespace
- * catalog's first entry (AAAPP on HRDMO, as R1 and R4 got); PSVERSION RDM,
+ * asked for, or the catalog's first entry (AAAPP on HRDMO, as R1 and R4 got); PSVERSION RDM,
  * SYS + 1, PSLOCK RDM + 1.
  */
+/** The tablespace an SQL Table goes in: the one asked for, which must be in the catalog, or the catalog's first. */
+export async function chooseTablespace(c: Connection, requested: string | undefined): Promise<{ DDLSPACENAME: string; DBNAME: string }> {
+  const name = requested?.trim().toUpperCase();
+  const [space] = name
+    ? await select<{ DDLSPACENAME: string; DBNAME: string }>(c, `SELECT DDLSPACENAME, DBNAME FROM PSTBLSPCCAT WHERE DDLSPACENAME = :s`, { s: name })
+    : await select<{ DDLSPACENAME: string; DBNAME: string }>(c, `SELECT DDLSPACENAME, DBNAME FROM PSTBLSPCCAT ORDER BY DDLSPACENAME FETCH FIRST 1 ROWS ONLY`);
+  if (!space) throw new RecordSaveRefusedError(name ? `${name} is not in the tablespace catalog (PSTBLSPCCAT).` : 'The tablespace catalog (PSTBLSPCCAT) is empty; refusing to write.');
+  return space;
+}
+
 async function createRecord(c: Connection, request: RecordSaveRequest): Promise<RecordSaveResult> {
   const edit = request.edit;
   const recname = edit.recname;
@@ -172,11 +187,8 @@ async function createRecord(c: Connection, request: RecordSaveRequest): Promise<
     const [{ N }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSDBFIELD WHERE FIELDNAME = :f`, { f: f.name });
     if (Number(N) === 0) throw new RecordSaveRefusedError(`There is no field named ${f.name}.`);
   }
-  const [space] = edit.recordType === RecordType.Table
-    ? await select<{ DDLSPACENAME: string; DBNAME: string }>(c,
-      `SELECT DDLSPACENAME, DBNAME FROM PSTBLSPCCAT ORDER BY DDLSPACENAME FETCH FIRST 1 ROWS ONLY`)
-    : [undefined];
-  if (edit.recordType === RecordType.Table && !space) throw new RecordSaveRefusedError('The tablespace catalog (PSTBLSPCCAT) is empty; refusing to write.');
+  if (edit.recordType !== RecordType.Table && request.tablespace) throw new RecordSaveRefusedError('Only an SQL Table has a tablespace.');
+  const space = edit.recordType === RecordType.Table ? await chooseTablespace(c, request.tablespace) : undefined;
   if (!(await operatorExists(c, request.operatorId))) {
     throw new RecordSaveRefusedError(`PeopleSoft operator ${request.operatorId} does not exist in this database (PSOPRDEFN).`);
   }
@@ -367,9 +379,7 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest, type
 
     // The Record Type tab (r26-r28): the tablespace row follows the SQL Table type, and a view's SQL is written when it changed.
     if (plan.tablespace === 'insert') {
-      const [space] = await select<{ DDLSPACENAME: string; DBNAME: string }>(c,
-        `SELECT DDLSPACENAME, DBNAME FROM PSTBLSPCCAT ORDER BY DDLSPACENAME FETCH FIRST 1 ROWS ONLY`);
-      if (!space) throw new RecordSaveRefusedError('The tablespace catalog (PSTBLSPCCAT) is empty; refusing to write.');
+      const space = await chooseTablespace(c, request.tablespace);
       await c.execute(`DELETE FROM PSRECTBLSPC WHERE RECNAME = :r`, r);
       await expectRows(c,
         `INSERT INTO PSRECTBLSPC (DDLSPACENAME, DBNAME, RECNAME, DBTYPE, TEMPTBLINST, PT_TS_LOCK_TYPE, PT_UTS_ENABLED)

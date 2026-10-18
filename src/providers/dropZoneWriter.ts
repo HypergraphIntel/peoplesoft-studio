@@ -311,6 +311,8 @@ export function planDropZoneSave(state: DropZoneState, assignments: readonly Dro
       const folderId = rootFolderId(menuId);
       next('RCMTM');
       const menuVersion = next('RCMTM');
+      // Re-adding a menu that was removed before deletes its tombstones (8.61.15 PIA; the configuration's stay).
+      statements.push(deleteRows('PSPTCSMNUTBLDEL', { ...own, PTCS_MENUID: menuId }));
       statements.push(
         insertRow('PSPTCS_MENU_TBL', { ...own, PTCS_MENUID: menuId, PTCS_MENUTYPE: 'FLDM', PNLNAME: zone.page, PTCS_PNLFLDNAME: zone.fieldName,
           VERSION: menuVersion, LASTUPDOPRID: o.operatorId, OBJECTOWNERID: ' ' }, o.ts),

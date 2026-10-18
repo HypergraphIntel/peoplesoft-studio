@@ -1,10 +1,11 @@
 import type { DbBinds as BindParameters, DbConnection as Connection, DbTypes } from '../db/connection.js';
 import {
   checkStoredProgram, compileForSave, diffPrograms, expectedProgram, fingerprint, planProgram,
-  prepareSourceForSave, SaveRefusedError, storedText, targetForKey, validateOperatorId,
+  prepareSourceForSave, SaveRefusedError, storedClassSource, storedText, targetForKey, validateOperatorId,
   type PcmKey, type StoredProgram
 } from '../peoplecode/writeback/savePlan.js';
 import { writeScopeRefusal } from './writeScope.js';
+import { addSignatureComments, type SignatureResolver } from '../model/appClassSignatures.js';
 import { RECORD_FIELD_EVENTS } from '../model/recordEvents.js';
 import { COMPONENT_EVENTS, COMPONENT_FIELD_EVENTS, COMPONENT_RECORD_EVENTS } from '../model/componentPeopleCode.js';
 
@@ -171,6 +172,32 @@ export async function expectRows(c: Connection, sql: string, binds: Record<strin
  * An empty source deletes the program as App Designer does: the key's rows
  * go, PSPCMPROGDEL records the version, the counters move the same way.
  */
+/** PKG:SUB:Class from an Application Class program's key. */
+export function classPathOf(key: PcmKey): string {
+  return key.objectIds.map((id, i) => [104, 105, 106, 107].includes(id) ? key.objectValues[i].trim() : '').filter(Boolean).join(':');
+}
+
+/** Classes as the database names them (PSAPPCLASSDEFN) and their source, stored or decoded. */
+export function classResolver(c: Connection, oracledb: OracleDb, self: string): SignatureResolver {
+  return {
+    async canonical(path) {
+      if (path.toLowerCase() === self.toLowerCase()) return self;
+      const parts = path.split(':');
+      if (parts.length < 2) return undefined;
+      const [row] = await select<{ R: string; Q: string; C: string }>(c, `SELECT PACKAGEROOT AS R, QUALIFYPATH AS Q, APPCLASSID AS C FROM PSAPPCLASSDEFN
+        WHERE UPPER(PACKAGEROOT) = UPPER(:r) AND UPPER(QUALIFYPATH) = UPPER(:q) AND UPPER(APPCLASSID) = UPPER(:c)`,
+        { r: parts[0], q: parts.slice(1, -1).join(':') || ':', c: parts[parts.length - 1] });
+      if (!row) return undefined;
+      const q = String(row.Q).trim();
+      return [String(row.R).trim(), ...(q === ':' ? [] : [q]), String(row.C).trim()].join(':');
+    },
+    async source(path) {
+      const program = await readStoredProgram(c, oracledb, [...path.split(':'), 'OnExecute'], false);
+      return program ? storedClassSource(program) : undefined;
+    }
+  };
+}
+
 export async function savePeopleCode(
   c: Connection, oracledb: OracleDb, parts: readonly string[], request: PeopleCodeSaveRequest
 ): Promise<PeopleCodeSaveResult> {
@@ -245,8 +272,11 @@ export async function savePeopleCode(
     // 3 (nothing stored to check when creating)
     if (!creating) checkStoredProgram(stored, target, toolsRelease);
 
-    // 4-5
-    const source = prepareSourceForSave(request.source);
+    // 4-5. An Application Class gets the signature comments App Designer writes on save.
+    let source = prepareSourceForSave(request.source);
+    if (source !== '' && stored.key.objectIds[0] === 104) {
+      source = prepareSourceForSave(await addSignatureComments(source, classPathOf(stored.key), classResolver(c, oracledb, classPathOf(stored.key))));
+    }
     const plan = source === '' ? undefined : planProgram(source, compileForSave(source, target, toolsRelease));
 
     // 6-7

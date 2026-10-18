@@ -149,6 +149,8 @@ test('a content reference configured for the first time: PSPTCS_SRVCFG as the pa
   assert.equal(plan.counters.RCSDM, 8);
   assert.equal(ran.tables.PSPTCSSRVCONF[0].PTCS_INSTANCEID, 515711512);
   assert.equal(ran.tables.PSPTCS_MAPFLDS, undefined, 'no parameter, no mapping row');
+  // The classic page keeps the tombstones of earlier removals when it configures it again [em08, 8.62.09].
+  assert.ok(!plan.statements.some((st) => st.sql.startsWith('DELETE FROM PSPTCSSRVCFGDEL')));
 });
 
 test('nothing changed: nothing written', { skip: !have && 'captures' }, () => {

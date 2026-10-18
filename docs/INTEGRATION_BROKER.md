@@ -43,7 +43,10 @@ The native write protocol is calibrated on **PeopleTools 8.62.09** and refuses
 other releases, except **8.61.15** for the shapes matched to PIA there: nonrowset
 messages, standard services, standard synchronous operations without handlers,
 and flat string documents, created and edited. On 8.61.15, REST services and
-operations, nodes, routings and handlers are refused. The tested creation paths are standard/REST services,
+operations, nodes, routings and handlers are refused. Another patch of 8.61
+or 8.62 is accepted when the tables written have the calibrated patch's columns
+and types (fingerprints in `src/providers/calibratedSchemas.ts`); otherwise the
+refusal names the tables that differ. The tested creation paths are standard/REST services,
 standard synchronous and REST GET operations, nonrowset messages, external PIA
 nodes without authentication, manual routings and flat string documents.
 Application class OnRequest handlers can be added after creating the operation;

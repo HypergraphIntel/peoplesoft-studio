@@ -61,7 +61,7 @@ export function registerPortalTools(server: McpServer, workspace: Workspace, hos
   }, args => save(args.connection, { ...args.input, refType: 'C' }, 'absent', args.dryRun));
   server.registerTool('psft_portal_edit', {
     title: 'Portal Registry: edit folder or content reference',
-    description: 'Edit the input returned by psft_portal_get, supplying its token as expectedToken. Supports label, description, parent folder (move), sequence, owner, access, direct security, and ordinary content-reference targets. Identity stays the same; omitted target/security/publicAccess values preserve them. Existing attributes, translations, Fluid and advanced settings are preserved. Root edits and folder cycles are refused. ' + GATES,
+    description: 'Edit the input returned by psft_portal_get, supplying its token as expectedToken. Supports label, description, parent folder (move), sequence, owner, access, direct security, and ordinary content-reference targets. Identity stays the same; omitted target/security/access values preserve them. Existing attributes, translations, Fluid and advanced settings are preserved. Root edits and folder cycles are refused. ' + GATES,
     inputSchema: z.object({ connection, input: portalInput, expectedToken: z.string().min(1).refine(v => v !== 'absent', 'Read the existing entry first'), dryRun: z.boolean().default(false) }), annotations: WRITE
   }, args => save(args.connection, args.input, args.expectedToken, args.dryRun));
 }

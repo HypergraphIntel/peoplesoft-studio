@@ -59,7 +59,7 @@ export async function openPageFieldConfigurator(workspace: Workspace, connection
   const dirty = () => JSON.stringify(draft) !== original;
   const post = async (message = '') => {
     panel.title = `${dirty() ? '● ' : ''}Page and Field Configurator: ${name}.${market}`;
-    await panel.webview.postMessage({ type: 'state', component: name, market, connection: db.displayName, configType: type, exists: read.exists, editable: editable(), dirty: dirty(), configuration: draft, contentReferences: read.contentReferences, message,
+    await panel.webview.postMessage({ type: 'state', component: name, market, connection: db.displayName, configType: type, exists: read.exists, editable: editable(), dirty: dirty(), configuration: draft, contentReferences: read.contentReferences, mapsOnSave: read.mapsOnSave, message,
       criteriaRows: draft.criteria.map((row, index) => ({ index, sequence: row.EOCC_SEQUENCE_NBR, text: describeCriterion(row) })),
       pageRules: draft.sequences.map((q) => pageRulesOf(draft.pages, q).map((r) => `${r.page}: ${describePageRule(r, false)}`)),
       headerLevel: headerLevel(draft), headerTarget: describeTarget(targetOf(draft)), sequenceTargets: draft.sequences.map((q) => describeTarget(targetOf(draft, q))),
@@ -124,6 +124,20 @@ export async function openPageFieldConfigurator(workspace: Workspace, connection
           const seq = draft.sequences.find(s => Number(s.EOCC_SEQUENCE_NBR) === Number(row.EOCC_SEQUENCE_NBR)); if (!seq) throw new Error('Unknown sequence.');
           draft.fields = withoutFieldRow(draft.fields, seq, fieldRowKey(row));
         } else { const set = type === 'MASK' ? await pickMask(db, row) : await pickFieldSettings(row); if (set) draft.fields = withFieldRow(draft.fields, set.row); }
+      } else if (m.type === 'map') {
+        // Apply Configuration / Remove Mapping (Map to Portal Registry) where a save maps nothing; the saved configuration is mapped.
+        if (dirty()) throw new Error('Save the configuration first: the saved configuration is what is mapped.');
+        const crefs = await vscode.window.showQuickPick(read.contentReferences.map(c => ({ label: c.cref, description: `${c.mappingRows} mapped events${c.inSync ? ' · in sync' : ''}`, picked: true })),
+          { title: `Map ${name}.${market}'s ${type} configuration: content references`, canPickMany: true });
+        if (!crefs?.length) { await post(); return; }
+        const action = await vscode.window.showQuickPick([{ label: 'Apply Configuration', remove: false }, { label: 'Remove Mapping', remove: true }], { title: 'Map or unmap' });
+        if (!action) { await post(); return; }
+        const request = { component: name, market, type, contentReferences: crefs.map(c => c.label), remove: action.remove, openedToken: read.token, operatorId: operator()! };
+        const preview = await db.applyPageFieldMapping({ ...request, dryRun: true });
+        const detail = preview.mappings.changes.join('\n');
+        if (!preview.mappings.statements.length) { await post('Nothing to change.'); return; }
+        if (await vscode.window.showWarningMessage(`${action.label} on ${db.displayName}?`, { modal: true, detail }, action.label) !== action.label) { await post('Cancelled.'); return; }
+        await db.applyPageFieldMapping(request); await reload(); await post(`${action.label}: done and verified.`); void vscode.commands.executeCommand('psft.customization.refresh'); return;
       } else if (m.type === 'preview' || m.type === 'save') {
         if (!String(draft.header.DESCR ?? '').trim()) throw new Error('Set a configuration description first.');
         const request = { component: name, market, type, configuration: draft, openedToken: read.token, operatorId: operator()! };

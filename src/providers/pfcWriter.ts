@@ -37,6 +37,12 @@ import { checkPageRules, pageRulesOf, type ComponentPage } from '../model/pfcPag
  *   PSPTCSSRVCONFLG row with a blank language code, as PIA leaves them
  *   [pfc02]: the API sets the language only on a new service.
  *
+ * That is 8.62's configurator. On 8.61.15 (HCDEV) the save writes the rows
+ * only: the Map to Portal Registry tab's Apply Configuration (EOCC_MAP_PB)
+ * and Remove Mapping (EOCC_REMOVE_PB) map or unmap the content references
+ * selected there, with the same Mapper (applyPfcMapping; pfcSaveMaps tells
+ * the two apart).
+ *
  * An inactive header removes the type's services instead (RemoveEventMapping),
  * and a content reference left with no Event Mapping loses PSPTCS_SRVCFG
  * (PSPTCSSRVCFGDEL at the next RCSCM, as the Event Mapping list's Remove
@@ -221,6 +227,24 @@ export function normalizeConfiguration(columns: PfcColumns, component: string, m
   };
 }
 
+/**
+ * EOCC_CONFIG_FLD RowInit (the EOCC_VISIBLE_FLAG / EOCC_DISABLED FieldChange code): a field row shown and enterable gets
+ * EOCC_SET_BLANK N. The page shows a row it adds before it is hidden, so every row it adds keeps that N; a stored row it
+ * changes has it when the row was, or is now, shown and enterable [pfc01, pfc02; HCDEV JOB_FAMILY 2026-10-18]. Rows the save
+ * leaves alone keep what they hold (delivered rows hold blanks).
+ */
+export function withSetBlankDefaults(stored: PfcConfiguration, next: PfcConfiguration): PfcConfiguration {
+  const had = new Map(stored.fields.map((r) => [rowKey('fields', r), r]));
+  const enterable = (r: Row) => s(r.EOCC_VISIBLE_FLAG) !== 'N' && s(r.EOCC_DISABLED) !== 'Y';
+  const fields = next.fields.map((r) => {
+    if (!('EOCC_SET_BLANK' in r) || s(r.EOCC_SET_BLANK)) return r;
+    const h = had.get(rowKey('fields', r));
+    if (h && JSON.stringify(h) === JSON.stringify(r)) return r;
+    return !h || enterable(h) || enterable(r) ? { ...r, EOCC_SET_BLANK: 'N' } : r;
+  });
+  return { ...next, fields };
+}
+
 /** A row without the values a save would fill in anyway (blanks, zeros, the record defaults): what reads hand out, so a round trip is exact. */
 export function compactRow(columns: PfcColumns, table: PfcTable, row: Row): Row {
   const out: Row = {};
@@ -395,6 +419,12 @@ export interface PfcMappingPlanOptions {
   operatorId: string;
   tracked: Set<string>;
   random?: () => number;
+  /**
+   * Configuring a content reference again deletes the tombstones of its earlier removals (PSPTCSSRVCFGDEL): seen on 8.61.15, where
+   * PeopleTools' %metadata RCServiceConfDefn save does it under the same PeopleCode as 8.62's. Not seen on 8.62.09, whose classic
+   * Event Mapping page keeps them [em08]; there they are kept.
+   */
+  clearServiceTombstones?: boolean;
 }
 
 export interface PfcMappingPlan {
@@ -435,6 +465,8 @@ export function planPfcMappings(o: PfcMappingPlanOptions): PfcMappingPlan {
   for (const { cref, menu, stored } of o.targets) {
     const b = { p: EVENT_MAPPING_PORTAL, n: cref };
     if (o.active && !stored.exists) {
+      // Configuring it again deletes the tombstones of its earlier removals (8.61.15 PIA, Apply Configuration; the services' stay).
+      if (o.clearServiceTombstones) statements.push({ sql: 'DELETE FROM PSPTCSSRVCFGDEL WHERE PORTAL_NAME = :p AND PORTAL_OBJNAME = :n', binds: b, what: 'Deleting PSPTCSSRVCFGDEL' });
       statements.push(insertRow('PSPTCS_SRVCFG', {
         PORTAL_NAME: EVENT_MAPPING_PORTAL, PORTAL_OBJNAME: cref, MENUNAME: menu, PNLGRPNAME: o.component, PTCS_EXPANDFRAME: 'N',
         PTCS_RCFRAMELOC: 'S', PTCS_NMINPAGELETS: 0, VERSION: next('RCSCM'), LASTUPDOPRID: op, OBJECTOWNERID: ' '
@@ -532,21 +564,57 @@ export interface PfcSaveResult {
   warnings: string[];
   token: string;
   written: boolean;
+  /** False where the save maps nothing and Apply Configuration does (applyPfcMapping). */
+  mapsOnSave: boolean;
+}
+
+/**
+ * Whether the configurator's save maps the configuration: 8.62's EOCC_CONFIGURE SavePreChange calls AddEventMapping (declared from
+ * EOCC_CONFIG_WRK.NAVIGATION FieldFormula). 8.61.15's has no such call; there the Map to Portal Registry tab's buttons map.
+ */
+export async function pfcSaveMaps(c: Connection): Promise<boolean> {
+  const [x] = await select<Row>(c, `SELECT 'X' AS X FROM PSPCMNAME WHERE OBJECTID1 = 10 AND OBJECTVALUE1 = 'EOCC_CONFIGURE' AND OBJECTVALUE2 = 'GBL'
+    AND OBJECTID3 = 12 AND OBJECTVALUE3 = 'SavePreChange' AND RECNAME = 'EOCC_CONFIG_WRK' AND REFNAME = 'NAVIGATION' AND ROWNUM = 1`);
+  return !!x;
+}
+
+/** Whether the database is PeopleTools 8.61, where re-configuring a content reference deletes its PSPTCSSRVCFGDEL tombstones. */
+async function clearsServiceTombstones(c: Connection): Promise<boolean> {
+  const [x] = await select<{ T: string }>(c, 'SELECT TOOLSREL AS T FROM PSSTATUS');
+  return s(x?.T) === '8.61';
+}
+
+/** The checks every write makes first: the type, the operator, the component. */
+async function openComponent(c: Connection, request: { component: string; market?: string; type: string; operatorId: string }): Promise<{ component: string; market: string; type: string }> {
+  const component = request.component.trim().toUpperCase();
+  const market = (request.market ?? 'GBL').trim().toUpperCase();
+  const type = request.type.trim().toUpperCase();
+  if (type !== 'STD' && type !== 'MASK') throw new PfcSaveRefusedError(`Configuration type ${type} is not written (Standard STD and Masking MASK are).`);
+  const operatorError = validateOperatorId(request.operatorId);
+  if (operatorError) throw new PfcSaveRefusedError(operatorError);
+  if (!(await operatorExists(c, request.operatorId))) throw new PfcSaveRefusedError(`PeopleSoft operator ${request.operatorId} does not exist in this database (PSOPRDEFN).`);
+  const [comp] = await select<Row>(c, `SELECT 'X' AS X FROM PSPNLGRPDEFN WHERE PNLGRPNAME = :c AND MARKET = :m`, { c: component, m: market });
+  if (!comp) throw new PfcSaveRefusedError(`${component}.${market} is not a component in this database.`);
+  return { component, market, type };
+}
+
+/** Refused when the mapping needs a service the database does not have yet. */
+async function requireServices(c: Connection, derived: readonly PfcMapping[], how: string): Promise<void> {
+  const missing: string[] = [];
+  for (const id of [...new Set(derived.map((m) => m.serviceId))]) {
+    const [d] = await select<Row>(c, `SELECT 'X' AS X FROM PSPTCSSRVDEFN WHERE PTCS_SERVICEID = :s`, { s: id });
+    if (!d) missing.push(id);
+  }
+  if (missing.length) {
+    throw new PfcSaveRefusedError(`The configuration needs the services ${missing.join(', ')}, which this database does not have yet; the configurator clones them ` +
+      `on its first ${how} that needs them (not written here). Do that once on the PIA page.`);
+  }
 }
 
 /** Saves the configuration and regenerates its Event Mapping in one transaction; refused on an error or a configuration changed since it was read. */
 export async function savePfcConfiguration(c: Connection, request: PfcSaveRequest): Promise<PfcSaveResult> {
   try {
-    const component = request.component.trim().toUpperCase();
-    const market = (request.market ?? 'GBL').trim().toUpperCase();
-    const type = request.type.trim().toUpperCase();
-    if (type !== 'STD' && type !== 'MASK') throw new PfcSaveRefusedError(`Configuration type ${type} is not written (Standard STD and Masking MASK are).`);
-    const operatorError = validateOperatorId(request.operatorId);
-    if (operatorError) throw new PfcSaveRefusedError(operatorError);
-    if (!(await operatorExists(c, request.operatorId))) throw new PfcSaveRefusedError(`PeopleSoft operator ${request.operatorId} does not exist in this database (PSOPRDEFN).`);
-    const [comp] = await select<Row>(c, `SELECT 'X' AS X FROM PSPNLGRPDEFN WHERE PNLGRPNAME = :c AND MARKET = :m`, { c: component, m: market });
-    if (!comp) throw new PfcSaveRefusedError(`${component}.${market} is not a component in this database.`);
-
+    const { component, market, type } = await openComponent(c, request);
     const counters = await readCounterState(c, true);
     const columns = await readPfcColumns(c);
     const stored = await readPfcConfiguration(c, columns, component, market, type, true);
@@ -556,7 +624,7 @@ export async function savePfcConfiguration(c: Connection, request: PfcSaveReques
         ? `${component}.${market} already has a ${type} configuration; reopen it.`
         : `${component}.${market}'s ${type} configuration was changed since it was read (another save, possibly on the PIA page). Reopen it and reapply the change.`);
     }
-    const next = normalizeConfiguration(columns, component, market, type, request.configuration);
+    const next = withSetBlankDefaults(stored, normalizeConfiguration(columns, component, market, type, request.configuration));
     const check = checkConfiguration(next);
     // The roles and users it adds must exist, as the page's prompts require of a value entered; rows already stored are not
     // rechecked (Oracle's delivered configurations name demo users a database may not have).
@@ -590,38 +658,94 @@ export async function savePfcConfiguration(c: Connection, request: PfcSaveReques
       }
     }
     const rows = planPfcRows(columns, stored, next);
+    const mapsOnSave = await pfcSaveMaps(c);
     if (rows.empty) {
       await c.rollback();
-      return { rows, derived: [], warnings: check.warnings, token, written: false };
+      return { rows, derived: [], warnings: check.warnings, token, written: false, mapsOnSave };
     }
 
     // The configurator derives the mapping from the rows being saved: write them, then derive inside the transaction.
     await run(c, rows.statements);
     const active = s(next.header!.EFF_STATUS) === 'A';
     const derived = active ? await derivePfcMappings(c, component, market, type) : [];
-    const missing: string[] = [];
-    for (const id of [...new Set(derived.map((m) => m.serviceId))]) {
-      const [d] = await select<Row>(c, `SELECT 'X' AS X FROM PSPTCSSRVDEFN WHERE PTCS_SERVICEID = :s`, { s: id });
-      if (!d) missing.push(id);
-    }
-    if (missing.length) {
-      throw new PfcSaveRefusedError(`The configuration needs the services ${missing.join(', ')}, which this database does not have yet; the configurator clones them ` +
-        'on its first save that needs them (not written here). Save it once on the PIA page.');
-    }
+    // Where the save maps nothing (8.61.15), no content reference is touched: Apply Configuration maps them (applyPfcMapping).
+    if (mapsOnSave) await requireServices(c, derived, 'save');
     const targets: PfcTarget[] = [];
-    for (const { cref, menu } of await pfcContentReferences(c, component, market)) targets.push({ cref, menu, stored: await readStoredConfiguration(c, cref, true) });
+    if (mapsOnSave) for (const { cref, menu } of await pfcContentReferences(c, component, market)) targets.push({ cref, menu, stored: await readStoredConfiguration(c, cref, true) });
     const mappings = planPfcMappings({
       component, type, active, targets, derived, counters, ts: await now(c), operatorId: request.operatorId,
-      tracked: await trackedRecords(c, ['PSPTCS_SRVCFG', 'PSPTCSSRVCONF'])
+      tracked: await trackedRecords(c, ['PSPTCS_SRVCFG', 'PSPTCSSRVCONF']), clearServiceTombstones: await clearsServiceTombstones(c)
     });
     if (request.dryRun) {
       await c.rollback();
-      return { rows, mappings, derived, warnings: check.warnings, token, written: false };
+      return { rows, mappings, derived, warnings: check.warnings, token, written: false, mapsOnSave };
     }
     await run(c, mappings.statements);
     await verifyPfcSave(c, columns, next, type, mappings);
     await c.commit();
-    return { rows, mappings, derived, warnings: check.warnings, token: pfcToken(await readPfcConfiguration(c, columns, component, market, type)), written: true };
+    return { rows, mappings, derived, warnings: check.warnings, token: pfcToken(await readPfcConfiguration(c, columns, component, market, type)), written: true, mapsOnSave };
+  } catch (error) {
+    await c.rollback().catch(() => { /* the original error matters more */ });
+    throw error;
+  }
+}
+
+export interface PfcApplyRequest {
+  component: string;
+  market?: string;
+  type: string;
+  /** The content references to map or unmap (PORTAL_OBJNAME), from the component's (pfcContentReferences). */
+  contentReferences: string[];
+  /** Remove Mapping instead of Apply Configuration. */
+  remove?: boolean;
+  /** pfcToken of the saved configuration. */
+  openedToken: string;
+  operatorId: string;
+  dryRun?: boolean;
+}
+
+export interface PfcApplyResult { mappings: PfcMappingPlan; derived: PfcMapping[]; written: boolean }
+
+/**
+ * The Map to Portal Registry tab's Apply Configuration (EOCC_MAP_PB: Mapper.GenerateMapping) or Remove Mapping (EOCC_REMOVE_PB:
+ * Mapper.DeleteMapping) for the content references chosen, on a release whose save maps nothing (pfcSaveMaps false; 8.61.15). The
+ * mapping is derived from the saved configuration, whatever the header's status, as the button maps it; the rows each content
+ * reference gets are the ones 8.62's save gives it (same Mapper) [HCDEV JOB_FAMILY, 2026-10-18].
+ */
+export async function applyPfcMapping(c: Connection, request: PfcApplyRequest): Promise<PfcApplyResult> {
+  try {
+    const { component, market, type } = await openComponent(c, request);
+    if (await pfcSaveMaps(c)) {
+      throw new PfcSaveRefusedError('On this release the configurator maps a configuration when it is saved (no Apply Configuration): save it instead.');
+    }
+    const counters = await readCounterState(c, true);
+    const columns = await readPfcColumns(c);
+    const stored = await readPfcConfiguration(c, columns, component, market, type, true);
+    if (!stored.header) throw new PfcSaveRefusedError(`${component}.${market} has no ${type} configuration to map; save one first.`);
+    if (pfcToken(stored) !== request.openedToken) {
+      throw new PfcSaveRefusedError(`${component}.${market}'s ${type} configuration was changed since it was read (another save, possibly on the PIA page). Reopen it.`);
+    }
+    const all = await pfcContentReferences(c, component, market);
+    const wanted = new Set(request.contentReferences.map((x) => x.trim().toUpperCase()).filter(Boolean));
+    if (!wanted.size) throw new PfcSaveRefusedError('Choose the content references to map (the Map to Portal Registry list).');
+    const unknown = [...wanted].filter((x) => !all.some((a) => a.cref === x));
+    if (unknown.length) throw new PfcSaveRefusedError(`${unknown.join(', ')} ${unknown.length === 1 ? 'is not a content reference' : 'are not content references'} of ${component}.${market} (${all.map((a) => a.cref).join(', ') || 'none'}).`);
+    const derived = request.remove ? [] : await derivePfcMappings(c, component, market, type);
+    if (!request.remove) await requireServices(c, derived, 'Apply Configuration');
+    const targets: PfcTarget[] = [];
+    for (const { cref, menu } of all.filter((a) => wanted.has(a.cref))) targets.push({ cref, menu, stored: await readStoredConfiguration(c, cref, true) });
+    const mappings = planPfcMappings({
+      component, type, active: !request.remove, targets, derived, counters, ts: await now(c), operatorId: request.operatorId,
+      tracked: await trackedRecords(c, ['PSPTCS_SRVCFG', 'PSPTCSSRVCONF']), clearServiceTombstones: await clearsServiceTombstones(c)
+    });
+    if (request.dryRun || !mappings.statements.length) {
+      await c.rollback();
+      return { mappings, derived, written: false };
+    }
+    await run(c, mappings.statements);
+    await verifyPfcSave(c, columns, stored, type, mappings);
+    await c.commit();
+    return { mappings, derived, written: true };
   } catch (error) {
     await c.rollback().catch(() => { /* the original error matters more */ });
     throw error;

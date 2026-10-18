@@ -1,3 +1,48 @@
+# Application Class signatures
+
+## Signature comments (source)
+
+App Designer writes signature comments into every method, get and set body
+when it saves a class; Studio's PeopleCode save does the same
+(`src/model/appClassSignatures.ts`, called from `savePeopleCode`):
+
+```
+method Describe
+   /+ &count as Integer, +/
+   /+ &names as Array of String out +/
+   /+ Returns String +/
+   /+ Extends/implements PKG:Base.Describe +/
+```
+
+- One line per parameter in order (`&name as Type`, ` out`, a comma on all
+  but the last), then `Returns Type`, then `Extends/implements`. A get body
+  gets `Returns Type`, a set body `&NewValue as Type`.
+- Types: built-ins in canonical case; `array of array of T` becomes
+  `Array2 of T` and a bare `array` `Array of Any`; classes by full path in the
+  package's own case (imports and wildcard imports resolved through
+  PSAPPCLASSDEFN); `%metadata:` becomes `%Metadata:`.
+- `Extends/implements` names the nearest ancestor (extends or implements)
+  declaring the member publicly, or protected and abstract, with that
+  ancestor's casing of the name. Private and protected non-abstract
+  declarations are passed over; a built-in parent class ends the walk.
+  Parents are read from PSPCMTXT, or decoded from PSPCMPROG when a delivered
+  class has no stored text.
+- The block replaces any comment lines directly after the header, three spaces
+  deeper than the header. Commented-out code is left alone.
+
+Evidence: run over the 8.61.15 corpus snapshot (with 62 parents decoded from
+the database), the generator returns 1,382 of 1,387 class sources unchanged;
+the other five carry comments left stale by later edits or a package name
+cased differently in the source. On HRDMO, App Designer opened a class Studio
+had saved with these comments and re-saved it to identical compiled bytes and
+name rows.
+
+On October 18, 2026 the current source writer was also exercised directly on
+HRDMO 8.62.09: signature lines were removed from an existing lab class's input,
+then regenerated during a committed save. Readback matched the original
+stored source, compiled bytes and reference rows exactly. The normal save
+versions and stamps advanced; this check did not execute the class at runtime.
+
 # Application Class primitive signatures — 2026-09-22
 
 Read-only SYSADM evidence replaces the encoder's hard-coded String → String
