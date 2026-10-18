@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — 0.9.5
+
+No changes recorded yet.
+
 ## 0.9.4 — 2026-10-18
 
 ### Compatibility
