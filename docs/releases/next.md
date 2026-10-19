@@ -10,6 +10,13 @@ expected-output verification. Track implementation and boundaries in
 [AE/file workflow](../build-requests/AE_FILE_WORKFLOW.md). Further IB structural
 review remains subsequent work.
 
+Bounded Integration Broker structural review now follows the AE/file
+workflow: existing service owner/namespace and operation header, version,
+parameter and handler edits, plus the calibrated OnRequest handler addition,
+stage with exact rollback-preview reproduction. Native rollback previews pass;
+reviewed native application is not yet claimed. See
+[IB structure](../change-review/IB_STRUCTURE.md).
+
 Track the remaining project completion gates in
 [1.0 readiness](../RELEASE_1_0_READINESS.md). No 1.0 delivery date is committed.
 

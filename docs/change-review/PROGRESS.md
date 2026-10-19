@@ -2,6 +2,18 @@
 
 ## Current development — 0.9.6 (0.9.5 release baseline)
 
+Latest (October 19, after AE/file acceptance): bounded **IB structural review**
+is implemented on the existing `ib-service`/`ib-operation` adapters. The
+writer's rollback preview defines the after-image; a checkpoint-derived input
+must reproduce it exactly at staging, validation and apply. A new generic
+`reversalRefusal` adapter hook refuses reversing an added handler up front.
+Local: 2,037 tests passed / one skipped; 54 production HTTP/UI checks on Node 20
+and Node 26. Native HRDMO rollback-only previews pass for four cases (see
+[IB_STRUCTURE.md](IB_STRUCTURE.md)); no native commit or approval occurred.
+Next gate: install the candidate, then a developer-approved native structural
+apply on ZZ_IB_STDOP (existing handler/version edit) with typed inverse, and a
+separate REST provider handler addition whose reversal must be refused.
+
 Latest checkpoint: the native startup-trace Process UPDATE rolled back on a
 JSON property-order comparison bug; its original full live baseline is intact.
 The Process writer fix passes the exact native canonical-input rollback preview.

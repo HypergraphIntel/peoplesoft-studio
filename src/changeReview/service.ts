@@ -13,6 +13,8 @@ export interface ReviewAdapter {
     write(environment: Environment, key: Json, after: Json, baseline: Snapshot): Promise<void>;
     /** True only for calibrated DELETE; reverse CREATE otherwise stays unsupported. */
     canDelete?: boolean | ((key: Json) => boolean);
+    /** Why an applied before -> after cannot be reversed by a typed inverse (e.g. it added rows whose deletion is uncalibrated). */
+    reversalRefusal?(key: Json, before: Json, after: Json): string | undefined;
     diff?: ObjectDiffProvider;
     normalize?(value: Json): Json;
     warnings?(environment: Environment, key: Json): Promise<string[]>;
@@ -31,6 +33,10 @@ export class ReviewService {
                 throw new Error('Duplicate review adapter.');
             this.adapters.set(a.id, a);
         }
+    }
+    private async reversalRefusal(c: Change): Promise<string | undefined> {
+        const refuse = this.adapter(c.adapter).reversalRefusal, before = await this.store.readBlob(c.before), after = await this.store.readBlob(c.after);
+        return refuse && before !== null && after !== null ? refuse(c.key, before, after) : undefined;
     }
     private canDelete(adapter: string, key: Json): boolean { const value = this.adapter(adapter).canDelete; return typeof value === 'function' ? value(key) : value === true; }
     capabilities(): string[] { return [...this.adapters.keys()]; }
@@ -578,6 +584,10 @@ export class ReviewService {
         for (const c of set.objects.filter(c => c.application === 'VERIFIED'))
             if (await this.store.readBlob(c.before) === null && !this.canDelete(c.adapter, c.key))
                 return { supported: false, reason: 'Reversing creation requires a calibrated deletion adapter (' + c.adapter + ').' };
+        for (const c of set.objects.filter(c => c.application === 'VERIFIED')) {
+            const refusal = await this.reversalRefusal(c);
+            if (refusal) return { supported: false, reason: refusal };
+        }
         return { supported: true, reason: 'Live revision and dependency checks still run before a reversal is staged.' };
     }
     async reverse(id: string, redo = false): Promise<ChangeSet> {
@@ -599,6 +609,8 @@ export class ReviewService {
                 const value = await this.store.readBlob(c.before);
                 if (value === null && !this.canDelete(c.adapter, c.key))
                     throw new Error('Reversal needs an unsupported deletion. No partial reverse proposal created.');
+                const refusal = await this.reversalRefusal(c);
+                if (refusal) throw new Error(refusal + ' No partial reverse proposal created.');
                 const dependencies = applied.filter(x => x.dependencies.includes(c.id)).map(x => ids.get(x.id)!);
                 proposal.objects.push({ id: ids.get(c.id)!, adapter: c.adapter, key: c.key, operation: value === null ? 'DELETE' : live.value === null ? 'CREATE' : 'UPDATE', before: await this.store.blob(live.value), after: await this.store.blob(value), baselineToken: live.token, dependencies,
                     revision: 1, review: 'PENDING', validation: [], warnings: [], application: 'PENDING' });

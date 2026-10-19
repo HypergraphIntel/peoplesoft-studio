@@ -1002,20 +1002,44 @@ try{
    ui._receive({action:'apply',id:reverse.id,revision:reverse.revision});await until(async()=>(await reviewService.store.get(reverse.id)).status==='APPLIED');assert.equal(native.counts().commits,2);
    const timeline=await reviewCall('psft_get_object_timeline',{changeSetId:reverse.id,objectId:reverse.objects[0].id,checkLive:true});assert.equal(timeline.live.status,'MATCHES_RECORDED');assert.equal(timeline.revisions.length,2);
    check('IB '+kind+' production HTTP/UI stages rollback preview, applies/reverses actual writer and verifies timeline');
-   const structuralInput=structuredClone(input);structuralInput.properties.OBJECTOWNERID='OTHER';
+   const structuralInput=structuredClone(input);structuralInput.properties.IB_ALIASNAME='ZZ_OUTSIDE';
    const structural=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'IB structural refusal'});
    const fresh=await provider.readIntegrationBroker(kind,[native.name]);
-   const refused=await reviewRpc('tools/call',{name:'psft_ib_save',arguments:{connection:'FIXTURE',input:structuralInput,expectedToken:fresh.token,changeSetId:structural.id}});assert.equal(refused.isError,true);assert.match(refused.content[0].text,/cannot be grouped/);assert.equal(native.counts().commits,2);
+   const refused=await reviewRpc('tools/call',{name:'psft_ib_save',arguments:{connection:'FIXTURE',input:structuralInput,expectedToken:fresh.token,changeSetId:structural.id}});assert.equal(refused.isError,true);assert.match(refused.content[0].text,/IB_ALIASNAME is outside reviewed IB structure.*cannot be grouped/s);assert.equal(native.counts().commits,2);
    const drift=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'IB drift refusal'});
    await reviewCall('psft_ib_save',{connection:'FIXTURE',input,expectedToken:fresh.token,changeSetId:drift.id});ready=await reviewCall('psft_validate_change_set',{changeSetId:drift.id});
    await reviewUi.show(drift.id);ui._receive({action:'approve',id:drift.id,revision:ready.revision});await until(async()=>(await reviewService.store.get(drift.id)).status==='APPROVED');
    native.drift();ui._receive({action:'apply',id:drift.id,revision:ready.revision});await until(async()=>(await reviewService.store.get(drift.id)).status==='CONFLICTED');assert.equal(native.counts().commits,2);
    const legacyLive=await provider.readIntegrationBroker(kind,[native.name]);
-   const legacyInput=inputForIb(legacyLive);legacyInput.properties.OBJECTOWNERID='OTHER';
+   const legacyInput=inputForIb(legacyLive);legacyInput.properties.IB_ALIASNAME='ZZ_OUTSIDE';
    const confirmationCount=confirmed;legacyIb=true;
    const legacyResult=await reviewCall('psft_ib_save',{connection:'FIXTURE',input:legacyInput,expectedToken:legacyLive.token});
    assert.equal(legacyResult.saved,true);assert.equal(confirmed,confirmationCount+1);assert.equal(native.counts().commits,3);legacyIb=false;
-   check('IB '+kind+' grouped structural edits and unversioned drift cannot write; ungrouped structural edits retain confirmation');
+   check('IB '+kind+' grouped out-of-contract edits and unversioned drift cannot write; ungrouped ones retain confirmation');
+   // Bounded structure: the writer's rollback preview defines the after-image; apply reproduces it exactly.
+   const shaped=ibTransaction(kind,true);provider.withConnection=async(fn:any)=>fn(shaped.connection);
+   const shapedLive=await provider.readIntegrationBroker(kind,[shaped.name]),shapedInput=inputForIb(shapedLive);
+   if(kind==='service'){shapedInput.properties.OBJECTOWNERID='ZZ';shapedInput.properties.IB_NAMESPACE='urn:reviewed';}
+   else{shapedInput.sections.handlers.push({HANDLERNAME:'REQUESTHDLR',HANDLERID:'RQST',HANDLERTYPE:'ApplicationClass',ACTIVE_FLAG:'A'});shapedInput.sections.applicationClassHandlers.push({HANDLERNAME:'REQUESTHDLR',PACKAGEID:' ',PACKAGEROOT:'ZZ_PKG',QUALIFYPATH:':',APPCLASSID:'Handler',APPCLASSMETHOD:'OnRequest'});}
+   const shapedSet=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'IB '+kind+' structure fixture'});
+   const shapedStage=await reviewCall('psft_ib_save',{connection:'FIXTURE',input:shapedInput,expectedToken:shapedLive.token,changeSetId:shapedSet.id});
+   assert.equal(shapedStage.persisted,false);assert.deepEqual(shaped.state(),shaped.initial);assert.equal(shaped.counts().commits,0);
+   ready=await reviewCall('psft_validate_change_set',{changeSetId:shapedSet.id});assert.equal(ready.status,'READY_FOR_REVIEW');
+   await reviewUi.show(shapedSet.id);ui._receive({action:'approve',id:shapedSet.id,revision:ready.revision});await until(async()=>(await reviewService.store.get(shapedSet.id)).status==='APPROVED');
+   ui._receive({action:'apply',id:shapedSet.id,revision:ready.revision});await until(async()=>(await reviewService.store.get(shapedSet.id)).status==='APPLIED');assert.equal(shaped.counts().commits,1);
+   if(kind==='service'){
+    assert.equal(shaped.state().PSSERVICE[0].IB_NAMESPACE,'urn:reviewed');assert.equal(shaped.state().PSSERVICE[0].IBEXTERNALPWD,'fixture-private');
+    let back=await reviewCall('psft_prepare_revert',{changeSetId:shapedSet.id});back=await reviewCall('psft_validate_change_set',{changeSetId:back.id});assert.equal(back.status,'READY_FOR_REVIEW');
+    await reviewUi.show(back.id);ui._receive({action:'approve',id:back.id,revision:back.revision});await until(async()=>(await reviewService.store.get(back.id)).status==='APPROVED');
+    ui._receive({action:'apply',id:back.id,revision:back.revision});await until(async()=>(await reviewService.store.get(back.id)).status==='APPLIED');
+    assert.equal(shaped.state().PSSERVICE[0].IB_NAMESPACE,'urn:fixture');assert.equal(shaped.counts().commits,2);
+    // APPLIED is saved before the original is marked REVERTED inside the same exclusive section.
+    await until(async()=>(await reviewService.store.get(shapedSet.id)).status==='REVERTED'&&!require('node:fs').existsSync(require('node:path').join(reviewService.store.root,'writer.lock')));
+   }else{
+    assert.ok(shaped.state().PSOPRHDLR.some((r:any)=>r.HANDLERNAME==='REQUESTHDLR'));
+    const noRevert=await reviewRpc('tools/call',{name:'psft_prepare_revert',arguments:{changeSetId:shapedSet.id}});assert.equal(noRevert.isError,true);assert.match(noRevert.content[0].text,/child deletion is not calibrated/);assert.equal(shaped.counts().commits,1);
+   }
+   check('IB '+kind+' bounded structure stages the writer preview, applies exactly through trusted UI and '+(kind==='service'?'reverses by typed inverse':'refuses reversing an added handler'));
  }
  provider.withConnection=oldStructuredConnection;provider.guard=oldStructuredGuard;provider.readEnvironment=oldEnvironment;delete provider.types;
  // Deliberate stop at one verified native writer boundary, with fresh continuation review.

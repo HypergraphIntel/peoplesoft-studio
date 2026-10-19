@@ -105,11 +105,12 @@ export function routeReviewedMutations(server: {
                 return callback(args, ...rest);
             }
             const preparedHeader = headerFamily ? await prepareStructuredHeaderReview(workspace, host?.(), headerFamily, args) : undefined;
-            const preparedIb = name === 'psft_ib_save' ? await prepareIbHeaderReview(workspace, host?.(), args) : undefined;
-            if (name === 'psft_ib_save' && !preparedIb) {
-                refuseOutsideSet('This IB edit is outside the bounded service/operation header adapter.');
+            const ibPreparation = name === 'psft_ib_save' ? await prepareIbHeaderReview(workspace, host?.(), args) : undefined;
+            if (name === 'psft_ib_save' && (!ibPreparation || 'outside' in ibPreparation)) {
+                refuseOutsideSet(`This IB edit is outside the bounded service/operation review contract${ibPreparation ? ` (${ibPreparation.outside})` : ''}.`);
                 return callback(args, ...rest);
             }
+            const preparedIb = ibPreparation && !('outside' in ibPreparation) ? ibPreparation : undefined;
             const setId = supplied?.id ?? (await service.create('Review ' + name, connection)).id;
             if (preparedIb) {
                 const staged = await service.stage(setId, preparedIb.adapter, preparedIb.key, preparedIb.after, args.dependsOn as string[], undefined, preparedIb.expectedToken);

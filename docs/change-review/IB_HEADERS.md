@@ -55,4 +55,5 @@ restrictions remain in effect, including restricted/OpenAPI services.
   and hashes are recorded in [PROGRESS.md](PROGRESS.md).
 
 REST and 8.61 reviewed apply/inverse, native redo and general structural edits
-remain unverified. The six rollback previews do not certify those workflows.
+remain unverified. Bounded structural edits now use the same adapters; see
+[IB_STRUCTURE.md](IB_STRUCTURE.md). The six rollback previews do not certify those workflows.

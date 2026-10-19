@@ -23,6 +23,7 @@ import type { StructuredFamily } from '../providers/structuredSnapshot.js';
 import { deepValidate } from '../mcp/appEngineTools.js';
 import { ibDefinitionKey } from '../model/ibOperations.js';
 import { ibHeaderChange, ibHeaderInput, ibHeaderDiff } from './ibHeaders.js';
+import { ibStructuralChange, ibStructuralInput, ibStructuralReversalRefusal } from './ibStructure.js';
 import { creationKey, creationRecordEdit, creationAeDocument, proposedAeReferences, proposedProjectMembers } from './structuredCreation.js';
 import { projectReviewName, projectCreationItems } from '../providers/projectSnapshot.js';
 import type { IbReviewKind } from '../providers/ibSnapshot.js';
@@ -301,14 +302,19 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
             if (typeof key !== 'string' || !/^[A-Z][A-Z0-9_]{0,29}$/.test(key)) throw new Error('Invalid IB review name.');
             return ibDefinitionKey(kind, [key]);
         };
+        /** Header-only edits keep their original typed path; other edits must be inside the bounded structural contract (ibStructure.ts). */
+        const headerOnly = (name: string, before: Json, after: Json) => { try { ibHeaderChange(before, after, kind, name); return true; } catch { return false; } };
         async function request(p: DatabaseProvider, name: string, before: Json, after: Json, operatorId: string, token: string, preview: boolean) {
-            ibHeaderChange(before, after, kind, name);
+            const header = headerOnly(name, before, after);
+            if (!header) ibStructuralChange(before, after, kind, name);
             const live = await p.readIntegrationBroker(kind, [name]);
             if (!live) throw new Error('IB definition no longer exists.');
-            return p.saveIntegrationBroker({ input: ibHeaderInput(before, after, kind, name, live), expectedToken: live.token, operatorId, expectedSnapshotToken: token, expectedAfterHash: hash(after), ...(preview ? { dryRun: true, captureSnapshots: true } : {}) });
+            const input = header ? ibHeaderInput(before, after, kind, name, live) : ibStructuralInput(before, after, kind, name, live);
+            return p.saveIntegrationBroker({ input, expectedToken: live.token, operatorId, expectedSnapshotToken: token, expectedAfterHash: hash(after), ...(preview ? { dryRun: true, captureSnapshots: true } : {}) });
         }
         return { id: 'ib-' + kind, diff: ibHeaderDiff(kind), authorizationState: (e, key) => authorizationState(e, keyOf(key)),
-            warnings: async (e, key) => [...await warnings(e, keyOf(key)), 'Existing service/operation description and comments only. Fixed noncredential preservation scope; credentials are never selected or restored and credential freshness is not certified. No create/delete, structural edits or raw row replay. Native reviewed apply/inverse verified only for the recorded HRDMO standard header trial; other shapes require their own acceptance.'],
+            reversalRefusal: (key, before, after) => { const name = keyOf(key).parts[0]; return headerOnly(name, before, after) ? undefined : ibStructuralReversalRefusal(before, after, kind, name); },
+            warnings: async (e, key) => [...await warnings(e, keyOf(key)), 'Existing service/operation only: description/comments, plus the bounded structure contract (service owner/namespace/application; operation header except service, routing type, REST method, alias and message binding; existing versions, parameters, handlers and class implementations; adding the calibrated ApplicationClass OnRequest handler). Fixed noncredential preservation scope; credentials are never selected or restored and credential freshness is not certified. No create/delete, child removal or raw row replay; an added handler cannot be reversed. Native reviewed apply/inverse verified for the recorded HRDMO standard header trial; structural edits require their own native acceptance.'],
             read: async (e, key) => { const p = await provider(e), live = await p.readIbForReview(kind, keyOf(key).parts[0]); return { value: live.value as unknown as Json, token: live.token }; },
             authorize: async (e, key) => { await authorize(e, keyOf(key)); },
             validate: async (e, key, before, after) => {
@@ -316,7 +322,7 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
                     const k = keyOf(key), { p, operator } = await authorize(e, k), live = await p.readIbForReview(kind, k.parts[0]);
                     if (live.hash !== hash(before)) return ['IB baseline changed before validation.'];
                     const result = await request(p, k.parts[0], before, after, operator, live.token, true);
-                    if (!result.snapshots || result.snapshots.before.hash !== hash(before) || result.snapshots.after.hash !== hash(after)) return ['IB writer cannot reproduce this complete header proposal exactly.'];
+                    if (!result.snapshots || result.snapshots.before.hash !== hash(before) || result.snapshots.after.hash !== hash(after)) return ['IB writer cannot reproduce this complete proposal exactly.'];
                     return [];
                 } catch (error) { return [error instanceof Error ? error.message : String(error)]; }
             },

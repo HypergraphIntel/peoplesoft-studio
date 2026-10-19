@@ -145,6 +145,22 @@ test('one-object application does not partially reverse checkpoints and still ch
         assert.deepEqual(f.writes, ['A']);
     } finally { await f.close(); }
 });
+test('an adapter reversal refusal blocks the inverse up front with its reason and proposes nothing', async () => {
+    const f = await fixture();
+    try {
+        f.live.set('A', { value: { text: 'old' }, token: '1' });
+        f.adapter.reversalRefusal = (key, before, after) => key === 'A' && JSON.stringify(after).includes('new') && JSON.stringify(before).includes('old') ? 'Reversal would delete an added row.' : undefined;
+        const set = await ready(f, ['A']);
+        const applied = await f.service.apply(set.id);
+        assert.equal(applied.status, 'APPLIED');
+        assert.deepEqual(await f.service.reversalSupport(applied), { supported: false, reason: 'Reversal would delete an added row.' });
+        const before = (await f.store.list()).length;
+        await assert.rejects(f.service.reverse(set.id), /Reversal would delete an added row\. No partial reverse proposal created\./);
+        assert.equal((await f.store.list()).length, before);
+        f.adapter.reversalRefusal = () => undefined;
+        assert.equal((await f.service.reversalSupport(applied)).supported, true);
+    } finally { await f.close(); }
+});
 test('a Change Set that conflicted before any write can be cancelled', async () => {
     const f = await fixture();
     try {

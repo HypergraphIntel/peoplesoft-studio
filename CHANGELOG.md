@@ -2,6 +2,17 @@
 
 ## Unreleased — 0.9.6
 
+- **Bounded Integration Broker structural review.** `psft_ib_save` now stages
+  existing service owner/namespace edits and operation header, version,
+  parameter and handler edits, plus the calibrated ApplicationClass OnRequest
+  handler addition, as Change Review proposals. The writer's own rollback
+  preview defines the after-image; validation and application must reproduce
+  it exactly from the checkpoints. Routing-reaching changes (service move,
+  routing type, REST method, alias, message binding) and child removal keep
+  legacy confirmation. Reversing an added handler is refused up front (child
+  deletion is uncalibrated). Native HRDMO rollback previews pass; reviewed
+  native application is pending.
+
 - **No-result call validation (PC010).** Reject a call that returns nothing
   used as a condition, assignment, operand or argument before saving: 32
   built-in functions documented "Returns: None" (Error, Warning, DoSave,
