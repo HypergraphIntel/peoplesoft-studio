@@ -7,6 +7,7 @@ import { reviewProjectMigration, renderMigrationReview } from '../projectMigrati
 import { exportMigrationPackage, parseMigrationPackage, previewMigrationImport } from '../migrationPackage.js';
 import { databaseMigrationTarget } from '../providers/migrationTarget.js';
 import { DatabaseProvider } from '../providers/database.js';
+import { readPeopleCodeSource } from './peopleCodeSource.js';
 
 import {
   DefinitionKey,
@@ -276,10 +277,7 @@ async function readPeopleCodeResults(
       continue;
     }
 
-    const source =
-      await provider.readText(
-        summary.key
-      );
+    const source = await readPeopleCodeSource(provider, summary.key);
 
     result.push({
       key:
@@ -624,10 +622,7 @@ export function registerPeopleSoftTools(
           key.type
         )
       ) {
-        const text =
-          await provider.readText(
-            key
-          );
+        const text = isPeopleCode(key.type) ? await readPeopleCodeSource(provider, key) : await provider.readText(key);
 
         return jsonResult({
           connection: {
@@ -1010,10 +1005,7 @@ export function registerPeopleSoftTools(
         );
       }
 
-      const source =
-        await provider.readText(
-          key
-        );
+      const source = await readPeopleCodeSource(provider, key);
 
       return jsonResult({
         connection: {

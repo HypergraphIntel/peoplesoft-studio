@@ -18,8 +18,24 @@ applied, its reversal refused up front with no partial proposal. Details in
 [IB_STRUCTURE.md](IB_STRUCTURE.md). Also: the stale psft_ib_save description is
 corrected, and validating an empty Change Set is refused
 without marking it CONFLICTED. Verify 2,038 passed / one skipped; 54
-HTTP/UI checks on Node 20.20.2 and 26.9.0. Next: 8.61 / REST consumer
-structural evidence, or the remaining readiness sequence step 3.
+HTTP/UI checks on Node 20.20.2 and 26.9.0.
+
+Readiness step 3, adapter acceptance (same evening): one three-object Change
+Set `683f4196-2ce3-4ea9-8ff3-28d299bdf49f` (HTML ZZ_PCODE_LAB_HTM2 text +
+description, freeform style sheet ZZ_PCODE_LAB_CSS3, Record PeopleCode
+ZZ_PCODE_LAB_R2.ZZ_PCODE_LAB_MCP1.FieldChange) was developer-approved, applied
+and VERIFIED with live MATCHES_RECORDED and independent readback (the decoded
+PSPCMPROG carried the new literal). The typed inverse
+`41bf31c5-6830-4655-b58e-8e924c9e3ee0` restored all three original snapshots
+under fresh tokens; the original is REVERTED. Two defects surfaced and are
+fixed: `psft_get_peoplecode` (and record/definition reads) returned decoded
+2-space text while the review snapshot holds stored 3-space PSPCMTXT, so an
+agent's read-modify-save re-indented every line (they now return stored
+source when present); and the review page kept "Approve approach" after
+approval (four PLAN_APPROVED entries). COVERAGE.md stale rows (Process,
+Event PeopleCode, record/AE/project creation) now cite their native evidence.
+Next: remaining step-3 gaps (Query create/copy, Page redo, component/page
+PeopleCode events) or 8.61 / REST consumer structural evidence.
 
 Latest checkpoint: the native startup-trace Process UPDATE rolled back on a
 JSON property-order comparison bug; its original full live baseline is intact.

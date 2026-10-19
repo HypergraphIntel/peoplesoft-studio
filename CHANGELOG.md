@@ -14,6 +14,18 @@
   passed for a standard operation (typed inverse restored it) and a REST
   provider handler addition (reversal refused, no partial proposal).
 
+- **PeopleCode reads return the stored source.** `psft_get_peoplecode`,
+  `psft_get_record_peoplecode` and `psft_get_definition` now return the stored
+  PSPCMTXT text (App Designer's formatting, as the editor and review snapshots
+  use) when present, instead of the program decoded from PSPCMPROG. A
+  read-modify-save no longer re-indents every line of a reviewed proposal.
+
+- **Approach approval buttons reflect the decision.** The review page hides
+  "Approve approach" once approved and "Reject approach" once rejected.
+
+- **Native reviewed HTML, style sheet and Record PeopleCode cycle.** Installed
+  HRDMO apply and typed inverse verified for all three in one Change Set.
+
 - **Validating an empty Change Set no longer marks it CONFLICTED.** It is
   refused without changing state, and the review page offers "Refresh and
   revalidate" only once something is staged.
