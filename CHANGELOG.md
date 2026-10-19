@@ -8,8 +8,10 @@
   Description/comments edits stage for exact-revision review, verified application
   and typed reversal/history on Oracle. Fixed noncredential snapshots preserve
   related metadata; native rollback previews passed on HRDMO standard and REST
-  provider/consumer definitions. Installed approval/apply acceptance remains
-  pending. Creation and structural edits keep legacy confirmation.
+  provider/consumer definitions. Installed developer-approved HRDMO standard
+  service/operation apply and inverse passed full scoped readback/checkpoint
+  verification. REST reviewed application remains separate. Creation and
+  structural edits keep legacy confirmation.
 - **All Integration Broker writes on PeopleTools 8.61.15**: OnRequest handlers,
   nodes, routings, and REST provider and consumer services and operations now
   join the standard shapes 0.9.4 allowed there. Each was matched to PIA's own

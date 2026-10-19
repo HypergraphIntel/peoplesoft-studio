@@ -27,8 +27,10 @@ controlled lab run in [Build Requests acceptance](build-requests/NATIVE_ACCEPTAN
 
 Integration Broker Change Review now has a first development slice: existing
 service/operation description/comments edits, with exact native rollback
-previews and fixture apply/inverse/history. Installed approval/apply/reversal
-acceptance is next. Structural edits and creation still use legacy per-write
+previews and fixture apply/inverse/history. One installed developer-approved
+HRDMO standard service/operation apply/inverse cycle now passes full scoped
+readback/checkpoint verification, with both original states restored. Structural
+review adapters are next; structural edits and creation still use legacy per-write
 confirmation; their native calibration is not review/history certification.
 Subsequent work includes broader structural review adapters, reviewed migration
 apply and Data Migration Workbench. Component editing and Data Mover script

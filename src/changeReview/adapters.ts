@@ -306,7 +306,7 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
             return p.saveIntegrationBroker({ input: ibHeaderInput(before, after, kind, name, live), expectedToken: live.token, operatorId, expectedSnapshotToken: token, expectedAfterHash: hash(after), ...(preview ? { dryRun: true, captureSnapshots: true } : {}) });
         }
         return { id: 'ib-' + kind, diff: ibHeaderDiff(kind), authorizationState: (e, key) => authorizationState(e, keyOf(key)),
-            warnings: async (e, key) => [...await warnings(e, keyOf(key)), 'Existing service/operation description and comments only. Fixed noncredential preservation scope; credentials are never selected or restored and credential freshness is not certified. No create/delete, structural edits or raw row replay. Native acceptance pending.'],
+            warnings: async (e, key) => [...await warnings(e, keyOf(key)), 'Existing service/operation description and comments only. Fixed noncredential preservation scope; credentials are never selected or restored and credential freshness is not certified. No create/delete, structural edits or raw row replay. Native reviewed apply/inverse verified only for the recorded HRDMO standard header trial; other shapes require their own acceptance.'],
             read: async (e, key) => { const p = await provider(e), live = await p.readIbForReview(kind, keyOf(key).parts[0]); return { value: live.value as unknown as Json, token: live.token }; },
             authorize: async (e, key) => { await authorize(e, keyOf(key)); },
             validate: async (e, key, before, after) => {

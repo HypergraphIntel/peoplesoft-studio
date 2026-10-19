@@ -47,7 +47,12 @@ restrictions remain in effect, including restricted/OpenAPI services.
   proposal reproduction and unchanged scoped content/token plus SRVM/OPRM/OPRVM/
   OPRHM/SYS counters after rollback. No native commit or review approval occurs.
 
-Next acceptance: activate the candidate and use installed MCP/Change Review to
-stage a disposable header edit, obtain developer approval/application, verify
-its checkpoint/readback/history, then separately approve/apply its typed inverse.
-Do not claim that cycle from the rollback previews or fixture UI responses.
+- Installed HRDMO standard service/operation acceptance passed: developer-approved
+  description/comments application, exact checkpoints/approvals, full scoped
+  readback/tokens, retained history and separately approved typed inverse. Both
+  original metadata scopes are restored under fresh tokens, with reverse
+  dependencies and the original Change Set marked REVERTED. The Change Set IDs
+  and hashes are recorded in [PROGRESS.md](PROGRESS.md).
+
+REST and 8.61 reviewed apply/inverse, native redo and general structural edits
+remain unverified. The six rollback previews do not certify those workflows.

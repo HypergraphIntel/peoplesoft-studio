@@ -9,8 +9,11 @@ Existing service/operation description/comments edits now stage in Change Review
 on Oracle. Fixed noncredential snapshots, exact rollback previews, a precommit
 after-image check and typed reversal protect the scoped header changes. Six
 native rollback previews pass on HRDMO standard/REST provider/consumer shapes;
-installed review/apply/reversal remains pending. Structural edits and creation
-retain legacy confirmation and cannot be silently grouped into a Change Set.
+an installed developer-approved HRDMO standard service/operation apply/inverse
+cycle also passed full scoped readback and checkpoint verification. Both original
+states are restored. REST reviewed application remains separate. Structural
+edits and creation retain legacy confirmation and cannot be silently grouped
+into a Change Set.
 
 The supported OnRequest handler, external node, manual routing and REST
 provider/consumer operation workflows now accept PeopleTools 8.61.15 as well

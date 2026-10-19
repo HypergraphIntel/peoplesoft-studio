@@ -159,7 +159,9 @@ legacy confirmation and are refused if attached to a Change Set. The `ib-service
 and `ib-operation` adapters use fixed noncredential checkpoints and exact native
 rollback previews; inverse changes go through the same typed writer. Native
 rollback tests passed for standard and REST provider/consumer shapes; installed
-review/apply/reversal acceptance is pending. See [IB header scope](change-review/IB_HEADERS.md).
+standard HRDMO review/apply/inverse acceptance passed with full scoped readback,
+checkpoints and restored original states. REST reviewed application remains
+separate. See [IB header scope](change-review/IB_HEADERS.md).
 The trusted UI can apply one object and pause after verified readback. Remaining
 work still needs fresh continuation approval; one native header pause and
 continuation/restoration is verified. No MCP apply/approve tool is exposed.
