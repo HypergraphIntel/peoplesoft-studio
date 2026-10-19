@@ -1,0 +1,72 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-151d935f3af5ed676d30e992",
+  "fingerprint": "151d935f3af5ed676d30e992071593d97ee365081efa810bd05e1b78adda9ecb",
+  "type": "version-difference",
+  "subject": {
+    "subsystem": "customization",
+    "objectType": "Page and Field Configurator configuration",
+    "tables": [
+      "PS_EOCC_CONFIG_HDR",
+      "PSPTCS_SRVCFG",
+      "PSPTCSSRVCONF"
+    ],
+    "properties": [
+      "EFF_STATUS"
+    ]
+  },
+  "assertion": {
+    "kind": "mapping-trigger",
+    "facts": {
+      "release861": "Apply Configuration / Remove Mapping per content reference",
+      "release862": "save maps every content reference",
+      "detectBy": "EOCC_CONFIGURE SavePreChange references EOCC_CONFIG_WRK.NAVIGATION",
+      "mapperIdentical": true
+    }
+  },
+  "title": "On 8.61 the configurator's save maps nothing; Apply Configuration maps chosen content references (8.62's save maps them all)",
+  "statement": "On 8.61.15, EOCC_CONFIGURE SavePreChange writes the configuration rows only; the Map to Portal Registry tab's Apply Configuration (EOCC_CONFIG_WRK.EOCC_MAP_PB) and Remove Mapping (EOCC_REMOVE_PB) map or unmap the selected content references, committing at once. On 8.62.09 SavePreChange calls AddEventMapping / RemoveEventMapping for every content reference. The EventMapping Mapper class is identical on both releases, so the mapped rows are the same.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.61.15"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-18T23:30:00Z",
+      "method": "pia-capture",
+      "experimentId": "pt861-pfc-apply",
+      "runId": "2026-10-18",
+      "environment": {
+        "peopleToolsRelease": "8.61.15",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "A Standard configuration saved in PIA wrote header, sequence, field and role rows and moved no counter; Apply Configuration then wrote PSPTCS_SRVCFG and four PSPTCSSRVCONF rows (RCSCM +1, SCNFM +4, SYS +5); Remove Mapping wrote four PSPTCSSRVCNFDEL and one PSPTCSSRVCFGDEL with the same steps.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "src/providers/pfcWriter.ts"
+        }
+      ],
+      "digest": "4e82cdc4dfa9b27f6f66834edd2b034a0781bf1cfa65ec13e6cc60ec385e946c"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-18T22:59:47.298Z",
+    "updatedAt": "2026-10-18T22:59:47.298Z",
+    "schemaVersion": 1
+  }
+}

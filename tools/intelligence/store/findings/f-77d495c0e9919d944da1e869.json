@@ -1,0 +1,67 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-77d495c0e9919d944da1e869",
+  "fingerprint": "77d495c0e9919d944da1e869aac9fb11939d1605a49da4569c35dd8142231acf",
+  "type": "serialization",
+  "subject": {
+    "subsystem": "integration-broker",
+    "objectType": "Document",
+    "tables": [
+      "PSDOCSCMADATA",
+      "PSDOCJSCMADATA",
+      "PSPHYSSCHBODY"
+    ],
+    "properties": [
+      "IB_ZIPDATA"
+    ]
+  },
+  "assertion": {
+    "kind": "compression",
+    "facts": {
+      "algorithm": "zlib (reference implementation)",
+      "level": 6,
+      "byteExact": true
+    }
+  },
+  "title": "Document bodies are compressed with reference zlib at level 6",
+  "statement": "PIA stores document and schema bodies compressed with the reference zlib at level 6; a reimplementation of reference zlib reproduces the stored bytes and lengths exactly, while other zlib forks give different bytes for the same text.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.61.15"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-18T23:30:00Z",
+      "method": "pia-capture",
+      "experimentId": "pt861-ib-document",
+      "runId": "2026-10-18",
+      "environment": {
+        "peopleToolsRelease": "8.61.15",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Six bodies saved by PIA were reproduced byte for byte by reference zlib level 6 (and three on 8.62.09 in an earlier run).",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "docs/INTEGRATION_BROKER.md"
+        }
+      ],
+      "digest": "77f3842c8d02d6740d9ec438c9b876bf49e2ac9e00f471faab6caf372bddc2ae"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-18T22:59:46.681Z",
+    "updatedAt": "2026-10-18T22:59:46.681Z",
+    "schemaVersion": 1
+  }
+}

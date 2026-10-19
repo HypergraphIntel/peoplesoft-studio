@@ -1,0 +1,74 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-074cb37ce8ca27994daab20f",
+  "fingerprint": "074cb37ce8ca27994daab20f0904531d5d455c31a1d51f7952ee794b535a0f21",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "customization",
+    "objectType": "Page and Field Configurator configuration",
+    "tables": [
+      "PS_EOCC_CONFIG_FLD"
+    ],
+    "properties": [
+      "EOCC_SET_BLANK"
+    ]
+  },
+  "assertion": {
+    "kind": "row-default",
+    "facts": {
+      "value": "N",
+      "rowsPageWrites": true,
+      "rule": "RowInit sets N on a shown, enterable row; an added row is shown before it is hidden",
+      "untouchedRows": "keep their value"
+    }
+  },
+  "title": "Every field row PIA adds or changes carries EOCC_SET_BLANK N",
+  "statement": "EOCC_CONFIG_FLD RowInit (the EOCC_VISIBLE_FLAG / EOCC_DISABLED FieldChange code) sets EOCC_SET_BLANK to N on a row shown and enterable; the page shows an added row before it is hidden, so every added row is saved with N, including a sequence's blank placeholder row. Delivered rows hold blanks.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.61.15"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-18T23:30:00Z",
+      "method": "pia-capture",
+      "experimentId": "pt861-pfc-apply",
+      "runId": "2026-10-18",
+      "environment": {
+        "peopleToolsRelease": "8.61.15",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "The configuration saved in PIA wrote its hidden Short Description field row with EOCC_SET_BLANK N; the 8.62.09 captures pfc01 and pfc02 show N on every inserted field row.",
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "pfc01-configure"
+        },
+        {
+          "kind": "capture-case",
+          "ref": "pfc02-remove"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        }
+      ],
+      "digest": "ac6e060fec3b9ae2c34fea7d9b85aac5b4cdbb0acdd8665cf3104d2bc53cb068"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-18T22:59:47.921Z",
+    "updatedAt": "2026-10-18T22:59:47.921Z",
+    "schemaVersion": 1
+  }
+}

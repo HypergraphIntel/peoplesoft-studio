@@ -1,0 +1,67 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-a250856ce2c8b875b61a7cf3",
+  "fingerprint": "a250856ce2c8b875b61a7cf38bcd024687005c7155b33446b1e7e1302831d9cc",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "portal-registry",
+    "objectType": "Content Reference",
+    "tables": [
+      "PSPRSMDEFN"
+    ],
+    "properties": [
+      "PORTAL_ISPUBLIC"
+    ]
+  },
+  "assertion": {
+    "kind": "code-labels",
+    "facts": {
+      "field": "PORTAL_ISPUBLIC",
+      "value0": "Public",
+      "value1": "Author Access",
+      "value2": "neither (permission lists)",
+      "newEntryDefault": 1
+    }
+  },
+  "title": "PORTAL_ISPUBLIC holds three settings: 0 Public, 1 Author Access, 2 neither",
+  "statement": "The Portal Registry pages store Public as PORTAL_ISPUBLIC 0, Author Access as 1 and an entry with neither (secured by permission lists) as 2. A new folder or content reference defaults to Author Access.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.61.15"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-18T23:30:00Z",
+      "method": "pia-capture",
+      "experimentId": "pt861-portal-access",
+      "runId": "2026-10-18",
+      "environment": {
+        "peopleToolsRelease": "8.61.15",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "PIA saved folders and content references with each access setting; the column took 0, 1 and 2 as above.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "docs/PORTAL_REGISTRY.md"
+        }
+      ],
+      "digest": "6345a68112a32c1dbd7cdf08b9e20c7c0dd2920cbcce43395055d67f214bf904"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-18T22:59:56.947Z",
+    "updatedAt": "2026-10-18T22:59:56.947Z",
+    "schemaVersion": 1
+  }
+}

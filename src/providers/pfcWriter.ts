@@ -419,12 +419,6 @@ export interface PfcMappingPlanOptions {
   operatorId: string;
   tracked: Set<string>;
   random?: () => number;
-  /**
-   * Configuring a content reference again deletes the tombstones of its earlier removals (PSPTCSSRVCFGDEL): seen on 8.61.15, where
-   * PeopleTools' %metadata RCServiceConfDefn save does it under the same PeopleCode as 8.62's. Not seen on 8.62.09, whose classic
-   * Event Mapping page keeps them [em08]; there they are kept.
-   */
-  clearServiceTombstones?: boolean;
 }
 
 export interface PfcMappingPlan {
@@ -465,8 +459,9 @@ export function planPfcMappings(o: PfcMappingPlanOptions): PfcMappingPlan {
   for (const { cref, menu, stored } of o.targets) {
     const b = { p: EVENT_MAPPING_PORTAL, n: cref };
     if (o.active && !stored.exists) {
-      // Configuring it again deletes the tombstones of its earlier removals (8.61.15 PIA, Apply Configuration; the services' stay).
-      if (o.clearServiceTombstones) statements.push({ sql: 'DELETE FROM PSPTCSSRVCFGDEL WHERE PORTAL_NAME = :p AND PORTAL_OBJNAME = :n', binds: b, what: 'Deleting PSPTCSSRVCFGDEL' });
+      // Configuring it again deletes the tombstones of its earlier removals; the services' stay. The configurator's mapping does it
+      // on 8.61.15 (Apply Configuration) and 8.62.09 (save of a reactivated configuration); the classic Event Mapping page does not [em08].
+      statements.push({ sql: 'DELETE FROM PSPTCSSRVCFGDEL WHERE PORTAL_NAME = :p AND PORTAL_OBJNAME = :n', binds: b, what: 'Deleting PSPTCSSRVCFGDEL' });
       statements.push(insertRow('PSPTCS_SRVCFG', {
         PORTAL_NAME: EVENT_MAPPING_PORTAL, PORTAL_OBJNAME: cref, MENUNAME: menu, PNLGRPNAME: o.component, PTCS_EXPANDFRAME: 'N',
         PTCS_RCFRAMELOC: 'S', PTCS_NMINPAGELETS: 0, VERSION: next('RCSCM'), LASTUPDOPRID: op, OBJECTOWNERID: ' '
@@ -578,12 +573,6 @@ export async function pfcSaveMaps(c: Connection): Promise<boolean> {
   return !!x;
 }
 
-/** Whether the database is PeopleTools 8.61, where re-configuring a content reference deletes its PSPTCSSRVCFGDEL tombstones. */
-async function clearsServiceTombstones(c: Connection): Promise<boolean> {
-  const [x] = await select<{ T: string }>(c, 'SELECT TOOLSREL AS T FROM PSSTATUS');
-  return s(x?.T) === '8.61';
-}
-
 /** The checks every write makes first: the type, the operator, the component. */
 async function openComponent(c: Connection, request: { component: string; market?: string; type: string; operatorId: string }): Promise<{ component: string; market: string; type: string }> {
   const component = request.component.trim().toUpperCase();
@@ -674,7 +663,7 @@ export async function savePfcConfiguration(c: Connection, request: PfcSaveReques
     if (mapsOnSave) for (const { cref, menu } of await pfcContentReferences(c, component, market)) targets.push({ cref, menu, stored: await readStoredConfiguration(c, cref, true) });
     const mappings = planPfcMappings({
       component, type, active, targets, derived, counters, ts: await now(c), operatorId: request.operatorId,
-      tracked: await trackedRecords(c, ['PSPTCS_SRVCFG', 'PSPTCSSRVCONF']), clearServiceTombstones: await clearsServiceTombstones(c)
+      tracked: await trackedRecords(c, ['PSPTCS_SRVCFG', 'PSPTCSSRVCONF'])
     });
     if (request.dryRun) {
       await c.rollback();
@@ -736,7 +725,7 @@ export async function applyPfcMapping(c: Connection, request: PfcApplyRequest): 
     for (const { cref, menu } of all.filter((a) => wanted.has(a.cref))) targets.push({ cref, menu, stored: await readStoredConfiguration(c, cref, true) });
     const mappings = planPfcMappings({
       component, type, active: !request.remove, targets, derived, counters, ts: await now(c), operatorId: request.operatorId,
-      tracked: await trackedRecords(c, ['PSPTCS_SRVCFG', 'PSPTCSSRVCONF']), clearServiceTombstones: await clearsServiceTombstones(c)
+      tracked: await trackedRecords(c, ['PSPTCS_SRVCFG', 'PSPTCSSRVCONF'])
     });
     if (request.dryRun || !mappings.statements.length) {
       await c.rollback();

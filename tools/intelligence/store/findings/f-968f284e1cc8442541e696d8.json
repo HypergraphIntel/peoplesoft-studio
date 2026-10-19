@@ -1,0 +1,72 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-968f284e1cc8442541e696d8",
+  "fingerprint": "968f284e1cc8442541e696d8464c4f780bfc3bf4a7dfe8c9cdfecad77907f3f2",
+  "type": "serialization",
+  "subject": {
+    "subsystem": "application-class",
+    "objectType": "Application Class",
+    "tables": [
+      "PSPCMTXT",
+      "PSPCMPROG"
+    ],
+    "properties": [
+      "PCTEXT"
+    ]
+  },
+  "assertion": {
+    "kind": "generated-comments",
+    "facts": {
+      "params": "&name as Type, with out and commas",
+      "returns": "Returns Type",
+      "inheritance": "Extends/implements Path.member of nearest public or protected-abstract declaration",
+      "array2": "array of array -> Array2",
+      "bareArray": "Array of Any",
+      "indent": "header + 3"
+    }
+  },
+  "title": "App Designer writes signature comments into each method, get and set body when it saves an Application Class",
+  "statement": "Saving an Application Class, App Designer replaces the /+ +/ lines after each method, get and set header with one line per parameter (&name as Type, out, a comma on all but the last), then Returns Type, then Extends/implements naming the nearest ancestor that declares the member publicly or protected and abstract. Types are canonical: array of array becomes Array2, a bare array Array of Any, classes their full path.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.61.15"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-18T23:30:00Z",
+      "method": "corpus-harness",
+      "experimentId": "appclass-signature-corpus",
+      "runId": "2026-10-18",
+      "environment": {
+        "peopleToolsRelease": "8.61.15",
+        "platform": "oracle"
+      },
+      "observation": "The rules reproduce 1,382 of 1,387 stored Application Class sources exactly; the remaining five carry comments left stale by later edits.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "docs/APPLICATION_CLASS_SIGNATURES.md"
+        },
+        {
+          "kind": "test",
+          "ref": "src/test/appClassSignatures.test.ts"
+        }
+      ],
+      "digest": "5805dc4e6b3c9a6d0ee0187a8326e4a6b2f9723ae978770a2be32e354f5f76e7"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-18T22:59:44.235Z",
+    "updatedAt": "2026-10-18T22:59:44.235Z",
+    "schemaVersion": 1
+  }
+}

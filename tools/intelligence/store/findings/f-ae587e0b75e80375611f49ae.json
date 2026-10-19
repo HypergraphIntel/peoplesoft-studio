@@ -1,0 +1,78 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-ae587e0b75e80375611f49ae",
+  "fingerprint": "ae587e0b75e80375611f49ae0b0509e4dcde356869cea49cf6f579a8f414f0f8",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "integration-broker",
+    "objectType": "Routing",
+    "tables": [
+      "PSIBRTNGDEFN",
+      "PSRTNGDFNPARM",
+      "PSIBRTNGSUBDEFN"
+    ],
+    "properties": [
+      "PARAMETERNAME",
+      "ALIASNAME",
+      "IB_DIRECTION"
+    ]
+  },
+  "assertion": {
+    "kind": "default-children",
+    "facts": {
+      "inboundSync": "INREQUEST, OUTRESPONSE",
+      "outboundSync": "OUTREQUEST, INRESPONSE",
+      "async": "request only",
+      "responseNodesSwapped": true,
+      "alias": "operation alias, else name, dot version",
+      "subdefinitionInboundAlias": "request parameter alias",
+      "subdefinitionOutboundAlias": "operation name dot version",
+      "effdt": "1900-01-01"
+    }
+  },
+  "title": "A new routing gets its request (and synchronous response) parameters by direction, and one sub-definition for the request",
+  "statement": "Saving a new routing in PIA creates PSRTNGDFNPARM rows named by direction relative to the default local node: inbound INREQUEST (and OUTRESPONSE when synchronous), outbound OUTREQUEST (and INRESPONSE). The response swaps sender and receiver; each is aliased <operation alias or name>.<version>. PSIBRTNGSUBDEFN gets SEQNUM 1 for the request: inbound under the request alias, outbound under <operation name>.<version> (701 of 701 delivered outbound rows). PIA dates the routing 1900-01-01. RTDM +1, SYS +1.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.61.15"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-18T23:30:00Z",
+      "method": "pia-capture",
+      "experimentId": "pt861-ib-routing-add",
+      "runId": "2026-10-18",
+      "environment": {
+        "peopleToolsRelease": "8.61.15",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "PIA saved a manual routing from an external node to the default local node on a synchronous operation: PSIBRTNGDEFN, two PSRTNGDFNPARM rows (INREQUEST; OUTRESPONSE with nodes swapped) aliased operation.v1, one PSIBRTNGSUBDEFN row direction I, EFFDT 1900-01-01. The delivered routings on the same database show the same parameter sets per routing type and direction.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "docs/INTEGRATION_BROKER.md"
+        },
+        {
+          "kind": "test",
+          "ref": "src/test/ibGeneratedRows.test.ts"
+        }
+      ],
+      "digest": "0ff325e8891182ab5c26b72ecef9493cf3f1ef33032a2613a4be7af8be9580eb"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-18T22:59:46.372Z",
+    "updatedAt": "2026-10-18T22:59:46.372Z",
+    "schemaVersion": 1
+  }
+}

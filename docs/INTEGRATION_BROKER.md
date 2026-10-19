@@ -39,11 +39,8 @@ cache sequences, verify the stored rows before COMMIT and verify the token
 again afterward. Credentials and secret property values are excluded from reads
 and preserved by partial updates.
 
-The native write protocol is calibrated on **PeopleTools 8.62.09** and refuses
-other releases, except **8.61.15** for the shapes matched to PIA there: nonrowset
-messages, standard services, standard synchronous operations without handlers,
-and flat string documents, created and edited. On 8.61.15, REST services and
-operations, nodes, routings and handlers are refused. Another patch of 8.61
+The native write protocol is calibrated on **PeopleTools 8.62.09** and
+**8.61.15**, and refuses other releases. Another patch of 8.61
 or 8.62 is accepted when the tables written have the calibrated patch's columns
 and types (fingerprints in `src/providers/calibratedSchemas.ts`); otherwise the
 refusal names the tables that differ. The tested creation paths are standard/REST services,
@@ -54,6 +51,34 @@ the native handler name is REQUESTHDLR. Creating other handler kinds or changing
 a handler event/implementation type requires further native calibration.
 Related rows are exposed as named sections; advanced rows require explicit
 native columns where a creation default has not been captured.
+
+What PIA fills in that a caller does not give, and Studio now writes the same way:
+
+- **A new node** also gets its description in PSNODEDEFNLANG under a blank
+  language code (8.61.15 and 8.62.09). Later saves leave that row alone.
+- **A new routing** that names no parameters gets PIA's: the request, plus the
+  response with sender and receiver swapped for a synchronous operation. They
+  are named by direction (inbound INREQUEST/OUTRESPONSE, outbound
+  OUTREQUEST/INRESPONSE) and aliased `<operation alias, else name>.<version>`.
+  Its sub-definition takes the request's alias inbound, and the operation's own
+  `name.version` outbound (every delivered row). PIA dates a new routing
+  1900-01-01.
+- **A new REST operation** is named `<alias>_<METHOD>`, and the alias is the name
+  without the suffix. A provider operation's base URL is Service Configuration's
+  REST Target Location, then `/<service alias>/`.
+- **Every new REST operation generates a routing**, which the page forces for
+  REST (`PSSERVICESWRK.SAVE_PB`). For a provider it runs from `~~ANY~~` to the
+  default local node; for a consumer, from the local node to `WADL_NODE` through
+  the local gateway's `HTTPTARGET` connector. The routing is dated 1900-01-01,
+  described as message 158,2382 ("GENERATED") and named
+  `~GENERATED~<10000000..109999999>`. It comes with its parameters,
+  sub-definition and the operation version's PSOPRGENRTGPARM row
+  (`PUBSRVCSYNC`), at RTDM +1 and SYS +1. A consumer service with a token type
+  is refused, because the page copies the service's credentials to the routing.
+- **A new OnRequest handler** with no description takes the operation's. A class
+  at the package root is stored with a blank path, as every delivered row is.
+  PIA stores the handler as `REQUESTHDLR` whatever name is typed, and refuses
+  that name if you type it.
 
 Credential changes, local node identity changes, restricted services,
 OpenAPI/application services, operation moves, child deletion, other message
@@ -95,7 +120,11 @@ XML is compared exactly. Native JSON's required placement is preserved.
 ### PeopleTools 8.61.15
 
 On an 8.61.15 database, PIA made a nonrowset message, a standard service, a
-synchronous operation on them, and a one-element flat string document. Studio
+synchronous operation on them, and a one-element flat string document. In a
+second round it added an OnRequest application-class handler, an external node
+without authentication, a manual routing from that node to the local node, and
+REST provider and consumer services, each with a GET operation. Studio made the
+same, and every row, generated routing and counter increment matched PIA's. Studio
 made the same through `psft_ib_new` / `psft_ib_create`, and edited a service
 description as PIA did. Every row was equal apart from names and stamps, with
 the same counter increments as 8.62.09. For documents the inflated bodies are

@@ -1,0 +1,70 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-87804b57f3c7095f20ec9c2b",
+  "fingerprint": "87804b57f3c7095f20ec9c2b9d52d383162249625ee38a001a14b2502ee6d92d",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "customization",
+    "objectType": "Drop Zone configuration",
+    "tables": [
+      "PSPTCS_MENU_TBL",
+      "PSPTCSMNUTBLDEL"
+    ],
+    "properties": [
+      "PTCS_MENUID"
+    ]
+  },
+  "assertion": {
+    "kind": "tombstone-cleanup",
+    "facts": {
+      "onReconfigure": "delete PSPTCSMNUTBLDEL rows of the menu",
+      "configurationTombstones": "kept",
+      "code": "PSPTCS_MENU_TBL.PTCS_MENUID FieldFormula"
+    }
+  },
+  "title": "Configuring a drop zone again deletes its menu's earlier PSPTCSMNUTBLDEL tombstones",
+  "statement": "When a drop zone is configured again after a removal, PIA deletes the PSPTCSMNUTBLDEL rows of that content reference's menu id (the delivered PSPTCS_MENU_TBL.PTCS_MENUID FieldFormula does it on menu save); the PSPTCSSRVCNFDEL tombstones of the configuration stay.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.61.15"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-18T23:30:00Z",
+      "method": "pia-capture",
+      "experimentId": "pt861-dz-reconfigure",
+      "runId": "2026-10-18",
+      "environment": {
+        "peopleToolsRelease": "8.61.15",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "PIA configure, remove and configure again of a delivered drop zone with a lab subpage: the second configure removed the menu tombstone the removal had written and kept the configuration tombstones.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "src/providers/dropZoneWriter.ts"
+        }
+      ],
+      "digest": "52213a0f9b909ea7bc4d5aaba72d206e57201737e2685bceadd9b462ac7e17f4"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-18T22:59:44.532Z",
+    "updatedAt": "2026-10-18T22:59:44.532Z",
+    "schemaVersion": 1
+  }
+}

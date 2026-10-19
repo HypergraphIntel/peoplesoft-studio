@@ -468,12 +468,12 @@ restricted to a role nobody holds:
 - **Remove.** Four PSPTCSSRVCNFDEL tombstones and a PSPTCSSRVCFGDEL, with the
   same counter steps.
 - **Apply again.** Configuring a content reference again deletes its
-  PSPTCSSRVCFGDEL tombstones; the services' tombstones stay. Studio does the
-  same on 8.61 only. The PeopleCode is the same on both releases; the
-  deletion happens in PeopleTools' own `%metadata` save of the service
-  configuration. On 8.62.09 the only observed re-add, the classic Event
-  Mapping page [em08], kept the tombstone, so on other releases Studio keeps
-  it too. The Event Mapping writer keeps it on every release.
+  PSPTCSSRVCFGDEL tombstones; the services' tombstones stay. The
+  configurator does this on 8.62.09 too: deactivating the lab JOB_CODE_TBL
+  configuration wrote one tombstone per content reference, and reactivating
+  it deleted them. Studio's configurator writer does the same on every
+  release. The classic Event Mapping page keeps them [em08], and so does
+  the Event Mapping writer.
 
 On HCDEV the mapper derivation matches every applied configuration (8 of 8:
 tools/lab/pfc-mapper-check.mts), and the delivered field-list code differs

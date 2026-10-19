@@ -20,6 +20,14 @@ Last updated 2026-10-13 (phase 5). The founding directive: `CUSTOMIZATION_INTEL_
   `tools/intelligence/engineering-task.mts` writes an issue body and a
   regression fixture from a finding and prints the `gh` command; it files
   nothing. First fixture: `src/test/discovery-f-e3a3f17f095c20582322485d.test.ts`.
+- **2026-10-18: first PeopleTools 8.61 observations.** Fifteen findings from
+  the 8.61.15 calibration: Integration Broker nodes, routings, handlers and
+  REST operations (generated routings), document schema $id and compression;
+  Page and Field Configurator (Apply model, secondary-page levels, set-blank
+  default); drop-zone menu tombstones; Portal Registry access codes and
+  folder grants; Message Catalog's PPC step; Application Class signature
+  comments. Each is one observation (`pia-capture`, `source-inspection` or
+  `corpus-harness`), technical only; none is a Studio round trip.
 - **Nothing leaves by default.** Submissions need four gates (D13) and the
   user's approval of the exact payloads. The server has run only on localhost.
 

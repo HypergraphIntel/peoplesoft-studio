@@ -17,7 +17,9 @@ import { CALIBRATED_SCHEMAS } from './calibratedSchemas.js';
  */
 export const CALIBRATED_RELEASES = {
   query: ['8.62.09', '8.61.15'],
-  integrationBroker: ['8.62.09'],
+  // On 8.61.15 too: application class OnRequest handlers, external nodes, manual routings and REST
+  // provider and consumer services and GET operations (with the routing they generate), matched to PIA.
+  integrationBroker: ['8.62.09', '8.61.15'],
   // Matched to PIA on 8.61.15 too, created and edited: nonrowset messages, standard
   // services, standard operations without handlers and flat string documents (ibWriter).
   integrationBrokerStandard: ['8.62.09', '8.61.15'],
@@ -38,7 +40,7 @@ export const FAMILY_TABLES: Record<CalibratedFamily, readonly string[]> = {
   integrationBrokerStandard: IB_STANDARD_TABLES,
   integrationBroker: [...IB_STANDARD_TABLES, 'PSMSGREC', 'PSMSGFLDOVR', 'PSMSGPARTS', 'PSMSGATTR', 'PSOPRHDLR', 'PSOPERATIONAC',
     'PSOPERATIONAE', 'PSOPERATIONCI', 'PSOPERATIONDMS', 'PSOPERATIONURI', 'PSOPRURIDATA', 'PSOPRVDCONTTYPE', 'PSOPRVERQUEPARM',
-    'PSMSGNODEDEFN', 'PSNODECONPROP', 'PSIBRTNGDEFN', 'PSRTNGDFNPARM', 'PSRTNGDFNCONPRP', 'PSRTNGDFNPROP', 'PSIBRTNGSUBDEFN'],
+    'PSMSGNODEDEFN', 'PSNODEDEFNLANG', 'PSNODECONPROP', 'PSIBRTNGDEFN', 'PSRTNGDFNPARM', 'PSRTNGDFNCONPRP', 'PSRTNGDFNPROP', 'PSIBRTNGSUBDEFN', 'PSOPRGENRTGPARM'],
   oauth: ['PSPTSEC_TOKEN', 'PSPTSEC_AUD', 'PSPTSEC_ROLES']
 };
 

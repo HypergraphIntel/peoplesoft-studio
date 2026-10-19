@@ -1,0 +1,70 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-e84b8948213cd880d6ea046a",
+  "fingerprint": "e84b8948213cd880d6ea046afc3de5056ff6739d074e29eb6eb11f42702f453a",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "integration-broker",
+    "objectType": "Service Operation",
+    "tables": [
+      "PSOPRHDLR",
+      "PSOPERATIONAC"
+    ],
+    "properties": [
+      "HANDLERNAME",
+      "DESCR",
+      "QUALIFYPATH"
+    ]
+  },
+  "assertion": {
+    "kind": "row-defaults",
+    "facts": {
+      "onRequestName": "REQUESTHDLR",
+      "typedReservedNameRefused": "158,2374",
+      "blankDescr": "operation DESCR",
+      "rootClassPath": "blank",
+      "counters": "OPRHM +1, OPRM +1, OPRVM +1, SYS +3"
+    }
+  },
+  "title": "An OnRequest handler is stored as REQUESTHDLR, takes the operation's description, and a root-level class is stored with a blank path",
+  "statement": "On the Handlers page, typing REQUESTHDLR as a name is refused (158,2374 Illegal name), yet an OnRequest application class handler is stored under HANDLERNAME REQUESTHDLR, HANDLERID RQST, whatever name was typed. With no description it takes the operation's DESCR. PSOPERATIONAC stores a class at the package root with a blank QUALIFYPATH, though the page shows a colon (every delivered row is blank).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.61.15"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-18T23:30:00Z",
+      "method": "pia-capture",
+      "experimentId": "pt861-ib-handler-add",
+      "runId": "2026-10-18",
+      "environment": {
+        "peopleToolsRelease": "8.61.15",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "PIA saved an OnRequest application class handler typed with another name as REQUESTHDLR, DESCR the operation description, QUALIFYPATH blank; OPRHM, OPRM, OPRVM +1, SYS +3.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "docs/INTEGRATION_BROKER.md"
+        }
+      ],
+      "digest": "24480039639cfc6cb2625faf7419b036f50ad8e3941532d65bcd01db2b578b05"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-18T22:59:44.835Z",
+    "updatedAt": "2026-10-18T22:59:44.835Z",
+    "schemaVersion": 1
+  }
+}

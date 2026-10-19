@@ -248,13 +248,11 @@ test('configuration checks: keys, sequences, statuses; the page\'s warnings', ()
   assert.equal(checkConfiguration(warn).warnings.length, 1);
 });
 
-test('on 8.61 configuring a content reference again deletes the tombstones of its earlier removals, before its service row; elsewhere they stay', () => {
-  const options = {
+test('configuring a content reference again deletes the tombstones of its earlier removals, before its service row (8.61.15 and 8.62.09 PIA)', () => {
+  const plan = planPfcMappings({
     component: 'C', type: 'STD', active: true, targets: [{ cref: 'A', menu: 'M', stored: empty('A') }], derived: [POSTBUILD],
     counters: counters({ RCSCM: 10, SCNFM: 20, SYS: 100 }, { RCSCM: 10, SCNFM: 20 }), ts: 'x', operatorId: 'JARED', tracked: TRACKED
-  };
-  assert.ok(!planPfcMappings(options).statements.some((st) => st.sql.startsWith('DELETE FROM PSPTCSSRVCFGDEL')), 'kept unless the release clears them');
-  const plan = planPfcMappings({ ...options, clearServiceTombstones: true });
+  });
   const at = (prefix: string) => plan.statements.findIndex((st) => st.sql.startsWith(prefix));
   const del = plan.statements[at('DELETE FROM PSPTCSSRVCFGDEL')];
   assert.deepEqual(del.binds, { p: '_PTCS_PTEVMAP', n: 'A' });

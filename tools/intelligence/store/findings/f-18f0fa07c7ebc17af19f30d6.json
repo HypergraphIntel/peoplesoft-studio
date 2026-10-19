@@ -1,0 +1,82 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-18f0fa07c7ebc17af19f30d6",
+  "fingerprint": "18f0fa07c7ebc17af19f30d6a39cf457c15fe51090a32760d228ca0985732328",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "integration-broker",
+    "objectType": "Service Operation",
+    "tables": [
+      "PSOPERATION",
+      "PSIBRTNGDEFN",
+      "PSRTNGDFNPARM",
+      "PSIBRTNGSUBDEFN",
+      "PSOPRGENRTGPARM"
+    ],
+    "properties": [
+      "GENERATED",
+      "CONNID",
+      "ROUTINGDEFNNAME"
+    ]
+  },
+  "assertion": {
+    "kind": "generated-routing",
+    "facts": {
+      "when": "new REST operation",
+      "providerSender": "~~ANY~~",
+      "providerReceiver": "default local node",
+      "consumerSender": "default local node",
+      "consumerReceiver": "WADL_NODE",
+      "consumerConnector": "HTTPTARGET",
+      "name": "~GENERATED~ + Int(Rand*99999999)+10000000",
+      "effdt": "1900-01-01",
+      "link": "PSOPRGENRTGPARM PUBSRVCSYNC",
+      "counters": "RTDM +1, SYS +1"
+    }
+  },
+  "title": "Creating a REST operation generates its routing (provider: ~~ANY~~ to local; consumer: local to WADL_NODE through HTTPTARGET)",
+  "statement": "PIA forces Generate Any-to-Local for a REST operation (PSSERVICESWRK.SAVE_PB, public service). A provider operation gets a GENERATED Y routing from ~~ANY~~ to the default local node; a consumer operation one from the local node to WADL_NODE, CONNGATEWAYID the local gateway, CONNID HTTPTARGET. The routing is dated 1900-01-01, described by message 158,2382, named ~GENERATED~ plus a random 10000000..109999999, carries its parameters and sub-definition, and the operation version gets a PSOPRGENRTGPARM PUBSRVCSYNC row naming it. RTDM +1 and SYS +1 on top of the operation's own counters. A consumer service with a token type also copies its credentials to the request parameter.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.61.15"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-18T23:30:00Z",
+      "method": "pia-capture",
+      "experimentId": "pt861-ib-rest-ops",
+      "runId": "2026-10-18",
+      "environment": {
+        "peopleToolsRelease": "8.61.15",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "PIA created a REST provider GET operation and a REST consumer GET operation; each save also inserted a generated routing with its parameters, sub-definition and a PSOPRGENRTGPARM row: OPRM, OPRVM, RTDM, SRVM +1 each, SYS +4.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "docs/INTEGRATION_BROKER.md"
+        },
+        {
+          "kind": "test",
+          "ref": "src/test/ibGeneratedRows.test.ts"
+        }
+      ],
+      "digest": "6e2128ee1e3e11e855383812f689ce7e58154511ab2c8113899d223654245b3e"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-18T22:59:46.061Z",
+    "updatedAt": "2026-10-18T22:59:46.061Z",
+    "schemaVersion": 1
+  }
+}

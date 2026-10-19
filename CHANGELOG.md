@@ -2,7 +2,39 @@
 
 ## Unreleased — 0.9.5
 
-No changes recorded yet.
+### Added
+
+- **All Integration Broker writes on PeopleTools 8.61.15**: OnRequest handlers,
+  nodes, routings, and REST provider and consumer services and operations now
+  join the standard shapes 0.9.4 allowed there. Each was matched to PIA's own
+  save on an 8.61.15 database, row for row and counter for counter. OAuth still
+  needs 8.62.09.
+
+### Fixed
+
+PIA fills in these rows on every release; Studio left them out:
+
+- **A new REST operation now gets the routing PIA generates for it.** A provider
+  routes from `~~ANY~~` to the local node; a consumer from the local node to
+  `WADL_NODE`. Each comes with its parameters, its sub-definition and the
+  operation's link to it. Without it, a Studio-made REST operation had no
+  routing until it was re-saved in PIA. A consumer service with a token type is
+  refused (create its operations in PIA).
+- **A new REST operation's alias and base URL are PIA's.** The alias is the name
+  without its `_<METHOD>` suffix. A provider's base URL is Service
+  Configuration's REST Target Location, then `/<service alias>/`.
+- **A new routing gets its default parameters.** When none are given, it gets
+  the request and, for a synchronous operation, the response. Its outbound
+  sub-definition is aliased by the operation's own name and version.
+- **A new node gets its description row** (PSNODEDEFNLANG, blank language code).
+- **A new handler with no description takes the operation's.** A class at the
+  package root is stored with a blank path; `:` is accepted and stored that way.
+- **Page and Field Configurator on 8.62: mapping a content reference again
+  deletes its earlier removal tombstones** (`PSPTCSSRVCFGDEL`), as the
+  configurator's save does there. 0.9.4 did this on 8.61 only.
+- **Saving a routing with parameters no longer fails** with "Stored
+  parameters.IBEXTERNALPWD differs from proposed input". The check after
+  writing compared a password column that reads leave out.
 
 ## 0.9.4 — 2026-10-18
 

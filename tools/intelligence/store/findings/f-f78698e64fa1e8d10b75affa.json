@@ -1,0 +1,67 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-f78698e64fa1e8d10b75affa",
+  "fingerprint": "f78698e64fa1e8d10b75affa53bc78a1e2648064233e6558266c6142eacb4a74",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "integration-broker",
+    "objectType": "Service Operation",
+    "tables": [
+      "PSOPERATION",
+      "PSIBSVCSETUP"
+    ],
+    "properties": [
+      "IB_ALIASNAME",
+      "IB_RESTBASE_URL"
+    ]
+  },
+  "assertion": {
+    "kind": "derived-columns",
+    "facts": {
+      "operationName": "alias + _ + METHOD",
+      "IB_ALIASNAME": "name as typed",
+      "providerBaseUrl": "IB_RESTTGTLOC + / + service alias + /"
+    }
+  },
+  "title": "A REST operation is named <alias>_<METHOD>; a provider operation's base URL is the REST Target Location then /<service alias>/",
+  "statement": "Adding a REST operation from a service in PIA appends _<METHOD> to the name typed and keeps the typed name as IB_ALIASNAME. A provider operation's IB_RESTBASE_URL is Service Configuration's REST Target Location followed by /<service alias>/ (two slashes when the service has no alias); a consumer operation's is what is entered.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.61.15"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-18T23:30:00Z",
+      "method": "pia-capture",
+      "experimentId": "pt861-ib-rest-ops",
+      "runId": "2026-10-18",
+      "environment": {
+        "peopleToolsRelease": "8.61.15",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "A provider GET operation typed with a name was saved as name_GET with IB_ALIASNAME the typed name and IB_RESTBASE_URL equal to IB_RESTTGTLOC followed by two slashes (service without alias); every delivered provider operation reached at the local target location follows the same pattern.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "docs/INTEGRATION_BROKER.md"
+        }
+      ],
+      "digest": "9701f63acaece88b792f786566c36724d1357249a2b0c27e7394147c45868bd4"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-18T22:59:45.757Z",
+    "updatedAt": "2026-10-18T22:59:45.757Z",
+    "schemaVersion": 1
+  }
+}

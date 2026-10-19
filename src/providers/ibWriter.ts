@@ -18,7 +18,7 @@ import { operatorExists, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
 import { writeScopeRefusal } from './writeScope.js';
 import { presentOnly, tableColumns } from './tableColumns.js';
 
-export interface IbSaveRequest { input:IbWriteInput; expectedToken:string; operatorId:string; dryRun?:boolean; }
+export interface IbSaveRequest { input:IbWriteInput; expectedToken:string; operatorId:string; dryRun?:boolean; /** Draws for a generated routing name (tests). */ random?:()=>number; }
 export interface IbStatement { sql:string; binds:Record<string,unknown>; expect?:number; }
 export interface IbPlan { changes:string[]; increments:Record<string,number>; statements:IbStatement[]; }
 export interface IbSaveResult { written:boolean; token?:string; plan:IbPlan; validation:IbDiagnostic[]; }
@@ -49,6 +49,33 @@ function put(plan:IbPlan,table:IbTable,before:Row|undefined,after:Row,types:DbTy
  });
  if(before){const where=predicate(table.keys,before);plan.statements.push({sql:`UPDATE ${table.table} SET ${fields.map((k,i)=>k+'='+placeholders[i]).join(',')} WHERE ${where.sql}`,binds:{...binds,...where.binds},expect:1});}
  else plan.statements.push({sql:`INSERT INTO ${table.table} (${fields.join(',')}) VALUES (${placeholders.join(',')})`,binds,expect:1});
+}
+/**
+ * The parameters PIA gives a new routing (PSRTNGDFNPARM), by the operation's routing type and which end is the default
+ * local node: the request and, for a synchronous operation, its response with sender and receiver swapped; each aliased
+ * operation.version. Inbound (receiver local): INREQUEST, OUTRESPONSE. Outbound (sender local, or both): OUTREQUEST,
+ * INRESPONSE. Neither end local: none (no evidence). [PIA 8.61.15 XX_IB_RT_AD; every delivered routing on HCDEV]
+ */
+/**
+ * A routing's sub-definition for its request parameter: inbound (INREQUEST) under the parameter's alias, outbound under the
+ * operation's own name and version (every one of 701 outbound and 1,678 of 1,680 inbound delivered rows) [8.61.15].
+ */
+export function routingSubdefinition(request:Row,routing:Row):Row {
+ const inbound=str(request.PARAMETERNAME)==='INREQUEST';
+ return {IB_DIRECTION:inbound?'I':'O',RTNGTYPE:routing.RTNGTYPE,SENDERNODENAME:request.SENDERNODENAME,RECEIVERNODENAME:request.RECEIVERNODENAME,
+  ALIASNAME:inbound?request.ALIASNAME:`${str(routing.IB_OPERATIONNAME)}.${str(routing.VERSIONNAME)}`};
+}
+/** PSSERVICESWRK.SAVE_PB getrandomname("~GENERATED~", 10000000, 99999999): "~GENERATED~" | String(Int(Rand() * 99999999) + 10000000). */
+export function generatedRoutingName(random:()=>number=Math.random):string {
+ return `~GENERATED~${Math.floor(random()*99999999)+10000000}`;
+}
+export function routingParameters(routing:Row,routingType:string,localNode:string):Row[] {
+ const sender=str(routing.SENDERNODENAME),receiver=str(routing.RECEIVERNODENAME),version=str(routing.VERSIONNAME);
+ const inbound=receiver===localNode&&sender!==localNode,outbound=sender===localNode;
+ if(!inbound&&!outbound)return [];
+ const row=(name:string,from:string,to:string):Row=>({PARAMETERNAME:name,SENDERNODENAME:from,RECEIVERNODENAME:to,ALIASNAME:`${str(routing.IB_OPERATIONNAME)}.${version}`,VERSIONNAME:version});
+ const request=row(inbound?'INREQUEST':'OUTREQUEST',sender,receiver);
+ return routingType==='S'?[request,row(inbound?'OUTRESPONSE':'INRESPONSE',receiver,sender)]:[request];
 }
 /** The shapes matched to PIA on 8.61.15 as well as 8.62.09; REST, nodes, routings and handlers were matched on 8.62.09 only. */
 export function ibStandardShape(input:IbWriteInput):boolean {
@@ -111,6 +138,11 @@ async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,open
   input.sections.versions??=current.sections.versions;
   input.sections.handlers??=current.sections.handlers;
  }
+ if(input.kind==='routing'&&!opened&&!(input.sections.parameters??[]).length){
+  const [operation]=await safeRows(c,types,'PSOPERATION','IB_OPERATIONNAME=:n',{n:str(input.properties.IB_OPERATIONNAME)});
+  const local=await rows(c,types,"SELECT MSGNODENAME FROM PSMSGNODEDEFN WHERE LOCALDEFAULTFLG='Y'");
+  if(operation&&local.length===1)input.sections.parameters=routingParameters(input.properties,str(operation.RTNGTYPE),str(local[0].MSGNODENAME)) as IbWriteInput['sections'][string];
+ }
  if(input.document)input.document.physicalSchemas.sort((a,b)=>['XML','JSON','HTML'].indexOf(a.name)-['XML','JSON','HTML'].indexOf(b.name));
  const parentKey=Object.fromEntries(parentTable.keys.map((k,i)=>[k,input.key[i]]));
  const plan:IbPlan={changes:[],increments:{},statements:[]};
@@ -134,11 +166,16 @@ async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,open
   const table=IB_SECTIONS[input.kind][name];
   const before=await currentRows(c,types,table,parentKey,!request.dryRun);
   const after:Row[]=[];const ids=new Set<string>();
-  for(const row of proposed){
+  for(const input0 of proposed){
+   let row=input0;
+   // PIA stores a class at the package root with a blank path (the page shows ':'; every delivered row is blank) [8.61.15].
+   if(name==='applicationClassHandlers'&&str(row.QUALIFYPATH)===':')row={...row,QUALIFYPATH:' '};
    const keyRow={...row,...parentKey};
    for(const k of table.keys)if(!(k in keyRow)||!str(keyRow[k]))throw new Error(`${name}.${k} is required.`);
    const id=keyOf(table,keyRow);if(ids.has(id))throw new Error(`${name} contains duplicate keys.`);ids.add(id);
    const old=before.find(r=>keyOf(table,r)===id);
+   // A new handler without a description takes the operation's, as the Handlers page saves it [8.61.15].
+   if(name==='handlers'&&!old&&!str(row.DESCR))row={...row,DESCR:str(properties.DESCR)||' '};
    after.push(await checkedRow(c,table,row,old,parentKey));
   }
   for(const row of before.filter(secretProperty))if(!ids.has(keyOf(table,row)))after.push(row);
@@ -149,6 +186,8 @@ async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,open
  }
  let service:Row|undefined;
  let mappingNew=false;
+ /** The routing PIA generates with a new REST operation: a provider's from ~~ANY~~ to the local node, a consumer's from it to WADL_NODE. */
+ let generated:{name:string;sender:string;receiver:string;localIdFlag:number;gateway:string;connector:string;active:boolean;description:string}|undefined;
  if(input.kind==='operation'){
   [service]=await safeRows(c,types,'PSSERVICE','IB_SERVICENAME=:n',{n:str(properties.IB_SERVICENAME)});
   if(!service)throw new Error('The owning service does not exist.');
@@ -166,6 +205,26 @@ async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,open
   for(const v of sections.versions??[])if(!str(v.DESCR))v.DESCR=properties.DESCR;
   for(const v of sections.versions??[]){const params=(sections.parameters??[]).filter(p=>str(p.VERSIONNAME)===str(v.VERSIONNAME));for(const role of str(properties.RTNGTYPE)==='A'?['REQUEST']:['REQUEST','RESPONSE']){if(!params.some(p=>str(p.PARAMETERNAME)===role&&str(p.MSGNAME)&&str(p.IB_MSGVERSION)))throw new Error('Operation version '+str(v.VERSIONNAME)+' requires '+role+' message/version.');}}
   const map=await rows(c,types,'SELECT IB_OPERATIONNAME FROM PSSERVICEOPR WHERE IB_SERVICENAME=:s AND IB_OPERATIONNAME=:n',{s:str(properties.IB_SERVICENAME),n:input.key[0]});mappingNew=!map.length;
+  if(!opened&&Number(service.IB_REST_SERVICE)>0){
+   const provider=Number(service.IB_REST_SERVICE)===2;
+   // The base URL a REST provider operation is reached at: Service Configuration's REST target location, then the service alias [8.61.15].
+   if(provider&&!str(properties.IB_RESTBASE_URL)){const [setup]=await rows(c,types,'SELECT IB_RESTTGTLOC FROM PSIBSVCSETUP');if(str(setup?.IB_RESTTGTLOC))properties.IB_RESTBASE_URL=`${str(setup.IB_RESTTGTLOC)}/${str(service.IB_ALIASNAME)}/`;}
+   // A consumer's routing carries the service's token on its request; with one set, the page copies credentials this writer does not handle.
+   if(!provider&&str(service.TOKENTYPE)&&str(service.TOKENTYPE)!=='NONE')throw new Error('The service has a token type: create its REST consumer operations in PIA, which copies the service credentials to the generated routing.');
+   const local=await rows(c,types,"SELECT MSGNODENAME, ACTIVE_NODE FROM PSMSGNODEDEFN WHERE LOCALDEFAULTFLG='Y'");
+   if(local.length!==1)throw new Error('Exactly one default local node is required.');
+   const [label]=await rows(c,types,'SELECT MESSAGE_TEXT FROM PSMSGCATDEFN WHERE MESSAGE_SET_NBR=158 AND MESSAGE_NBR=2382');
+   let name='';for(let i=0;i<10&&!name;i++){const candidate=generatedRoutingName(request.random);if(!(await rows(c,types,'SELECT 1 AS N FROM PSIBRTNGDEFN WHERE ROUTINGDEFNNAME=:n',{n:candidate})).length)name=candidate;}
+   if(!name)throw new Error('Failed to generate a unique Routing Definition Name.');
+   const localNode=str(local[0].MSGNODENAME);
+   let gateway=' ';
+   if(!provider){
+    if(!(await rows(c,types,"SELECT 1 AS N FROM PSMSGNODEDEFN WHERE MSGNODENAME='WADL_NODE'")).length)throw new Error('WADL_NODE, the node a REST consumer routing is generated to, does not exist.');
+    const [g]=await rows(c,types,"SELECT CONNGATEWAYID FROM PSGATEWAY WHERE LOCAL_FLAG='Y'");gateway=str(g?.CONNGATEWAYID)||' ';
+   }
+   generated={name,sender:provider?'~~ANY~~':localNode,receiver:provider?localNode:'WADL_NODE',localIdFlag:provider?2:1,gateway,connector:provider?' ':'HTTPTARGET',
+    active:str(local[0].ACTIVE_NODE)!=='0',description:str(label?.MESSAGE_TEXT)||'GENERATED'};
+  }
   if(!opened&&(sections.handlers??[]).length)throw new Error('Create the operation first, then add handlers.');
   for(const h of sections.handlers??[]){const old=opened?.sections.handlers?.find(r=>str(r.HANDLERNAME)===str(h.HANDLERNAME));if(old&&['HANDLERTYPE','HANDLERID'].some(k=>!same(old[k],h[k])))throw new Error('Changing handler event or implementation type requires PIA.');if(!old&&(str(h.HANDLERID)!=='RQST'||str(h.HANDLERNAME)!=='REQUESTHDLR'||str(h.HANDLERTYPE)!=='ApplicationClass'))throw new Error('New handler protocol is calibrated for ApplicationClass REQUESTHDLR / OnRequest only.');if(str(h.HANDLERTYPE)==='ApplicationClass'){const a=sections.applicationClassHandlers?.find(r=>str(r.HANDLERNAME)===str(h.HANDLERNAME));if(!a)throw new Error('Application class handler needs its implementation row.');if(!(await rows(c,types,'SELECT 1 AS N FROM PSAPPCLASSDEFN WHERE PACKAGEROOT=:p AND QUALIFYPATH=:q AND APPCLASSID=:c',{p:a.PACKAGEROOT,q:str(a.QUALIFYPATH)||':',c:a.APPCLASSID})).length)throw new Error('Referenced application class does not exist.');if(str(h.HANDLERID)==='RQST'&&str(a.APPCLASSMETHOD)!=='OnRequest')throw new Error('OnRequest handler implementation must use OnRequest.');}}
  }
@@ -225,6 +284,7 @@ async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,open
   if(input.kind==='operation'){
    inc('OPRVM',(sections.versions??[]).length);inc('SYS',(sections.versions??[]).length);
    if(mappingNew){inc('SRVM');inc('SYS');}
+   if(generated){inc('RTDM');inc('SYS');}
    for(const h of sections.handlers??[]){
     const before=(opened?.sections.handlers??[]).find(b=>str(b.HANDLERNAME)===str(h.HANDLERNAME));
     const implementationChanged=childWork.some(t=>t.name.endsWith('Handlers')&&t.changed&&t.after.some(r=>str(r.HANDLERNAME)===str(h.HANDLERNAME)));
@@ -241,6 +301,9 @@ async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,open
  }
  properties={...properties,...stamp,VERSION:next[parentTable.counter!]+(input.kind==='document'?1:0)};
  put(plan,parentTable,opened?.properties,properties,types);
+ // A new node also gets its description in PSNODEDEFNLANG under a blank language code; later saves leave that row alone
+ // (PIA 8.61.15 XX_IB_ND_AD, 8.62.09 ZZ_IB_NODE).
+ if(input.kind==='node'&&!opened)put(plan,{table:'PSNODEDEFNLANG',keys:['MSGNODENAME','LANGUAGE_CD'],defaults:{}},undefined,{MSGNODENAME:input.key[0],LANGUAGE_CD:' ',DESCR:properties.DESCR??' ',DESCRLONG:properties.DESCRLONG??null},types);
  let versionSequence=(next.OPRVM??0)-(plan.increments.OPRVM??0),handlerSequence=(next.OPRHM??0)-(plan.increments.OPRHM??0);
  for(const t of childWork){
   for(let after of t.after){const before=t.before.find(r=>keyOf(t.table,r)===keyOf(t.table,after));
@@ -252,6 +315,23 @@ async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,open
    put(plan,t.table,before,after,types);
   }
  }
+ if(input.kind==='operation'&&generated){
+  // The public routing PIA generates with a REST provider operation: ~~ANY~~ to the local node, its parameters and sub-definition,
+  // and the operation version's PSOPRGENRTGPARM row naming it (PSSERVICESWRK.SAVE_PB, public service) [8.61.15 XX_IB_ROP_AD_GET].
+  const version=str(properties.DEFAULTVER),key={ROUTINGDEFNNAME:generated.name,EFFDT:'1900-01-01'};
+  const routing:Row={...IB_PARENTS.routing.defaults,...key,EFF_STATUS:generated.active?'A':'I',GENERATED:'Y',SENDERNODENAME:generated.sender,RECEIVERNODENAME:generated.receiver,
+   RTNGTYPE:properties.RTNGTYPE,IB_OPERATIONNAME:input.key[0],VERSIONNAME:version,LOGMSGDTLFLG:2,DESCR:generated.description,IB_RESTMETHOD:properties.IB_RESTMETHOD,
+   IB_LOCALIDFLG:generated.localIdFlag,CONNGATEWAYID:generated.gateway,CONNID:generated.connector,...stamp,VERSION:next.RTDM};
+  put(plan,IB_PARENTS.routing,undefined,routing,types);
+  const localNode=generated.localIdFlag===2?generated.receiver:generated.sender;
+  const parameters=routingParameters({...routing,IB_OPERATIONNAME:str(properties.IB_ALIASNAME)||input.key[0]},str(properties.RTNGTYPE),localNode);
+  for(const p of parameters)put(plan,IB_SECTIONS.routing.parameters,undefined,{...IB_SECTIONS.routing.parameters.defaults,...key,...p},types);
+  const request=parameters[0];
+  put(plan,{table:'PSIBRTNGSUBDEFN',keys:['ROUTINGDEFNNAME','EFFDT','SEQNUM'],defaults:{}},undefined,{...key,SEQNUM:1,...routingSubdefinition(request,routing)},types);
+  put(plan,{table:'PSOPRGENRTGPARM',keys:['IB_OPERATIONNAME','VERSIONNAME','PARAMETERNAME','ROUTINGDEFNNAME'],defaults:{}},undefined,
+   {IB_OPERATIONNAME:input.key[0],VERSIONNAME:version,PARAMETERNAME:{S:'PUBSRVCSYNC',A:'PUBSRVCASYNC',R:'PUBSRVCASYNCRR'}[str(properties.RTNGTYPE)]??'PUBSRVCSYNC',ROUTINGDEFNNAME:generated.name},types);
+  plan.changes.push(`Generate the routing ${generated.name} (${generated.sender} to ${generated.receiver})`);
+ }
  if(input.kind==='operation'&&mappingNew){
   const serviceKey={IB_SERVICENAME:properties.IB_SERVICENAME};
   put(plan,IB_PARENTS.service,service,{...serviceKey,VERSION:next.SRVM,...stamp},types);
@@ -261,7 +341,7 @@ async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,open
   const where=predicate(parentTable.keys,parentKey);plan.statements.push({sql:`DELETE FROM PSIBRTNGSUBDEFN WHERE ${where.sql}`,binds:where.binds});
   let sequence=0;
   for(const p of sections.parameters??[])if(['INREQUEST','OUTREQUEST'].includes(str(p.PARAMETERNAME))){
-   put(plan,{table:'PSIBRTNGSUBDEFN',keys:['ROUTINGDEFNNAME','EFFDT','SEQNUM'],defaults:{}},undefined,{...parentKey,SEQNUM:++sequence,IB_DIRECTION:str(p.PARAMETERNAME)==='INREQUEST'?'I':'O',RTNGTYPE:properties.RTNGTYPE,SENDERNODENAME:p.SENDERNODENAME,RECEIVERNODENAME:p.RECEIVERNODENAME,ALIASNAME:p.ALIASNAME},types);
+   put(plan,{table:'PSIBRTNGSUBDEFN',keys:['ROUTINGDEFNNAME','EFFDT','SEQNUM'],defaults:{}},undefined,{...parentKey,SEQNUM:++sequence,...routingSubdefinition(p,properties)},types);
   }
  }
  if(input.kind==='document'){
@@ -311,7 +391,7 @@ export async function saveIb(c:DbConnection,types:DbTypes,request:IbSaveRequest)
   for(const [k,v] of Object.entries(proposed.properties))if(!IB_STAMPS.has(k)&&!ibSecretColumn(k)&&!same(stored.properties[k],v))throw new Error(`Stored property ${k} differs from the proposed value.`);
   for(const [name,proposedRows] of Object.entries(input.sections)){
    const table=IB_SECTIONS[input.kind][name];
-   for(const proposedRow of proposed.sections[name]??proposedRows){const r=(stored.sections[name]??[]).find(r=>table.keys.filter(k=>!IB_PARENTS[input.kind].keys.includes(k)).every(k=>same(r[k],proposedRow[k])));if(!r)throw new Error(`Stored ${name} row is missing.`);for(const [k,v] of Object.entries(proposedRow))if(!IB_STAMPS.has(k)&&!same(r[k],v))throw new Error(`Stored ${name}.${k} differs from proposed input.`);}
+   for(const proposedRow of proposed.sections[name]??proposedRows){const r=(stored.sections[name]??[]).find(r=>table.keys.filter(k=>!IB_PARENTS[input.kind].keys.includes(k)).every(k=>same(r[k],proposedRow[k])));if(!r)throw new Error(`Stored ${name} row is missing.`);for(const [k,v] of Object.entries(proposedRow))if(!IB_STAMPS.has(k)&&!ibSecretColumn(k)&&!same(r[k],v))throw new Error(`Stored ${name}.${k} differs from proposed input.`);}
   }
   if(input.document&&stored.sections.logicalSchema?.[0]?.xml!==input.document.logicalSchema)throw new Error('Stored logical document body differs from input.');
   if(input.document){for(const p of input.document.physicalSchemas){if(stored.sections.physicalBodies?.find(r=>str(r.IB_PHYSSCHEMANAME)===p.name)?.xml!==p.xml)throw new Error('Stored physical document body differs from input.');}if(stored.sections.xmlSchemas?.[0]?.text!==input.document.xmlSchema||stored.sections.jsonSchemas?.[0]?.text!==input.document.jsonSchema)throw new Error('Stored generated schemas differ from input.');}

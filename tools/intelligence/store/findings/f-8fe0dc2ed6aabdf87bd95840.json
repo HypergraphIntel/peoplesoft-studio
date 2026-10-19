@@ -1,0 +1,66 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-8fe0dc2ed6aabdf87bd95840",
+  "fingerprint": "8fe0dc2ed6aabdf87bd958401187f938f5bb9a49cc2a275a772b00b49244ed71",
+  "type": "serialization",
+  "subject": {
+    "subsystem": "integration-broker",
+    "objectType": "Document",
+    "tables": [
+      "PSDOCJSCMADATA",
+      "PSIBSVCSETUP"
+    ],
+    "properties": [
+      "IB_RESTTGTLOC"
+    ]
+  },
+  "assertion": {
+    "kind": "generated-value",
+    "facts": {
+      "field": "JSON schema $id",
+      "value": "IB_RESTTGTLOC + /<package>.<document>.<version>.json",
+      "whenBlank": "the ORACLE_ENDPOINT placeholder"
+    }
+  },
+  "title": "A document's generated JSON schema $id is the REST Target Location followed by /<package>.<document>.<version>.json",
+  "statement": "PIA builds the generated JSON schema's $id from Service Configuration's REST Target Location at save time, followed by /<package>.<document>.<version>.json; the ORACLE_ENDPOINT placeholder stands in only when the location is blank.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.61.15"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-18T23:30:00Z",
+      "method": "pia-capture",
+      "experimentId": "pt861-ib-document",
+      "runId": "2026-10-18",
+      "environment": {
+        "peopleToolsRelease": "8.61.15",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "A flat string document saved in PIA with a REST Target Location configured carried that location in its JSON schema $id.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "docs/INTEGRATION_BROKER.md"
+        }
+      ],
+      "digest": "4df27a78516e757551850813414d885de24d48944f2ffa627ec330a183a0093d"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-18T22:59:56.629Z",
+    "updatedAt": "2026-10-18T22:59:56.629Z",
+    "schemaVersion": 1
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-618f90dcf9872c504f8bba40",
+  "fingerprint": "618f90dcf9872c504f8bba4082c5f1d2a47d73d5d5f30ed149dfb12a27da7ebd",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "portal-registry",
+    "objectType": "Content Reference",
+    "tables": [
+      "PSPRSMPERM",
+      "PSPRSMDEFN"
+    ],
+    "properties": [
+      "PORTAL_PERMNAME"
+    ]
+  },
+  "assertion": {
+    "kind": "ancestor-grants",
+    "facts": {
+      "grantsTo": "every non-public ancestor folder",
+      "stopsAt": "first public folder",
+      "skipsFoldersHolding": true,
+      "perChangedFolder": "PRSM +1, SYS +1",
+      "moveKeepsOldParent": true
+    }
+  },
+  "title": "Saving a content reference grants its permission lists to every non-public folder above it, up to the first public one",
+  "statement": "A content reference save adds its missing permission lists to each ancestor folder that is not public, stopping at the first public folder and passing folders that already hold them; each changed folder is restamped at its own PRSM and SYS step. Moving the reference leaves the old parent's lists.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.61.15"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-18T23:30:00Z",
+      "method": "pia-capture",
+      "experimentId": "pt861-portal-grants",
+      "runId": "2026-10-18",
+      "environment": {
+        "peopleToolsRelease": "8.61.15",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "PIA saved a content reference under a restricted lab folder chain; the folders without the lists gained PSPRSMPERM rows and a version step each, up to the first public folder.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "docs/PORTAL_REGISTRY.md"
+        },
+        {
+          "kind": "test",
+          "ref": "src/test/portalFolderGrants.test.ts"
+        }
+      ],
+      "digest": "b5aff512f5d043634107bc3b0d036afdf72ad46f7322a8995512e408e8402456"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-18T22:59:48.215Z",
+    "updatedAt": "2026-10-18T22:59:48.215Z",
+    "schemaVersion": 1
+  }
+}

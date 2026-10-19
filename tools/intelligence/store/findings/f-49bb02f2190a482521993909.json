@@ -1,0 +1,69 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-49bb02f2190a482521993909",
+  "fingerprint": "49bb02f2190a4825219939098ddddb8ddde4726f2fe0e3cd81780be7b4bb7d8a",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "other",
+    "objectType": "Message Catalog",
+    "tables": [
+      "PSMSGSETDEFN",
+      "PSVERSION",
+      "PSLOCK"
+    ],
+    "properties": [
+      "VERSION"
+    ]
+  },
+  "assertion": {
+    "kind": "version-allocation",
+    "facts": {
+      "function": "UpdateSysVersion",
+      "counter": "PPC",
+      "next": "max(PSVERSION, PSLOCK) + 1",
+      "alsoSys": true,
+      "storedVersion": "new PPC"
+    }
+  },
+  "title": "Message Catalog saves advance PPC (PSVERSION and PSLOCK) and SYS, storing the new PPC as the set's VERSION",
+  "statement": "UpdateSysVersion() advances the PPC counter to one past the larger of PSVERSION and PSLOCK, sets both, moves SYS, and the message set (and URL definitions, which share it) stores the new PPC.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.61.15"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-18T23:30:00Z",
+      "method": "pia-capture",
+      "experimentId": "pt861-message-set",
+      "runId": "2026-10-18",
+      "environment": {
+        "peopleToolsRelease": "8.61.15",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "PIA saved a custom message set and message: PPC moved in PSVERSION and PSLOCK, SYS moved, and the set's VERSION was the new PPC.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/providers/administrationWriter.ts"
+        }
+      ],
+      "digest": "870e150c5b635c7fe55d414df7d9a17f267067dac10c5dc1558e0e3f31d5f48d"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-18T23:00:34.523Z",
+    "updatedAt": "2026-10-18T23:00:34.523Z",
+    "schemaVersion": 1
+  }
+}

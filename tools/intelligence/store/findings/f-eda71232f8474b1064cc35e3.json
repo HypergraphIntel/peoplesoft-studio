@@ -1,0 +1,72 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-eda71232f8474b1064cc35e3",
+  "fingerprint": "eda71232f8474b1064cc35e393770d0dc0fcef2c858145c78c6cc4808c8e3a18",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "integration-broker",
+    "objectType": "Node",
+    "tables": [
+      "PSMSGNODEDEFN",
+      "PSNODEDEFNLANG"
+    ],
+    "properties": [
+      "LANGUAGE_CD",
+      "DESCR"
+    ]
+  },
+  "assertion": {
+    "kind": "row-insert",
+    "facts": {
+      "table": "PSNODEDEFNLANG",
+      "languageCode": "blank",
+      "onCreateOnly": true,
+      "copies": "DESCR, DESCRLONG"
+    }
+  },
+  "title": "A new node also gets PSNODEDEFNLANG with a blank LANGUAGE_CD and its description; later saves leave that row alone",
+  "statement": "PIA's Nodes page, adding an external node without authentication, inserts PSMSGNODEDEFN and a PSNODEDEFNLANG row whose LANGUAGE_CD is a single blank, holding DESCR and DESCRLONG. Editing the description later updates PSMSGNODEDEFN only. Counters: MNDM +1, MSDM +1, SYS +1.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.61.15"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-18T23:30:00Z",
+      "method": "pia-capture",
+      "experimentId": "pt861-ib-node-add",
+      "runId": "2026-10-18",
+      "environment": {
+        "peopleToolsRelease": "8.61.15",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "PIA added an external PIA-type node (authentication None, default user given): PSMSGNODEDEFN and one PSNODEDEFNLANG row with LANGUAGE_CD blank; an edit of the description afterwards changed PSMSGNODEDEFN only.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "docs/INTEGRATION_BROKER.md"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "src/providers/ibWriter.ts"
+        }
+      ],
+      "digest": "885b713e7c56f64d8e5d286bfb7ea412c5e1afb9328ca6d5e4bdd605838959c5"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-18T22:59:45.441Z",
+    "updatedAt": "2026-10-18T22:59:45.441Z",
+    "schemaVersion": 1
+  }
+}

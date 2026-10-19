@@ -19,10 +19,11 @@ test('Query saves run on the releases a native Windows Query save was matched on
     /Query saves are calibrated for PeopleTools 8\.62\.09 and 8\.61\.15; this database is 8\.60\.03\./);
 });
 
-test('Integration Broker writes on 8.61.15 only in the shapes matched there; OAuth stays on 8.62.09', () => {
+test('Integration Broker writes on 8.61.15 and 8.62.09, REST, nodes, routings and handlers included; OAuth stays on 8.62.09', () => {
   assert.equal(calibrationRefusal('integrationBrokerStandard', '8.61.15'), undefined);
   assert.equal(calibrationRefusal('integrationBroker', '8.62.09'), undefined);
-  assert.match(calibrationRefusal('integrationBroker', '8.61.15') ?? '', /\(REST, nodes, routings or handlers\) are calibrated for PeopleTools 8\.62\.09; this database is 8\.61\.15/);
+  assert.equal(calibrationRefusal('integrationBroker', '8.61.15'), undefined);
+  assert.match(calibrationRefusal('integrationBroker', '8.60.10') ?? '', /\(REST, nodes, routings or handlers\) are calibrated for PeopleTools 8\.62\.09 and 8\.61\.15; this database is 8\.60\.10/);
   assert.match(calibrationRefusal('integrationBrokerStandard', '8.61.12') ?? '', /calibrated for PeopleTools 8\.62\.09 and 8\.61\.15; this database is 8\.61\.12/);
   assert.match(calibrationRefusal('oauth', '8.61.15') ?? '', /OAuth writes/);
 });

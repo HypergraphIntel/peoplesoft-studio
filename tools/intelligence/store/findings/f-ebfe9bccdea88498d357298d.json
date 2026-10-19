@@ -1,0 +1,94 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-ebfe9bccdea88498d357298d",
+  "fingerprint": "ebfe9bccdea88498d357298d45cf7e0709e89bcbe18aaa6f215effa8a650b496",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "customization",
+    "objectType": "Page and Field Configurator configuration",
+    "tables": [
+      "PSPTCS_SRVCFG",
+      "PSPTCSSRVCFGDEL",
+      "PSPTCSSRVCNFDEL"
+    ],
+    "properties": []
+  },
+  "assertion": {
+    "kind": "tombstone-cleanup",
+    "facts": {
+      "onRemap": "delete PSPTCSSRVCFGDEL rows of the content reference",
+      "serviceTombstones": "kept",
+      "path": "configurator mapping (EventMapping ServiceHandler)",
+      "classicEventMappingPage": "keeps them"
+    }
+  },
+  "title": "The configurator deletes a content reference's PSPTCSSRVCFGDEL tombstones when it maps it again",
+  "statement": "When the Page and Field Configurator maps a content reference whose service configuration was removed earlier, PIA deletes that content reference's PSPTCSSRVCFGDEL rows; the PSPTCSSRVCNFDEL tombstones of its services stay. The classic Event Mapping page does not (it kept the tombstone when re-adding a configuration, capture em08).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.61.15",
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-18T23:45:00Z",
+      "method": "pia-capture",
+      "experimentId": "pt861-pfc-apply",
+      "runId": "2026-10-18b",
+      "environment": {
+        "peopleToolsRelease": "8.61.15",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "After two Remove Mapping runs had left two PSPTCSSRVCFGDEL rows on the content reference, Apply Configuration deleted both and kept the service tombstones (RCSCM +1, SCNFM +4, SYS +5).",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        },
+        {
+          "kind": "test",
+          "ref": "src/test/pfcWriter.test.ts"
+        }
+      ],
+      "digest": "6703603eae07b70b150b76453d5e2742a3cd4fa1c1f5c943ca27207713aca8d7"
+    },
+    {
+      "observedAt": "2026-10-18T23:50:00Z",
+      "method": "pia-capture",
+      "experimentId": "pfc-deactivate-reactivate",
+      "runId": "2026-10-18",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Saving the lab Standard configuration inactive removed both content references' service configurations (one PSPTCSSRVCFGDEL each, RCSCM +2, SCNFM +8, SYS +10); saving it active again re-created them and deleted both PSPTCSSRVCFGDEL rows, keeping the 26 service tombstones on each.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        },
+        {
+          "kind": "capture-case",
+          "ref": "em08-classic-readd"
+        }
+      ],
+      "digest": "b8c4a6fa1b00c39793e98709497a98f2ea16f68322bbae04941e339f8ce2f164"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-18T23:40:32.223Z",
+    "updatedAt": "2026-10-18T23:40:32.533Z",
+    "schemaVersion": 1
+  }
+}

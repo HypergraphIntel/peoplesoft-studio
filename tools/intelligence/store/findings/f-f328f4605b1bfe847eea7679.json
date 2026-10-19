@@ -1,0 +1,70 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-f328f4605b1bfe847eea7679",
+  "fingerprint": "f328f4605b1bfe847eea7679058e15571d20dd7584f95af47f67bf21a85a5c97",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "customization",
+    "objectType": "Page and Field Configurator configuration",
+    "tables": [
+      "PS_EOCC_CONFIG_FLD"
+    ],
+    "properties": [
+      "OCCURSLEVEL",
+      "SECOCCURSLEVEL"
+    ]
+  },
+  "assertion": {
+    "kind": "level-columns",
+    "facts": {
+      "componentPageSecLevel": 0,
+      "secondaryPageSecLevel": "key level",
+      "secondaryPageOccursLevel": "key level + secondary page level",
+      "source": "EOCC_SELECT_FIELDS SEARCH_BTN FieldChange"
+    }
+  },
+  "title": "A field from a secondary page stores OCCURSLEVEL = its level + the secondary page's level and SECOCCURSLEVEL = its own level",
+  "statement": "The Select Fields search (EOCC_SELECT_FIELDS SEARCH_BTN FieldChange, \"Correct the level of the fields from secondary page\") sets SECOCCURSLEVEL to the field's key level and adds the level the secondary page is reached at to OCCURSLEVEL. A component page's field keeps SECOCCURSLEVEL 0.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-18T23:30:00Z",
+      "method": "source-inspection",
+      "experimentId": "pfc-select-fields-search",
+      "runId": "2026-10-18",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle"
+      },
+      "observation": "The delivered SEARCH_BTN FieldChange sets SECOCCURSLEVEL = OCCURSLEVEL then OCCURSLEVEL += the secondary page level for page type S; stored rows on an 8.61.15 database (secondary pages opened from a grid) carry exactly these values, and no 8.62.09 lab row has a secondary page reached below level 0.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/providers/pfcCatalog.ts"
+        },
+        {
+          "kind": "test",
+          "ref": "src/test/pfcCriteria.test.ts"
+        }
+      ],
+      "digest": "5d5254ef85eddbe28512275d1865cc65403a4215155e707baabbd176ed3eab0d"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-18T22:59:47.605Z",
+    "updatedAt": "2026-10-18T22:59:47.605Z",
+    "schemaVersion": 1
+  }
+}
