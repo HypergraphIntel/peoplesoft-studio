@@ -617,6 +617,8 @@ test('checkpoint reversal, redo, and external modification conflicts', async () 
         assert.equal((await f.service.apply(reverse.id)).status, 'APPLIED');
         assert.deepEqual(f.live.get('A')?.value, { text: 'baseline' });
         let redo = await f.service.reverse(reverse.id, true);
+        assert.equal(reverse.title, 'Revert Test change');
+        assert.equal(redo.title, 'Redo Test change');
         redo = await f.service.validate(redo.id);
         redo = await f.service.review(redo.id, redo.objects.map(c => c.id), 'APPROVED', redo.revision);
         await f.service.apply(redo.id);

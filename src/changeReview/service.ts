@@ -599,7 +599,7 @@ export class ReviewService {
             if (original.continuation)
                 throw new Error('Reversing continued work needs a combined recovery plan; it is not supported yet.');
             await this.environment(original);
-            const proposal = createSet((redo ? 'Redo ' : 'Revert ') + original.title, original.environment, 'reversal');
+            const proposal = createSet(redo ? 'Redo ' + original.title.replace(/^Revert /, '') : 'Revert ' + original.title, original.environment, 'reversal');
             proposal.reverses = id;
             const applied = original.objects.filter(c => c.application === 'VERIFIED');
             const ids = new Map(applied.map(c => [c.id, randomUUID()]));

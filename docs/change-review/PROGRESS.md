@@ -34,8 +34,21 @@ agent's read-modify-save re-indented every line (they now return stored
 source when present); and the review page kept "Approve approach" after
 approval (four PLAN_APPROVED entries). COVERAGE.md stale rows (Process,
 Event PeopleCode, record/AE/project creation) now cite their native evidence.
-Next: remaining step-3 gaps (Query create/copy, Page redo, component/page
-PeopleCode events) or 8.61 / REST consumer structural evidence.
+Then PeopleCode events with redo: Page `ZZ_PCODE_LAB_PG.Activate` (44),
+Component `ZZ_PCODE_LAB_CMP.GBL.PreBuild` (46) and Component Record Field
+`...ZZ_PCODE_LAB_T.ZZ_PCODE_LAB_KEY.FieldChange` (48), comment-only, read
+through the new stored-source path (each diff exactly one line). Forward
+`dafc4ed2-2739-4e33-98d0-91bcb1b162ac`, typed inverse
+`be13efe5-4d50-4830-afdd-1004c4279d90` and redo
+`576f5403-e922-4107-a3a6-b29ecfeb69d5` were each developer-approved, applied and
+VERIFIED; direct DatabaseProvider readback of PSPCMTXT and decoded PSPCMPROG
+matched at every step; timelines are continuous (MATCHES_PREVIOUS) with live
+MATCHES_RECORDED. The comment remains on these lab programs after the redo.
+Found on the way: the plan buttons briefly hid the taken decision, which moved
+"Reject approach" under the cursor (fixed 9eee74b: both stay, the taken one is
+disabled), and redo titles read "Redo Revert ..." (now "Redo <original>").
+Next: Page redo, Query create/copy native, or 8.61 / REST consumer structural
+evidence.
 
 Latest checkpoint: the native startup-trace Process UPDATE rolled back on a
 JSON property-order comparison bug; its original full live baseline is intact.

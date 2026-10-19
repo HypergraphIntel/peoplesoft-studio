@@ -23,6 +23,11 @@
 - **Approach approval buttons reflect the decision.** The review page hides
   "Approve approach" once approved and "Reject approach" once rejected.
 
+- **Native reviewed PeopleCode event cycle with redo.** Page, Component and
+  Component Record Field PeopleCode passed installed HRDMO apply, typed
+  inverse and redo, each developer-approved. Redo proposals are titled
+  "Redo <original title>" instead of "Redo Revert ...".
+
 - **Native reviewed HTML, style sheet and Record PeopleCode cycle.** Installed
   HRDMO apply and typed inverse verified for all three in one Change Set.
 
