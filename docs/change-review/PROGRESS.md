@@ -1,6 +1,6 @@
 # Change Review, transactions and history — progress
 
-## Current development — 0.9.5
+## Current development — 0.9.6 (0.9.5 release baseline)
 
 Build Request message ordering and installed acceptance were committed as
 `2283c7d`. The bounded HRDMO build reached BUILT after native spec/SQL review
@@ -8,7 +8,7 @@ approval and independent state/SQL/AE/project readback. Developer trials also
 verified DOCX intake and Claude analysis handoff; their production business-rule
 questions were intentionally left unanswered. See ../build-requests/NATIVE_ACCEPTANCE.md.
 
-The next slice adds `ib-service` and `ib-operation` adapters for existing
+The 0.9.5 release added `ib-service` and `ib-operation` adapters for existing
 description/comments only. Full fixed noncredential checkpoints, native rollback
 previews, exact revision/policy authorization, precommit after-image comparison,
 typed inverse and history/timeline navigation are implemented. `psft_ib_save`
@@ -69,6 +69,18 @@ acceptance/scope. No runtime message transmission or credential changes occurred
 Next implementation work: broaden IB review beyond headers with explicit
 per-operation snapshot/dependency/inverse contracts. Do not treat native writer
 calibration or this header cycle as structural review certification.
+
+## 0.9.5 release closeout
+
+Published annotated tag `v0.9.5` at `4f1b22ac09f858842a6621369145ae60e412be2e`
+and [GitHub Release](https://github.com/HypergraphIntel/peoplesoft-studio/releases/tag/v0.9.5).
+Release-head CI run `39190067531` passed full verification and all 49 MCP/editor
+fixture checks. Published VSIX SHA-256:
+`457cb2ab3961700b3e657c8a27064f0e332591f090ed4f145dbb739d0441e481`.
+Downloaded release assets passed SHA256SUMS verification; the packaged runtime
+bundle matches the tested release source. README/CHANGELOG/manifest were audited.
+0.9.6 development is prepared separately after publication; the 0.9.5 tag and
+published assets remain fixed. No 0.9.6 behavior changes are claimed.
 
 ## Historical 0.9.1 closeout
 

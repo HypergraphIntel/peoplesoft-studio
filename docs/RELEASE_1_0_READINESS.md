@@ -26,7 +26,7 @@ detail is the [README](../README.md#what-works-now), [roadmap](ROADMAP.md) and
 
 ## Next sequence
 
-1. Publish the bounded, evidenced 0.9.5 release and prepare 0.9.6 development.
+1. Complete: bounded, evidenced 0.9.5 release published; 0.9.6 development prepared.
 2. Broaden IB structural review through explicit per-operation snapshot,
    dependency, validation and typed inverse contracts; retain native approval.
 3. Close native handoff/recovery and remaining adapter acceptance gaps while

@@ -19,6 +19,10 @@ Portal MCP callers must migrate `publicAccess` to `access`; content-reference
 saves can grant permission lists to ancestor folders, as PIA does.
 
 
+Development version: **0.9.6** (unreleased).
+
+Track completion gates in [1.0 readiness](docs/RELEASE_1_0_READINESS.md).
+
 ## Why PeopleSoft Studio
 
 - **Your definitions, in the editor you already use.** PeopleCode with

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — 0.9.6
+
+Development starts from 0.9.5. No 0.9.6 feature changes are claimed yet.
+
 ## 0.9.5 — 2026-10-18
 
 ### Added
