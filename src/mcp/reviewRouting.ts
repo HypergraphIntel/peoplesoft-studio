@@ -14,8 +14,10 @@ import { planHash } from '../changeReview/model.js';
 import { prepareStructuredHeaderReview } from './structuredHeaderReview.js';
 import { isHeaderOnlyRequest } from '../changeReview/structuredHeaders.js';
 import { isStageablePageRequest } from '../model/pageOperations.js';
+import { prepareStructuredCreationReview } from './structuredCreationReview.js';
+import { prepareProjectCreationReview } from './projectCreationReview.js';
 import { prepareIbHeaderReview } from './ibHeaderReview.js';
-export const REVIEWED_MUTATION_TOOLS = ['psft_save_text_definition', 'psft_process_save', 'psft_query_save', 'psft_query_create', 'psft_query_copy', 'psft_save_peoplecode', 'psft_edit_page', 'psft_edit_record', 'psft_ae_edit', 'psft_ib_save'];
+export const REVIEWED_MUTATION_TOOLS = ['psft_save_text_definition', 'psft_process_save', 'psft_query_save', 'psft_query_create', 'psft_query_copy', 'psft_save_peoplecode', 'psft_edit_page', 'psft_edit_record', 'psft_ae_edit', 'psft_ib_save', 'psft_create_record', 'psft_ae_create', 'psft_create_project'];
 /** Compatibility routing only for adapters whose exact after-state is known. */
 export function routeReviewedMutations(server: {
     registerTool: unknown;
@@ -28,10 +30,12 @@ export function routeReviewedMutations(server: {
         if (!REVIEWED_MUTATION_TOOLS.includes(name))
             return register(name, config, callback);
         const schema = config.inputSchema as z.ZodObject;
-        const next = { ...config, description: String(config.description) + (name === 'psft_ib_save'
+        const next = { ...config, description: String(config.description) + (name === 'psft_create_record' || name === 'psft_ae_create' || name === 'psft_create_project'
+                ? ' On Oracle with Change Review, new Derived/Work records (existing fields, no subrecords), App Engine programs, and new projects with explicit bounded membership stage exact native rollback previews. Declare dependsOn for proposed Record/SQL/AE prerequisites in the same Change Set. No persistence before developer approval/application; no creation undo. Other Record types retain legacy confirmation outside a Change Set.'
+                : name === 'psft_ib_save'
                 ? ' With Change Review on Oracle, only existing service/operation description/comments edits stage fixed noncredential preservation snapshots. Other edits keep legacy confirmation and cannot be attached to a Change Set. No IB creation/deletion adapter is implied.'
                 : name === 'psft_edit_record' || name === 'psft_ae_edit'
-                ? ' With Change Review on Oracle, only existing-definition description/comments edits stage full preservation snapshots for developer approval/application; Record SQL Table/Derived Work only. A structural operation is not staged: it saves through the legacy per-write confirmation, as creation does. No staged prerequisite overlay is implied. Explicit dryRun retains its documented preview path.'
+                ? ' With Change Review on Oracle, only existing-definition description/comments edits stage full preservation snapshots for developer approval/application; Record SQL Table/Derived Work only. A structural operation is not staged: it saves through the legacy per-write confirmation, outside creation review. Proposed dependency validation is limited to new definitions with explicit dependencies. Explicit dryRun retains its documented preview path.'
                 : name === 'psft_edit_page'
                 ? ' With Change Review on Oracle, only existing-control move/resize, label/use and description/comments changes stage proposals. Inserting or deleting a control, and saveInvalid, are not staged: they save through the legacy per-write confirmation. Explicit dryRun keeps the rollback preview path. No Page creation/deletion adapter is implied.'
                 : ' With Change Review enabled on Oracle, supported text, PeopleCode, Process and Query mutations stage a durable proposal and return REVIEW_REQUIRED; they do not persist until the developer applies in VS Code. HTML and freeform style sheets use exact text/description snapshots. A new Application Class is not staged: it saves through the legacy per-write confirmation.') + ' Supply changeSetId to group operations. Unsupported platforms retain legacy gates.',
@@ -40,8 +44,10 @@ export function routeReviewedMutations(server: {
             if (args.dryRun === true)
                 return callback(args, ...rest);
             const requestedProvider = await requireProvider(workspace, String(args.connection));
-            if (requestedProvider instanceof DatabaseProvider && requestedProvider.platform !== 'oracle')
+            if (requestedProvider instanceof DatabaseProvider && requestedProvider.platform !== 'oracle') {
+                if (args.changeSetId || (args.dependsOn as string[]).length) throw new Error('Change Set grouping requires Oracle review adapters; no legacy write was performed.');
                 return callback(args, ...rest);
+            }
             const connection = String(args.connection), supplied = typeof args.changeSetId === 'string' ? await service.store.get(args.changeSetId) : undefined;
             // A tool cannot attach a request for one connection to another target's set.
             if (supplied && supplied.environment.connection !== requestedProvider.id)
@@ -55,7 +61,7 @@ export function routeReviewedMutations(server: {
                     throw new Error(`${what} It cannot be grouped into a Change Set: retry without changeSetId / dependsOn to write it through the per-write confirmation.`);
             };
             // A new Application Class has no review adapter (no package/class snapshot), so it keeps the legacy
-            // confirmation gate, as Record and AE creation do; staging it would leave a proposal that can never apply.
+            // confirmation gate; staging it would leave a proposal that can never apply.
             if (name === 'psft_save_peoplecode' && Number(args.type) === DefinitionType.ApplicationClassPeopleCode && requestedProvider instanceof DatabaseProvider
                 && !(await requestedProvider.hasPeopleCode({ type: DefinitionType.ApplicationClassPeopleCode, parts: (args.parts as string[]).map(p => p.trim()) }))) {
                 refuseOutsideSet('A new Application Class is not staged; it saves through the legacy per-write confirmation.');
@@ -67,10 +73,31 @@ export function routeReviewedMutations(server: {
                 refuseOutsideSet('An inserted or deleted Page control is not staged; it saves through the legacy per-write confirmation.');
                 return callback(args, ...rest);
             }
+            if (name === 'psft_create_project') {
+                if (!supplied && (args.dependsOn as string[]).length) throw new Error('dependsOn requires its Change Set.');
+                const context = supplied ? await service.proposedDependencies(supplied.id, args.dependsOn as string[]) : undefined;
+                const proposal = await prepareProjectCreationReview(workspace, host?.(), args, context);
+                const setId = supplied?.id ?? (await service.create('Review ' + name, connection)).id;
+                const staged = await service.stage(setId, 'project-create', proposal.key, proposal.after, args.dependsOn as string[], undefined, proposal.expectedToken);
+                return jsonResult({ status: 'REVIEW_REQUIRED', changeSetId: staged.id, revision: staged.revision, persisted: false, command: 'psft.changeReview.open' });
+            }
+            const creationFamily = name === 'psft_create_record' ? 'record' : name === 'psft_ae_create' ? 'ae' : undefined;
+            if (creationFamily) {
+                if (creationFamily === 'record' && args.recordType !== 'derivedWork') {
+                    refuseOutsideSet('SQL Table creation review is not supported yet.');
+                    return callback(args, ...rest);
+                }
+                if (!supplied && (args.dependsOn as string[]).length) throw new Error('dependsOn requires its Change Set.');
+                const context = supplied ? await service.proposedDependencies(supplied.id, args.dependsOn as string[]) : undefined;
+                const proposal = await prepareStructuredCreationReview(workspace, host?.(), creationFamily, args, context);
+                const setId = supplied?.id ?? (await service.create('Review ' + name, connection)).id;
+                const staged = await service.stage(setId, proposal.adapter, proposal.key, proposal.after, args.dependsOn as string[], undefined, proposal.expectedToken);
+                return jsonResult({ status: 'REVIEW_REQUIRED', changeSetId: staged.id, revision: staged.revision, persisted: false, command: 'psft.changeReview.open' });
+            }
             const preparedPage = name === 'psft_edit_page' ? await preparePageReview(workspace, host?.(), args) : undefined;
             const headerFamily = name === 'psft_edit_record' ? 'record' : name === 'psft_ae_edit' ? 'ae' : undefined;
             // A structural Record or App Engine edit has no review adapter, so -- like a
-            // new Application Class, and like Record and AE creation -- it keeps the legacy
+            // new Application Class -- it keeps the legacy
             // per-write confirmation instead of being refused. Refusing it left the edit
             // with no route at all: staging cannot carry it and nothing else was offered.
             if (headerFamily && !isHeaderOnlyRequest(headerFamily, args.operations)) {

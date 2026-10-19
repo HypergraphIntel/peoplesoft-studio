@@ -515,7 +515,13 @@ try {
   requestPanel._receive({ type: 'handoff', phase: 'build', agent: 'codex' });
   await until(async () => terminals.length === 2);
   assert.match(terminals[1].commands[0], /confirm buildAuthorized is true/);
-  await buildTool('psft_build_request_report', { id: request.id, entries: [{ ref: 'sql', status: 'STAGED', detail: 'Fixture proposal only', changeSetId: '00000000-0000-4000-8000-000000000000' }] });
+  const stagedReport = await buildTool('psft_build_request_report', { id: request.id, entries: [{ ref: 'sql', status: 'STAGED', detail: 'Fixture proposal only', changeSetId: '00000000-0000-4000-8000-000000000000' }] });
+  assert.equal(stagedReport.status, 'AWAITING_REVIEW');
+  assert.deepEqual(stagedReport.remaining, ['sql']);
+  assert.deepEqual(stagedReport.awaitingReview, [{ref:'sql',changeSetId:'00000000-0000-4000-8000-000000000000'}]);
+  assert.equal((await buildTool('psft_build_request_get', {id:request.id})).status, 'AWAITING_REVIEW');
+  assert.equal((await buildTool('psft_build_request_list', {})).requests.find((r:any)=>r.id===request.id).status, 'AWAITING_REVIEW');
+  await until(async()=>requestPanel.webview.posted.some((m:any)=>m.state?.statusLabel==='Awaiting Change Review application'));
   requestPanel._receive({ type: 'edit', edit: { project: 'ZZ_BR_CHANGED' } });
   await until(async () => (await buildStore.get(request.id)).project === 'ZZ_BR_CHANGED');
   assert.equal((await buildTool('psft_build_request_get', { id: request.id })).buildAuthorized, false);
@@ -562,7 +568,7 @@ async function reviewRpc(method:string,params:unknown) {
  const body=await response.text(),value=JSON.parse(body.startsWith('{')?body:body.split('\n').find(line=>line.startsWith('data:'))!.slice(5));
  if(value.error)throw new Error(JSON.stringify(value.error));return value.result;
 }
-async function reviewCall(name:string,args:object){const r=await reviewRpc('tools/call',{name,arguments:args});assert.ok(!r.isError,r.content?.[0]?.text);return JSON.parse(r.content[0].text);}
+async function reviewCall(name:string,args:object,expect=true){const r=await reviewRpc('tools/call',{name,arguments:args});if(!expect){assert.equal(r.isError,true,'Expected refusal: '+name);return r;}assert.ok(!r.isError,r.content?.[0]?.text);return JSON.parse(r.content[0].text);}
 async function until(test:()=>Promise<boolean>){for(let n=0;n<200;n++){if(await test())return;await new Promise(resolve=>setTimeout(resolve,5));}throw new Error('Review UI did not reach expected state');}
 try{
  mode='confirm';const confirmsBefore=confirmed;
@@ -776,6 +782,40 @@ try{
  provider.saveSqlDefinition=saveBeforePartial;
  check('fresh continuation approval blocks prerequisite token drift, completes remaining SQL once and retains original partial history');
 
+ // A failed existing-definition writer left the exact native baseline intact.
+ // Reconciliation may prepare a fresh proposal, but cannot reuse its approval.
+ let rollbackAttempts=0,refuseRolledBack=true;
+ provider.saveSqlDefinition=async(request:any)=>{
+   if(request.sqlId==='ZZ_PARTIAL_C') { rollbackAttempts++; if(refuseRolledBack)throw new Error('fixture writer rolled back before commit'); }
+   return saveBeforePartial(request);
+ };
+ const rollbackSet=await reviewCall('psft_create_change_set',{title:'Rolled-back UPDATE recovery',connection:'FIXTURE'});
+ await reviewCall('psft_save_text_definition',{connection:'FIXTURE',type:30,name:'ZZ_PARTIAL_C',text:'SELECT 2 FROM DUAL',changeSetId:rollbackSet.id});
+ const rollbackReady=await reviewCall('psft_validate_change_set',{changeSetId:rollbackSet.id});
+ await reviewUi.show(rollbackSet.id);const rollbackPage=vscode._panels.at(-1);
+ rollbackPage._receive({action:'approve',id:rollbackSet.id,revision:rollbackReady.revision});await until(async()=>(await reviewService.store.get(rollbackSet.id)).status==='APPROVED');
+ rollbackPage._receive({action:'apply',id:rollbackSet.id,revision:rollbackReady.revision});await until(async()=>(await reviewService.store.get(rollbackSet.id)).objects[0].application==='UNCERTAIN');
+ assert.equal(sqlDefinitions.get('ZZ_PARTIAL_C')?.text,'SELECT 1 FROM DUAL');assert.equal(rollbackAttempts,1);
+ rollbackPage._receive({action:'recover',id:rollbackSet.id,revision:rollbackReady.revision});
+ await until(async()=>(await reviewService.store.get(rollbackSet.id)).objects[0].application==='PENDING');
+ await reviewUi.show(rollbackSet.id);
+ const remainingButton=rollbackPage.webview.html.match(/<button\b[^>]*data-action="remaining"[^>]*>/)?.[0];
+ assert.ok(remainingButton&&!/\bdisabled\b/.test(remainingButton));assert.equal(rollbackAttempts,1);
+ rollbackPage._receive({action:'remaining',id:rollbackSet.id,revision:rollbackReady.revision});
+ await until(async()=>(await reviewService.store.list()).some((s:any)=>s.continuation?.changeSetId===rollbackSet.id));
+ let rollbackFollowup=await reviewCall('psft_prepare_remaining_work',{changeSetId:rollbackSet.id});
+ assert.equal(rollbackFollowup.objects[0].approvedHash,undefined);assert.equal(rollbackAttempts,1);
+ rollbackFollowup=await reviewCall('psft_validate_change_set',{changeSetId:rollbackFollowup.id});
+ await reviewUi.show(rollbackFollowup.id);
+ rollbackPage._receive({action:'apply',id:rollbackFollowup.id,revision:rollbackFollowup.revision});
+ await until(async()=>rollbackPage.webview.html.includes('An approved Change Set is required'));
+ assert.equal(rollbackAttempts,1);refuseRolledBack=false;
+ rollbackPage._receive({action:'approve',id:rollbackFollowup.id,revision:rollbackFollowup.revision});await until(async()=>(await reviewService.store.get(rollbackFollowup.id)).status==='APPROVED');
+ rollbackPage._receive({action:'apply',id:rollbackFollowup.id,revision:rollbackFollowup.revision});await until(async()=>(await reviewService.store.get(rollbackFollowup.id)).status==='APPLIED');
+ assert.equal(rollbackAttempts,2);assert.equal(sqlDefinitions.get('ZZ_PARTIAL_C')?.text,'SELECT 2 FROM DUAL');
+ provider.saveSqlDefinition=saveBeforePartial;
+ check('exact existing baseline reconciliation enables UI remaining work, refuses inherited approval and applies only a freshly reviewed continuation');
+
  // Bounded Page review uses actual native SQL, snapshots, readonly reads and commit/rollback fixture semantics.
  const {pageTransaction:pageFixture}=require('./src/test/fixtures/pageTransaction.ts');
  const {buildPageLayout:pageLayout}=require('./src/model/pageLayout.ts');
@@ -869,6 +909,78 @@ try{
    native.editCommitted((t:any)=>{t[family==='record'?'PSRECDEFN':'PSAEAPPLDEFN'][0].FUTURE_COLUMN='outside';});
    ui._receive({action:'apply',id:drift.id,revision:ready.revision});await until(async()=>(await reviewService.store.get(drift.id)).status==='CONFLICTED');assert.equal(native.counts().commits,2);
    check(family+' bounded header HTTP/UI stages without writes, applies actual native writer, verifies inverse/timeline and blocks structural edits and unversioned drift');
+ }
+ // Coherent creation: real Record/AE/project writers; SQL persistence remains the HTTP fixture above.
+ {
+   const {documentFromSpec}=require('./src/model/aeSpec.ts');
+   const {projectTransaction}=require('./src/test/fixtures/projectTransaction.ts');
+   const source=await fs.readFile(join(root,'tools/lab/request-file/export.peoplecode'),'utf8');
+   const spec={program:'ZZ_RF_EXPORT',description:'Synthetic CSV export',disableRestart:true,stateRecords:[{record:'ZZ_RF_AET',default:true}],sections:[{name:'MAIN',steps:[{name:'Export',actions:[{type:'PeopleCode',peopleCode:source}]}]}]};
+   const recordNative=structuredTransaction('record',true,undefined,'ZZ_RF_AET');
+   const aeNative=structuredTransaction('ae',true,documentFromSpec(spec),'ZZ_RF_EXPORT');
+   const projectNative=projectTransaction();
+   const beforeReceipt=provider.noteCreation;provider.noteCreation=async()=>{};
+   const fields=new Map([['PROCESS_INSTANCE',{F:'PROCESS_INSTANCE',T:2,L:10,D:0}],['DESCR',{F:'DESCR',T:0,L:30,D:0}]]);
+   provider.withConnection=async(fn:any)=>{
+     let active:any,owner:any;
+     const pick=(table:string)=>table.startsWith('PSPROJECT')?projectNative:(table.startsWith('PSREC')||['PSINDEXDEFN','PSKEYDEFN'].includes(table))?recordNative:aeNative;
+     const connection={catalog:{tableExists:async()=>true,columns:async(_c:any,table:string)=>pick(table).connection.catalog.columns(connection,table)},
+       execute:async(sql:string,binds:any={},opts?:any)=>{
+         const text=sql.replace(/\s+/g,' ').trim();
+         if(text==='SET TRANSACTION READ ONLY')return{rows:[]};
+         if(text.includes('FROM PSOPRDEFN'))return{rows:[{N:1}]};
+         if(text.includes('FROM PSDBFIELD'))return{rows:text.includes('COUNT(*)')?[{N:fields.has(binds.f)?1:0}]:fields.has(binds.f)?[fields.get(binds.f)]:[]};
+         if(text.includes('FROM PSRECFIELDDB R, PSDBFIELD D'))return{rows:recordNative.state().PSRECFIELDDB.map((r:any)=>fields.get(r.FIELDNAME))};
+         if(text.startsWith('SELECT RECTYPE AS T'))return{rows:recordNative.state().PSRECDEFN.map((r:any)=>({T:r.RECTYPE}))};
+         if(text.startsWith('SELECT FIELDNAME AS F FROM PSRECFIELDDB'))return{rows:recordNative.state().PSRECFIELDDB.map((r:any)=>({F:r.FIELDNAME}))};
+         if(text.includes('SELECT COUNT(*) AS N FROM PSSQLDEFN WHERE')&&binds.b0)return{rows:[{N:sqlDefinitions.has(binds.b0)?1:0}]};
+         if(text.includes('SELECT SQLTEXT AS T FROM PSSQLTEXTDEFN WHERE SQLID = :i'))return{rows:sqlDefinitions.has(binds.i)?[{T:sqlDefinitions.get(binds.i)!.text}]:[]};
+         const table=text.match(/(?:FROM|INTO|UPDATE) (\w+)/)?.[1];
+         if(table&&!['PSVERSION','PSLOCK','DUAL','PSOPRDEFN'].includes(table)){active=pick(table);owner??=active;}
+         if(!active)throw new Error('Unscoped creation fixture SQL: '+text);
+         projectNative.definitionsExist(recordNative.state().PSRECDEFN.length>0&&aeNative.state().PSPCMPROG.length>0&&sqlDefinitions.has('ZZ_RF_ROWS'));
+         return active.connection.execute(sql,binds,opts);
+       },commit:async()=>owner.connection.commit(),rollback:async()=>owner?.connection.rollback(),close:async()=>{}};
+     return fn(connection);
+   };
+   provider.guard=async()=>{throw new Error('New definitions must retain creation-only native paths');};
+   try{
+     const set=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'Synthetic Record SQL AE project creation'});
+     const recordRequest={connection:'FIXTURE',record:'ZZ_RF_AET',recordType:'derivedWork',operations:[{op:'insert_field',field:'PROCESS_INSTANCE'},{op:'insert_field',field:'DESCR',after:'PROCESS_INSTANCE'},{op:'set_properties',description:'Synthetic file state'}],changeSetId:set.id};
+     Object.defineProperty(provider,'platform',{value:'sqlserver',configurable:true});
+     try { await reviewCall('psft_create_record',recordRequest,false); } finally { delete provider.platform; }
+     await reviewCall('psft_create_record',recordRequest);
+     const recordId=(await reviewService.store.get(set.id)).objects[0].id;
+     await reviewCall('psft_save_text_definition',{connection:'FIXTURE',type:30,name:'ZZ_RF_ROWS',text:await fs.readFile(join(root,'tools/lab/request-file/rows.sql'),'utf8'),changeSetId:set.id});
+     const sqlId=(await reviewService.store.get(set.id)).objects[1].id;
+     await reviewCall('psft_ae_create',{connection:'FIXTURE',spec,changeSetId:set.id},false);
+     await reviewCall('psft_save_text_definition',{connection:'FIXTURE',type:30,name:'ZZ_RF_ROWS',text:'SELECT A, B, C FROM DUAL WHERE A = :1',changeSetId:set.id});
+     await reviewCall('psft_ae_create',{connection:'FIXTURE',spec,changeSetId:set.id,dependsOn:[recordId,sqlId]},false);
+     await reviewCall('psft_save_text_definition',{connection:'FIXTURE',type:30,name:'ZZ_RF_ROWS',text:await fs.readFile(join(root,'tools/lab/request-file/rows.sql'),'utf8'),changeSetId:set.id});
+     await reviewCall('psft_ae_create',{connection:'FIXTURE',spec,changeSetId:set.id,dependsOn:[recordId,sqlId]});
+     const aeId=(await reviewService.store.get(set.id)).objects[2].id;
+     const items=[{type:0,parts:['ZZ_RF_AET']},{type:30,parts:['ZZ_RF_ROWS','0']},{type:33,parts:['ZZ_RF_EXPORT']},{type:34,parts:['ZZ_RF_EXPORT','MAIN']},{type:43,parts:['ZZ_RF_EXPORT','MAIN','GBL','default','1900-01-01','Export','OnExecute']}];
+     await reviewCall('psft_create_project',{connection:'FIXTURE',project:'ZZ_RF_PRJ',items,changeSetId:set.id},false);
+     await reviewCall('psft_create_project',{connection:'FIXTURE',project:'ZZ_RF_PRJ',items,changeSetId:set.id,dependsOn:[aeId]});
+     assert.equal(recordNative.counts().commits+aeNative.counts().commits+projectNative.counts().commits,0);
+     assert.equal(sqlDefinitions.has('ZZ_RF_ROWS'),false);
+     let ready=await reviewCall('psft_validate_change_set',{changeSetId:set.id});
+     assert.equal(ready.status,'READY_FOR_REVIEW',JSON.stringify(ready.objects.map((c:any)=>c.validation)));
+     assert.deepEqual(ready.objects.map((c:any)=>c.adapter),['record-create','sql','ae-create','project-create']);
+     assert.equal(ready.objects.every((c:any)=>c.operation==='CREATE'&&c.application==='PENDING'),true);
+     check('Record SQL AE and project creation stage together through real HTTP without persistence; absent proposed dependencies refuse validation');
+     await reviewUi.show(set.id);const ui=vscode._panels.at(-1);
+     ui._receive({action:'approve',id:set.id,revision:ready.revision});await until(async()=>(await reviewService.store.get(set.id)).status==='APPROVED');
+     ui._receive({action:'apply',id:set.id,revision:ready.revision});await until(async()=>['APPLIED','PARTIALLY_APPLIED','CONFLICTED','FAILED'].includes((await reviewService.store.get(set.id)).status));
+     const applied=await reviewService.store.get(set.id);
+     assert.equal(applied.status,'APPLIED',JSON.stringify(applied.journal.at(-1)));
+     assert.ok(applied.objects.every((c:any)=>c.application==='VERIFIED'&&c.verified===c.after));
+     assert.deepEqual([recordNative.counts().commits,aeNative.counts().commits,projectNative.counts().commits],[1,1,1]);
+     assert.equal(projectNative.state().PSPROJECTITEM.length,5);
+     await reviewCall('psft_prepare_revert',{changeSetId:set.id},false);
+     await reviewCall('psft_create_record',recordRequest,false);
+     check('trusted UI applies exact dependency-ordered creation with real native writers and project membership; occupied names and unsupported creation reversal refuse');
+   }finally{provider.noteCreation=beforeReceipt;}
  }
  // New IB adapters use the same trusted UI, real provider/writer and durable review service.
  const {ibTransaction}=require('./src/test/fixtures/ibTransaction.ts');

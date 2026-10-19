@@ -1,0 +1,61 @@
+{
+  "format": "psft-synthetic-native-acceptance/1",
+  "capturedAt": "2026-10-19T19:56:38.720857+00:00",
+  "runtimeVerified": true,
+  "connection": "HRDMO",
+  "process": {
+    "PRCSINSTANCE": 607175,
+    "PRCSNAME": "ZZ_RF_EXPORT",
+    "SERVERNAMERUN": "HCMDMO",
+    "RUNSTATUS": "9",
+    "PRCSRTNCD": 0,
+    "DISTSTATUS": "4",
+    "OPSYS": "4"
+  },
+  "runControl": "JARED / ZZ_RF_ACC_01",
+  "nativeOutputDirectory": "/mnt/nginx_shared/reports/HCMDMO/AE_ZZ_RF_EXPORT_607175",
+  "readbackHost": "gundam-server-01",
+  "readbackDirectory": "/opt/nginx/shared/reports/HCMDMO/AE_ZZ_RF_EXPORT_607175",
+  "originalCreation": {
+    "id": "c1d1298e-29ff-4164-9233-d13936d524f1",
+    "revision": 5,
+    "approvedSpec": 1
+  },
+  "correction": {
+    "id": "af6dd54e-b44c-4c48-b1b0-0dd3e8f045bb",
+    "revision": 2,
+    "hash": "a608fd8bdf38679256993452fb92413f891e289a9c1b7b7f3ffda40e94c32f4d",
+    "token": "800d674f36a2d12fa4b6e6e275885c707591b7f8cb504bdfb8fad789b983268e",
+    "checkedAt": "2026-10-19T19:55:35.613Z"
+  },
+  "closure": {
+    "project": "ZZ_RF_PRJ",
+    "members": 5,
+    "missing": 0,
+    "addable": [],
+    "notAddable": []
+  },
+  "output": {
+    "file": "607175.csv",
+    "bytes": 123,
+    "sha256": "62d92d414fc02901271744facb65c61b5d9bbecc6f7edfecc31fc734f11b6367",
+    "matchesExpected": true,
+    "utf8WithoutBom": true,
+    "accepted": 3,
+    "rejected": 1,
+    "total": "30.75"
+  },
+  "stdout": {
+    "file": "607175.stdout",
+    "sha256": "4bbd5521ddb7304f448678e93de7375d0b0f620bddd6e423ea8783007f90a7d3",
+    "expectedSummaryPresent": true,
+    "endedNormally": true
+  },
+  "cleanup": {
+    "processFrequency": "O",
+    "selectiveTracingEnabled": false,
+    "selectiveTraceScopeRows": 0,
+    "processTraceRestorationChangeSet": "9771ac70-e1ae-446f-903e-cde0f1bb7af8"
+  },
+  "nativeValidation": "Developer confirmed corrected Export PeopleCode validates in native App Designer before this run."
+}

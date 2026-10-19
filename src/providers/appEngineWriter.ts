@@ -12,7 +12,7 @@ import {
 } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
 import { writeScopeRefusal } from './writeScope.js';
-import { readStructuredSnapshot, type StructuredPreview } from './structuredSnapshot.js';
+import { readStructuredSnapshot, readStructuredForCreation, type StructuredPreview, type StructuredCreationPreview } from './structuredSnapshot.js';
 
 /*
  * Saving an App Engine program as App Designer does (docs/APP_ENGINE.md).
@@ -707,6 +707,7 @@ export interface AeSaveRequest {
   /** Execute and verify the existing writer inside rollback; internal review projection only. */
   captureSnapshots?: boolean;
   expectedSnapshotToken?: string;
+  expectedAfterHash?: string;
 }
 
 export interface AeSaveResult {
@@ -716,6 +717,7 @@ export interface AeSaveResult {
   /** False on a dry run or an empty plan. */
   written: boolean;
   snapshots?: StructuredPreview;
+  creationPreview?: StructuredCreationPreview;
 }
 
 /** Runs the statements; each must touch the rows it expects. */
@@ -744,8 +746,11 @@ export async function saveAppEngine(c: Connection, oracledb: DbTypes, request: A
     if (!(await operatorExists(c, request.operatorId))) throw new AeSaveRefusedError(`PeopleSoft operator ${request.operatorId} does not exist in this database (PSOPRDEFN).`);
 
     const stored = await readStoredAppEngine(c, oracledb, request.doc.name, true);
-    const before = request.captureSnapshots || request.expectedSnapshotToken ? await readStructuredSnapshot(c, oracledb, 'ae', request.doc.name) : undefined;
-    if (request.expectedSnapshotToken && before!.token !== request.expectedSnapshotToken) throw new AeSaveRefusedError('Native Application Engine snapshot changed before writer.');
+    const creation = request.openedToken === 'absent';
+    const creationBefore = creation && (request.captureSnapshots || request.expectedSnapshotToken || request.expectedAfterHash) ? await readStructuredForCreation(c, oracledb, 'ae', request.doc.name) : undefined;
+    if (creationBefore?.value) throw new AeSaveRefusedError('Application Engine creation scope is no longer absent.');
+    const before = !creation && (request.captureSnapshots || request.expectedSnapshotToken) ? await readStructuredSnapshot(c, oracledb, 'ae', request.doc.name) : undefined;
+    if (request.expectedSnapshotToken && (creationBefore ?? before)!.token !== request.expectedSnapshotToken) throw new AeSaveRefusedError('Native Application Engine snapshot changed before writer.');
     const token = appEngineToken(stored);
     if (token !== request.openedToken) {
       throw new AeSaveRefusedError(request.openedToken === 'absent'
@@ -765,10 +770,13 @@ export async function saveAppEngine(c: Connection, oracledb: DbTypes, request: A
     }
     await run(c, plan.statements);
     await verifyAppEngine(c, oracledb, plan);
+    const after = request.captureSnapshots || request.expectedAfterHash ? await readStructuredSnapshot(c, oracledb, 'ae', request.doc.name) : undefined;
+    if (request.expectedAfterHash && after!.hash !== request.expectedAfterHash) throw new AeSaveRefusedError('Created Application Engine differs from the reviewed native scope; rolled back.');
     if (request.captureSnapshots) {
-      const after = await readStructuredSnapshot(c, oracledb, 'ae', request.doc.name);
       await c.rollback();
-      return { plan, token, written: false, snapshots: { schema: 'structured-preview/1', before: before!, after } };
+      return { plan, token, written: false, ...(creation
+        ? { creationPreview: { schema: 'structured-creation-preview/1' as const, before: creationBefore!, after: after! } }
+        : { snapshots: { schema: 'structured-preview/1' as const, before: before!, after: after! } }) };
     }
     await c.commit();
     return { plan, token: appEngineToken(await readStoredAppEngine(c, oracledb, request.doc.name, false)), written: true };

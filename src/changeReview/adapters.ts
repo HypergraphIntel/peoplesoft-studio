@@ -23,6 +23,8 @@ import type { StructuredFamily } from '../providers/structuredSnapshot.js';
 import { deepValidate } from '../mcp/appEngineTools.js';
 import { ibDefinitionKey } from '../model/ibOperations.js';
 import { ibHeaderChange, ibHeaderInput, ibHeaderDiff } from './ibHeaders.js';
+import { creationKey, creationRecordEdit, creationAeDocument, proposedAeReferences, proposedProjectMembers } from './structuredCreation.js';
+import { projectReviewName, projectCreationItems } from '../providers/projectSnapshot.js';
 import type { IbReviewKind } from '../providers/ibSnapshot.js';
 export function databaseReviewAdapters(workspace: Workspace, host: () => McpWriteHost | undefined) {
     async function provider(environment: Environment): Promise<DatabaseProvider> {
@@ -326,11 +328,85 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
             }
         };
     };
+    const structuredCreation = (family: StructuredFamily): ReviewAdapter => {
+        const keyOf = (key: Json) => makeKey(family === 'record' ? DefinitionType.Record : DefinitionType.AppEngineProgram, creationKey(family, key));
+        return { id: family + '-create',
+            authorizationState: (e, key) => authorizationState(e, keyOf(key)),
+            warnings: async (e, key) => [...await warnings(e, keyOf(key)), 'New definition only; orphan scopes and deletion markers are refused. Creation undo is unsupported. Native execution is a separate step.'],
+            read: async (e, key) => {
+                const live = await (await provider(e)).readStructuredCreationForReview(family, keyOf(key).parts[0]);
+                return { value: live.value as unknown as Json, token: live.token };
+            },
+            authorize: async (e, key) => { await authorize(e, keyOf(key)); },
+            validate: async (e, key, before, after, context) => {
+                try {
+                    if (before !== null || after === null) return ['Creation adapter requires a new, vacant definition scope.'];
+                    const k = keyOf(key), { p, operator } = await authorize(e, k), live = await p.readStructuredCreationForReview(family, k.parts[0]);
+                    if (live.value !== null) return ['Definition is no longer absent.'];
+                    let result;
+                    if (family === 'record') result = await p.saveRecord({ edit: creationRecordEdit(after, k.parts[0]), operatorId: operator,
+                        dryRun: true, captureSnapshots: true, expectedSnapshotToken: live.token, expectedAfterHash: hash(after) });
+                    else {
+                        const doc = creationAeDocument(after, k.parts[0]);
+                        const errors = (await deepValidate(p, doc, proposedAeReferences(p.appEngineReferenceLookup(), context))).filter(d => d.severity === 'error');
+                        if (errors.length) return errors.map(d => d.path + ': ' + d.message);
+                        result = await p.saveAppEngineDocument({ doc, openedToken: 'absent', operatorId: operator,
+                            dryRun: true, captureSnapshots: true, expectedSnapshotToken: live.token, expectedAfterHash: hash(after) });
+                    }
+                    return result.creationPreview?.before.value === null && result.creationPreview.after.hash === hash(after) ? [] : ['Native creation preview differs from review.'];
+                } catch (error) { return [error instanceof Error ? error.message : String(error)]; }
+            },
+            write: async (e, key, after, baseline) => {
+                if (baseline.value !== null || after === null) throw new Error('Creation requires an absent definition.');
+                const k = keyOf(key), { p, operator, policyIdentity } = await authorizeReviewed(e, k, baseline);
+                await withReviewedWrite(p.id, k, () => runAsAgent(async () => {
+                    if (family === 'record') await p.saveRecord({ edit: creationRecordEdit(after, k.parts[0]), operatorId: operator,
+                        expectedSnapshotToken: baseline.token, expectedAfterHash: hash(after) });
+                    else {
+                        const doc = creationAeDocument(after, k.parts[0]);
+                        const errors = (await deepValidate(p, doc)).filter(d => d.severity === 'error');
+                        if (errors.length) throw new Error(errors.map(d => d.path + ': ' + d.message).join('\n'));
+                        await p.saveAppEngineDocument({ doc, openedToken: 'absent', operatorId: operator,
+                            expectedSnapshotToken: baseline.token, expectedAfterHash: hash(after) });
+                    }
+                }), policyIdentity);
+                host()!.saved(p.id, k);
+            }
+        };
+    };
+    const projectCreateKey = (key: Json) => makeKey(DefinitionType.Project, projectReviewName(key));
+    const projectCreate: ReviewAdapter = { id: 'project-create',
+        authorizationState: (e, key) => authorizationState(e, projectCreateKey(key)),
+        warnings: async (e, key) => [...await warnings(e, projectCreateKey(key)), 'New project with explicit Record, Field, SQL and AE membership only. Target credentials are excluded; no credential freshness or creation undo is certified.'],
+        read: async (e, key) => {
+            const live = await (await provider(e)).readProjectCreationForReview(projectCreateKey(key).parts[0]);
+            return { value: live.value, token: live.token };
+        },
+        authorize: async (e, key) => { await authorize(e, projectCreateKey(key)); },
+        validate: async (e, key, before, after, context) => {
+            try {
+                if (before !== null || after === null) return ['Project creation requires a vacant scope.'];
+                const k = projectCreateKey(key), { p, operator } = await authorize(e, k), live = await p.readProjectCreationForReview(k.parts[0]);
+                const items = projectCreationItems(after, k.parts[0]);
+                const preview = await p.createProjectForReview({ project: k.parts[0], operatorId: operator, items, dryRun: true,
+                    proposed: proposedProjectMembers(context), expectedSnapshotToken: live.token, expectedAfterHash: hash(after) });
+                return preview.before.value === null && preview.after.hash === hash(after) ? [] : ['Project preview differs from review.'];
+            } catch (error) { return [error instanceof Error ? error.message : String(error)]; }
+        },
+        write: async (e, key, after, baseline) => {
+            if (baseline.value !== null || after === null) throw new Error('Project creation requires an absent definition.');
+            const k = projectCreateKey(key), { p, operator, policyIdentity } = await authorizeReviewed(e, k, baseline);
+            const items = projectCreationItems(after, k.parts[0]);
+            await withReviewedWrite(p.id, k, () => runAsAgent(() => p.createProjectForReview({ project: k.parts[0], operatorId: operator, items,
+                expectedSnapshotToken: baseline.token, expectedAfterHash: hash(after) })), policyIdentity);
+            host()!.saved(p.id, k);
+        }
+    };
     async function environment(connection: string): Promise<Environment> {
         const p = await requireProvider(workspace, connection);
         if (!(p instanceof DatabaseProvider) || !p.isConnected)
             throw new Error('A connected database is required.');
         return { connection: p.id, label: p.displayName, identity: await p.changeReviewIdentity() };
     }
-    return { adapters: [sql, content('html', DefinitionType.HtmlDefinition), content('stylesheet', DefinitionType.StyleSheet), process, query, peoplecode, page, structuredHeader('record'), structuredHeader('ae'), ibHeader('service'), ibHeader('operation')], environment, adapterHash: hash };
+    return { adapters: [sql, content('html', DefinitionType.HtmlDefinition), content('stylesheet', DefinitionType.StyleSheet), process, query, peoplecode, page, structuredHeader('record'), structuredHeader('ae'), structuredCreation('record'), structuredCreation('ae'), projectCreate, ibHeader('service'), ibHeader('operation')], environment, adapterHash: hash };
 }

@@ -78,9 +78,15 @@ The agent must have the PeopleSoft Studio MCP server configured
 
 ## Not yet
 
-- Native build-phase terminal handoff and runtime acceptance. Developer-run
+- Native build-phase terminal handoff and representative production acceptance. Developer-run
   DOCX intake and Claude analysis handoff have been observed alongside the
   controlled lab's native approvals and database save/readback.
   The [controlled lab acceptance tracker](build-requests/NATIVE_ACCEPTANCE.md)
   distinguishes fixture results from installed UI, developer approval and
   database save/readback evidence.
+
+The 0.9.6 development [synthetic AE/file acceptance](build-requests/AE_FILE_WORKFLOW.md)
+now passes coherent Record/SQL/AE/project review and native execution: instance
+607175 completed Success/Posted and produced the exact expected 123-byte
+UTF-8/no-BOM CSV. A reviewed correction fixed native App Designer's WriteLine
+2,60 error. This bounded lab result is separate from production-interface coverage.

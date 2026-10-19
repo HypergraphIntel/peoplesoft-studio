@@ -34,6 +34,7 @@ PC008 SQL.Fetch output parameters are bound by reference: fetch into Locals and 
 PC009 NumberToString takes a PeopleSoft format -- %<width>[.<decimals>] with an optional R, T, t or v -- not a printf conversion: "%04d" is taken literally and corrupts the value (2026 becomes d-ba). Use "%04", or String() when no padding is needed
   (App Designer: "Field or temporary variable name required"). Copy it into a Local first ("Local date &d = &i_checkDt; If None(&d) Then"), or for a date use IsDate(&i_checkDt).
 PC006 (needs the database) Each imported class must exist and each wildcard must name a package: save an imported class before the program that imports it.
+PC010 File.WriteLine returns no value (native App Designer 2,60). Call it as a statement, never as a Boolean or assignment. File-method errors terminate the program. Studio checks direct value uses on explicitly typed Local File receivers in the same body; unknown receivers and ambiguous imported File classes are outside this check.
 
 Also:
   - Strings are in double quotes; concatenate with |; compare with = and <>; If ... Then ... [Else ...] End-If; For &i = 1 To &n ... End-For; Evaluate ... When ... When-Other ... End-Evaluate.
@@ -54,7 +55,7 @@ export function registerPeopleCodeTools(server: McpServer, workspace: Workspace)
 
   server.registerTool('psft_validate_peoplecode', {
     title: 'PeopleCode: validate before saving',
-    description: 'Checks PeopleCode as a save would, without saving: the rules in psft_peoplecode_reference (PC001-PC005, PC007-PC009), Studio\'s compiler, and -- with a connection -- that ' +
+    description: 'Checks PeopleCode as a save would, without saving: the rules in psft_peoplecode_reference (PC001-PC005, PC007-PC010), Studio\'s compiler, and -- with a connection -- that ' +
       'every imported class and package exists (PC006). Key as psft_save_peoplecode takes it (type and parts); App Engine action PeopleCode is type 43, an ' +
       'Application Class 58. Returns each problem with its line and column; valid is true only when there are none. Read only.',
     inputSchema: z.object({

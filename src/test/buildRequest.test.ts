@@ -142,7 +142,11 @@ test('the lifecycle: questions block approval, answers and edits withdraw it, on
   r = await store.report(r.id, [{ ref: 'stg', status: 'BUILT', detail: 'Created and read back.' }]);
   assert.equal(status(r), 'BUILDING');
   r = await store.report(r.id, [{ ref: 'fl', status: 'MANUAL', detail: 'Create the File Layout in App Designer.' }, { ref: 'ae', status: 'STAGED', detail: 'Proposal ready.', changeSetId: '00000000-0000-4000-8000-000000000000' }]);
-  assert.equal(status(r), 'BUILT', 'reuse objects need no build');
+  assert.equal(status(r), 'AWAITING_REVIEW', 'a staged proposal is not a persisted build');
+  r = await store.report(r.id, [{ ref: 'ae', status: 'BUILT', detail: 'Developer applied and native readback verified.' }]);
+  assert.equal(status(r), 'MANUAL_REQUIRED', 'manual steps remain outstanding after staged work is applied');
+  r = await store.report(r.id, [{ ref: 'fl', status: 'BUILT', detail: 'Developer completed the manual definition; read back.' }]);
+  assert.equal(status(r), 'BUILT', 'reuse objects need no build after every changed object is verified');
 
   r = await store.edit(r.id, { narrative: 'Load the bank file, and email the errors.' });
   assert.ok(!isApproved(r));

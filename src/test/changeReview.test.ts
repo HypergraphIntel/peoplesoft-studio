@@ -46,6 +46,58 @@ async function ready(f: Awaited<ReturnType<typeof fixture>>, keys = ['A']) {
     assert.equal(set.status, 'READY_FOR_REVIEW');
     return f.service.review(set.id, set.objects.map(c => c.id), 'APPROVED', set.revision);
 }
+test('proposal validation sees only declared transitive dependencies; apply validates live verified prerequisites', async () => {
+    const f = await fixture();
+    try {
+        const phases: string[] = [];
+        f.adapter.validate = async (_e, key, _before, _after, context) => {
+            if (key === 'C') {
+                assert.ok(context);
+                phases.push(context.phase);
+                if (context.phase === 'proposal') assert.deepEqual(context.dependencies.map(d => d.key), ['A', 'B']);
+                else {
+                    assert.deepEqual(context.dependencies, []);
+                    assert.ok(f.live.has('A') && f.live.has('B'));
+                }
+            }
+            return [];
+        };
+        let set = await f.service.create('Proposed prerequisite chain', 'oracle:LAB');
+        set = await f.service.stage(set.id, 'fixture', 'A', { text: 'state' });
+        set = await f.service.stage(set.id, 'fixture', 'UNRELATED', { text: 'excluded' });
+        set = await f.service.stage(set.id, 'fixture', 'B', { text: 'sql' }, [set.objects[0].id]);
+        set = await f.service.stage(set.id, 'fixture', 'C', { text: 'program' }, [set.objects[2].id]);
+        await assert.rejects(f.service.proposedDependencies(set.id, ['foreign-object']), /not part/);
+        assert.deepEqual(f.writes, []);
+        set = await f.service.validate(set.id);
+        assert.equal(set.status, 'READY_FOR_REVIEW');
+        assert.deepEqual(f.writes, []);
+        set = await f.service.review(set.id, set.objects.map(c => c.id), 'APPROVED', set.revision);
+        assert.equal((await f.service.apply(set.id)).status, 'APPLIED');
+        assert.deepEqual(phases, ['proposal', 'proposal', 'live']);
+    } finally { await f.close(); }
+});
+test('unversioned drift in a verified prerequisite stops its dependent before writer entry', async () => {
+    const f = await fixture();
+    try {
+        let set = await f.service.create('Dependency drift', 'oracle:LAB');
+        set = await f.service.stage(set.id, 'fixture', 'A', { text: 'state' });
+        set = await f.service.stage(set.id, 'fixture', 'B', { text: 'intermediate' }, [set.objects[0].id]);
+        set = await f.service.stage(set.id, 'fixture', 'C', { text: 'dependent' }, [set.objects[1].id]);
+        set = await f.service.validate(set.id);
+        set = await f.service.review(set.id, set.objects.map(c => c.id), 'APPROVED', set.revision);
+        const write = f.adapter.write;
+        f.adapter.write = async (...args) => {
+            await write(...args);
+            if (args[1] === 'B') f.live.get('A')!.value = { text: 'outside edit without version change' };
+        };
+        const stopped = await f.service.apply(set.id);
+        assert.equal(stopped.status, 'PARTIALLY_APPLIED');
+        assert.deepEqual(stopped.objects.map(c => c.application), ['VERIFIED', 'VERIFIED', 'PENDING']);
+        assert.deepEqual(f.writes, ['A', 'B']);
+        assert.match(stopped.journal.at(-1)!.detail!, /Verified dependency changed/);
+    } finally { await f.close(); }
+});
 async function partialChain(f: Awaited<ReturnType<typeof fixture>>) {
     let set = await ready(f, ['A', 'B', 'C', 'D']);
     for (let i = 1; i < set.objects.length; i++)
@@ -455,6 +507,54 @@ test('midway failure stops dependent writes, journals uncertainty and reconciles
     }
     finally {
         await f.close();
+    }
+});
+test('a rolled-back update reconciles its exact original snapshot and token without replay', async () => {
+    const f = await fixture();
+    try {
+        f.live.set('A', { value: { text: 'original' }, token: '7' });
+        const set = await ready(f);
+        f.fail('A');
+        assert.equal((await f.service.apply(set.id)).objects[0].application, 'UNCERTAIN');
+        await assert.rejects(f.service.prepareRemaining(set.id), /Reconcile uncertain/);
+        const reconciled = await f.service.recover(set.id);
+        assert.equal(reconciled.status, 'PARTIALLY_APPLIED');
+        assert.equal(reconciled.objects[0].application, 'PENDING');
+        assert.ok(reconciled.journal.some(e => e.action === 'BASELINE_CONFIRMED' && e.object === set.objects[0].id));
+        assert.deepEqual(f.live.get('A'), { value: { text: 'original' }, token: '7' });
+        assert.deepEqual(f.writes, ['A']);
+        await assert.rejects(f.service.apply(set.id), /approved/);
+        let followup = await f.service.prepareRemaining(set.id);
+        assert.equal(followup.objects[0].review, 'PENDING');
+        assert.equal(followup.objects[0].approvedHash, undefined);
+        await assert.rejects(f.service.apply(followup.id), /approved/);
+        f.fail('');
+        followup = await f.service.validate(followup.id);
+        followup = await f.service.review(followup.id, followup.objects.map(c => c.id), 'APPROVED', followup.revision);
+        assert.equal((await f.service.apply(followup.id)).status, 'APPLIED');
+        assert.deepEqual(f.writes, ['A', 'A']);
+    } finally { await f.close(); }
+});
+test('baseline recovery refuses content drift, token drift, absent creations and unknown manual results', async () => {
+    for (const mode of ['content', 'token', 'create', 'manual']) {
+        const f = await fixture();
+        try {
+            if (mode !== 'create') f.live.set('A', { value: { text: 'original' }, token: '7' });
+            const set = await ready(f);
+            f.fail('A');
+            const failed = await f.service.apply(set.id);
+            if (mode === 'content') f.live.set('A', { value: { text: 'outside' }, token: '7' });
+            if (mode === 'token') f.live.get('A')!.token = '8';
+            if (mode === 'manual') {
+                failed.objects[0].resultKnown = false;
+                await f.store.exclusive(() => f.store.put(failed));
+            }
+            const reconciled = await f.service.recover(set.id);
+            assert.equal(reconciled.objects[0].application, 'UNCERTAIN');
+            assert.ok(!reconciled.journal.some(e => e.action === 'BASELINE_CONFIRMED'));
+            await assert.rejects(f.service.prepareRemaining(set.id), /Reconcile uncertain/);
+            assert.deepEqual(f.writes, ['A']);
+        } finally { await f.close(); }
     }
 });
 test('interrupted apply reconciles live results without replay; duplicate apply never writes twice', async () => {

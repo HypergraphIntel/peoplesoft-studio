@@ -3,10 +3,12 @@ import { randomUUID } from 'node:crypto';
 import { ReviewStore } from './store.js';
 import { buildObjectTimeline, type ObjectTimeline } from './timeline.js';
 import { approvalHash, planHash, canonical, createSet, differences, hash, now, ordered, transition, type Change, type ChangeSet, type Environment, type Json, type Snapshot } from './model.js';
+export interface ProposedDependency { id: string; adapter: string; key: Json; after: Json }
+export interface ReviewValidationContext { dependencies: readonly ProposedDependency[]; phase: 'proposal' | 'live' }
 export interface ReviewAdapter {
     id: string;
     read(environment: Environment, key: Json): Promise<Snapshot>;
-    validate(environment: Environment, key: Json, before: Json, after: Json): Promise<string[]>;
+    validate(environment: Environment, key: Json, before: Json, after: Json, context?: ReviewValidationContext): Promise<string[]>;
     authorize(environment: Environment, key: Json, operation: Change['operation']): Promise<void>;
     write(environment: Environment, key: Json, after: Json, baseline: Snapshot): Promise<void>;
     /** True only for calibrated DELETE; reverse CREATE otherwise stays unsupported. */
@@ -191,6 +193,37 @@ export class ReviewService {
             return this.save(set);
         });
     }
+    /** Only declared, transitive dependencies from this exact stored revision. No database writes. */
+    private async dependencyContext(set: ChangeSet, ids: string[]): Promise<ReviewValidationContext> {
+        const seen = new Set<string>();
+        const visit = (id: string) => {
+            if (seen.has(id)) return;
+            const c = set.objects.find(c => c.id === id);
+            if (!c) throw new Error('Dependency is not part of this Change Set.');
+            seen.add(id);
+            c.dependencies.forEach(visit);
+        };
+        ids.forEach(visit);
+        return { phase: 'proposal', dependencies: await Promise.all(ordered(set, false).filter(c => seen.has(c.id)).map(async c => ({
+            id: c.id, adapter: c.adapter, key: c.key, after: await this.store.readBlob(c.after)
+        }))) };
+    }
+    async proposedDependencies(id: string, ids: string[]): Promise<ReviewValidationContext> {
+        const set = await this.store.get(id);
+        this.editable(set);
+        this.checkPlan(set);
+        await this.environment(set);
+        await this.checkPrerequisites(set);
+        return this.dependencyContext(set, ids);
+    }
+    private async verifyAppliedDependencies(set: ChangeSet, c: Change): Promise<void> {
+        for (const d of (await this.dependencyContext(set, c.dependencies)).dependencies) {
+            const saved = set.objects.find(x => x.id === d.id)!;
+            if (saved.application !== 'VERIFIED' || !saved.verified || !saved.verifiedToken) throw new Error('Prerequisite has not been verified: ' + d.id);
+            const live = await this.adapter(saved.adapter).read(set.environment, saved.key);
+            if (hash(live.value) !== saved.verified || live.token !== saved.verifiedToken) throw new Error('Verified dependency changed before dependent writer: ' + d.id);
+        }
+    }
     async validate(id: string): Promise<ChangeSet> {
         return this.store.exclusive(async () => {
             const set = await this.store.get(id);
@@ -217,7 +250,7 @@ export class ReviewService {
                         throw new Error('Live object changed after staging: ' + c.id);
                     c.authorizationStamp = a.authorizationState ? await a.authorizationState(set.environment, c.key) : undefined;
                     c.warnings = a.warnings ? await a.warnings(set.environment, c.key) : [];
-                    c.validation = await a.validate(set.environment, c.key, live.value, await this.store.readBlob(c.after));
+                    c.validation = await a.validate(set.environment, c.key, live.value, await this.store.readBlob(c.after), await this.dependencyContext(set, c.dependencies));
                 }
                 if (set.objects.some(c => c.validation.length))
                     throw new Error('Validation findings must be resolved before approval.');
@@ -305,7 +338,7 @@ export class ReviewService {
                     const a = this.adapter(c.adapter), live = await a.read(set.environment, c.key);
                     if (hash(live.value) !== c.before || live.token !== c.baselineToken)
                         throw new Error('Live drift before application: ' + c.id);
-                    const errors = await a.validate(set.environment, c.key, live.value, await this.store.readBlob(c.after));
+                    const errors = await a.validate(set.environment, c.key, live.value, await this.store.readBlob(c.after), await this.dependencyContext(set, c.dependencies));
                     if (errors.length)
                         throw new Error(errors.join('\n'));
                     if (a.authorizationState && await a.authorizationState(set.environment, c.key) !== c.authorizationStamp)
@@ -324,6 +357,10 @@ export class ReviewService {
                     const a = this.adapter(c.adapter), live = await a.read(set.environment, c.key);
                     if (hash(live.value) !== c.before || live.token !== c.baselineToken)
                         throw new Error('Concurrent change before writer: ' + c.id);
+                    await this.verifyAppliedDependencies(set, c);
+                    const errors = await a.validate(set.environment, c.key, live.value, await this.store.readBlob(c.after), { phase: 'live', dependencies: [] });
+                    if (errors.length) throw new Error(errors.join('\n'));
+                    await this.verifyAppliedDependencies(set, c);
                     await a.authorize(set.environment, c.key, c.operation);
                     c.application = 'APPLYING';
                     set.journal.push({ at: now(), action: 'WRITE_STARTED', object: c.id });
@@ -347,6 +384,7 @@ export class ReviewService {
                     }
                 }
                 await this.checkPrerequisites(set);
+                for (const c of selected) await this.verifyAppliedDependencies(set, c);
                 transition(set, 'APPLIED');
                 await this.save(set);
                 await this.markReversed(set);
@@ -505,6 +543,16 @@ export class ReviewService {
                     c.application = 'VERIFIED';
                     c.verified = await this.store.blob(live.value);
                     c.verifiedToken = live.token;
+                }
+                else if (c.application !== 'VERIFIED' && c.operation === 'UPDATE' && c.before !== hash(null) && c.baselineToken !== 'absent' && hash(live.value) === c.before && live.token === c.baselineToken) {
+                    // A writer may have rolled back after entering its write phase.
+                    // Both the complete before-image and original token must match;
+                    // this only enables a fresh reviewed continuation, never replay.
+                    c.application = 'PENDING';
+                    delete c.verified;
+                    delete c.verifiedToken;
+                    c.warnings = ['Live snapshot and token match the original baseline. No reviewed update is persisted; a freshly approved continuation is required.'];
+                    set.journal.push({ at: now(), action: 'BASELINE_CONFIRMED', object: c.id });
                 }
                 else {
                     c.application = 'UNCERTAIN';

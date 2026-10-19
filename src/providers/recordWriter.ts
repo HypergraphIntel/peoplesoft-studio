@@ -7,7 +7,7 @@ import { writeScopeRefusal } from './writeScope.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
 import { deleteViewSql, writeViewSql } from './sqlWriter.js';
-import { readStructuredSnapshot, type StructuredPreview } from './structuredSnapshot.js';
+import { readStructuredSnapshot, readStructuredForCreation, type StructuredPreview, type StructuredCreationPreview } from './structuredSnapshot.js';
 import type { DbTypes } from '../db/connection.js';
 
 /*
@@ -25,7 +25,7 @@ export interface RecordSaveRequest {
   edit: RecordEditState;
   /** PSOPRDEFN.OPRID recorded as LASTUPDOPRID. */
   operatorId: string;
-  /** Existing-definition rollback preview only; creation keeps its normal path. */
+  /** Execute and verify inside rollback when true. */
   dryRun?: boolean;
   /**
    * PSTBLSPCCAT.DDLSPACENAME for a record that becomes an SQL Table (created, or its type
@@ -34,6 +34,8 @@ export interface RecordSaveRequest {
   tablespace?: string;
   captureSnapshots?: boolean;
   expectedSnapshotToken?: string;
+  /** Refuse before COMMIT if the complete native scope differs from review. */
+  expectedAfterHash?: string;
 }
 
 export interface RecordSaveResult {
@@ -43,6 +45,7 @@ export interface RecordSaveResult {
   /** Records whose Related Language record this is: their VERSION was set to the new one. */
   languageReferrers: string[];
   snapshots?: StructuredPreview;
+  creationPreview?: StructuredCreationPreview;
 }
 
 interface Column { name: string; type: string }
@@ -163,7 +166,7 @@ export async function chooseTablespace(c: Connection, requested: string | undefi
   return space;
 }
 
-async function createRecord(c: Connection, request: RecordSaveRequest): Promise<RecordSaveResult> {
+async function createRecord(c: Connection, request: RecordSaveRequest, types?: DbTypes): Promise<RecordSaveResult> {
   const edit = request.edit;
   const recname = edit.recname;
   if (!/^[A-Z0-9_]{1,15}$/.test(recname)) throw new RecordSaveRefusedError(`${recname} is not a valid record name (A-Z, 0-9, _; at most 15).`);
@@ -171,6 +174,10 @@ async function createRecord(c: Connection, request: RecordSaveRequest): Promise<
     throw new RecordSaveRefusedError('Only SQL Table and Derived/Work records can be created here yet.');
   }
   if (edit.fields.some((f) => !f.isNew)) throw new RecordSaveRefusedError('A new record has only new fields.');
+  const reviewed = request.captureSnapshots || request.expectedSnapshotToken || request.expectedAfterHash;
+  if (reviewed && edit.recordType !== RecordType.DerivedWork) throw new RecordSaveRefusedError('Creation review currently supports Derived/Work records only.');
+  const before = reviewed ? await readStructuredForCreation(c, types!, 'record', recname) : undefined;
+  if (before && (before.value !== null || request.expectedSnapshotToken && before.token !== request.expectedSnapshotToken)) throw new RecordSaveRefusedError('Record creation baseline changed.');
   const tables: Tables = {
     recfield: await columnsOf(c, 'PSRECFIELD'), recfielddb: await columnsOf(c, 'PSRECFIELDDB'),
     index: await columnsOf(c, 'PSINDEXDEFN'), key: await columnsOf(c, 'PSKEYDEFN')
@@ -178,7 +185,7 @@ async function createRecord(c: Connection, request: RecordSaveRequest): Promise<
   const [{ N: taken }] = await select<{ N: number }>(c,
     `SELECT (SELECT COUNT(*) FROM PSRECDEFN WHERE RECNAME = :r) + (SELECT COUNT(*) FROM PSRECFIELD WHERE RECNAME = :r)
           + (SELECT COUNT(*) FROM PSRECFIELDDB WHERE RECNAME = :r) + (SELECT COUNT(*) FROM PSINDEXDEFN WHERE RECNAME = :r)
-          + (SELECT COUNT(*) FROM PSRECTBLSPC WHERE RECNAME = :r) AS N FROM DUAL`, { r: recname });
+          + (SELECT COUNT(*) FROM PSRECTBLSPC WHERE RECNAME = :r) + (SELECT COUNT(*) FROM PSKEYDEFN WHERE RECNAME = :r) AS N FROM DUAL`, { r: recname });
   if (Number(taken) > 0) throw new RecordSaveRefusedError(`A record named ${recname} already exists, or left rows behind.`);
   // A name deleted before keeps a PSRECDEL marker; re-creating it deletes the marker (r47).
   const [{ N: deleted }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSRECDEL WHERE RECNAME = :r`, { r: recname });
@@ -231,7 +238,12 @@ async function createRecord(c: Connection, request: RecordSaveRequest): Promise<
   if ((Object.keys(next) as (keyof Counters)[]).some((k) => now[k] !== next[k])) {
     throw new RecordSaveRefusedError(`counters ${JSON.stringify(now)}, ${JSON.stringify(next)} expected; rolled back.`);
   }
-  await c.commit();
+  if (reviewed) {
+    const after = await readStructuredSnapshot(c, types!, 'record', recname);
+    if (request.expectedAfterHash && after.hash !== request.expectedAfterHash) throw new RecordSaveRefusedError('Created Record differs from the reviewed native scope; rolled back.');
+    if (request.captureSnapshots) result.creationPreview = { schema: 'structured-creation-preview/1', before: before!, after };
+  }
+  if (request.dryRun) await c.rollback(); else await c.commit();
   return result;
 }
 
@@ -243,10 +255,10 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest, type
     const scope = writeScopeRefusal(recname);
     if (scope) throw new RecordSaveRefusedError(scope);
     if (request.captureSnapshots && !request.dryRun) throw new RecordSaveRefusedError('Snapshots require rollback preview.');
-    if ((request.captureSnapshots || request.expectedSnapshotToken) && !types) throw new RecordSaveRefusedError('Native snapshot driver types are required.');
+    if ((request.captureSnapshots || request.expectedSnapshotToken || request.expectedAfterHash) && !types) throw new RecordSaveRefusedError('Native snapshot driver types are required.');
+    if (!request.edit.isNew && request.expectedAfterHash) throw new RecordSaveRefusedError('Reviewed after-image comparison is currently supported for new Records only.');
     if (request.edit.isNew) {
-      if (request.dryRun || request.captureSnapshots || request.expectedSnapshotToken) throw new RecordSaveRefusedError('New Record rollback preview is not supported.');
-      return await createRecord(c, request);
+      return await createRecord(c, request, types);
     }
     const tables: Tables = {
       recfield: await columnsOf(c, 'PSRECFIELD'), recfielddb: await columnsOf(c, 'PSRECFIELDDB'),

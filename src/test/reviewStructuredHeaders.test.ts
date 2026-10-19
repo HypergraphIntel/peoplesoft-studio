@@ -58,14 +58,14 @@ for (const family of ['record', 'ae'] as const) {
         assert.equal(f.counts().updates, 0);
     });
 }
-test('Record review refuses Related Language referrers before any DML and refuses creation preview', async () => {
+test('Record review refuses Related Language referrers before any DML and refuses creation over an existing name', async () => {
     const f = structuredTransaction('record'), before = await readStructuredSnapshot(f.connection, ADAPTER_TYPES, 'record', f.name);
     const target = headerProposal(before.value as unknown as Json, 'record', { description: 'Reviewed header' });
     const request = recordHeaderRequest(f.name, before.value, target, before.version, 'JARED');
     f.related();
     await assert.rejects(saveRecord(f.connection, { ...request, dryRun: true, captureSnapshots: true }, ADAPTER_TYPES), /Related Language referrers/);
     assert.equal(f.counts().updates, 0);
-    await assert.rejects(saveRecord(f.connection, { ...request, edit: { ...request.edit, isNew: true }, dryRun: true }, ADAPTER_TYPES), /New Record rollback preview/);
+    await assert.rejects(saveRecord(f.connection, { ...request, edit: { ...request.edit, isNew: true }, dryRun: true }, ADAPTER_TYPES), /already exists|left rows|only new fields/);
 });
 test('legacy AE plan-only dryRun still does not execute DML', async () => {
     const f = structuredTransaction('ae'), stored = await readStoredAppEngine(f.connection, ADAPTER_TYPES, f.name, false), doc = documentOf(stored!);

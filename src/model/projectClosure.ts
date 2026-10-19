@@ -63,6 +63,8 @@ export function messageReferences(text: string): Array<{ set: number; number: nu
   const code = text.replace(/\/\*[\s\S]*?\*\//g, ' ');
   const seen = new Map<string, { set: number; number: number }>();
   for (const m of code.matchAll(/\bMessageBox\s*\(\s*\d+\s*,\s*"[^"]*"\s*,\s*(\d+)\s*,\s*(\d+)/gi)) {
+    // Oracle's documented MessageBox(..., 0, 0, defaultText) idiom has no catalog member.
+    if (Number(m[1]) === 0 && Number(m[2]) === 0) continue;
     seen.set(`${m[1]},${m[2]}`, { set: Number(m[1]), number: Number(m[2]) });
   }
   return [...seen.values()].sort((a, b) => a.set - b.set || a.number - b.number);

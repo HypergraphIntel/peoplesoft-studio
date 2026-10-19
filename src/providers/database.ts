@@ -24,9 +24,11 @@ import { PROPERTIES_SPECS, PropertiesInput, StoredRow } from '../model/propertie
 import type { FieldDefinition } from '../model/fieldDefinition.js';
 import type { RecordLayout, TranslateValue } from '../model/recordLayout.js';
 import type { DefinitionReference } from './provider.js';
-import { createProject as createProjectRow, saveProject, verifyProjectSave, type ProjectSaveRequest, type ProjectSaveResult } from './projectWriter.js';
+import { createProject as createProjectRow, createProjectWithItems, saveProject, verifyProjectSave, type ProjectSaveRequest, type ProjectSaveResult } from './projectWriter.js';
 import { deleteRecord, saveRecord, verifyRecordSave, type RecordSaveRequest, type RecordSaveResult } from './recordWriter.js';
-import { readStructuredSnapshot, type StructuredFamily, type StructuredRead } from './structuredSnapshot.js';
+import { readProjectCreationSnapshot } from './projectSnapshot.js';
+import { hash as reviewHash } from '../changeReview/model.js';
+import { readStructuredSnapshot, readStructuredForCreation, type StructuredFamily, type StructuredRead } from './structuredSnapshot.js';
 import { ddlPlatformFor, tableName, type DdlModel } from '../model/recordDdl.js';
 import { maskSql, prepareReadOnlyQuery } from '../sql/readOnlyQuery.js';
 import { saveTranslate as saveTranslateRows, type TranslateChange } from './translateWriter.js';
@@ -762,11 +764,11 @@ export class DatabaseProvider implements DefinitionProvider {
 
   async saveRecord(request: RecordSaveRequest): Promise<RecordSaveResult> {
     const key=makeKey(DefinitionType.Record,request.edit.recname);
-    if (this.platform !== 'oracle' && (request.captureSnapshots || request.expectedSnapshotToken)) throw new ProviderError('Reviewed Record snapshots require Oracle.');
+    if (this.platform !== 'oracle' && (request.captureSnapshots || request.expectedSnapshotToken || request.expectedAfterHash)) throw new ProviderError('Reviewed Record snapshots require Oracle.');
     if (!request.dryRun && !request.edit.isNew) await this.guard(key, 'save');
     const write = async () => {
       const previous=request.dryRun || request.edit.isNew?undefined:await this.createdReceipt(key);
-      const result = await this.withConnection((c) => saveRecord(c, request, request.captureSnapshots || request.expectedSnapshotToken ? this.types : undefined));
+      const result = await this.withConnection((c) => saveRecord(c, request, request.captureSnapshots || request.expectedSnapshotToken || request.expectedAfterHash ? this.types : undefined));
       if (request.dryRun) return result;
       await this.withConnection((c) => verifyRecordSave(c, request, result));
       if(request.edit.isNew || previous)await this.noteCreation(key,{version:result.version,operator:request.operatorId,updated:result.lastupddttm},previous);
@@ -781,6 +783,16 @@ export class DatabaseProvider implements DefinitionProvider {
     return this.withConnection(async c => {
       await c.execute('SET TRANSACTION READ ONLY');
       try { return await readStructuredSnapshot(c, this.types, family, name); }
+      finally { await c.rollback(); }
+    });
+  }
+
+  /** Consistent full-scope absence/readback for bounded creation review. */
+  async readStructuredCreationForReview(family: StructuredFamily, name: string) {
+    if (this.platform !== 'oracle') throw new ProviderError('Creation review snapshots require Oracle.');
+    return this.withConnection(async c => {
+      await c.execute('SET TRANSACTION READ ONLY');
+      try { return await readStructuredForCreation(c, this.types, family, name); }
       finally { await c.rollback(); }
     });
   }
@@ -831,6 +843,37 @@ export class DatabaseProvider implements DefinitionProvider {
   async packageExists(name: string): Promise<boolean> {
     return this.withConnection(async (c) => Number((await c.execute<{ N: number }>(
       `SELECT COUNT(*) AS N FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :n OR PACKAGEID = :n`, { n: name })).rows?.[0]?.N ?? 0) > 0);
+  }
+
+  async readProjectCreationForReview(project: string) {
+    if (this.platform !== 'oracle') throw new ProviderError('Project creation review requires Oracle.');
+    return this.withConnection(async c => {
+      await c.execute('SET TRANSACTION READ ONLY');
+      try { return await readProjectCreationSnapshot(c, this.types, project); }
+      finally { await c.rollback(); }
+    });
+  }
+
+  async createProjectForReview(request: { project: string; operatorId: string; items: DefinitionKey[]; dryRun?: boolean;
+    proposed?: readonly DefinitionKey[]; expectedSnapshotToken: string; expectedAfterHash?: string }) {
+    if (this.platform !== 'oracle') throw new ProviderError('Project creation review requires Oracle.');
+    const output = await this.withConnection(async c => {
+      try {
+        const before = await readProjectCreationSnapshot(c, this.types, request.project);
+        if (before.value !== null || before.token !== request.expectedSnapshotToken) throw new ProviderError('Project creation baseline changed.');
+        let after: Awaited<ReturnType<typeof readProjectCreationSnapshot>> | undefined;
+        const result = await createProjectWithItems(c, request, async () => {
+          after = await readProjectCreationSnapshot(c, this.types, request.project);
+          if (request.expectedAfterHash && after.hash !== request.expectedAfterHash) throw new ProviderError('Created project differs from reviewed metadata; rolled back.');
+        });
+        return { before, after: after!, result };
+      } catch (error) { await c.rollback().catch(() => {}); throw error; }
+    });
+    if (!request.dryRun) {
+      const live = await this.readProjectCreationForReview(request.project);
+      if (live.hash !== reviewHash(output.after.value) || live.token !== output.after.token) throw new ProviderError('Committed project readback differs from reviewed metadata.');
+    }
+    return output;
   }
 
   /** Creates an empty project as App Designer's first save does (projectWriter.ts createProject). */
@@ -1638,7 +1681,7 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   async saveIntegrationBroker(request: IbSaveRequest) {
-    if (this.platform !== 'oracle' && (request.captureSnapshots || request.expectedSnapshotToken)) throw new ProviderError('IB review snapshots require Oracle.');
+    if (this.platform !== 'oracle' && (request.captureSnapshots || request.expectedSnapshotToken || request.expectedAfterHash)) throw new ProviderError('IB review snapshots require Oracle.');
     const input = ibWriteInput.parse(request.input);
     const key = ibDefinitionKey(input.kind,input.key);
     const previous = request.expectedToken === 'absent' ? undefined : await this.createdReceipt(key);
@@ -2366,7 +2409,7 @@ export class DatabaseProvider implements DefinitionProvider {
    */
   async saveAppEngineDocument(request: AeSaveRequest): Promise<AeSaveResult> {
     await this.assertPeopleCodeImports(peopleCodeSourcesIn(request.doc));
-    if (this.platform !== 'oracle' && (request.captureSnapshots || request.expectedSnapshotToken)) throw new ProviderError('Reviewed Application Engine snapshots require Oracle.');
+    if (this.platform !== 'oracle' && (request.captureSnapshots || request.expectedSnapshotToken || request.expectedAfterHash)) throw new ProviderError('Reviewed Application Engine snapshots require Oracle.');
     if (!request.dryRun && request.openedToken !== 'absent') await this.guard(makeKey(DefinitionType.AppEngineProgram, request.doc.name), 'save');
     const key=makeKey(DefinitionType.AppEngineProgram,request.doc.name);
     const write = async () => {
@@ -2957,7 +3000,7 @@ export class DatabaseProvider implements DefinitionProvider {
    * and cached on the provider: PSDBFIELD for a field's type, PSRECFIELDDB for
    * which fields a record has, PSSQLTEXTDEFN for a SQL definition's shape.
    */
-  async sqlCatalog(records: readonly string[]): Promise<SqlCatalog> {
+  async sqlCatalog(records: readonly string[], proposedFields: ReadonlyMap<string, readonly string[]> = new Map()): Promise<SqlCatalog> {
     const fieldTypes = new Map<string, SqlFieldType>();
     const recordFields = new Map<string, Set<string>>();
     await this.withConnection(async (c) => {
@@ -2965,6 +3008,16 @@ export class DatabaseProvider implements DefinitionProvider {
         const rows = (await c.execute<{ F: string; T: number; L: number; D: number }>(
           `SELECT R.FIELDNAME AS F, D.FIELDTYPE AS T, D.LENGTH AS L, D.DECIMALPOS AS D
              FROM PSRECFIELDDB R, PSDBFIELD D WHERE R.RECNAME = :r AND D.FIELDNAME = R.FIELDNAME`, { r: rec })).rows ?? [];
+        const proposed = proposedFields.get(rec);
+        if (proposed) {
+          rows.length = 0;
+          for (const field of proposed) {
+            const [r] = (await c.execute<{ F: string; T: number; L: number; D: number }>(
+              'SELECT FIELDNAME AS F, FIELDTYPE AS T, LENGTH AS L, DECIMALPOS AS D FROM PSDBFIELD WHERE FIELDNAME = :f', { f: field })).rows ?? [];
+            if (!r) throw new ProviderError('Proposed record references an absent field: ' + field);
+            rows.push(r);
+          }
+        }
         if (!rows.length) continue;
         const set = new Set<string>();
         for (const row of rows) {

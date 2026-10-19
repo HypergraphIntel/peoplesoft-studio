@@ -10,7 +10,7 @@ import { BuildRequestPanel, type BuildRequestHost } from '../editors/buildReques
 
 const ICONS: Record<ReturnType<typeof status>, string> = {
   DRAFT: 'edit', QUESTIONS: 'question', SPEC_PROPOSED: 'checklist', CHANGES_REQUESTED: 'comment-discussion', SPEC_STALE: 'warning',
-  APPROVED: 'pass', BUILDING: 'loading~spin', BUILT: 'pass-filled'
+  APPROVED: 'pass', BUILDING: 'loading~spin', AWAITING_REVIEW: 'checklist', MANUAL_REQUIRED: 'tools', BUILT: 'pass-filled'
 };
 
 class BuildRequestsView implements vscode.TreeDataProvider<BuildRequest> {

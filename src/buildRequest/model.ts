@@ -110,8 +110,8 @@ export interface Feedback { id: string; text: string; at: string; specRevision: 
 
 export const OBJECT_STATUSES = ['PENDING', 'BUILT', 'STAGED', 'MANUAL', 'FAILED', 'SKIPPED'] as const;
 export type ObjectStatus = typeof OBJECT_STATUSES[number];
-/** An object needs no more work from the agent: built and read back, staged for review, or handed to the developer. */
-export const DONE_STATUSES: readonly ObjectStatus[] = ['BUILT', 'STAGED', 'MANUAL', 'SKIPPED'];
+/** Completion requires readback or an explicit skip; proposals and manual handoffs remain outstanding. */
+export const DONE_STATUSES: readonly ObjectStatus[] = ['BUILT', 'SKIPPED'];
 
 const ref = z.string().regex(/^[A-Za-z0-9_.-]{1,64}$/, 'A ref is 1-64 letters, digits, _ . or -.');
 
@@ -171,11 +171,12 @@ export interface BuildRequest {
   updatedAt: string;
 }
 
-export type RequestStatus = 'DRAFT' | 'QUESTIONS' | 'SPEC_PROPOSED' | 'CHANGES_REQUESTED' | 'SPEC_STALE' | 'APPROVED' | 'BUILDING' | 'BUILT';
+export type RequestStatus = 'DRAFT' | 'QUESTIONS' | 'SPEC_PROPOSED' | 'CHANGES_REQUESTED' | 'SPEC_STALE' | 'APPROVED' | 'BUILDING' | 'AWAITING_REVIEW' | 'MANUAL_REQUIRED' | 'BUILT';
 
 export const STATUS_LABELS: Record<RequestStatus, string> = {
   DRAFT: 'Draft', QUESTIONS: 'Questions to answer', SPEC_PROPOSED: 'Spec ready for review', CHANGES_REQUESTED: 'Changes requested',
-  SPEC_STALE: 'Request changed; spec needs revising', APPROVED: 'Approved; ready to build', BUILDING: 'Building', BUILT: 'Built'
+  SPEC_STALE: 'Request changed; spec needs revising', APPROVED: 'Approved; ready to build', BUILDING: 'Building',
+  AWAITING_REVIEW: 'Awaiting Change Review application', MANUAL_REQUIRED: 'Manual steps remaining', BUILT: 'Built'
 };
 
 export function newRequest(id: string, now: string, init: Partial<Pick<BuildRequest, 'title' | 'kind' | 'connection' | 'project' | 'narrative'>> = {}): BuildRequest {
@@ -205,6 +206,10 @@ export function status(r: BuildRequest): RequestStatus {
     const objects = r.spec!.objects.filter((o) => o.action !== 'reuse');
     const states = objects.map((o) => r.progress[o.ref]?.status ?? 'PENDING');
     if (states.length && states.every((s) => DONE_STATUSES.includes(s))) return 'BUILT';
+    if (states.length && states.every((s) => s !== 'PENDING' && s !== 'FAILED')) {
+      if (states.includes('STAGED')) return 'AWAITING_REVIEW';
+      if (states.includes('MANUAL')) return 'MANUAL_REQUIRED';
+    }
     return states.some((s) => s !== 'PENDING') ? 'BUILDING' : 'APPROVED';
   }
   if (unansweredQuestions(r).length) return 'QUESTIONS';

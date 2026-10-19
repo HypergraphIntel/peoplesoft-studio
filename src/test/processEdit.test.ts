@@ -4,6 +4,7 @@ import { processEdit, processToken, validateProcessEdit } from '../model/process
 import type { ProcessView } from '../model/processDefinition.js';
 import { saveProcess } from '../providers/processWriter.js';
 import { ADAPTER_TYPES, type DbConnection, type DbResult } from '../db/connection.js';
+import { canonical } from '../changeReview/model.js';
 function fixture(): ProcessView {
   return {process:{PRCSTYPE:'SQR Report',PRCSNAME:'ABS002',DESCR:'Absence Periods Report',VERSION:1,LASTUPDOPRID:'PPLSOFT',PARMLIST:' ',PARMLISTTYPE:'0',OUTDESTTYPE:'1',OUTDESTFORMAT:'0',OUTDESTSRC:'3',OUTDEST:' ',RESTARTENABLED:'0',RETRYCOUNT:0,RUNLOCATION:'0',SERVERNAME:' ',RECURNAME:' ',PRCSCATEGORY:'Default',DESCRLONG:'A description',RECVRYPRCSTYPE:' ',RECVRYPRCSNAME:' ',OTHER_SETTING:'keep'},components:[{PNLGRPNAME:'RUN_ABS002'}],groups:[{PRCSGRP:'HRALL'}],translates:new Map([['OUTDESTFORMAT',new Map([['0','Any'],['2','PDF']])]])};
 }
@@ -42,4 +43,32 @@ test('stale process save and invalid drafts roll back without commit',async()=>{
 });
 test('preview rolls back edits and counters; unchanged save does not increment counters',async()=>{
   for(const change of [false,true]){const v=fixture(),d=db(v),edit=processEdit(v);if(change)edit.properties.DESCR='Preview';await saveProcess(d.c,ADAPTER_TYPES,{key:['SQR Report','ABS002'],token:processToken(v),edit,operatorId:'JARED',dryRun:true},async()=>v);assert.equal(v.process.DESCR,'Absence Periods Report');assert.deepEqual(d.counters,{ppc:10,lock:12,sys:20});assert.equal(d.committed,0);}
+});
+test('Change Review canonical snapshots verify Process saves independently of property order', async () => {
+  for (const dryRun of [true, false]) {
+    const v=fixture(), d=db(v), before=processToken(v), edit=processEdit(v);
+    v.translates=new Map([...v.translates,['PARMLISTTYPE',new Map([['0','None'],['3','Append']])]]);
+    edit.properties.PARMLISTTYPE='3'; edit.properties.PARMLIST=' -TRACE 7 -TOOLSTRACEPC 2131 -TOOLSTRACESQL 3';
+    const persisted=JSON.parse(canonical(edit));
+    assert.notEqual(JSON.stringify(persisted.properties),JSON.stringify(edit.properties));
+    const result=await saveProcess(d.c,ADAPTER_TYPES,{key:['SQR Report','ABS002'],token:before,edit:persisted,operatorId:'JARED',dryRun},async()=>v);
+    assert.equal(d.committed,dryRun ? 0 : 1);
+    assert.equal(d.rolledBack,dryRun ? 1 : 0);
+    if(dryRun) { assert.equal(processToken(v),before); assert.deepEqual(d.counters,{ppc:10,lock:12,sys:20}); }
+    else { assert.equal(result.process.PARMLIST,edit.properties.PARMLIST); assert.equal(result.process.PARMLISTTYPE,'3'); assert.deepEqual(d.counters,{ppc:13,lock:13,sys:22}); }
+  }
+});
+test('reordered equivalent Process input is a no-op, while a real readback difference still rolls back', async () => {
+  const v=fixture(),d=db(v),edit=JSON.parse(canonical(processEdit(v)));
+  await saveProcess(d.c,ADAPTER_TYPES,{key:['SQR Report','ABS002'],token:processToken(v),edit,operatorId:'JARED'},async()=>v);
+  assert.equal(d.committed,0); assert.equal(d.rolledBack,1);
+  assert.ok(!d.statements.some(s=>s.startsWith('UPDATE ')));
+  const changed=fixture(),bad=db(changed),proposal=JSON.parse(canonical(processEdit(changed)));
+  proposal.properties.DESCR='Reviewed description'; let reads=0;
+  await assert.rejects(saveProcess(bad.c,ADAPTER_TYPES,{key:['SQR Report','ABS002'],token:processToken(changed),edit:proposal,operatorId:'JARED'},async()=>{
+    if(++reads===2) changed.process.DESCR='Unexpected value';
+    return changed;
+  }),/readback verification/);
+  assert.equal(bad.committed,0); assert.equal(bad.rolledBack,1);
+  assert.equal(changed.process.DESCR,'Absence Periods Report');
 });

@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import {
-  approvalBlocker, buildOrder, buildSpec, isApproved, OBJECT_STATUSES, REQUEST_KINDS, status, STATUS_LABELS, TYPICAL_OBJECTS, unansweredQuestions,
+  approvalBlocker, buildOrder, buildSpec, DONE_STATUSES, isApproved, OBJECT_STATUSES, REQUEST_KINDS, status, STATUS_LABELS, TYPICAL_OBJECTS, unansweredQuestions,
   type BuildRequest
 } from '../buildRequest/model.js';
 import { routeFor } from '../buildRequest/routes.js';
@@ -172,7 +172,9 @@ export function registerBuildRequestTools(server: McpServer, store: BuildRequest
     annotations: LOCAL_WRITE
   }, async ({ id, entries }) => {
     const r = await need().report(id, entries);
-    const remaining = r.spec!.objects.filter((o) => o.action !== 'reuse' && !['BUILT', 'STAGED', 'MANUAL', 'SKIPPED'].includes(r.progress[o.ref]?.status ?? 'PENDING')).map((o) => o.ref);
-    return json({ status: status(r), remaining });
+    const outstanding = r.spec!.objects.filter((o) => o.action !== 'reuse' && !DONE_STATUSES.includes(r.progress[o.ref]?.status ?? 'PENDING'));
+    return json({ status: status(r), remaining: outstanding.map(o => o.ref),
+      awaitingReview: outstanding.filter(o => r.progress[o.ref]?.status === 'STAGED').map(o => ({ ref: o.ref, changeSetId: r.progress[o.ref].changeSetId })),
+      manualSteps: outstanding.filter(o => r.progress[o.ref]?.status === 'MANUAL').map(o => o.ref) });
   });
 }

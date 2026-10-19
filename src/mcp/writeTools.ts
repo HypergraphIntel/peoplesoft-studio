@@ -216,7 +216,7 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
       'signature comments (/+ &param as Type +/, /+ Returns Type +/, /+ Extends/implements Pkg:Class.method +/) into each method, get and set ' +
       'body, replacing any already there; the stored source is returned as storedSource. Read the current source with ' +
       'psft_get_peoplecode first and send the whole program. Read psft_peoplecode_reference before writing PeopleCode and run psft_validate_peoplecode first: ' +
-      'a save is refused when the code breaks a rule App Designer\'s compiler enforces (PC001-PC009). ' + 'An SQL definition is refused when a colon-number bind marker appears in a comment: PeopleSoft counts markers in the whole text, so it becomes an extra bind. '  + GATES,
+      'a save is refused when the code breaks a rule App Designer\'s compiler enforces (PC001-PC010). ' + 'An SQL definition is refused when a colon-number bind marker appears in a comment: PeopleSoft counts markers in the whole text, so it becomes an extra bind. '  + GATES,
     inputSchema: z.object({ connection: z.string().min(1), type: z.number().int(), parts: z.array(z.string()).min(1), source: z.string() }),
     annotations: WRITE
   }, async ({ connection, type, parts, source }) => {
@@ -502,10 +502,11 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
 
   server.registerTool('psft_create_project', {
     title: 'Create a project',
-    description: 'Create an empty App Designer project. ' + GATES,
-    inputSchema: z.object({ connection: z.string().min(1), project: z.string().min(1) }),
+    description: 'Create an App Designer project. On Oracle with Change Review, optional explicit items (Record, Field, SQL, AE program/section/PeopleCode) are reviewed with creation; declare dependsOn for staged prerequisites. Other platforms support an empty project only. ' + GATES,
+    inputSchema: z.object({ connection: z.string().min(1), project: z.string().min(1), items: z.array(z.object({ type: z.number().int(), parts: z.array(z.string()).min(1) })).default([]) }),
     annotations: WRITE
-  }, async ({ connection, project }) => {
+  }, async ({ connection, project, items }) => {
+    if (items.length) throw new Error('Reviewed project creation with membership requires Oracle Change Review.');
     const key: DefinitionKey = { type: DefinitionType.Project, parts: [project.trim().toUpperCase()] };
     const gate = await writable(workspace, host, connection, key.parts[0]);
     await approve(host, gate, key, `create project ${key.parts[0]}`, `A new, empty project ${key.parts[0]}.`);

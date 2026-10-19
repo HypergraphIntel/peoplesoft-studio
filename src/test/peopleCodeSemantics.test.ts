@@ -13,6 +13,50 @@ import { bindMarkerInComment } from '../providers/sqlWriter.js';
 
 const codes = (source: string, applicationClass = false) => checkPeopleCodeSemantics(source, { applicationClass }).map((p) => p.code);
 
+test('PC010: File.WriteLine has no value; refuse conditions and assignments before saving', () => {
+  // Native HRDMO App Designer, ZZ_RF_EXPORT.MAIN.Export: message 2,60.
+  for (const statement of ['If Not &out.WriteLine("header") Then\nEnd-If;',
+    'If &out.WriteLine("header") Then\nEnd-If;', '&ok = &out.WriteLine("header");',
+    '&ok = (Not &out.WriteLine("header"));', 'While &out.WriteLine("header")\nEnd-While;',
+    'MessageBox(0, "", 0, 0, &out.WriteLine("header"));']) {
+    const source = `Local File &out;\n${statement}\n`;
+    assert.deepEqual(codes(source), ['PC010'], statement);
+    assert.throws(() => compileForSave(source, { applicationClass: false, recordName: '', fieldName: '' }, '8.62'),
+      (e: unknown) => e instanceof SaveRefusedError && /WriteLine.*no result.*PC010/s.test(e.message));
+  }
+});
+
+test('PC010: standalone writes, returning methods and unknown receivers remain valid', () => {
+  assert.deepEqual(codes(`Local File &out, &second;
+&out.WriteLine("header");
+If &ready Then &second.WriteLine("detail"); End-If;
+For &i = 1 To 3
+  &out.WriteLine("detail");
+End-For;
+/* If Not &out.WriteLine("comment") Then */
+&text = "If Not &out.WriteLine(";
+&out.Close();`), []);
+  assert.deepEqual(codes('Local File &out; If &out.ReadLine(&line) Then\nEnd-If;'), []);
+  // HCDEV GPNZ_PDR_CR.GEN_LOG.Step12: When headers have no semicolon.
+  assert.deepEqual(codes('Local File &out; Evaluate &kind\nWhen = "X"\n&out.WriteLine("x");\nWhen = ""\n&out.WriteLine("empty");\nEnd-Evaluate;'), []);
+  assert.deepEqual(codes('Local object &out; If &out.WriteLine("x") Then\nEnd-If;'), []);
+  assert.deepEqual(codes('If &unknown.WriteLine("x") Then\nEnd-If;'), []);
+  // The same name in another function does not inherit the File declaration.
+  assert.deepEqual(codes(`Function Other()
+  Local object &out;
+  If &out.WriteLine("x") Then
+  End-If;
+End-Function;
+Local File &out;
+&out.WriteLine("header");`), []);
+  assert.deepEqual(codes(`Function Write()
+  Local File &out;
+  If Not &out.WriteLine("x") Then
+  End-If;
+End-Function;`), ['PC010']);
+  assert.deepEqual(codes('import CUSTOM:File; Local File &out; If &out.WriteLine("x") Then End-If;'), []);
+});
+
 test('PC001: a readonly property with a get block is refused; "get" with its block is fine', () => {
   const bad = `class Config
    property string Mode readonly;

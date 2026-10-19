@@ -3,7 +3,7 @@ import { DefinitionKey, DefinitionType } from '../model/definitions.js';
 import { PROPERTIES_SPECS } from '../model/properties.js';
 import {
   describeItem, itemKeyColumns, MIN_PROJECT_ITEM_SLOTS, PROJECT_ITEM_DEFAULTS, projectItemFor,
-  ProjectSaveRefusedError, type ProjectItem
+  ProjectSaveRefusedError, projectItemIdentity, type ProjectItem
 } from '../model/projectItems.js';
 import {pcmProgKeyParts} from '../model/peopleCodeKeys.js';
 import { writeScopeRefusal } from './writeScope.js';
@@ -27,8 +27,9 @@ import { expectRows, operatorExists, select, TIMESTAMP_FORMAT, VALUE_PREDICATE, 
  *   add      one PSPROJECTITEM row per definition, the project's other items
  *            untouched (p01; the writer's own insert, p02, matches it)
  *
- * Not yet: removing items, editing the project's properties, creating a
- * project, and saving with no changes (p03 records what App Designer does).
+ * Not yet: removing items, editing the project's properties, and saving
+ * with no changes (p03 records what App Designer does). New projects are
+ * created below; reviewed creation composes both saves in one transaction.
  *
  * The request may carry the project VERSION its changes were made against;
  * a project saved since (in App Designer or here) is refused, so staged
@@ -166,7 +167,7 @@ export function planProjectSave(request: ProjectSaveRequest): ProjectItem[] {
  * Saves the project and commits, or rolls back and throws. The caller
  * verifies again after COMMIT (verifyProjectSave).
  */
-export async function saveProject(c: Connection, request: ProjectSaveRequest): Promise<ProjectSaveResult> {
+export async function saveProject(c: Connection, request: ProjectSaveRequest, transaction?: { deferCommit: true; proposed: readonly DefinitionKey[] }): Promise<ProjectSaveResult> {
   try {
     const operatorError = validateOperatorId(request.operatorId);
     if (operatorError) throw new ProjectSaveRefusedError(operatorError);
@@ -186,7 +187,7 @@ export async function saveProject(c: Connection, request: ProjectSaveRequest): P
     const slots = await itemSlots(c);
     for (const [i, item] of items.entries()) {
       const what = describeItem(request.add[i]);
-      if (!(await definitionExists(c, request.add[i]))) throw new ProjectSaveRefusedError(`${what} does not exist in this database.`);
+      if (!transaction?.proposed.some(key => projectItemIdentity(key) === projectItemIdentity(request.add[i])) && !(await definitionExists(c, request.add[i]))) throw new ProjectSaveRefusedError(`${what} does not exist in this database.`);
       itemKeyColumns(item, slots);
       if (await itemCount(c, request.project, item, slots) > 0) {
         throw new ProjectSaveRefusedError(`${what} is already in project ${request.project}.`);
@@ -220,7 +221,7 @@ export async function saveProject(c: Connection, request: ProjectSaveRequest): P
     if (now.pjm !== next.pjm || now.sys !== next.sys || now.lockPjm !== next.lockPjm) {
       throw new ProjectSaveRefusedError(`counters ${JSON.stringify(now)}, ${JSON.stringify(next)} expected; rolled back.`);
     }
-    await c.commit();
+    if (!transaction?.deferCommit) await c.commit();
     return result;
   } catch (error) {
     await c.rollback().catch(() => { /* the original error matters more */ });
@@ -265,7 +266,7 @@ export const NEW_PROJECT_VALUES = {
  * new PJM; PSVERSION PJM, SYS + 1; PSLOCK PJM + 1. Items are added after,
  * by saveProject, as App Designer's Insert does.
  */
-export async function createProject(c: Connection, request: { project: string; operatorId: string }): Promise<ProjectSaveResult> {
+export async function createProject(c: Connection, request: { project: string; operatorId: string }, deferCommit = false): Promise<ProjectSaveResult> {
   const project = request.project;
   try {
     const operatorError = validateOperatorId(request.operatorId);
@@ -306,10 +307,23 @@ export async function createProject(c: Connection, request: { project: string; o
         now.pjm !== next.pjm || now.sys !== next.sys || now.lockPjm !== next.lockPjm) {
       throw new ProjectSaveRefusedError('The project did not land as planned; rolled back.');
     }
-    await c.commit();
+    if (!deferCommit) await c.commit();
     return { version: next.pjm, lastupddttm, added: [] };
   } catch (error) {
     await c.rollback().catch(() => { /* the original error matters more */ });
     throw error;
   }
+}
+
+/** Compose the calibrated create + membership saves in one transaction; assumptions are rollback-only. */
+export async function createProjectWithItems(c: Connection, request: { project: string; operatorId: string; items: DefinitionKey[]; dryRun?: boolean; proposed?: readonly DefinitionKey[] },
+  verify: () => Promise<void>): Promise<ProjectSaveResult> {
+  if (!request.dryRun && request.proposed?.length) throw new ProjectSaveRefusedError('Proposed definitions are valid only in rollback preview.');
+  try {
+    const created = await createProject(c, request, true);
+    const result = request.items.length ? await saveProject(c, { project: request.project, operatorId: request.operatorId, openedVersion: created.version, add: request.items }, { deferCommit: true, proposed: request.proposed ?? [] }) : created;
+    await verify();
+    if (request.dryRun) await c.rollback(); else await c.commit();
+    return result;
+  } catch (error) { await c.rollback().catch(() => {}); throw error; }
 }

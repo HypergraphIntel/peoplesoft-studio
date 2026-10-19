@@ -1,8 +1,12 @@
 import type { DbConnection, DbTypes } from '../db/connection.js';
+import { isDeepStrictEqual } from 'node:util';
 import type { ProcessView } from '../model/processDefinition.js';
 import { processEdit, processToken, processValue, validateProcessEdit, type ProcessEdit } from '../model/processEdit.js';
 import { writeScopeRefusal } from './writeScope.js';
 export interface ProcessSaveRequest { key: string[]; token: string; edit: ProcessEdit; operatorId: string; dryRun?: boolean }
+// Change Review canonicalizes JSON property order. Compare property values and
+// association sets without depending on the editor's original insertion order.
+const comparableEdit = (edit: ProcessEdit): ProcessEdit => ({ properties: edit.properties, components: [...edit.components].sort(), groups: [...edit.groups].sort() });
 /** Native PRCSDEFN SavePreChange/SavePostChange and FUNCLIB_PSM: PPC=max(version,lock)+1; SYS twice (component UpdateSysVersion, then UpdateSysObject). */
 export async function saveProcess(c: DbConnection, types: DbTypes, request: ProcessSaveRequest, read: (c: DbConnection)=>Promise<ProcessView>): Promise<ProcessView> {
   const [t,n]=request.key, binds={t,n};
@@ -24,7 +28,7 @@ export async function saveProcess(c: DbConnection, types: DbTypes, request: Proc
     if(props.OUTDESTSRC!==old.properties.OUTDESTSRC && props.OUTDESTSRC==='0')props.OUTDEST='';
     for(const [mode,value] of [['PARMLISTTYPE','PARMLIST'],['CMDLINETYPE','CMDLINE'],['WORKINGDIRTYPE','WORKINGDIR']])if(props[mode]==='0' && props[value]!==old.properties[value] && props[value])throw new Error('Choose an override mode before entering '+value+'.');
     if(props.OUTDEST!==old.properties.OUTDEST && props.OUTDEST && props.OUTDESTSRC!=='2')throw new Error('Choose Process Definition as the destination source before editing the destination.');
-    if(JSON.stringify(edit)===JSON.stringify(old)){await c.rollback();return before;}
+    if(isDeepStrictEqual(comparableEdit(edit),comparableEdit(old))){await c.rollback();return before;}
     for(const [list,table,field,prompt] of [['components','PS_PRCSDEFNPNL','PNLGRPNAME','PSPNLGRPDEFN'],['groups','PS_PRCSDEFNGRP','PRCSGRP','']] as const){
       for(const value of edit[list].filter(v=>!old[list].includes(v)))if(prompt && !(await q(`SELECT ${field} FROM ${prompt} WHERE ${field}=:v`,{v:value})).length)throw new Error(`Unknown ${list}: ${value}`);
       // Only changed associations are touched; other stored rows remain intact.
@@ -48,7 +52,7 @@ export async function saveProcess(c: DbConnection, types: DbTypes, request: Proc
     await run("UPDATE PSVERSION SET VERSION=VERSION+2 WHERE OBJECTTYPENAME='SYS'",{},1);
     if(p.OUTDESTSRC!==old.properties.OUTDESTSRC && p.OUTDESTSRC!=='2')await c.execute('DELETE FROM PS_PRCSDEFNCNTDIST WHERE PRCSTYPE=:t AND PRCSNAME=:n',binds);
     const after=await read(c),actual=processEdit(after);
-    if(JSON.stringify({...actual,components:actual.components.sort(),groups:actual.groups.sort()})!==JSON.stringify({...edit,components:[...edit.components].sort(),groups:[...edit.groups].sort()}) || Number(after.process.VERSION)!==version || processValue(after.process.LASTUPDOPRID)!==request.operatorId)throw new Error('Process save failed readback verification.');
+    if(!isDeepStrictEqual(comparableEdit(actual),comparableEdit(edit)) || Number(after.process.VERSION)!==version || processValue(after.process.LASTUPDOPRID)!==request.operatorId)throw new Error('Process save failed readback verification.');
     for(const [field,value] of Object.entries(before.process))if(!['VERSION','LASTUPD','LASTUPDDTTM','LASTUPDOPRID',...Object.keys(p)].includes(field) && JSON.stringify(after.process[field])!==JSON.stringify(value))throw new Error('An unrelated process property changed during save: '+field);
     const checkCounters=await q<{OBJECTTYPENAME:string;VERSION:number}>("SELECT OBJECTTYPENAME,VERSION FROM PSVERSION WHERE OBJECTTYPENAME IN ('PPC','SYS') ORDER BY OBJECTTYPENAME");
     const checkLocks=await q<{VERSION:number}>("SELECT VERSION FROM PSLOCK WHERE OBJECTTYPENAME='PPC'");

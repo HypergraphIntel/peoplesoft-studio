@@ -2,7 +2,38 @@
 
 ## Unreleased — 0.9.6
 
-Development starts from 0.9.5. No 0.9.6 feature changes are claimed yet.
+- **File.WriteLine value-use validation (PC010).** Reject direct Boolean,
+  assignment and argument uses on known Local File receivers before saving.
+  Native App Designer 2,60 exposed this error in the synthetic export; its
+  three WriteLine calls are corrected to statements. Unknown/ambiguous types
+  remain outside this bounded check.
+
+- **Coherent creation review for new Derived/Work Records, App Engines and
+  projects on Oracle.** Exact native rollback previews and precommit after-image
+  checks; explicit proposed Record/SQL/AE dependencies validate before saving.
+  Application verifies live prerequisites before dependents. New projects can
+  include explicit Record/Field/SQL/AE members in one native transaction.
+  Creation undo and broader existing structural edits remain unsupported.
+  Local transaction and production HTTP/UI fixtures pass; developer-approved
+  HRDMO four-object creation and independent native readback pass. Native
+  synthetic AE/file instance 607175 completed Success/Posted and produced the
+  exact expected UTF-8/no-BOM CSV after the reviewed WriteLine correction.
+- **Fully specified synthetic outbound-file acceptance fixture**, including
+  requirements, SQL, PeopleCode, expected CSV and an actual-output comparator.
+  No business-rule questionnaire is needed for this lab sample.
+
+- **Build Requests keep staged proposals and manual steps outstanding** until
+  persistence/readback or explicit completion is reported.
+- **Project related-definition scan ignores fallback MessageBox catalog 0.0**,
+  while retaining real Message Catalog dependencies.
+
+- **Process Change Review saves compare values independently of JSON key order.**
+  Canonical proposal storage previously caused a correct save to fail readback
+  verification and roll back. Real value differences still refuse commit.
+- **Reconciliation recognizes an unchanged existing-update baseline** only when
+  both the complete before-image and original token match. It enables a fresh
+  reviewed continuation without replay; content/token drift, uncertain creates
+  and unknown manual outcomes remain blocked.
 
 ## 0.9.5 — 2026-10-18
 

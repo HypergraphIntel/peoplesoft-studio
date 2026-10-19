@@ -120,3 +120,32 @@ On 8.61.15 an App Engine definition added in PIA (one process group) and one
 created by `psft_process_create` have equal rows in PS_PRCSDEFN and
 PS_PRCSDEFNGRP. PPC follows max(PSVERSION, PSLOCK) + 1, so it can move by two
 when PSLOCK is ahead.
+
+### Synthetic runtime prerequisite (0.9.6 development)
+
+On HRDMO, the developer separately authorized a lab Application Engine process
+`ZZ_RF_EXPORT`, component `AE_REQUEST`, existing group `TLSALL`, server execution
+and no recurrence/permission-list edits. Guarded creation and independent full
+input/token readback passed (VERSION 30, operator JARED). The native request
+page listed it and Process Scheduler invoked PSAESRV on HCMDMO. AE metadata
+loading initially failed 108,502. Native App Designer subsequently exposed a
+WriteLine result-value error (2,60); the reviewed PeopleCode correction validates
+and instance 607175 completed Success/Posted with the exact expected CSV and
+summary. Run control is restored to Once and temporary tracing is cleared.
+This bounded native execution does not establish general PIA counter equivalence.
+See [the AE/file acceptance tracker](build-requests/AE_FILE_WORKFLOW.md).
+
+### Canonical Change Review input regression
+
+Change Review stores snapshots with alphabetically sorted JSON keys. The writer
+previously compared insertion order in its readback JSON, so such an input could
+roll back even though all native values matched. Process saves and no-op checks
+now use structural property equality and sorted association sets. True readback
+value mismatches still roll back, as do failed native counters, stamps or
+preservation checks. Regression tests cover canonical updates/previews, no-op
+input order and deliberate readback corruption. The exact ZZ_RF_EXPORT trace
+proposal passed a native rollback-only source-writer preview with unchanged
+live token and counters. The developer-approved continuation committed with
+verified full-input/token readback; a subsequent approved Process UPDATE
+restored the original trace settings, VERSION 32. Continuation reversal itself
+remains unsupported.

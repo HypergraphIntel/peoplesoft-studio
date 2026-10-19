@@ -21,6 +21,8 @@ import { maskNonCode, parseApplicationClassSource } from './applicationClassProg
  *          parameter (Fetch binds them by reference; fetch into Locals and assign)
  *   PC009  NumberToString given a printf conversion ("%04d"): the format is
  *          %<width>[.<decimals>][R T t v], and a stray letter corrupts the result
+ *   PC010  a known Local File's WriteLine used as a value (native 2,60)
+ *          rather than a statement; bounded to directly typed local receivers
  *
  * Whether an imported class or package exists needs the database
  * (DatabaseProvider.peopleCodeImportProblems).
@@ -29,8 +31,8 @@ import { maskNonCode, parseApplicationClassSource } from './applicationClassProg
 export interface SemanticProblem { code: string; offset: number; message: string }
 
 /** maskNonCode, and the compiler's /+ ... +/ signature comments too (they name classes but are not code). */
-function mask(source: string): string {
-  return maskNonCode(source).replace(/\/\+[\s\S]*?\+\//g, (m) => m.replace(/[^\n]/g, ' '));
+function mask(source: string, preserveStringDelimiters = false): string {
+  return maskNonCode(source, preserveStringDelimiters).replace(/\/\+[\s\S]*?\+\//g, (m) => m.replace(/[^\n]/g, ' '));
 }
 
 const BLOCK_END = /^(end-if|else|end-evaluate|when|when-other|end-for|end-while|until|end-repeat|end-try|catch|end-function|end-method|end-get|end-set)\b/i;
@@ -209,6 +211,35 @@ export function checkPeopleCodeSemantics(source: string, opts: { applicationClas
     const fmt = source.slice(q + 1, j), sfx = /^%[#*0-9.]*([A-Za-z]*)$/.exec(fmt)?.[1];
     if (sfx && /[^RTtv]/.test(sfx)) {
       add('PC009', q, `NumberToString("${fmt}", ...): ${JSON.stringify(sfx)} is not a NumberToString format suffix. The format is %<width>[.<decimals>] with an optional R, T, t or v -- it is not printf, so a conversion letter like "d" is taken literally and corrupts the result ("%04d" on 2026 gives "d-ba"). Write "${fmt.replace(/[A-Za-z]+$/, '')}" for a zero-padded number, or String() when no padding is needed.`);
+    }
+  }
+  // PC010: native App Designer rejected ZZ_RF_EXPORT's If Not &out.WriteLine
+  // with 2,60. Oracle documents no return value; file errors terminate execution.
+  // Resolve only explicitly typed Locals in the same body. Do not infer a File
+  // from its name, an object receiver or a Local in a different function, and
+  // leave an imported/custom File class alone. This is not a general type checker.
+  if (ownClass !== 'FILE' && !imports.some((p) => p.endsWith(':FILE') || p.endsWith(':*'))) {
+    // A preceding When = "literal" needs its literal token retained; masking it
+    // entirely would make the following standalone write look like a RHS.
+    const expressions = mask(source, true);
+    const localTypes = new Map<Body | undefined, Map<string, string>>();
+    for (const d of m.matchAll(/\blocal\s+([%A-Za-z][\w:]*)\s+(&[\w#]+(?:\s*,\s*&[\w#]+)*)/gi)) {
+      const scope = inside(d.index!);
+      let types = localTypes.get(scope);
+      if (!types) { types = new Map(); localTypes.set(scope, types); }
+      for (const v of d[2].split(',').map((x) => x.trim().toLowerCase())) {
+        const type = d[1].toLowerCase();
+        types.set(v, types.has(v) && types.get(v) !== type ? 'unknown' : type);
+      }
+    }
+    for (const call of m.matchAll(/(?<![\w&%.:])(&[\w#]+)\s*\.\s*writeline\s*\(/gi)) {
+      if (localTypes.get(inside(call.index!))?.get(call[1].toLowerCase()) !== 'file') continue;
+      const prefix = expressions.slice(m.lastIndexOf(';', call.index!) + 1, call.index!);
+      // Direct conditions, assignments, operators and argument positions consume
+      // a result. Standalone statements (including after Then or a loop header)
+      // are legal. Comments/strings are masked, preserving diagnostic offsets.
+      if (!/(?:\b(?:if|while|until|when|return|and|or|not)\s+|[=<>+*/|,(]\s*)(?:not\s+|\(\s*)*$/i.test(prefix)) continue;
+      add('PC010', call.index!, `${call[1]}.WriteLine returns no result value (App Designer 2,60); call it as a statement, not a condition, assignment or argument. File-method errors terminate the PeopleCode program.`);
     }
   }
   return problems.sort((a, b) => a.offset - b.offset);

@@ -8,7 +8,7 @@ These checks now run before every PeopleCode save: the PeopleCode editor,
 rule is refused with each problem's line and the fix.
 `psft_validate_peoplecode` runs the same checks without saving.
 
-Implementation: `src/peoplecode/semanticCheck.ts` (PC001-PC005, PC007-PC009) and
+Implementation: `src/peoplecode/semanticCheck.ts` (PC001-PC005, PC007-PC010) and
 `DatabaseProvider.peopleCodeImportProblems` (PC006).
 
 ## Rules
@@ -24,10 +24,11 @@ Implementation: `src/peoplecode/semanticCheck.ts` (PC001-PC005, PC007-PC009) and
 | PC007 | `None`, `All`, `AllOrNone`, `OnlyOne` or `OnlyOneOrNone` given a class instance variable or a `%This` property. App Designer says "Field or temporary variable name required". | Copy the value into a Local first (`Local date &d = &i_checkDt; If None(&d) Then`), or for a date use `IsDate(&i_checkDt)`. |
 | PC009 | `NumberToString` given a printf conversion, e.g. `NumberToString("%04d", &n)`. The format is PeopleSoft's `%<width>[.<decimals>]` with an optional `R`, `T`, `t` or `v`; a conversion letter is taken literally. At run time `"%04d"` on 2026 gives `d-ba`. | Drop the conversion letter (`"%04"`, `"%02"`), or use `String(&n)` when no padding is needed. |
 | PC008 | `SQL.Fetch` given a property or a class instance variable as an output parameter. Fetch binds its outputs by reference; a property is reached through a getter, so there is no variable to write into. At run time: `SQL.Fetch: parameter 1 is neither a record object nor a name. (2,284)`. | Fetch into `Local` variables and assign afterwards (`Local string &a; ... .Fetch(&a); &Descr = &a;`). |
+| PC010 | A known `Local File` receiver's `WriteLine` used directly as a condition, assignment, operator operand or argument. Native App Designer reports 2,60, "Function or method does not produce a result value." | Use `&file.WriteLine(&line);` as a statement. File-method errors abort execution; there is no Boolean result to inspect. |
 
 ## Evidence
 
-Each rule was broken by agent-written code on HRDMO (ZZ_BENEFITS) and
+PC001-PC009 were broken by agent-written code on HRDMO (ZZ_BENEFITS) and
 refused there by App Designer. Each rule also holds for
 every delivered program in the local HCDEV snapshot: 35,831 programs, of which
 1,510 are Application Classes. To re-run that check:
@@ -37,6 +38,17 @@ npx tsx tools/corpus/semantic-census.ts   # expects 0 flagged
 ```
 
 Notes from the census:
+
+- **PC010** comes from the October 19 native App Designer validation of
+  `ZZ_RF_EXPORT.MAIN.Export`, corroborated by Oracle's
+  [WriteLine contract](https://docs.oracle.com/en/applications/peoplesoft/peopletools/8.63/peoplecode-api-reference/writeline.html)
+  and [file-error handling](https://docs.oracle.com/en/applications/peoplesoft/peopletools/8.63/peoplecode-api-reference/file-layout-error-processing.html).
+  Its focused read-only HCDEV census covers all 413 programs containing
+  WriteLine: zero flagged. The guard resolves explicit Locals within the same
+  function/event body, preserves literal tokens in preceding `When` headers,
+  and leaves unknown receivers or imported/custom File types outside scope.
+  Valid statement calls and methods that return values, such as ReadLine,
+  remain accepted. No encoding rule was changed.
 
 - **PC003.** The census ignores a bare `Return` that sits just before a block
   end (`End-If`, `Else`, `end-method`, ...) with no `;` after it. That form is

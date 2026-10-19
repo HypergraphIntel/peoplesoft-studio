@@ -1,0 +1,31 @@
+Local File &out;
+Local SQL &rows;
+Local string &id, &descr, &quote, &line;
+Local number &amount, &total, &accepted, &rejected;
+
+&total = 0;
+&accepted = 0;
+&rejected = 0;
+&quote = Char(34);
+&out = GetFile("ZZ_RF_EXPORT.csv", "W", "UTF8", %FilePath_Relative);
+If Not &out.IsOpen Then
+   Error ("ZZ_RF_EXPORT: cannot open lab output");
+End-If;
+&out.WriteLine("RowType,ID,Description,Amount");
+
+&rows = CreateSQL(SQL.ZZ_RF_ROWS);
+While &rows.Fetch(&id, &descr, &amount)
+   If &amount < 0 Then
+      &rejected = &rejected + 1;
+   Else
+      &line = "D," | &id | "," | &quote | Substitute(&descr, &quote, &quote | &quote) | &quote | "," | LTrim(NumberToString("%1.2", &amount));
+      &out.WriteLine(&line);
+      &accepted = &accepted + 1;
+      &total = &total + &amount;
+   End-If;
+End-While;
+&rows.Close();
+&line = "T," | String(&accepted) | "," | &quote | "TOTAL" | &quote | "," | LTrim(NumberToString("%1.2", &total));
+&out.WriteLine(&line);
+&out.Close();
+MessageBox(0, "", 0, 0, "ZZ_RF_EXPORT: accepted=" | String(&accepted) | " rejected=" | String(&rejected) | " total=" | LTrim(NumberToString("%1.2", &total)));

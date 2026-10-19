@@ -2,6 +2,28 @@
 
 ## Current development — 0.9.6 (0.9.5 release baseline)
 
+Latest checkpoint: the native startup-trace Process UPDATE rolled back on a
+JSON property-order comparison bug; its original full live baseline is intact.
+The Process writer fix passes the exact native canonical-input rollback preview.
+Recovery now confirms an existing UPDATE's exact original snapshot plus token,
+without replay, to allow a fresh reviewed continuation. Full verify: 2,028 passed,
+one skipped; 52 production HTTP/UI checks. Updated installed-runtime native
+reconciliation and freshly approved continuation application now pass: the
+original records BASELINE_CONFIRMED; continuation
+`b4266a59-b0c9-43af-abfd-1317ff956bfb` revision 1 is APPLIED/VERIFIED with
+independent full-input/token readback. Native App Designer then exposed invalid
+Boolean uses of File.WriteLine (2,60). Reviewed correction
+`af6dd54e-b44c-4c48-b1b0-0dd3e8f045bb` revision 2 is APPLIED/VERIFIED;
+native validation passes. HCMDMO instance 607175 completed Success/Posted and
+its 123-byte UTF-8/no-BOM CSV exactly matches expected output and summary.
+Build Request is BUILT with no remaining objects. Run control is restored to
+Once, all temporary tracing is cleared, project closure reports zero missing.
+PC010 guard local checks: 2,030 tests passed / one skipped, protected 430 EXACT,
+zero new-rule flags in 413 delivered WriteLine programs. Typed continuation
+reversal remains unsupported; cleanup used a fresh approved Process UPDATE.
+See the newest checkpoint in
+[AE/file workflow](../build-requests/AE_FILE_WORKFLOW.md).
+
 Build Request message ordering and installed acceptance were committed as
 `2283c7d`. The bounded HRDMO build reached BUILT after native spec/SQL review
 approval and independent state/SQL/AE/project readback. Developer trials also
@@ -66,9 +88,44 @@ HRDMO standard-service/operation header apply/inverse cycle. REST and 8.61
 reviewed application, redo and broader structural adapters remain separate
 acceptance/scope. No runtime message transmission or credential changes occurred.
 
-Next implementation work: broaden IB review beyond headers with explicit
-per-operation snapshot/dependency/inverse contracts. Do not treat native writer
-calibration or this header cycle as structural review certification.
+Immediate 0.9.6 target: [request to runnable AE/file interface](../build-requests/AE_FILE_WORKFLOW.md).
+The user selected this ahead of further IB-only expansion. Development adds
+`record-create`, `ae-create` and `project-create`: bounded new-definition native
+rollback previews, exact vacant scopes/after-image checks, declared transitive
+proposal validation, and live verified prerequisite checks before dependents.
+The project composes its existing create/membership writers in one transaction;
+Record/SQL/AE/project application as a whole remains per-writer and resumable,
+not atomic. Creation undo remains unsupported. Installed native four-object creation and
+independent metadata readback now pass; runtime acceptance remains open. See [creation contracts](STRUCTURED_CREATION.md).
+
+Local 0.9.6 verification: 2,024 passed, one skipped; 108-command/10-view/three-editor
+smoke, plus 51 production HTTP/UI fixtures on Node 20 and Node 26. The packaged
+creation candidate was reloaded; all fourteen adapters are active. Developer
+approved spec revision 1 for `br-60e7196e2b0a`, then approved/applied Change Set
+`c1d1298e-29ff-4164-9233-d13936d524f1` revision 5. All four objects are VERIFIED;
+independent exact after-image/checkpoint/dependency and fresh native timeline
+checks pass. Native AE has no validation findings; the project has five exact
+members. Closure's phantom MessageBox catalog 0.0 is fixed locally; installed
+refresh is pending. Build Request proposals/manual handoffs now remain outstanding
+instead of reporting BUILT. Full verification and 51 HTTP/UI checks on Node 20
+and 26 pass after these fixes.
+
+Native AE request page recognizes the program. The Run dialog requires a
+component-linked Process Definition. The developer separately authorized the
+exact lab prerequisite; guarded creation/readback passed. Native scheduler
+instance 607102 on HCMDMO ran ZZ_RF_EXPORT / ZZ_RF_ACC_01 and ended No Success:
+"Error retrieving Application Engine ZZ_RF_EXPORT.MAIN component: Step Export,
+PeopleCode". Report posting also failed with HTTP 900 (63,72). No unrelated
+process was run; no successful CSV or 0.9.6 release is claimed. Read-only native
+metadata/corpus diagnosis found no proven metadata mismatch. Manual diagnostic
+607105 reproduced 108,502 before selective tracing could start. Temporary
+user tracing is removed/disabled and run-control Once restored, independently
+verified. Startup-trace process update c811c902-977e-476f-8c92-bf350e61499d,
+revision 2, is READY_FOR_REVIEW with exactly the Append mode and trace-argument
+changes; rollback/full validation passes and nothing is persisted yet. User
+application is pending. Build Request export progress is FAILED with actual
+runtime evidence; remaining definitions stay verified. Candidate
+identity and the concrete next gate are in the workflow tracker.
 
 ## 0.9.5 release closeout
 
@@ -804,3 +861,27 @@ Native adapters, writer/approval policy and visual placement are unchanged.
 The follow-up commit is intended for main. Replacing the already-pushed release
 tag is a separate explicit developer decision; it is not silently rewritten.
 GitHub CI for the correction provides the remaining remote validation evidence.
+
+
+Latest startup-trace gate: developer approval was recorded, but application
+stopped before writing on missing HRDMO localhost:15210 tunnel (NJS-503),
+displaying CONFLICTED. Restored the existing loopback SSH forward and verified
+the native process baseline/input are unchanged. Official revalidation passes;
+revision 2 is READY_FOR_REVIEW, object PENDING. Revalidation clears its prior
+approval under the current service contract; developer re-approval/application
+is required. No native update or approval bypass occurred.
+
+
+Process key-order fix and exact-existing-baseline recovery candidate is installed
+but needs Developer: Reload Window. VSIX
+`/tmp/peoplesoft-studio-0.9.6-process-recovery-dev.vsix`, SHA-256
+`a92edcf4e468b616a1b7c5de4ca8332e8b8cc06dae6174e34a50224c8824b3b3`;
+tested/package/installed runtime bundle all match
+`b5c60bf91be4a6569d9f22dc32741140bef8a76863e956ef4fb5382334ee4e71`.
+2,028 tests passed / one skipped; 52 HTTP/UI checks on Node 20 and 26;
+canonical Process input native rollback preview verifies the exact after-input
+and unchanged before token/counters. The current live diagnostic record remains
+PARTIALLY_APPLIED/UNCERTAIN until trusted UI reconciliation in the new runtime.
+Next: reload, reconcile, prepare remaining work, validate and freshly approve/
+apply its continuation; then resume native startup-trace capture. No 0.9.6
+release, encoder modification or CSV runtime acceptance is claimed.

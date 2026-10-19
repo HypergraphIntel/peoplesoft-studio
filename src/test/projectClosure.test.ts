@@ -56,6 +56,7 @@ test('code references: SQL.NAME, %SQL(NAME) and MessageBox set/number, comments 
   assert.deepEqual(sqlReferences('SQLExec(SQL.ZZ_BNV_PAYCAL2, &a); /* SQL.NOT_THIS */ %SQL(ZZ_BNV_CENSUS, X)'), ['ZZ_BNV_CENSUS', 'ZZ_BNV_PAYCAL2']);
   assert.deepEqual(messageReferences('MessageBox(0, "", 25500, 9, "x"); MessageBox(0, "", 25500, 20, "y"); MessageBox(0, "", 25500, 9, "z");'),
     [{ set: 25500, number: 9 }, { set: 25500, number: 20 }]);
+  assert.deepEqual(messageReferences('MessageBox(0, "", 0, 0, "accepted=3"); MessageBox(0, "", 25500, 9, "real dependency");'), [{ set: 25500, number: 9 }]);
 });
 
 test('the closure finds what each member needs and skips what is already a member', async () => {

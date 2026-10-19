@@ -4,7 +4,7 @@ import * as z from 'zod/v4';
 import { DefinitionType, type DefinitionKey } from '../model/definitions.js';
 import { copyProgram, PROGRAM_NAME_MAX, type AeDocument } from '../model/aeDocument.js';
 import { applyOperation, operation, programSpec } from '../model/aeOperations.js';
-import { validateAppEngine, validateAppEngineReferences, type AeDiagnostic } from '../model/aeValidation.js';
+import { validateAppEngine, validateAppEngineReferences, type AeDiagnostic, type AeReferenceLookup } from '../model/aeValidation.js';
 import { checkSqlTypes, checkSqlCallSites } from '../model/sqlTypeCheck.js';
 import { ACTION_LABELS } from '../model/appEngine.js';
 import { dependencies, executionFlow, explainProgram } from '../model/aeSemantics.js';
@@ -32,9 +32,15 @@ async function databaseProvider(workspace: Workspace, connection: string): Promi
   return p;
 }
 
+export interface AeValidationOverlay {
+  references: AeReferenceLookup;
+  records: ReadonlyMap<string, readonly string[]>;
+  sql: ReadonlyMap<string, { binds: number; columns: number }>;
+}
+
 /** Validation with the database's answers and every PeopleCode action compiled. */
-export async function deepValidate(p: DatabaseProvider, doc: AeDocument): Promise<AeDiagnostic[]> {
-  const out = [...validateAppEngine(doc), ...await validateAppEngineReferences(doc, p.appEngineReferenceLookup())];
+export async function deepValidate(p: DatabaseProvider, doc: AeDocument, overlay?: AeValidationOverlay): Promise<AeDiagnostic[]> {
+  const out = [...validateAppEngine(doc), ...await validateAppEngineReferences(doc, overlay?.references ?? p.appEngineReferenceLookup())];
   const release = (await p.readEnvironment()).toolsRelease;
   for (const s of doc.sections) for (const v of s.variants) for (const st of v.steps) {
     const a = st.actions.find((x) => x.type === 'P');
@@ -44,7 +50,7 @@ export async function deepValidate(p: DatabaseProvider, doc: AeDocument): Promis
         at: { section: s.name, variant: v, step: st.name, action: 'P' } });
     }
   }
-  await sqlTypeDiagnostics(p, doc, out);
+  await sqlTypeDiagnostics(p, doc, out, overlay);
   return out;
 }
 
@@ -54,7 +60,7 @@ export async function deepValidate(p: DatabaseProvider, doc: AeDocument): Promis
  * from another type, and CreateSQL / SQLExec passing the wrong number of binds.
  * None of this is caught at save time otherwise -- each one abends at run time.
  */
-async function sqlTypeDiagnostics(p: DatabaseProvider, doc: AeDocument, out: AeDiagnostic[]): Promise<void> {
+async function sqlTypeDiagnostics(p: DatabaseProvider, doc: AeDocument, out: AeDiagnostic[], overlay?: AeValidationOverlay): Promise<void> {
   const stateRecords = doc.stateRecords.map((r: { record: string }) => r.record);
   const texts: Array<{ path: string; at: AeDiagnostic['at']; sql?: string; peopleCode?: string }> = [];
   for (const s of doc.sections) for (const v of s.variants) for (const st of v.steps) for (const a of st.actions) {
@@ -65,8 +71,11 @@ async function sqlTypeDiagnostics(p: DatabaseProvider, doc: AeDocument, out: AeD
   if (!texts.length) return;
 
   let catalog;
-  try { catalog = await p.sqlCatalog(stateRecords.concat(recordsNamed(texts.map((t) => t.sql ?? '').join('\n')))); }
-  catch { return; }  // the catalogue is a convenience: never fail a save because it could not be read
+  try { catalog = await p.sqlCatalog(stateRecords.concat(recordsNamed(texts.map((t) => t.sql ?? '').join('\n'))), overlay?.records); }
+  catch (error) {
+    if (overlay) throw error;
+    return;
+  }  // the catalogue is a convenience: never fail a save because it could not be read
   const stateFields = new Set<string>();
   for (const r of stateRecords) for (const f of catalog.record(r) ?? []) stateFields.add(f);
 
@@ -74,6 +83,7 @@ async function sqlTypeDiagnostics(p: DatabaseProvider, doc: AeDocument, out: AeD
   let shapes = new Map<string, { binds: number; columns: number }>();
   try { shapes = await p.sqlDefinitionShapes(sqlIds); } catch { /* leave the call-site check off */ }
 
+  for (const [id, shape] of overlay?.sql ?? []) shapes.set(id, shape);
   for (const t of texts) {
     const problems = t.sql
       ? checkSqlTypes(t.sql, { stateFields, catalog })

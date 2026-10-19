@@ -305,7 +305,7 @@ export function isRemCommentStart(source: string, index: number): boolean {
     /^(?:rem|remark)\b/i.test(source.slice(index, index + 7));
 }
 
-export function maskNonCode(source: string): string {
+export function maskNonCode(source: string, preserveStringDelimiters = false): string {
   const chars = [...source];
   let i = 0;
   while (i < chars.length) {
@@ -341,12 +341,12 @@ export function maskNonCode(source: string): string {
       continue;
     }
     if (chars[i] === '"') {
-      chars[i++] = ' ';
+      chars[i++] = preserveStringDelimiters ? '"' : ' ';
       while (i < chars.length) {
         if (chars[i] === '"') {
-          chars[i++] = ' ';
+          chars[i++] = preserveStringDelimiters ? '"' : ' ';
           if (chars[i] === '"') {
-            chars[i++] = ' ';
+            chars[i++] = preserveStringDelimiters ? '"' : ' ';
             continue;
           }
           break;
