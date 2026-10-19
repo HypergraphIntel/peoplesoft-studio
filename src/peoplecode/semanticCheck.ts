@@ -21,8 +21,8 @@ import { maskNonCode, parseApplicationClassSource } from './applicationClassProg
  *          parameter (Fetch binds them by reference; fetch into Locals and assign)
  *   PC009  NumberToString given a printf conversion ("%04d"): the format is
  *          %<width>[.<decimals>][R T t v], and a stray letter corrupts the result
- *   PC010  a known Local File's WriteLine used as a value (native 2,60)
- *          rather than a statement; bounded to directly typed local receivers
+ *   PC010  a call that returns no value used as one (native 2,60): a listed
+ *          built-in function, or a File method on a directly typed Local File
  *
  * Whether an imported class or package exists needs the database
  * (DatabaseProvider.peopleCodeImportProblems).
@@ -36,6 +36,31 @@ function mask(source: string, preserveStringDelimiters = false): string {
 }
 
 const BLOCK_END = /^(end-if|else|end-evaluate|when|when-other|end-for|end-while|until|end-repeat|end-try|catch|end-function|end-method|end-get|end-set)\b/i;
+
+/**
+ * PC010's built-in functions that return nothing. Each one is documented "Returns:
+ * None" in the PeopleTools 8.63 PeopleCode Language Reference AND is called at least
+ * three times in the HCDEV snapshot without once being used as a value. Neither test
+ * alone suffices: Gray, Hide, SetDefault, InsertRow and CommitWork are also never
+ * used as values, but Oracle documents an (optional) Boolean for them -- and native
+ * App Designer accepts &b = CommitWork(). Extend only with both kinds of evidence.
+ */
+const VOID_BUILTINS = new Set([
+  'addjavascript', 'addmetatag', 'amortize', 'callappengine', 'collectgarbage', 'copyfromjavaarray',
+  'createdirectory', 'discardrow', 'docancel', 'dosave', 'endmessage', 'endmodal', 'error', 'remotecall',
+  'removedirectory', 'scrollflush', 'setcomponentchanged', 'setcursorpos', 'setsavewarningfilter',
+  'setsearchdialogbehavior', 'settracesql', 'settransferattributes', 'startwork', 'stopfetching',
+  'transfer', 'transferexact', 'updatevalue', 'viewcontenturl', 'viewcontenturlclassic',
+  'viewcontenturlfluid', 'viewcontenturlmodeless', 'warning'
+]);
+
+/** PC010's File methods documented "Returns: None" (PeopleCode API Reference 8.63). ReadLine,
+ *  WriteRecord, WriteRowset and SetFileLayout return Boolean and are not listed. */
+const VOID_FILE_METHODS = ['Close', 'Delete', 'Open', 'SetPosition', 'WriteBase64StringToBinary', 'WriteLine', 'WriteRaw', 'WriteString'];
+
+/** The masked text since the last ';' ends where a value is consumed. A keyword must not
+ *  follow '-' (End-If, End-Evaluate), and Not / '(' may stack before the call. */
+const VALUE_POSITION = /(?:(?<![\w-])(?:if|while|until|when|return|and|or|not|to|step|evaluate)\s+|[=<>+\-*/|,(]\s*)(?:not\s+|\(\s*)*$/i;
 
 interface Body { kind: 'function' | 'method' | 'get' | 'set'; name: string; start: number; params: string[] }
 
@@ -213,15 +238,29 @@ export function checkPeopleCodeSemantics(source: string, opts: { applicationClas
       add('PC009', q, `NumberToString("${fmt}", ...): ${JSON.stringify(sfx)} is not a NumberToString format suffix. The format is %<width>[.<decimals>] with an optional R, T, t or v -- it is not printf, so a conversion letter like "d" is taken literally and corrupts the result ("%04d" on 2026 gives "d-ba"). Write "${fmt.replace(/[A-Za-z]+$/, '')}" for a zero-padded number, or String() when no padding is needed.`);
     }
   }
-  // PC010: native App Designer rejected ZZ_RF_EXPORT's If Not &out.WriteLine
-  // with 2,60. Oracle documents no return value; file errors terminate execution.
-  // Resolve only explicitly typed Locals in the same body. Do not infer a File
-  // from its name, an object receiver or a Local in a different function, and
-  // leave an imported/custom File class alone. This is not a general type checker.
+  // PC010: native App Designer rejects a call that returns nothing used as a value
+  // with 2,60 -- ZZ_RF_EXPORT's If Not &out.WriteLine, then (validated unsaved)
+  // &v = CollectGarbage() and If &out.Close(). CommitWork, documented Boolean, passed.
+  // A preceding When = "literal" needs its literal token retained; masking it
+  // entirely would make the following standalone call look like a RHS.
+  const expressions = mask(source, true);
+  // Direct conditions, assignments, operators, loop bounds and argument positions
+  // consume a result. Standalone statements (including after Then, Else or a loop
+  // header) are legal. Comments/strings are masked, preserving diagnostic offsets.
+  const consumesValue = (offset: number) => VALUE_POSITION.test(expressions.slice(m.lastIndexOf(';', offset) + 1, offset));
+  // Built-in functions: only the user's own Function / Declare Function / method
+  // of the same name can shadow one, and a call through an object (.Name) is a method.
+  const ownFunctions = new Set([...m.matchAll(/\b(?:function|method)\s+([A-Za-z_]\w*)/gi)].map((d) => d[1].toLowerCase()));
+  for (const call of m.matchAll(/(?<![\w&%.:#])([A-Za-z_]\w*)\s*\(/g)) {
+    const name = call[1].toLowerCase();
+    if (!VOID_BUILTINS.has(name) || ownFunctions.has(name) || !consumesValue(call.index!)) continue;
+    add('PC010', call.index!, `${call[1]} returns no result value (App Designer 2,60); call it as a statement, not a condition, assignment, operand or argument.`);
+  }
+  // File methods: resolve only explicitly typed Locals in the same body. Do not
+  // infer a File from its name, an object receiver or a Local in a different
+  // function, and leave an imported/custom File class alone. This is not a
+  // general type checker.
   if (ownClass !== 'FILE' && !imports.some((p) => p.endsWith(':FILE') || p.endsWith(':*'))) {
-    // A preceding When = "literal" needs its literal token retained; masking it
-    // entirely would make the following standalone write look like a RHS.
-    const expressions = mask(source, true);
     const localTypes = new Map<Body | undefined, Map<string, string>>();
     for (const d of m.matchAll(/\blocal\s+([%A-Za-z][\w:]*)\s+(&[\w#]+(?:\s*,\s*&[\w#]+)*)/gi)) {
       const scope = inside(d.index!);
@@ -232,14 +271,10 @@ export function checkPeopleCodeSemantics(source: string, opts: { applicationClas
         types.set(v, types.has(v) && types.get(v) !== type ? 'unknown' : type);
       }
     }
-    for (const call of m.matchAll(/(?<![\w&%.:])(&[\w#]+)\s*\.\s*writeline\s*\(/gi)) {
-      if (localTypes.get(inside(call.index!))?.get(call[1].toLowerCase()) !== 'file') continue;
-      const prefix = expressions.slice(m.lastIndexOf(';', call.index!) + 1, call.index!);
-      // Direct conditions, assignments, operators and argument positions consume
-      // a result. Standalone statements (including after Then or a loop header)
-      // are legal. Comments/strings are masked, preserving diagnostic offsets.
-      if (!/(?:\b(?:if|while|until|when|return|and|or|not)\s+|[=<>+*/|,(]\s*)(?:not\s+|\(\s*)*$/i.test(prefix)) continue;
-      add('PC010', call.index!, `${call[1]}.WriteLine returns no result value (App Designer 2,60); call it as a statement, not a condition, assignment or argument. File-method errors terminate the PeopleCode program.`);
+    for (const call of m.matchAll(/(?<![\w&%.:])(&[\w#]+)\s*\.\s*([A-Za-z_]\w*)\s*\(/g)) {
+      const method = VOID_FILE_METHODS.find((x) => x.toLowerCase() === call[2].toLowerCase());
+      if (!method || localTypes.get(inside(call.index!))?.get(call[1].toLowerCase()) !== 'file' || !consumesValue(call.index!)) continue;
+      add('PC010', call.index!, `${call[1]}.${method} returns no result value (App Designer 2,60); call it as a statement, not a condition, assignment or argument. File-method errors terminate the PeopleCode program; check &file.IsOpen after opening instead.`);
     }
   }
   return problems.sort((a, b) => a.offset - b.offset);

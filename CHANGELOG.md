@@ -2,11 +2,14 @@
 
 ## Unreleased — 0.9.6
 
-- **File.WriteLine value-use validation (PC010).** Reject direct Boolean,
-  assignment and argument uses on known Local File receivers before saving.
-  Native App Designer 2,60 exposed this error in the synthetic export; its
-  three WriteLine calls are corrected to statements. Unknown/ambiguous types
-  remain outside this bounded check.
+- **No-result call validation (PC010).** Reject a call that returns nothing
+  used as a condition, assignment, operand or argument before saving: 32
+  built-in functions documented "Returns: None" (Error, Warning, DoSave,
+  Transfer, SetCursorPos, UpdateValue, CallAppEngine, ...) and the void File
+  methods (Open, Close, WriteLine, WriteString, ...) on known Local File
+  receivers. Native App Designer 2,60 exposed this in the synthetic export;
+  further native validation confirmed a built-in and File.Close, and accepted
+  Boolean-returning CommitWork. 0 of 35,831 delivered HCDEV programs flagged.
 
 - **Coherent creation review for new Derived/Work Records, App Engines and
   projects on Oracle.** Exact native rollback previews and precommit after-image

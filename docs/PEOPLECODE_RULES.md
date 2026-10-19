@@ -24,7 +24,7 @@ Implementation: `src/peoplecode/semanticCheck.ts` (PC001-PC005, PC007-PC010) and
 | PC007 | `None`, `All`, `AllOrNone`, `OnlyOne` or `OnlyOneOrNone` given a class instance variable or a `%This` property. App Designer says "Field or temporary variable name required". | Copy the value into a Local first (`Local date &d = &i_checkDt; If None(&d) Then`), or for a date use `IsDate(&i_checkDt)`. |
 | PC009 | `NumberToString` given a printf conversion, e.g. `NumberToString("%04d", &n)`. The format is PeopleSoft's `%<width>[.<decimals>]` with an optional `R`, `T`, `t` or `v`; a conversion letter is taken literally. At run time `"%04d"` on 2026 gives `d-ba`. | Drop the conversion letter (`"%04"`, `"%02"`), or use `String(&n)` when no padding is needed. |
 | PC008 | `SQL.Fetch` given a property or a class instance variable as an output parameter. Fetch binds its outputs by reference; a property is reached through a getter, so there is no variable to write into. At run time: `SQL.Fetch: parameter 1 is neither a record object nor a name. (2,284)`. | Fetch into `Local` variables and assign afterwards (`Local string &a; ... .Fetch(&a); &Descr = &a;`). |
-| PC010 | A known `Local File` receiver's `WriteLine` used directly as a condition, assignment, operator operand or argument. Native App Designer reports 2,60, "Function or method does not produce a result value." | Use `&file.WriteLine(&line);` as a statement. File-method errors abort execution; there is no Boolean result to inspect. |
+| PC010 | A call that returns nothing used directly as a condition, assignment, operator operand, loop bound, `Return` value or argument: one of 32 built-in functions documented "Returns: None" (`Error`, `Warning`, `DoSave`, `Transfer`, `SetCursorPos`, `UpdateValue`, `CallAppEngine`, `CollectGarbage`, ...; list in `semanticCheck.ts`), or `Open`, `Close`, `Delete`, `SetPosition`, `WriteLine`, `WriteString`, `WriteRaw` or `WriteBase64StringToBinary` on a known `Local File` receiver. Native App Designer reports 2,60, "Function or method does not produce a result value." | Call it as a statement: `&file.WriteLine(&line);`, `DoSave();`. File-method errors abort execution; there is no Boolean result to inspect, so test `&file.IsOpen` after opening. |
 
 ## Evidence
 
@@ -49,6 +49,19 @@ Notes from the census:
   and leaves unknown receivers or imported/custom File types outside scope.
   Valid statement calls and methods that return values, such as ReadLine,
   remain accepted. No encoding rule was changed.
+  **Generalized the same day.** Native App Designer (HRDMO, unsaved buffer, Validate
+  Syntax, nothing saved) also rejects `&v = CollectGarbage();` and
+  `If &out.Close() Then` with 2,60, and accepts `&b = CommitWork();`. A built-in is
+  listed only when Oracle's 8.63 Language Reference says "Returns: None" **and** the
+  HCDEV snapshot calls it at least three times, never as a value. Corpus absence
+  alone is not enough: Gray (8,853 calls), UnGray, SetDefault, Hide, UnHide,
+  InsertRow, DeleteRow, HideScroll, SortScroll and CommitWork are never used as
+  values in HCDEV either, yet are documented with an (optional) Boolean result.
+  The File methods come from the 8.63 API Reference the same way (ReadLine,
+  WriteRecord, WriteRowset and SetFileLayout return Boolean). Census: about
+  11,200 listed built-in calls and 2,300 File method calls in 250 programs with
+  a `Local File`; 0 of 35,831 programs flagged. A keyword after `-` (`End-If`)
+  never makes the next call a value.
 
 - **PC003.** The census ignores a bare `Return` that sits just before a block
   end (`End-If`, `Else`, `end-method`, ...) with no `;` after it. That form is

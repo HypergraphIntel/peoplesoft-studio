@@ -57,6 +57,50 @@ End-Function;`), ['PC010']);
   assert.deepEqual(codes('import CUSTOM:File; Local File &out; If &out.WriteLine("x") Then End-If;'), []);
 });
 
+test('PC010: other void File methods and built-in functions used as values are refused', () => {
+  // Native HRDMO App Designer, validated unsaved: If &out.Close() and &v = CollectGarbage() give 2,60.
+  for (const statement of ['If &out.Close() Then End-If;', '&ok = &out.Open("x.txt", "W");',
+    'If Not &out.WriteString("x") Then End-If;', '&ok = &out.SetPosition(0);']) {
+    assert.deepEqual(codes(`Local File &out;\n${statement}\n`), ['PC010'], statement);
+  }
+  for (const statement of ['&v = CollectGarbage();', 'If DoSave() Then End-If;', '&n = 1 - UpdateValue(R.F, 1, 2);',
+    'MessageBox(0, "", 0, 0, SetCursorPos(%Page, R.F));', 'If &a And Not Transfer(False, MenuName.M, BarName.B, ItemName.I, Page.P, "U") Then End-If;',
+    'Function F() Returns boolean\n  Return Warning("w");\nEnd-Function;', 'For &i = 1 To CallAppEngine("X")\nEnd-For;']) {
+    const source = `${statement}\n`;
+    assert.deepEqual(codes(source), ['PC010'], statement);
+    assert.throws(() => compileForSave(source, { applicationClass: false, recordName: '', fieldName: '' }, '8.62'),
+      (e: unknown) => e instanceof SaveRefusedError && /returns no result value.*PC010/s.test(e.message), statement);
+  }
+});
+
+test('PC010: void built-ins as statements, Boolean built-ins as values and shadowing functions remain valid', () => {
+  assert.deepEqual(codes(`If &bad Then
+  SetCursorPos(%Page, R.F);
+  Error MsgGetText(1, 2, "x");
+Else
+  Warning ("careful");
+End-If;
+Evaluate &kind
+When = "X"
+  Transfer(False, MenuName.M, BarName.B, ItemName.I, Page.P, "U");
+When-Other
+  DoSave();
+End-Evaluate;
+For &i = 1 To 3
+  UpdateValue(R.F, &i, 2);
+End-For;
+/* &x = CollectGarbage(); */
+&text = "If DoSave() Then";`), []);
+  // Documented (optional) Boolean results: native App Designer accepts &b = CommitWork().
+  assert.deepEqual(codes('&b = CommitWork(); If Gray(R.F) Then End-If; &ok = InsertRow(R, 1); &ok = &out.ReadLine(&s);'), []);
+  // Methods and the user's own functions with a void built-in's name.
+  assert.deepEqual(codes('If &obj.Transfer() Then End-If; &v = %This.Error("x");'), []);
+  assert.deepEqual(codes('Declare Function Warning PeopleCode FUNCLIB_X.F FieldFormula;\nIf Warning("x") Then End-If;'), []);
+  assert.deepEqual(codes('Function DoSave() Returns boolean\n  Return True;\nEnd-Function;\nIf DoSave() Then End-If;'), []);
+  // End-If, End-Evaluate: a keyword after '-' does not consume the next call.
+  assert.deepEqual(codes('If &a Then End-If\nDoSave();'), []);
+});
+
 test('PC001: a readonly property with a get block is refused; "get" with its block is fine', () => {
   const bad = `class Config
    property string Mode readonly;
