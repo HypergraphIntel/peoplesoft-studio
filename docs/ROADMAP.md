@@ -1,9 +1,11 @@
 # Roadmap
 
 Ordered by what unblocks the most work, not by visibility. Full Application
-Designer parity is the goal; this is the path to it.
+Designer parity is the goal; this is the path to it. The
+[1.0 readiness gates](RELEASE_1_0_READINESS.md) separate demonstrated progress
+from the remaining completion work; no 1.0 delivery date is committed.
 
-## Current release: 0.9.4; development: 0.9.5
+## Current release: 0.9.5
 
 0.9.4 adds calibrated 8.61.15 Query and standard Integration Broker writes,
 release-aware Page and Field Configurator mapping, application-class signature
@@ -11,10 +13,11 @@ comments, tablespace selection and native save corrections. Its portal MCP
 input changes from `publicAccess` to `access`. See the
 [release notes](releases/0.9.4.md) for compatibility and verification boundaries.
 
-0.9.5 development adds the remaining supported Integration Broker shapes on
+0.9.5 adds the remaining supported Integration Broker shapes on
 8.61.15 (REST provider/consumer operations, OnRequest handlers, external nodes
 and manual routings), corrects their generated rows, and clears PFC mapping
-tombstones on 8.62 as observed in PIA. It is not released.
+tombstones on 8.62 as observed in PIA. It also adds bounded IB header Change
+Review and fixes Build Request message ordering. See [release notes](releases/0.9.5.md).
 
 Immediate priority: installed Build Requests acceptance, from attached
 requirements through a configured agent, questions, exact spec approval,
@@ -45,9 +48,9 @@ not a current capability inventory.
 
 A proposed redesign replaces repeated MCP object-approval dialogs with durable
 Change Sets, a persistent VS Code review workspace, approved application,
-semantic differences and durable history/undo/redo. Nine adapter families are
+semantic differences and durable history/undo/redo. Eleven adapter families are
 implemented within their documented bounds, with native Query, Page and
-Record/AE header acceptance recorded; broader operations and adapters remain
+Record/AE and standard IB header acceptance recorded; broader operations and adapters remain
 open. Resume from
 [the progress tracker](change-review/PROGRESS.md); the
 [full user proposal](change-review/PROPOSAL.md) defines scope and acceptance.

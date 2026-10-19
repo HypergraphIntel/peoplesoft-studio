@@ -1,11 +1,13 @@
 # Change Review capability and risk matrix
 
-0.9.1 candidate scope. The published 0.9.0 release is unchanged; see [release readiness](../RELEASE_0_9_1.md). Registration inventory
-is in [INVENTORY.md](INVENTORY.md); contracts are in [CONTRACTS.md](CONTRACTS.md).
+Coverage at 0.9.5. Each row distinguishes implemented scope, native acceptance
+and remaining work. Historical 0.9.1 release evidence remains in
+[release readiness](../RELEASE_0_9_1.md). Registration inventory is in
+[INVENTORY.md](INVENTORY.md); contracts are in [CONTRACTS.md](CONTRACTS.md).
 
 | Family/path | Current review integration | Snapshot/reversal scope | Verification and missing evidence |
 |---|---|---|---|
-| Plain SQL | Staged create/update; manual history | Text + native version; update reversal. No calibrated SQL deletion, so reversing CREATE is disabled | Core and production HTTP/UI fixtures; new live reviewed path pending |
+| Plain SQL | Staged create/update; manual history | Text + native version; update reversal. No calibrated SQL deletion, so reversing CREATE is disabled | Core/production HTTP/UI fixtures and one installed HRDMO reviewed SQL create with independent Build Request readback; CREATE inverse deletion remains unsupported |
 | HTML / freeform style sheets | Staged create/update; manual history | Text + native description/version; native normalization before approval; update reversal | HTTP/UI fixtures; new live readReviewContent/description and reviewed saves pending; CREATE inverse deletion unsupported |
 | Event PeopleCode (8/9/42/43/44/46/47/48) | Staged create/update/delete; manual history | Authoritative PSPCMTXT source and native fingerprint; existing compiler/writer; reviewed inverse/redo | Compiler and HTTP/UI fixture exercise; new live reviewed path pending; no decompiled baseline |
 | Existing Application Class source (58) | Staged update; manual source history | Existing authoritative source only | Class/package creation/deletion metadata snapshots are missing; new class staging cannot validate and class deletion is refused |

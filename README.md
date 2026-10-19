@@ -13,12 +13,11 @@ writing the same rows Application Designer writes.
 > is experimental: read the [Disclaimer](#disclaimer) before writing to any
 > database.
 
-Current release: **0.9.4** (native save parity and PeopleTools 8.61 support);
-see the [release notes](docs/releases/0.9.4.md) and [changelog](CHANGELOG.md).
+Current release: **0.9.5** (Integration Broker header review, broader 8.61 writes
+and Build Request handoff fixes); see the [release notes](docs/releases/0.9.5.md) and [changelog](CHANGELOG.md).
 Portal MCP callers must migrate `publicAccess` to `access`; content-reference
 saves can grant permission lists to ancestor folders, as PIA does.
 
-Development version: **0.9.5** (unreleased).
 
 ## Why PeopleSoft Studio
 
