@@ -52,6 +52,7 @@ export class BuildRequestPanel {
 
   private readonly panel: vscode.WebviewPanel;
   private readonly disposables: vscode.Disposable[] = [];
+  private messages: Promise<void> = Promise.resolve();
 
   private constructor(private readonly host: BuildRequestHost, private readonly id: string) {
     this.panel = vscode.window.createWebviewPanel(BuildRequestPanel.viewType, 'Build Request', vscode.ViewColumn.Active,
@@ -62,8 +63,13 @@ export class BuildRequestPanel {
       script: media('buildRequest.js'), style: media('buildRequest.css') });
     const changes = host.store.onDidChange((changed) => { if (changed === id) void this.push(); });
     this.disposables.push({ dispose: () => changes.dispose() });
-    this.panel.webview.onDidReceiveMessage((m: Message) => void this.handle(m).catch((error) =>
-      void vscode.window.showErrorMessage(`Build request: ${error instanceof Error ? error.message : String(error)}`)), undefined, this.disposables);
+    // Blur/change and the following button click arrive as separate messages. Finish
+    // persisting the edit before a handoff or approval reads the request it concerns.
+    this.panel.webview.onDidReceiveMessage((m: Message) => {
+      this.messages = this.messages.then(() => this.handle(m)).catch((error) => {
+        void vscode.window.showErrorMessage(`Build request: ${error instanceof Error ? error.message : String(error)}`);
+      });
+    }, undefined, this.disposables);
     this.panel.onDidDispose(() => {
       BuildRequestPanel.open.delete(id);
       for (const d of this.disposables) d.dispose();

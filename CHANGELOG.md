@@ -12,6 +12,12 @@
 
 ### Fixed
 
+- **Build Request edits finish saving before Analyze, Build or Approve reads
+  the request.** The page previously handled these messages concurrently;
+  clicking Analyze just after typing could read the old, empty narrative and
+  refuse the handoff. Page messages now run in order, including after a refused
+  action. Regression coverage uses the real page handler and HTTP MCP store.
+
 PIA fills in these rows on every release; Studio left them out:
 
 - **A new REST operation now gets the routing PIA generates for it.** A provider

@@ -430,6 +430,103 @@ try {
 } finally { configurationRefresh.dispose(); vscode.window.showQuickPick = oldPicker; vscode.window.showWarningMessage = oldWarning; access = true; pfcApplyOrigin = 'agent'; }
 check('real PFC panel selects content references, previews, confirms apply/remove and preserves cancellation/access gates');
 
+// Build Requests: the production page handler and HTTP MCP share the real durable store.
+// Approval below is a fixture response only, never native developer acceptance.
+const buildFs = await import('node:fs/promises');
+const { tmpdir: buildTmpdir } = await import('node:os');
+const { BuildRequestStore } = require('./src/buildRequest/store.ts');
+const { BuildRequestPanel } = require('./src/editors/buildRequestPanel.ts');
+const buildRoot = await buildFs.mkdtemp(join(buildTmpdir(), 'psft-build-request-ui-'));
+const buildStore = new BuildRequestStore(join(buildRoot, 'requests'));
+const buildServer = await startPeopleSoftMcpServer(workspace, { port: 39522, writeHost: () => host, buildRequests: buildStore });
+const oldBuildOpen = vscode.window.showOpenDialog, oldBuildInformation = vscode.window.showInformationMessage;
+const oldBuildTerminal = vscode.window.createTerminal, oldBuildEnv = vscode.env, oldBuildFs = vscode.workspace.fs;
+const terminals: any[] = [];
+let buildApproval = false;
+vscode.window.createTerminal = (options: any) => {
+  const terminal = { options, shown: false, commands: [] as string[], show() { this.shown = true; }, sendText(text: string) { this.commands.push(text); } };
+  terminals.push(terminal); return terminal;
+};
+vscode.window.showInformationMessage = async (_message: string, _options: any, choice: string) => buildApproval ? choice : undefined;
+vscode.workspace.fs = { readFile: async (uri: any) => buildFs.readFile(uri.fsPath) };
+async function buildRpc(method: string, params: object) {
+  const response = await fetch(buildServer.url, { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: ++id, method, params }) });
+  const body = await response.text(), result = JSON.parse(body.startsWith('{') ? body : body.split('\n').find(l => l.startsWith('data:'))!.slice(5));
+  assert.ok(!result.error, JSON.stringify(result.error)); return result.result;
+}
+async function buildTool(name: string, args: object, success = true) {
+  const result = await buildRpc('tools/call', { name, arguments: args });
+  assert.equal(!!result.isError, !success, result.content?.[0]?.text);
+  return success ? JSON.parse(result.content[0].text) : undefined;
+}
+let requestPanel: any;
+try {
+  const request = await buildStore.create({ title: 'Fixture build acceptance', connection: 'FIXTURE', project: 'ZZ_BR_TEST', kind: 'ae-batch' });
+  BuildRequestPanel.show({ store: buildStore, extensionUri: vscode.Uri.file(root), connections: () => ['FIXTURE'], mcp: () => ({ running: true, writes: true }) }, request.id);
+  requestPanel = vscode._panels.at(-1);
+  requestPanel._receive({ type: 'ready' });
+  await until(async () => requestPanel.webview.posted.length > 0);
+  const originalEdit = buildStore.edit.bind(buildStore);
+  let releaseEdit!: () => void, enteredEdit!: () => void;
+  const heldEdit = new Promise<void>(resolve => { releaseEdit = resolve; });
+  const entered = new Promise<void>(resolve => { enteredEdit = resolve; });
+  buildStore.edit = async (...args: any[]) => { enteredEdit(); await heldEdit; return originalEdit(...args); };
+  requestPanel._receive({ type: 'edit', edit: { narrative: 'Build a disposable SQL definition from the attachment.' } });
+  await entered;
+  requestPanel._receive({ type: 'handoff', phase: 'analyze', agent: 'codex' });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(terminals.length, 0, 'handoff must wait for the pending edit');
+  releaseEdit();
+  await until(async () => (await buildStore.get(request.id)).handoffs.length === 1);
+  buildStore.edit = originalEdit;
+  assert.equal(terminals.length, 1); assert.equal(terminals[0].shown, true);
+  assert.match(terminals[0].commands[0], new RegExp(`^codex "Analyze PeopleSoft Studio build request ${request.id}:`));
+  check('Build Request handoff waits for pending page edits before launching the configured agent');
+
+  const file = join(buildRoot, 'requirements.txt');
+  await buildFs.writeFile(file, 'Create ZZ_BR_SQL. Read-only SQL: SELECT 1 FROM PS_INSTALLATION. No business data writes.');
+  vscode.window.showOpenDialog = async () => [vscode.Uri.file(file)];
+  requestPanel._receive({ type: 'addFiles' });
+  await until(async () => (await buildStore.get(request.id)).attachments.length === 1);
+  const read = await buildTool('psft_build_request_get', { id: request.id });
+  assert.equal(read.buildAuthorized, false); assert.match(read.attachments[0].text, /SELECT 1 FROM PS_INSTALLATION/);
+  const names = (await buildRpc('tools/list', {})).tools.map((t: any) => t.name);
+  assert.ok(!names.includes('psft_build_request_approve') && !names.includes('psft_build_request_answer'));
+  await buildTool('psft_build_request_report', { id: request.id, entries: [{ ref: 'sql', status: 'BUILT', detail: 'Not authorized' }] }, false);
+  await buildTool('psft_build_request_ask', { id: request.id, questions: [{ text: 'Keep the lab SQL read only?' }] });
+  const spec = { summary: 'Create the disposable SQL only.', objects: [{ ref: 'sql', definitionType: 30, kind: 'SQL definition', name: 'ZZ_BR_SQL', action: 'create', purpose: 'Acceptance check', details: 'SELECT 1 FROM PS_INSTALLATION', sources: ['requirements.txt'] }], testPlan: 'Read back and compare the SQL.' };
+  await buildTool('psft_build_request_propose_spec', { id: request.id, spec });
+  requestPanel._receive({ type: 'approve', specRevision: 1 });
+  await until(async () => vscode._messages.some((m: any) => /Answer the open questions/.test(m[1])));
+  assert.equal((await buildTool('psft_build_request_get', { id: request.id })).buildAuthorized, false);
+  requestPanel._receive({ type: 'answer', questionId: 'q1', answer: 'Yes, read only.' });
+  await until(async () => (await buildStore.get(request.id)).questions[0].answer === 'Yes, read only.');
+  assert.equal((await buildTool('psft_build_request_get', { id: request.id })).status, 'SPEC_STALE');
+  await buildTool('psft_build_request_propose_spec', { id: request.id, spec });
+  check('Build Request attachment intake and HTTP analysis preserve provenance; questions and changed inputs block approval');
+
+  buildApproval = true;
+  requestPanel._receive({ type: 'approve', specRevision: 1 });
+  await until(async () => vscode._messages.some((m: any) => /spec changed while you were reviewing/.test(m[1])));
+  assert.equal((await buildTool('psft_build_request_get', { id: request.id })).buildAuthorized, false);
+  requestPanel._receive({ type: 'approve', specRevision: 2 });
+  await until(async () => (await buildTool('psft_build_request_get', { id: request.id })).buildAuthorized);
+  requestPanel._receive({ type: 'handoff', phase: 'build', agent: 'codex' });
+  await until(async () => terminals.length === 2);
+  assert.match(terminals[1].commands[0], /confirm buildAuthorized is true/);
+  await buildTool('psft_build_request_report', { id: request.id, entries: [{ ref: 'sql', status: 'STAGED', detail: 'Fixture proposal only', changeSetId: '00000000-0000-4000-8000-000000000000' }] });
+  requestPanel._receive({ type: 'edit', edit: { project: 'ZZ_BR_CHANGED' } });
+  await until(async () => (await buildStore.get(request.id)).project === 'ZZ_BR_CHANGED');
+  assert.equal((await buildTool('psft_build_request_get', { id: request.id })).buildAuthorized, false);
+  await buildTool('psft_build_request_report', { id: request.id, entries: [{ ref: 'sql', status: 'BUILT', detail: 'Approval withdrawn' }] }, false);
+  check('Build Request fixture UI requires the current spec revision; build handoff/report gates follow approval and later edits withdraw it');
+} finally {
+  requestPanel?.dispose(); await buildServer.dispose();
+  vscode.window.showOpenDialog = oldBuildOpen; vscode.window.showInformationMessage = oldBuildInformation;
+  vscode.window.createTerminal = oldBuildTerminal; vscode.env = oldBuildEnv; vscode.workspace.fs = oldBuildFs;
+  await buildFs.rm(buildRoot, { recursive: true, force: true });
+}
 
 // Staged workflow uses the production MCP wrapper and real review UI handlers.
 const { ReviewService } = require('./src/changeReview/service.ts');

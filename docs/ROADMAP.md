@@ -3,21 +3,34 @@
 Ordered by what unblocks the most work, not by visibility. Full Application
 Designer parity is the goal; this is the path to it.
 
-## Current release: 0.9.3
+## Current release: 0.9.4; development: 0.9.5
 
-0.9.3 fixes pages, Integration Broker creates and OAuth applications on
-PeopleTools 8.61. 0.9.2 added the File Layout Designer, Build Requests, project related-definition
-closure and run-time PeopleCode / SQL / App Engine checks; 0.9.1 added Change
-Review. 0.9.0 added Process Definition, Page and Field Configurator, Drop Zone and
-bounded OAuth editors; MCP orientation and a structured capability catalog;
-and Process Definition/PS Query workflows through existing writers. Native
-ownership keys now protect existing Queries and Process Definitions. Live HRDMO
-checks cover Query commits/readback, Process Definition previews and guards.
+0.9.4 adds calibrated 8.61.15 Query and standard Integration Broker writes,
+release-aware Page and Field Configurator mapping, application-class signature
+comments, tablespace selection and native save corrections. Its portal MCP
+input changes from `publicAccess` to `access`. See the
+[release notes](releases/0.9.4.md) for compatibility and verification boundaries.
 
-Next priorities: component editing through MCP; evidence-backed customization
-planning; guarded MCP migration apply and additional adapters; Data Mover and
-Data Migration Workbench. These remain unimplemented. Full PS Query parity and
-browser SAML SSO also need additional evidence and implementation.
+0.9.5 development adds the remaining supported Integration Broker shapes on
+8.61.15 (REST provider/consumer operations, OnRequest handlers, external nodes
+and manual routings), corrects their generated rows, and clears PFC mapping
+tombstones on 8.62 as observed in PIA. It is not released.
+
+Immediate priority: installed Build Requests acceptance, from attached
+requirements through a configured agent, questions, exact spec approval,
+dependency-ordered creation, Change Review and independent native readback.
+The bounded HRDMO metadata build now passes native approval, SQL Change Review
+application and all-artifact readback. Separate developer trials verify native
+DOCX intake and Claude analysis handoff; build-phase terminal handoff remains
+unverified. Track the
+controlled lab run in [Build Requests acceptance](build-requests/NATIVE_ACCEPTANCE.md).
+
+Next implementation priority: extend Change Review to Integration Broker,
+starting with services and operations. Existing writers use legacy per-write
+confirmation; their native calibration is not review/history certification.
+Subsequent work includes broader structural review adapters, reviewed migration
+apply and Data Migration Workbench. Component editing and Data Mover script
+templates already exist. Full PS Query parity and browser SAML SSO remain open.
 
 See the [README capability tables](../README.md#what-works-now),
 [MCP reference](MCP_REFERENCE.md), and [changelog](../CHANGELOG.md) for current
@@ -28,9 +41,10 @@ not a current capability inventory.
 
 A proposed redesign replaces repeated MCP object-approval dialogs with durable
 Change Sets, a persistent VS Code review workspace, approved application,
-semantic differences and durable history/undo/redo. A first development slice
-is implemented (six adapter families, fixture-verified); native reviewed
-acceptance and broader adapters remain open. Resume from
+semantic differences and durable history/undo/redo. Nine adapter families are
+implemented within their documented bounds, with native Query, Page and
+Record/AE header acceptance recorded; broader operations and adapters remain
+open. Resume from
 [the progress tracker](change-review/PROGRESS.md); the
 [full user proposal](change-review/PROPOSAL.md) defines scope and acceptance.
 This is a separate architecture initiative beyond the 0.9.0 release.

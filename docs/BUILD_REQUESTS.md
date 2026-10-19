@@ -21,6 +21,10 @@ through the PeopleSoft Studio MCP, with the developer in control throughout.
 3. **Review.** Answer the questions on the page, request changes, or approve.
    Approval is only possible from the page, with no open questions, and for a
    spec proposed against the request as it stands now.
+   To reopen the page, run **PeopleSoft: Open Build Request** from the Command
+   Palette and select the request. In **3. Build spec**, scroll below **Test
+   plan** to **Approve spec**, beside **Request changes**, then confirm
+   **Approve** in the dialog. This documentation page has no approval control.
 4. **Build.** *Build with …* hands the approved spec back. The agent builds in
    dependency order with the ordinary `psft_*` tools and reports each object
    (`psft_build_request_report`): Built, Staged (a Change Review proposal),
@@ -74,4 +78,9 @@ The agent must have the PeopleSoft Studio MCP server configured
 
 ## Not yet
 
-- Installed (native) acceptance with a live agent session.
+- Native build-phase terminal handoff and runtime acceptance. Developer-run
+  DOCX intake and Claude analysis handoff have been observed alongside the
+  controlled lab's native approvals and database save/readback.
+  The [controlled lab acceptance tracker](build-requests/NATIVE_ACCEPTANCE.md)
+  distinguishes fixture results from installed UI, developer approval and
+  database save/readback evidence.
