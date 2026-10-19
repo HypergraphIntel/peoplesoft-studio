@@ -10,9 +10,16 @@ must reproduce it exactly at staging, validation and apply. A new generic
 Local: 2,037 tests passed / one skipped; 54 production HTTP/UI checks on Node 20
 and Node 26. Native HRDMO rollback-only previews pass for four cases (see
 [IB_STRUCTURE.md](IB_STRUCTURE.md)); no native commit or approval occurred.
-Next gate: install the candidate, then a developer-approved native structural
-apply on ZZ_IB_STDOP (existing handler/version edit) with typed inverse, and a
-separate REST provider handler addition whose reversal must be refused.
+Installed native acceptance passed (same day, runtime `602c9992…`): developer-
+approved ZZ_IB_STDOP structural apply `a86ebb85-f99f-4df0-be0a-400949bd3af6`
+and typed inverse `2d37cf05-71ca-4346-9215-dac670516efc` (original restored,
+REVERTED); REST provider handler addition `0cb5ff8b-512b-4350-9151-531b9a9a2686`
+applied, its reversal refused up front with no partial proposal. Details in
+[IB_STRUCTURE.md](IB_STRUCTURE.md). Also: the stale psft_ib_save description is
+corrected, and validating an empty Change Set is refused
+without marking it CONFLICTED. Verify 2,038 passed / one skipped; 54
+HTTP/UI checks on Node 20.20.2 and 26.9.0. Next: 8.61 / REST consumer
+structural evidence, or the remaining readiness sequence step 3.
 
 Latest checkpoint: the native startup-trace Process UPDATE rolled back on a
 JSON property-order comparison bug; its original full live baseline is intact.

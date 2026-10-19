@@ -239,13 +239,14 @@ export class ReviewService {
             }
             this.editable(set);
             this.checkPlan(set);
+            // Nothing staged is not a conflict: refuse without changing state.
+            if (!set.objects.length)
+                throw new Error('Nothing is staged in this Change Set yet; stage an object before validating.');
             transition(set, 'VALIDATING');
             await this.save(set);
             try {
                 await this.environment(set);
                 await this.checkPrerequisites(set);
-                if (!set.objects.length)
-                    throw new Error('Empty Change Set.');
                 ordered(set, false);
                 for (const c of set.objects) {
                     const a = this.adapter(c.adapter), live = await a.read(set.environment, c.key);

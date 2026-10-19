@@ -29,8 +29,10 @@ detail is the [README](../README.md#what-works-now), [roadmap](ROADMAP.md) and
 1. Complete: bounded, evidenced 0.9.5 release published; 0.9.6 development prepared.
 2. Broaden IB structural review through explicit per-operation snapshot,
    dependency, validation and typed inverse contracts; retain native approval.
-   In progress in 0.9.6: bounded service/operation structure is implemented
-   with native rollback-preview evidence; reviewed native application pending.
+   In 0.9.6: bounded service/operation structure is implemented; installed
+   developer-approved HRDMO application passed for a standard operation
+   (with typed inverse) and a REST provider handler addition (reversal
+   refused). 8.61 and REST consumer structural application remain open.
 3. Close native handoff/recovery and remaining adapter acceptance gaps while
    expanding the Query and migration/build workflows.
 4. Reassess these gates against actual evidence. Establish a 1.0 target only

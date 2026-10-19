@@ -213,7 +213,7 @@ export class ReviewWorkspace implements vscode.Disposable {
   ${set.plan ? `<h3>Implementation approach · ${esc(set.plan.review)}</h3><pre>${esc(set.plan.text)}</pre>${['DRAFT', 'READY_FOR_REVIEW', 'APPROVED'].includes(set.status) ? button('Approve approach', 'approvePlan') + button('Reject approach', 'rejectPlan') : ''}<p>Approach approval does not approve the resulting object definitions.</p>` : ''}
   ${completed ? `<p>Remaining work completed in ${historyLink(completed.id, '', completed.title)}. This original partial application is retained in history.</p>` : ''}
   <div class="review-actions" aria-label="Change Set actions">
-  ${['DRAFT', 'READY_FOR_REVIEW', 'APPROVED', 'CONFLICTED', 'FAILED'].includes(set.status) ? button('Refresh and revalidate', 'validate') : ''}
+  ${set.objects.length && ['DRAFT', 'READY_FOR_REVIEW', 'APPROVED', 'CONFLICTED', 'FAILED'].includes(set.status) ? button('Refresh and revalidate', 'validate') : ''}
   ${reviewable ? button('Approve all eligible', 'approve') : ''}${set.status === 'APPROVED' ? button('Apply approved changes', 'apply') : ''}
   ${!completed && ['APPLYING', 'PARTIALLY_APPLIED'].includes(set.status) ? button('Reconcile live state', 'recover') : ''}
   ${!completed && set.status === 'PARTIALLY_APPLIED' ? button('Prepare remaining work', 'remaining', remaining.supported) + `<p>${esc(remaining.reason)}</p>` : ''}

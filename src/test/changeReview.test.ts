@@ -161,6 +161,18 @@ test('an adapter reversal refusal blocks the inverse up front with its reason an
         assert.equal((await f.service.reversalSupport(applied)).supported, true);
     } finally { await f.close(); }
 });
+test('validating an empty Change Set is refused without marking it conflicted', async () => {
+    const f = await fixture();
+    try {
+        const set = await f.service.create('Empty', 'oracle:LAB');
+        await assert.rejects(f.service.validate(set.id), /Nothing is staged/);
+        const saved = await f.service.store.get(set.id);
+        assert.equal(saved.status, 'DRAFT'); assert.equal(saved.revision, set.revision);
+        assert.deepEqual(saved.journal, set.journal);
+        const staged = await f.service.stage(set.id, 'fixture', 'A', { text: 'new A' });
+        assert.equal((await f.service.validate(staged.id)).status, 'READY_FOR_REVIEW');
+    } finally { await f.close(); }
+});
 test('a Change Set that conflicted before any write can be cancelled', async () => {
     const f = await fixture();
     try {

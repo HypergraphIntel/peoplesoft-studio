@@ -10,8 +10,13 @@
   it exactly from the checkpoints. Routing-reaching changes (service move,
   routing type, REST method, alias, message binding) and child removal keep
   legacy confirmation. Reversing an added handler is refused up front (child
-  deletion is uncalibrated). Native HRDMO rollback previews pass; reviewed
-  native application is pending.
+  deletion is uncalibrated). Installed developer-approved HRDMO application
+  passed for a standard operation (typed inverse restored it) and a REST
+  provider handler addition (reversal refused, no partial proposal).
+
+- **Validating an empty Change Set no longer marks it CONFLICTED.** It is
+  refused without changing state, and the review page offers "Refresh and
+  revalidate" only once something is staged.
 
 - **No-result call validation (PC010).** Reject a call that returns nothing
   used as a condition, assignment, operand or argument before saving: 32

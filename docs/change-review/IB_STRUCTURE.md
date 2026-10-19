@@ -67,6 +67,27 @@ separate reviewed deactivation (`ACTIVE_FLAG` `I`) instead. No raw row replay.
   SRVM/OPRM/OPRVM/OPRHM/SYS counters were unchanged after rollback. No native
   commit or review approval occurred.
 
-Reviewed native application and inverse of structural edits remain to be
-accepted with developer approval, as the header cycle was. 8.61 structural
-previews, REST consumer handlers and credential freshness are not certified.
+- Installed HRDMO acceptance (October 19, runtime bundle SHA-256 `602c9992…`,
+  developer approval in the trusted review workspace):
+  - ZZ_IB_STDOP standard operation: Change Set `a86ebb85-f99f-4df0-be0a-400949bd3af6`
+    applied owner `PPT`, version v1 description and existing REQUESTHDLR
+    activation (`I` -> `A`) and description. The staged diff held only those
+    cells; the object VERIFIED at snapshot `08437ebc…`, token `d4877a93…`, live
+    timeline MATCHES_RECORDED, and readback showed the native version counters
+    advanced (operation 20 -> 21, version row 19 -> 20, handler 2 -> 6) with
+    the service untouched. The separately approved typed inverse
+    `2d37cf05-71ca-4346-9215-dac670516efc` restored the original snapshot
+    `df3178ef…` under fresh token `45cd9293…`; the original is REVERTED with
+    a REVERSED_BY_VERIFIED_CHANGE_SET journal entry.
+  - ZZ_IB_API_5736828_G REST provider: Change Set
+    `0cb5ff8b-512b-4350-9151-531b9a9a2686` added the ApplicationClass
+    REQUESTHDLR/RQST handler (PT_SES:Init.OnRequest, blank PSOPERATIONAC
+    QUALIFYPATH as PIA stores a root class; the writer maps `:` to blank). The
+    new handler took the operation's description, as in PIA. VERIFIED at
+    `30262b1f…`, token `c1bcedcd…`, MATCHES_RECORDED. `psft_prepare_revert`
+    refused up front ("IB child deletion is not calibrated. Deactivate the
+    handler ... No partial reverse proposal created") and no reverse set
+    exists. The handler stays on this lab operation by developer decision.
+
+8.61 structural previews/application, REST consumer handlers and credential
+freshness are not certified.

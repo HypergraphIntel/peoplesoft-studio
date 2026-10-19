@@ -13,8 +13,9 @@ review remains subsequent work.
 Bounded Integration Broker structural review now follows the AE/file
 workflow: existing service owner/namespace and operation header, version,
 parameter and handler edits, plus the calibrated OnRequest handler addition,
-stage with exact rollback-preview reproduction. Native rollback previews pass;
-reviewed native application is not yet claimed. See
+stage with exact rollback-preview reproduction. Installed developer-approved
+HRDMO application passes for a standard operation with typed inverse and for a
+REST provider handler addition whose reversal is refused. See
 [IB structure](../change-review/IB_STRUCTURE.md).
 
 Track the remaining project completion gates in
