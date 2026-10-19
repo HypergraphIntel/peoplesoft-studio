@@ -1,6 +1,39 @@
 # Change Review, transactions and history — progress
 
-## Status
+## Current development — 0.9.5
+
+Build Request message ordering and installed acceptance were committed as
+`2283c7d`. The bounded HRDMO build reached BUILT after native spec/SQL review
+approval and independent state/SQL/AE/project readback. Developer trials also
+verified DOCX intake and Claude analysis handoff; their production business-rule
+questions were intentionally left unanswered. See ../build-requests/NATIVE_ACCEPTANCE.md.
+
+The next slice adds `ib-service` and `ib-operation` adapters for existing
+description/comments only. Full fixed noncredential checkpoints, native rollback
+previews, exact revision/policy authorization, precommit after-image comparison,
+typed inverse and history/timeline navigation are implemented. `psft_ib_save`
+stages qualifying edits; other IB edits retain legacy confirmation and refuse
+explicit Change Set grouping. Creation/deletion and structural IB review remain
+future scope. See [IB header contracts](IB_HEADERS.md).
+
+Local evidence: full verify passed 2,015 tests (one skipped), compile/bundle and
+108-command/10-view activation smoke. Production HTTP/UI fixtures pass 49 checks,
+including both IB adapters' real-writer staged/apply/inverse/history and drift
+refusals on Node 20 and Node 26. Native HRDMO rollback previews passed on six existing custom standard/
+REST provider/REST consumer service and operation definitions. Every baseline
+hash/token and relevant cache counter remained unchanged after rollback.
+
+Packaged and installed `/tmp/peoplesoft-studio-0.9.5-ib-review-dev.vsix`; its
+runtime bundle matches current source and the installed extension byte-for-byte.
+VSIX SHA-256: `b0c079f72d1fc905a35dbb0705ce77111229a17b4db05eecdb5732783a36dcb9`.
+The running host still advertises the prior nine adapters, so reload is required
+before claiming activation of the two new IB adapters.
+
+Next task: reload/verify activation, then installed native IB header
+approval/apply/readback/inverse acceptance. No native IB commits, review approval
+or installed IB adapter acceptance is claimed from this development work.
+
+## Historical 0.9.1 closeout
 
 0.9.1 acceptance is complete. The developer authorized the Git release on `main` with annotated tag `v0.9.1`; remote refs provide completion evidence. Distribution publication remains separate. See the [release readiness tracker](../RELEASE_0_9_1.md) for current gates; historical session entries below retain their original evidence/status.
 

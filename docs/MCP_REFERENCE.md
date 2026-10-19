@@ -152,6 +152,14 @@ retain their legacy routes. Record public dryRun is an actual rollback preview;
 AE public dryRun remains plan-only. One native Record/AE description apply and
 checkpoint inverse is independently verified over the full preservation scopes.
 See [structured header scope](change-review/STRUCTURED_HEADERS.md).
+`psft_ib_save` now stages existing service/operation description/comments edits
+on Oracle with Change Review. It accepts the full `psft_ib_get.input`, its
+`expectedToken`, and optional `changeSetId`/`dependsOn`. Structural edits retain
+legacy confirmation and are refused if attached to a Change Set. The `ib-service`
+and `ib-operation` adapters use fixed noncredential checkpoints and exact native
+rollback previews; inverse changes go through the same typed writer. Native
+rollback tests passed for standard and REST provider/consumer shapes; installed
+review/apply/reversal acceptance is pending. See [IB header scope](change-review/IB_HEADERS.md).
 The trusted UI can apply one object and pause after verified readback. Remaining
 work still needs fresh continuation approval; one native header pause and
 continuation/restoration is verified. No MCP apply/approve tool is exposed.

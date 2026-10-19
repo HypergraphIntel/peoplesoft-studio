@@ -1,4 +1,5 @@
 import { flatStringElements } from '../model/ibDocumentSchema.js';
+import { readIbSnapshot, type IbSnapshotPreview } from './ibSnapshot.js';
 import { requireCalibratedRelease } from './calibratedRelease.js';
 import { deflate } from 'pako';
 /**
@@ -18,10 +19,10 @@ import { operatorExists, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
 import { writeScopeRefusal } from './writeScope.js';
 import { presentOnly, tableColumns } from './tableColumns.js';
 
-export interface IbSaveRequest { input:IbWriteInput; expectedToken:string; operatorId:string; dryRun?:boolean; /** Draws for a generated routing name (tests). */ random?:()=>number; }
+export interface IbSaveRequest { input:IbWriteInput; expectedToken:string; operatorId:string; dryRun?:boolean; captureSnapshots?:boolean; expectedSnapshotToken?:string; expectedAfterHash?:string; /** Draws for a generated routing name (tests). */ random?:()=>number; }
 export interface IbStatement { sql:string; binds:Record<string,unknown>; expect?:number; }
 export interface IbPlan { changes:string[]; increments:Record<string,number>; statements:IbStatement[]; }
-export interface IbSaveResult { written:boolean; token?:string; plan:IbPlan; validation:IbDiagnostic[]; }
+export interface IbSaveResult { written:boolean; token?:string; plan:IbPlan; validation:IbDiagnostic[]; snapshots?:IbSnapshotPreview; }
 const str=(v:unknown)=>String(v??'').trim();
 const same=(a:unknown,b:unknown)=>a===b || (typeof a==='number'||typeof b==='number')&&a!==null&&b!==null&&str(a)!==''&&str(b)!==''&&Number(a)===Number(b) || typeof a==='string'&&typeof b==='string'&&a.trim()===''&&b.trim()==='';
 const secretProperty=(r:Row)=>isSecretProperty(str(r.PROPID))||isSecretProperty(str(r.PROPNAME));
@@ -379,13 +380,18 @@ export async function saveIb(c:DbConnection,types:DbTypes,request:IbSaveRequest)
  if(!await operatorExists(c,request.operatorId))throw new Error('A valid PeopleSoft Operator ID is required.');
  await requireCalibratedRelease(c,ibStandardShape(input)?'integrationBrokerStandard':'integrationBroker');
  try{
+  if(request.captureSnapshots&&!request.dryRun)throw new Error('IB snapshots require rollback preview.');
+  const reviewing=!!(request.captureSnapshots||request.expectedSnapshotToken);
+  if(reviewing&&(!['service','operation'].includes(input.kind)||request.expectedToken==='absent'))throw new Error('IB review requires an existing service or operation.');
   if(!request.dryRun){const table=IB_PARENTS[input.kind],key=Object.fromEntries(table.keys.map((k,i)=>[k,input.key[i]])),where=predicate(table.keys,key);await rows(c,types,`SELECT ${table.keys.join(',')} FROM ${table.table} WHERE ${where.sql} FOR UPDATE`,where.binds);}
   const opened=await readIb(c,types,input.kind,input.key);
   if(request.expectedToken!==(opened?.token??'absent'))throw new Error('Definition changed since it was read; read it again before saving.');
+  const before=reviewing?await readIbSnapshot(c,types,input.kind as 'service'|'operation',input.key[0]):undefined;
+  if(request.expectedSnapshotToken&&before!.token!==request.expectedSnapshotToken)throw new Error('IB preservation snapshot changed before writer.');
   const {plan,proposed,validation}=await buildPlan(c,types,{...request,input},opened);
   const errors=validation.filter(d=>d.severity==='error');
   if(errors.length)throw new Error(errors.map(d=>d.path+': '+d.message).join('\n'));
-  if(request.dryRun||!plan.statements.length){await c.rollback();return {written:false,token:opened?.token,plan,validation};}
+  if(request.dryRun&&!request.captureSnapshots||!plan.statements.length){await c.rollback();return {written:false,token:opened?.token,plan,validation,...(request.captureSnapshots?{snapshots:{before:before!,after:before!}}:{})};}
   for(const statement of plan.statements){const result=await c.execute(statement.sql,statement.binds);if(statement.expect!==undefined&&result.rowsAffected!==statement.expect)throw new Error(`Expected ${statement.expect} row(s) writing an IB definition.`);}
   const stored=await readIb(c,types,input.kind,input.key);if(!stored)throw new Error('Saved definition is missing before commit.');
   for(const [k,v] of Object.entries(proposed.properties))if(!IB_STAMPS.has(k)&&!ibSecretColumn(k)&&!same(stored.properties[k],v))throw new Error(`Stored property ${k} differs from the proposed value.`);
@@ -395,6 +401,9 @@ export async function saveIb(c:DbConnection,types:DbTypes,request:IbSaveRequest)
   }
   if(input.document&&stored.sections.logicalSchema?.[0]?.xml!==input.document.logicalSchema)throw new Error('Stored logical document body differs from input.');
   if(input.document){for(const p of input.document.physicalSchemas){if(stored.sections.physicalBodies?.find(r=>str(r.IB_PHYSSCHEMANAME)===p.name)?.xml!==p.xml)throw new Error('Stored physical document body differs from input.');}if(stored.sections.xmlSchemas?.[0]?.text!==input.document.xmlSchema||stored.sections.jsonSchemas?.[0]?.text!==input.document.jsonSchema)throw new Error('Stored generated schemas differ from input.');}
+  const after=reviewing?await readIbSnapshot(c,types,input.kind as 'service'|'operation',input.key[0]):undefined;
+  if(request.expectedAfterHash&&after?.hash!==request.expectedAfterHash)throw new Error('IB after-image differs from the approved proposal.');
+  if(request.captureSnapshots){await c.rollback();return {written:false,token:opened?.token,plan,validation,snapshots:{before:before!,after:after!}};}
   await c.commit();return {written:true,token:stored.token,plan,validation};
  }catch(e){await c.rollback();throw e;}
 }

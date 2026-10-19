@@ -126,6 +126,7 @@ import { IB_TRANSLATE_FIELDS, renderMessage as renderIbMessage, renderOperation,
 import { listIb, readIb, validateIb } from './ibReader.js';
 import type { IbKind, IbDocument } from '../model/ibDocument.js';
 import { presentIbInput, saveIb, type IbSaveRequest } from './ibWriter.js';
+import { readIbSnapshot, type IbReviewKind } from './ibSnapshot.js';
 import { ibDefinitionKey, IB_DEFINITION_TYPES, ibWriteInput } from '../model/ibOperations.js';
 import { newIbInput, type IbNewOptions } from '../model/ibNew.js';
 import { safeRows as ibSafeRows, rows as ibRows } from './ibReader.js';
@@ -1631,7 +1632,13 @@ export class DatabaseProvider implements DefinitionProvider {
     return this.withConnection(c => validateIb(c, this.types, doc));
   }
 
+  async readIbForReview(kind: IbReviewKind, name: string) {
+    if (this.platform !== 'oracle') throw new ProviderError('IB review snapshots require Oracle.');
+    return this.withConnection(c => readIbSnapshot(c, this.types, kind, name));
+  }
+
   async saveIntegrationBroker(request: IbSaveRequest) {
+    if (this.platform !== 'oracle' && (request.captureSnapshots || request.expectedSnapshotToken)) throw new ProviderError('IB review snapshots require Oracle.');
     const input = ibWriteInput.parse(request.input);
     const key = ibDefinitionKey(input.kind,input.key);
     const previous = request.expectedToken === 'absent' ? undefined : await this.createdReceipt(key);

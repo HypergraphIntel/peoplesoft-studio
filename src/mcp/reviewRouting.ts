@@ -14,7 +14,8 @@ import { planHash } from '../changeReview/model.js';
 import { prepareStructuredHeaderReview } from './structuredHeaderReview.js';
 import { isHeaderOnlyRequest } from '../changeReview/structuredHeaders.js';
 import { isStageablePageRequest } from '../model/pageOperations.js';
-export const REVIEWED_MUTATION_TOOLS = ['psft_save_text_definition', 'psft_process_save', 'psft_query_save', 'psft_query_create', 'psft_query_copy', 'psft_save_peoplecode', 'psft_edit_page', 'psft_edit_record', 'psft_ae_edit'];
+import { prepareIbHeaderReview } from './ibHeaderReview.js';
+export const REVIEWED_MUTATION_TOOLS = ['psft_save_text_definition', 'psft_process_save', 'psft_query_save', 'psft_query_create', 'psft_query_copy', 'psft_save_peoplecode', 'psft_edit_page', 'psft_edit_record', 'psft_ae_edit', 'psft_ib_save'];
 /** Compatibility routing only for adapters whose exact after-state is known. */
 export function routeReviewedMutations(server: {
     registerTool: unknown;
@@ -27,7 +28,9 @@ export function routeReviewedMutations(server: {
         if (!REVIEWED_MUTATION_TOOLS.includes(name))
             return register(name, config, callback);
         const schema = config.inputSchema as z.ZodObject;
-        const next = { ...config, description: String(config.description) + (name === 'psft_edit_record' || name === 'psft_ae_edit'
+        const next = { ...config, description: String(config.description) + (name === 'psft_ib_save'
+                ? ' With Change Review on Oracle, only existing service/operation description/comments edits stage fixed noncredential preservation snapshots. Other edits keep legacy confirmation and cannot be attached to a Change Set. No IB creation/deletion adapter is implied.'
+                : name === 'psft_edit_record' || name === 'psft_ae_edit'
                 ? ' With Change Review on Oracle, only existing-definition description/comments edits stage full preservation snapshots for developer approval/application; Record SQL Table/Derived Work only. A structural operation is not staged: it saves through the legacy per-write confirmation, as creation does. No staged prerequisite overlay is implied. Explicit dryRun retains its documented preview path.'
                 : name === 'psft_edit_page'
                 ? ' With Change Review on Oracle, only existing-control move/resize, label/use and description/comments changes stage proposals. Inserting or deleting a control, and saveInvalid, are not staged: they save through the legacy per-write confirmation. Explicit dryRun keeps the rollback preview path. No Page creation/deletion adapter is implied.'
@@ -75,7 +78,16 @@ export function routeReviewedMutations(server: {
                 return callback(args, ...rest);
             }
             const preparedHeader = headerFamily ? await prepareStructuredHeaderReview(workspace, host?.(), headerFamily, args) : undefined;
+            const preparedIb = name === 'psft_ib_save' ? await prepareIbHeaderReview(workspace, host?.(), args) : undefined;
+            if (name === 'psft_ib_save' && !preparedIb) {
+                refuseOutsideSet('This IB edit is outside the bounded service/operation header adapter.');
+                return callback(args, ...rest);
+            }
             const setId = supplied?.id ?? (await service.create('Review ' + name, connection)).id;
+            if (preparedIb) {
+                const staged = await service.stage(setId, preparedIb.adapter, preparedIb.key, preparedIb.after, args.dependsOn as string[], undefined, preparedIb.expectedToken);
+                return jsonResult({ status: 'REVIEW_REQUIRED', changeSetId: staged.id, revision: staged.revision, persisted: false, command: 'psft.changeReview.open' });
+            }
             if (headerFamily && preparedHeader) {
                 const staged = await service.stage(setId, headerFamily, preparedHeader.key, preparedHeader.after, args.dependsOn as string[], undefined, preparedHeader.expectedToken);
                 return jsonResult({ status: 'REVIEW_REQUIRED', changeSetId: staged.id, revision: staged.revision, persisted: false, command: 'psft.changeReview.open' });

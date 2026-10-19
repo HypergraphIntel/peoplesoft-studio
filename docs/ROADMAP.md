@@ -25,8 +25,10 @@ DOCX intake and Claude analysis handoff; build-phase terminal handoff remains
 unverified. Track the
 controlled lab run in [Build Requests acceptance](build-requests/NATIVE_ACCEPTANCE.md).
 
-Next implementation priority: extend Change Review to Integration Broker,
-starting with services and operations. Existing writers use legacy per-write
+Integration Broker Change Review now has a first development slice: existing
+service/operation description/comments edits, with exact native rollback
+previews and fixture apply/inverse/history. Installed approval/apply/reversal
+acceptance is next. Structural edits and creation still use legacy per-write
 confirmation; their native calibration is not review/history certification.
 Subsequent work includes broader structural review adapters, reviewed migration
 apply and Data Migration Workbench. Component editing and Data Mover script

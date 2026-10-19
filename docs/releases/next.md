@@ -5,6 +5,13 @@ The 0.9.4 tag and published VSIX remain the released build.
 
 ## Integration Broker
 
+Existing service/operation description/comments edits now stage in Change Review
+on Oracle. Fixed noncredential snapshots, exact rollback previews, a precommit
+after-image check and typed reversal protect the scoped header changes. Six
+native rollback previews pass on HRDMO standard/REST provider/consumer shapes;
+installed review/apply/reversal remains pending. Structural edits and creation
+retain legacy confirmation and cannot be silently grouped into a Change Set.
+
 The supported OnRequest handler, external node, manual routing and REST
 provider/consumer operation workflows now accept PeopleTools 8.61.15 as well
 as 8.62.09. Native 8.61.15 PIA comparisons are recorded in commit `15c6fd0`

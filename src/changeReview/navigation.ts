@@ -46,6 +46,7 @@ export function definitionReviewTarget(key: DefinitionKey): { adapter: string; k
     if (key.type === DefinitionType.ProcessDefinition) return { adapter: 'process', key: [...key.parts] };
     const adapter = ({
         [DefinitionType.Record]: 'record', [DefinitionType.Page]: 'page', [DefinitionType.AppEngineProgram]: 'ae',
+        [DefinitionType.IbService]: 'ib-service', [DefinitionType.IbServiceOperation]: 'ib-operation',
         [DefinitionType.SqlDefinition]: 'sql', [DefinitionType.HtmlDefinition]: 'html', [DefinitionType.StyleSheet]: 'stylesheet'
     } as Partial<Record<DefinitionType, string>>)[key.type];
     return adapter ? { adapter, key: key.parts[0] } : undefined;

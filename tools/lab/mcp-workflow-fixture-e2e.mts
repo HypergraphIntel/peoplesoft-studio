@@ -870,6 +870,41 @@ try{
    ui._receive({action:'apply',id:drift.id,revision:ready.revision});await until(async()=>(await reviewService.store.get(drift.id)).status==='CONFLICTED');assert.equal(native.counts().commits,2);
    check(family+' bounded header HTTP/UI stages without writes, applies actual native writer, verifies inverse/timeline and blocks structural edits and unversioned drift');
  }
+ // New IB adapters use the same trusted UI, real provider/writer and durable review service.
+ const {ibTransaction}=require('./src/test/fixtures/ibTransaction.ts');
+ const {inputForIb}=require('./src/model/ibOperations.ts');
+ for(const kind of ['service','operation']){
+   const native=ibTransaction(kind),type=kind==='service'?79:80;let legacyIb=false;
+   provider.withConnection=async(fn:any)=>fn(native.connection);
+   provider.guard=async(key:any)=>{assert.deepEqual(key,{type,parts:[native.name]});assert.equal(isReviewedWrite(provider.id,key),!legacyIb);assert.equal(writeOrigin(),'agent');};
+   const live=await provider.readIntegrationBroker(kind,[native.name]),input=inputForIb(live);input.properties.DESCR='Reviewed IB';
+   const request={connection:'FIXTURE',input,expectedToken:live.token};
+   const set=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'IB '+kind+' header fixture'});
+   const proposed=await reviewCall('psft_ib_save',{...request,changeSetId:set.id});assert.equal(proposed.persisted,false);assert.deepEqual(native.state(),native.initial);assert.equal(native.counts().commits,0);
+   let ready=await reviewCall('psft_validate_change_set',{changeSetId:set.id});assert.equal(ready.status,'READY_FOR_REVIEW');
+   await reviewUi.show(set.id);const ui=vscode._panels.at(-1);
+   ui._receive({action:'approve',id:set.id,revision:ready.revision});await until(async()=>(await reviewService.store.get(set.id)).status==='APPROVED');
+   ui._receive({action:'apply',id:set.id,revision:ready.revision});await until(async()=>(await reviewService.store.get(set.id)).status==='APPLIED');assert.equal(native.counts().commits,1);
+   let reverse=await reviewCall('psft_prepare_revert',{changeSetId:set.id});reverse=await reviewCall('psft_validate_change_set',{changeSetId:reverse.id});assert.equal(reverse.status,'READY_FOR_REVIEW');
+   await reviewUi.show(reverse.id);ui._receive({action:'approve',id:reverse.id,revision:reverse.revision});await until(async()=>(await reviewService.store.get(reverse.id)).status==='APPROVED');
+   ui._receive({action:'apply',id:reverse.id,revision:reverse.revision});await until(async()=>(await reviewService.store.get(reverse.id)).status==='APPLIED');assert.equal(native.counts().commits,2);
+   const timeline=await reviewCall('psft_get_object_timeline',{changeSetId:reverse.id,objectId:reverse.objects[0].id,checkLive:true});assert.equal(timeline.live.status,'MATCHES_RECORDED');assert.equal(timeline.revisions.length,2);
+   check('IB '+kind+' production HTTP/UI stages rollback preview, applies/reverses actual writer and verifies timeline');
+   const structuralInput=structuredClone(input);structuralInput.properties.OBJECTOWNERID='OTHER';
+   const structural=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'IB structural refusal'});
+   const fresh=await provider.readIntegrationBroker(kind,[native.name]);
+   const refused=await reviewRpc('tools/call',{name:'psft_ib_save',arguments:{connection:'FIXTURE',input:structuralInput,expectedToken:fresh.token,changeSetId:structural.id}});assert.equal(refused.isError,true);assert.match(refused.content[0].text,/cannot be grouped/);assert.equal(native.counts().commits,2);
+   const drift=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'IB drift refusal'});
+   await reviewCall('psft_ib_save',{connection:'FIXTURE',input,expectedToken:fresh.token,changeSetId:drift.id});ready=await reviewCall('psft_validate_change_set',{changeSetId:drift.id});
+   await reviewUi.show(drift.id);ui._receive({action:'approve',id:drift.id,revision:ready.revision});await until(async()=>(await reviewService.store.get(drift.id)).status==='APPROVED');
+   native.drift();ui._receive({action:'apply',id:drift.id,revision:ready.revision});await until(async()=>(await reviewService.store.get(drift.id)).status==='CONFLICTED');assert.equal(native.counts().commits,2);
+   const legacyLive=await provider.readIntegrationBroker(kind,[native.name]);
+   const legacyInput=inputForIb(legacyLive);legacyInput.properties.OBJECTOWNERID='OTHER';
+   const confirmationCount=confirmed;legacyIb=true;
+   const legacyResult=await reviewCall('psft_ib_save',{connection:'FIXTURE',input:legacyInput,expectedToken:legacyLive.token});
+   assert.equal(legacyResult.saved,true);assert.equal(confirmed,confirmationCount+1);assert.equal(native.counts().commits,3);legacyIb=false;
+   check('IB '+kind+' grouped structural edits and unversioned drift cannot write; ungrouped structural edits retain confirmation');
+ }
  provider.withConnection=oldStructuredConnection;provider.guard=oldStructuredGuard;provider.readEnvironment=oldEnvironment;delete provider.types;
  // Deliberate stop at one verified native writer boundary, with fresh continuation review.
  const pausedSet=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'Developer paced application'});

@@ -21,6 +21,9 @@ import { requireProvider } from '../mcp/tools.js';
 import { recordHeaderRequest, aeHeaderDocument, headerChange, structuredHeaderDiff } from './structuredHeaders.js';
 import type { StructuredFamily } from '../providers/structuredSnapshot.js';
 import { deepValidate } from '../mcp/appEngineTools.js';
+import { ibDefinitionKey } from '../model/ibOperations.js';
+import { ibHeaderChange, ibHeaderInput, ibHeaderDiff } from './ibHeaders.js';
+import type { IbReviewKind } from '../providers/ibSnapshot.js';
 export function databaseReviewAdapters(workspace: Workspace, host: () => McpWriteHost | undefined) {
     async function provider(environment: Environment): Promise<DatabaseProvider> {
         const p = await workspace.require(environment.connection);
@@ -291,11 +294,43 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
             host()!.saved(p.id, k);
         }
     };
+    const ibHeader = (kind: IbReviewKind): ReviewAdapter => {
+        const keyOf = (key: Json) => {
+            if (typeof key !== 'string' || !/^[A-Z][A-Z0-9_]{0,29}$/.test(key)) throw new Error('Invalid IB review name.');
+            return ibDefinitionKey(kind, [key]);
+        };
+        async function request(p: DatabaseProvider, name: string, before: Json, after: Json, operatorId: string, token: string, preview: boolean) {
+            ibHeaderChange(before, after, kind, name);
+            const live = await p.readIntegrationBroker(kind, [name]);
+            if (!live) throw new Error('IB definition no longer exists.');
+            return p.saveIntegrationBroker({ input: ibHeaderInput(before, after, kind, name, live), expectedToken: live.token, operatorId, expectedSnapshotToken: token, expectedAfterHash: hash(after), ...(preview ? { dryRun: true, captureSnapshots: true } : {}) });
+        }
+        return { id: 'ib-' + kind, diff: ibHeaderDiff(kind), authorizationState: (e, key) => authorizationState(e, keyOf(key)),
+            warnings: async (e, key) => [...await warnings(e, keyOf(key)), 'Existing service/operation description and comments only. Fixed noncredential preservation scope; credentials are never selected or restored and credential freshness is not certified. No create/delete, structural edits or raw row replay. Native acceptance pending.'],
+            read: async (e, key) => { const p = await provider(e), live = await p.readIbForReview(kind, keyOf(key).parts[0]); return { value: live.value as unknown as Json, token: live.token }; },
+            authorize: async (e, key) => { await authorize(e, keyOf(key)); },
+            validate: async (e, key, before, after) => {
+                try {
+                    const k = keyOf(key), { p, operator } = await authorize(e, k), live = await p.readIbForReview(kind, k.parts[0]);
+                    if (live.hash !== hash(before)) return ['IB baseline changed before validation.'];
+                    const result = await request(p, k.parts[0], before, after, operator, live.token, true);
+                    if (!result.snapshots || result.snapshots.before.hash !== hash(before) || result.snapshots.after.hash !== hash(after)) return ['IB writer cannot reproduce this complete header proposal exactly.'];
+                    return [];
+                } catch (error) { return [error instanceof Error ? error.message : String(error)]; }
+            },
+            write: async (e, key, after, baseline) => {
+                const k = keyOf(key), { p, operator, policyIdentity } = await authorizeReviewed(e, k, baseline), live = await p.readIbForReview(kind, k.parts[0]);
+                if (live.token !== baseline.token || live.hash !== hash(baseline.value)) throw new Error('IB definition changed before approved application.');
+                await withReviewedWrite(p.id, k, () => runAsAgent(() => request(p, k.parts[0], baseline.value, after, operator, baseline.token, false)), policyIdentity);
+                host()!.saved(p.id, k);
+            }
+        };
+    };
     async function environment(connection: string): Promise<Environment> {
         const p = await requireProvider(workspace, connection);
         if (!(p instanceof DatabaseProvider) || !p.isConnected)
             throw new Error('A connected database is required.');
         return { connection: p.id, label: p.displayName, identity: await p.changeReviewIdentity() };
     }
-    return { adapters: [sql, content('html', DefinitionType.HtmlDefinition), content('stylesheet', DefinitionType.StyleSheet), process, query, peoplecode, page, structuredHeader('record'), structuredHeader('ae')], environment, adapterHash: hash };
+    return { adapters: [sql, content('html', DefinitionType.HtmlDefinition), content('stylesheet', DefinitionType.StyleSheet), process, query, peoplecode, page, structuredHeader('record'), structuredHeader('ae'), ibHeader('service'), ibHeader('operation')], environment, adapterHash: hash };
 }
