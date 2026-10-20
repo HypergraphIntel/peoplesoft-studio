@@ -50,8 +50,15 @@ disabled), and redo titles read "Redo Revert ..." (now "Redo <original>").
 Native Page redo then passed on ZZ_PCODE_LAB_PG (apply `2709920a…`, inverse
 `3da9bfad…`, redo `2c568d3c…`; see PAGE_ADAPTER.md); the stale earlier redo was
 correctly refused. Also fixed: an unknown Change Set ID returned a raw ENOENT
-with the local storage path; it is now "Change Set not found". Next: Query
-create/copy native, or 8.61 / REST consumer structural evidence.
+with the local storage path; it is now "Change Set not found". Query structural review
+then passed on ZZ_QRY_LAB02: apply `b7bc09bc-99f7-4ba9-afaa-a98e49383de5`
+(ESTABID selected as column 2, DESCR text heading "Lab description"; only four
+PSQRYFIELD cells changed) and typed inverse
+`6c504db6-9e8a-4a0a-b509-f031841c1d2e`, both developer-approved and VERIFIED
+with live MATCHES_RECORDED, native version 26 -> 27 -> 28, and generated SQL
+checked at each step. Query create/copy stay natively unverified because no
+calibrated delete adapter exists to undo them. Next: Query criteria/prompt
+edits, or 8.61 / REST consumer structural evidence.
 
 Latest checkpoint: the native startup-trace Process UPDATE rolled back on a
 JSON property-order comparison bug; its original full live baseline is intact.

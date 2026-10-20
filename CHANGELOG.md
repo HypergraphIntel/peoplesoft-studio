@@ -23,6 +23,9 @@
 - **Approach approval buttons reflect the decision.** The review page hides
   "Approve approach" once approved and "Reject approach" once rejected.
 
+- **Native reviewed Query structural edit.** A selected column and text
+  heading on a lab query passed installed HRDMO apply and typed inverse.
+
 - **Native Page redo verified**, and an unknown Change Set ID reports "Change
   Set not found" instead of a file error carrying the local storage path.
 
