@@ -38,6 +38,11 @@
   Config` after `import PKG:*;`) is now resolved through the imports, then the
   class's own package, as App Designer resolves it. A class Studio's parser does not model yet
   still completes, from its header's declarations.
+  The inheritance chain is read as soon as a class's editor opens (and again
+  when its `extends` or imports change), cached, and taken from an open
+  editor's unsaved text when the base class is open too; `%This.` never waits
+  on the database more than a quarter second -- members still being read join
+  on the next keystroke.
 
 ## 0.9.6 — October 20, 2026
 

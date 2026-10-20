@@ -3,6 +3,7 @@ import { definitionKeywordType, definitionReferencePrefix } from './definition.j
 import { DefinitionType, displayName } from '../model/definitions.js';
 import { parseUri } from '../util/uri.js';
 import type { Workspace } from '../workspace.js';
+import type { DefinitionProvider } from '../providers/provider.js';
 import { parseApplicationClassSource } from './applicationClassProgram.js';
 import { classCandidates, classMembers, declaredTypeOf, headerExtends, headerMembers, isBuiltInType, type MemberCompletion } from './memberCompletion.js';
 import { BUILTIN_FUNCTION_NAMES } from './builtinFunctions.js';
@@ -408,24 +409,127 @@ function ownPackageOf(document: vscode.TextDocument): string[] | undefined {
   } catch { return undefined; }
 }
 
+type ParsedClass = ReturnType<typeof parseApplicationClassSource>;
+type ClassRead = { parts: string[]; source: string; program: ParsedClass } | null;
+
+/*
+ * Application classes read for completion, kept five minutes per connection --
+ * a class that is not there too, since a bare name is tried in several
+ * packages. A class's members rarely change while one is typing, and
+ * completion must not wait on the database (which validation as you type
+ * also uses) every time `%This.` is typed.
+ */
+const CLASS_TTL_MS = 5 * 60_000;
+const MISS_TTL_MS = 30_000;
+const classCache = new Map<string, { at: number; read: Promise<ClassRead> }>();
+
+/** An application class open in an editor on this connection: its current text, saved or not, wins over the database. */
+function openClassText(handle: string, parts: string[]): string | undefined {
+  const want = parts.join(':').toLowerCase();
+  for (const d of vscode.workspace.textDocuments) {
+    if (d.uri.scheme !== 'psft' || d.languageId !== 'psft-peoplecode') continue;
+    try {
+      const { handle: h, key } = parseUri(d.uri);
+      if (h === handle && key.type === DefinitionType.ApplicationClassPeopleCode
+        && key.parts.filter((p) => p !== 'OnExecute').join(':').toLowerCase() === want) return d.getText();
+    } catch { /* not a definition document */ }
+  }
+  return undefined;
+}
+
+function parsedClass(parts: string[], source: string): ClassRead {
+  let program: ParsedClass;
+  try { program = parseApplicationClassSource(source); } catch { program = undefined; }
+  return program || /\bclass\s/i.test(source) ? { parts, source, program } : null;
+}
+
+function readClass(provider: DefinitionProvider, handle: string, parts: string[]): Promise<ClassRead> {
+  const open = openClassText(handle, parts);
+  if (open !== undefined) return Promise.resolve(parsedClass(parts, open));
+  const id = `${handle}|${parts.join(':').toLowerCase()}`;
+  const cached = classCache.get(id);
+  if (cached && Date.now() - cached.at < CLASS_TTL_MS) return cached.read;
+  const entry = { at: Date.now(), read: Promise.resolve<ClassRead>(null) };
+  entry.read = provider.readText({ type: DefinitionType.ApplicationClassPeopleCode, parts })
+    .then((source) => parsedClass(parts, source), () => null)
+    .then((found) => {
+      // A miss may only mean the connection was not ready: keep it 30 seconds, not five minutes.
+      if (!found) entry.at = Date.now() - CLASS_TTL_MS + MISS_TTL_MS;
+      return found;
+    });
+  classCache.set(id, entry);
+  return entry.read;
+}
+
+/** The members along a class's `extends` chain, from the first readable of `candidates` up, each with the class it comes from. */
+async function chainMembers(provider: DefinitionProvider, handle: string, candidates: string[][], visibilities: string[], inside: boolean):
+  Promise<Array<{ from: string; members: MemberCompletion[] }>> {
+  const out: Array<{ from: string; members: MemberCompletion[] }> = [];
+  const seen = new Set<string>();
+  let next: string[][] | undefined = candidates;
+  for (let depth = 0; next && depth < 8; depth++) {
+    let found: ClassRead = null;
+    for (const parts of next) {
+      if (seen.has(parts.join(':').toLowerCase())) continue;
+      found = await readClass(provider, handle, parts);
+      if (found) break;
+    }
+    if (!found) break; // the class (or a parent) is not readable here
+    seen.add(found.parts.join(':').toLowerCase());
+    out.push({
+      from: found.parts.join(':'),
+      members: found.program ? classMembers(found.program, visibilities, inside)
+        : headerMembers(found.source).filter((m) => visibilities.includes(m.visibility))
+    });
+    const base: string | undefined = found.program ? found.program.extendsType : headerExtends(found.source);
+    next = base && !isBuiltInType(base) ? classCandidates(base, found.source, found.parts.slice(0, -1)) : undefined;
+  }
+  return out;
+}
+
+/** The class being edited (parsed, or read from its header lines when Studio's parser does not model it) and its base class. */
+function currentClass(text: string): { program: ParsedClass; base?: string } {
+  let program: ParsedClass;
+  try { program = parseApplicationClassSource(text); } catch { program = undefined; }
+  const base = program ? program.extendsType : headerExtends(text);
+  return { program, ...(base && !isBuiltInType(base) ? { base } : {}) };
+}
+
+/** Reads an application class's `extends` chain ahead of `%This.` (on open), so completion finds it cached. */
+export function prefetchClassChain(document: vscode.TextDocument, workspace: Workspace): void {
+  if (document.languageId !== 'psft-peoplecode' || document.uri.scheme !== 'psft') return;
+  let handle: string;
+  try { handle = parseUri(document.uri).handle; } catch { return; }
+  const provider = workspace.getProviderByHandle(handle);
+  const own = ownPackageOf(document);
+  if (!provider || own === undefined) return;
+  const text = document.getText();
+  const { base } = currentClass(text);
+  if (base) void chainMembers(provider, handle, classCandidates(base, text, own), ['public', 'protected'], true);
+}
+
+/** How long completion waits for classes still being read before showing what it has. */
+const CHAIN_WAIT_MS = 250;
+
 /**
  * Members of an application class, as completion items: after `&obj.` the
  * public members of the class `&obj` is declared as; after `%This.` the
  * current class's own members (private ones too) and the public and protected
  * members it inherits; after `%Super.` the base class's public and protected
- * members. The `extends` chain is followed through each class's imports.
+ * members. The `extends` chain is followed through each class's imports. A
+ * class still being read after a moment is left out and the list marked
+ * incomplete, so it joins on the next keystroke.
  */
-async function completeClassMembers(document: vscode.TextDocument, workspace: Workspace, receiver: string): Promise<vscode.CompletionItem[]> {
+async function completeClassMembers(document: vscode.TextDocument, workspace: Workspace, receiver: string): Promise<vscode.CompletionItem[] | vscode.CompletionList> {
   // The connection, when the document has one: it supplies other classes (a base class, &obj's class); the class itself needs none.
-  let provider: ReturnType<Workspace['getProviderByHandle']>;
-  try { provider = workspace.getProviderByHandle(parseUri(document.uri).handle); } catch { provider = undefined; }
+  let handle: string | undefined;
+  try { handle = parseUri(document.uri).handle; } catch { handle = undefined; }
+  const provider = handle ? workspace.getProviderByHandle(handle) : undefined;
   const text = document.getText();
   const lower = receiver.toLowerCase();
+  const inside = lower === '%this' || lower === '%super';
   const own = ownPackageOf(document);
 
-  // A class to read: where it may be, and the text and package its own names resolve against.
-  type Step = { candidates: string[][]; visibilities: string[]; inherited: boolean };
-  let first: Step | undefined;
   const items: vscode.CompletionItem[] = [];
   const seenNames = new Set<string>();
   const kindOf = { method: vscode.CompletionItemKind.Method, property: vscode.CompletionItemKind.Property, constant: vscode.CompletionItemKind.Constant };
@@ -440,47 +544,23 @@ async function completeClassMembers(document: vscode.TextDocument, workspace: Wo
     }
   };
 
-  if (lower === '%this' || lower === '%super') {
-    // The class being edited: parsed, or -- for a class Studio's parser does not model yet -- read from its header lines.
-    let program: ReturnType<typeof parseApplicationClassSource>;
-    try { program = parseApplicationClassSource(text); } catch { program = undefined; }
+  let start: { candidates: string[][]; visibilities: string[]; inherited: boolean };
+  if (inside) {
+    const { program, base } = currentClass(text);
     if (lower === '%this') add(program ? classMembers(program, ['public', 'protected', 'private'], true) : headerMembers(text), false);
-    const base = program ? program.extendsType : headerExtends(text);
-    if (!base || isBuiltInType(base)) return items;
-    first = { candidates: classCandidates(base, text, own), visibilities: ['public', 'protected'], inherited: lower === '%this' };
+    if (!base) return items;
+    start = { candidates: classCandidates(base, text, own), visibilities: ['public', 'protected'], inherited: lower === '%this' };
   } else {
     const type = declaredTypeOf(text, receiver);
     if (!type) return [];
-    first = { candidates: classCandidates(type, text, own), visibilities: ['public'], inherited: false };
+    start = { candidates: classCandidates(type, text, own), visibilities: ['public'], inherited: false };
   }
-  if (!provider) return items;
+  if (!provider || !handle) return items;
 
-  const seenClasses = new Set<string>();
-  let step: Step | undefined = first;
-  for (let depth = 0; step && depth < 8; depth++) {
-    let found: { parts: string[]; source: string; program: ReturnType<typeof parseApplicationClassSource> } | undefined;
-    for (const parts of step.candidates) {
-      if (seenClasses.has(parts.join(':').toLowerCase())) continue;
-      try {
-        const source = await provider.readText({ type: DefinitionType.ApplicationClassPeopleCode, parts });
-        let program: ReturnType<typeof parseApplicationClassSource>;
-        try { program = parseApplicationClassSource(source); } catch { program = undefined; }
-        if (program || headerMembers(source).length || /\bclass\s/i.test(source)) { found = { parts, source, program }; break; }
-      } catch { /* not this candidate: try the next */ }
-    }
-    if (!found) break; // the class (or a parent) is not readable here
-    seenClasses.add(found.parts.join(':').toLowerCase());
-    const inside = lower === '%this' || lower === '%super';
-    const members = found.program ? classMembers(found.program, step.visibilities, inside)
-      : headerMembers(found.source).filter((m) => step!.visibilities.includes(m.visibility));
-    add(members, step.inherited, found.parts.join(':'));
-    const base = found.program ? found.program.extendsType : headerExtends(found.source);
-    step = base && !isBuiltInType(base) ? {
-      candidates: classCandidates(base, found.source, found.parts.slice(0, -1)),
-      visibilities: step.visibilities,
-      inherited: true
-    } : undefined;
-  }
+  const chain = chainMembers(provider, handle, start.candidates, start.visibilities, inside);
+  const ready = await Promise.race([chain, new Promise<undefined>((r) => setTimeout(() => r(undefined), CHAIN_WAIT_MS))]);
+  if (!ready) return new vscode.CompletionList(items, true); // the rest join as more is typed
+  for (const c of ready) add(c.members, start.inherited, c.from);
   return items;
 }
 
@@ -546,7 +626,7 @@ export function registerPeopleCodeCompletion(context: vscode.ExtensionContext, w
         }
         if (receiver.startsWith('&') && document.uri.scheme === 'psft') {
           const members = await completeClassMembers(document, workspace, receiver);
-          if (members.length) return members;
+          if (Array.isArray(members) ? members.length : members.items.length || members.isIncomplete) return members;
         }
 
         // `RECORD.`: that record's fields, from the connection (a name that is no record falls through).
@@ -627,6 +707,29 @@ export function registerPeopleCodeCompletion(context: vscode.ExtensionContext, w
       return items;
     },
   };
+
+  // Read each class's inheritance as soon as its editor opens or is shown, and again when its text changes (an
+  // edited `extends` or import), so `%This.` finds it read. Reads are cached, so a repeat costs nothing.
+  for (const d of vscode.workspace.textDocuments) prefetchClassChain(d, workspace);
+  const pending = new Map<string, ReturnType<typeof setTimeout>>();
+  context.subscriptions.push(
+    vscode.workspace.onDidOpenTextDocument((d) => prefetchClassChain(d, workspace)),
+    vscode.window.onDidChangeActiveTextEditor((e) => { if (e) prefetchClassChain(e.document, workspace); }),
+    vscode.workspace.onDidChangeTextDocument((e) => {
+      const id = e.document.uri.toString();
+      clearTimeout(pending.get(id));
+      pending.set(id, setTimeout(() => { pending.delete(id); prefetchClassChain(e.document, workspace); }, 750));
+    }),
+    vscode.workspace.onDidSaveTextDocument((d) => {
+      // A class saved here changes what the database holds: forget its cached read.
+      try {
+        const { handle, key } = parseUri(d.uri);
+        if (key.type === DefinitionType.ApplicationClassPeopleCode) {
+          classCache.delete(`${handle}|${key.parts.filter((p) => p !== 'OnExecute').join(':').toLowerCase()}`);
+        }
+      } catch { /* not a definition document */ }
+    })
+  );
 
   context.subscriptions.push(
     vscode.languages.registerCompletionItemProvider(
