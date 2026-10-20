@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { gated } from './languageFeatures.js';
 
 /**
  * Outline / breadcrumbs for PeopleCode.
@@ -173,7 +174,7 @@ export function registerPeopleCodeSymbols(context: vscode.ExtensionContext): voi
   context.subscriptions.push(
     vscode.languages.registerDocumentSymbolProvider(
       { language: 'psft-peoplecode' },
-      provider
+      gated(provider)
     )
   );
 }

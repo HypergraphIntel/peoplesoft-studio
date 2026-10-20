@@ -27,6 +27,11 @@ export interface PeopleSoftStudioSettings {
   'oracle.thickModeLibDir': string;
   'db2.driverPath': string;
   'peoplecode.decoder': DecoderMode;
+  'peoplecode.languageServer.enabled': boolean;
+  'peoplecode.validateAsYouType': boolean;
+  'peoplecode.validationDelay': number;
+  'peoplecode.checkEnvironment': boolean;
+  'peoplecode.unknownFunctionWarnings': boolean;
   'mcp.enabled': boolean;
   'mcp.port': number;
   'mcp.writes': 'confirm' | 'allow' | 'off';
@@ -52,10 +57,10 @@ export type SettingKey = keyof PeopleSoftStudioSettings;
 
 /**
  * The settings the panel edits as single values. Connections have their own
- * editor, and the decoder is chosen per connection there;
- * `peoplecode.decoder` is only the default for connections without one.
+ * editor, which also chooses a connection's decoder; `peoplecode.decoder`
+ * (PeopleCode Editor) is the default for connections without one.
  */
-export type EditableSettingKey = Exclude<SettingKey, 'connections' | 'peoplecode.decoder'>;
+export type EditableSettingKey = Exclude<SettingKey, 'connections'>;
 
 export function validateDecoder(value: unknown): Validated<DecoderMode> {
   return typeof value === 'string' && DECODER_OPTIONS.some((o) => o.value === value)
@@ -146,7 +151,7 @@ export interface SettingInspection<T> {
   workspaceFolderValue?: T;
 }
 
-export type SettingSection = 'mcp' | 'projects' | 'buildCreate' | 'buildAlter' | 'advanced';
+export type SettingSection = 'peoplecodeEditor' | 'mcp' | 'projects' | 'buildCreate' | 'buildAlter' | 'advanced';
 
 export interface EnumOption<T extends string> {
   value: T;
@@ -169,6 +174,8 @@ export interface SettingDescriptor {
   description: string;
   /** When a change takes effect, if not immediately. */
   appliesWhen?: string;
+  /** A switch this setting only matters under: the panel dims it while that is off. */
+  requires?: EditableSettingKey;
   control: SettingControl;
   /** package.json's default; the smoke test holds the two equal. */
   defaultValue: SettingValue;
@@ -180,11 +187,17 @@ export const DECODER_OPTIONS: EnumOption<DecoderMode>[] = [
   { value: 'raw', label: 'Raw', description: 'Show a byte/opcode listing instead of source. For decoder development.' }
 ];
 
+/** Validate as you type's quiet time after the last keystroke, in milliseconds. */
+export const MIN_VALIDATION_DELAY = 100;
+export const MAX_VALIDATION_DELAY = 5000;
+export const DEFAULT_VALIDATION_DELAY = 500;
+
 /**
  * The editable settings, in display order. Labels and descriptions restate
  * package.json's for a reader; the keys must match it exactly.
  */
 export const SETTING_DESCRIPTORS: readonly SettingDescriptor[] = [
+  ...peopleCodeEditorDescriptors(),
   {
     key: 'mcp.enabled',
     section: 'mcp',
@@ -260,6 +273,69 @@ export const SETTING_DESCRIPTORS: readonly SettingDescriptor[] = [
   ...buildDescriptors()
 ];
 
+/** The PeopleCode editor: its language features, and how PeopleCode is decoded for it. */
+function peopleCodeEditorDescriptors(): SettingDescriptor[] {
+  const server = 'peoplecode.languageServer.enabled';
+  return [
+    {
+      key: server,
+      section: 'peoplecodeEditor',
+      label: 'Language Server',
+      description: 'Completion, hover, signature help, Go to Definition, Find References, the outline and validation as you type in PeopleCode editors. ' +
+        'Off: PeopleCode editors are plain text with highlighting; Validate PeopleCode still runs on demand.',
+      control: { kind: 'boolean' },
+      defaultValue: true
+    },
+    {
+      key: 'peoplecode.validateAsYouType',
+      section: 'peoplecodeEditor',
+      label: 'Validate as you type',
+      description: 'Compile the program with PeopleSoft Studio\'s compiler a moment after you stop typing, and show where it stops in Problems. ' +
+        'Large programs compile on a background thread. Application Designer has the last word.',
+      requires: server,
+      control: { kind: 'boolean' },
+      defaultValue: true
+    },
+    {
+      key: 'peoplecode.validationDelay',
+      section: 'peoplecodeEditor',
+      label: 'Validation delay (ms)',
+      description: 'How long typing must pause before validation as you type compiles the program.',
+      requires: 'peoplecode.validateAsYouType',
+      control: { kind: 'number', min: MIN_VALIDATION_DELAY, max: MAX_VALIDATION_DELAY, placeholder: String(DEFAULT_VALIDATION_DELAY) },
+      defaultValue: DEFAULT_VALIDATION_DELAY
+    },
+    {
+      key: 'peoplecode.checkEnvironment',
+      section: 'peoplecodeEditor',
+      label: 'Check against the environment',
+      description: 'Check RECORD.FIELD references against the connection\'s records, as Validate Syntax does ("Field REC.FIELD not defined. (2,17)"), ' +
+        'and offer to qualify bare field names with the program\'s record as Application Designer stores them. Reads record definitions from the database.',
+      requires: server,
+      control: { kind: 'boolean' },
+      defaultValue: true
+    },
+    {
+      key: 'peoplecode.unknownFunctionWarnings',
+      section: 'peoplecodeEditor',
+      label: 'Unknown function warnings',
+      description: 'Warn about a call to a function that is neither a PeopleCode built-in nor declared in the program ("Unknown function. (2,15)").',
+      requires: server,
+      control: { kind: 'boolean' },
+      defaultValue: true
+    },
+    {
+      key: 'peoplecode.decoder',
+      section: 'peoplecodeEditor',
+      label: 'Default PeopleCode decoder',
+      description: 'How stored PeopleCode is turned into source, for connections that do not choose their own decoder (Connections).',
+      appliesWhen: 'Applies to PeopleCode opened after the change.',
+      control: { kind: 'enum', options: DECODER_OPTIONS },
+      defaultValue: 'auto'
+    }
+  ];
+}
+
 /** App Designer's Build Settings, Create and Alter tabs, with its defaults. */
 function buildDescriptors(): SettingDescriptor[] {
   const PENDING = 'Stored now; used once Build supports it (App Designer\'s output for it is still being captured).';
@@ -267,8 +343,8 @@ function buildDescriptors(): SettingDescriptor[] {
     options: EnumOption<string>[], defaultValue: string, pending = false): SettingDescriptor => ({
     key, section, label, description, control: { kind: 'enum', options }, defaultValue, ...(pending ? { appliesWhen: PENDING } : {})
   });
-  const flag = (key: EditableSettingKey, label: string, description: string, defaultValue: boolean): SettingDescriptor => ({
-    key, section: 'buildAlter', label, description, control: { kind: 'boolean' }, defaultValue, appliesWhen: PENDING
+  const flag = (key: EditableSettingKey, label: string, description: string, defaultValue: boolean, pending = false): SettingDescriptor => ({
+    key, section: 'buildAlter', label, description, control: { kind: 'boolean' }, defaultValue, ...(pending ? { appliesWhen: PENDING } : {})
   });
   return [
     choice('build.create.table', 'buildCreate', 'Table creation', 'When the table already exists.', [
@@ -278,11 +354,11 @@ function buildDescriptors(): SettingDescriptor[] {
     choice('build.create.view', 'buildCreate', 'View creation', 'When the view already exists.', [
       { value: 'recreate', label: 'Recreate view if it already exists', description: 'Replaces the view.' },
       { value: 'skip', label: 'Skip view if it already exists', description: 'Leaves an existing view as it is.' }
-    ], 'recreate', true),
+    ], 'recreate'),
     choice('build.create.index', 'buildCreate', 'Index creation', 'When the index already exists.', [
       { value: 'recreate', label: 'Recreate index if it already exists', description: 'Drops and creates every index.' },
       { value: 'ifModified', label: 'Recreate index only if modified', description: 'Only indexes that differ from the definition.' }
-    ], 'ifModified', true),
+    ], 'ifModified'),
     choice('build.create.sequence', 'buildCreate', 'Sequence creation', 'When the sequence already exists.', [
       { value: 'recreate', label: 'Recreate sequence if it already exists', description: 'Drops and creates the sequence.' },
       { value: 'alterIfModified', label: 'Alter sequence only if modified', description: 'Only a sequence that differs.' }
@@ -290,21 +366,21 @@ function buildDescriptors(): SettingDescriptor[] {
     choice('build.alter.dropColumn', 'buildAlter', 'Drop column options', 'When a dropped column holds data.', [
       { value: 'drop', label: 'Drop column if data present', description: 'The column and its data are dropped.' },
       { value: 'skip', label: 'Skip record if data present', description: 'The record is not altered.' }
-    ], 'skip', true),
+    ], 'skip'),
     choice('build.alter.changeLength', 'buildAlter', 'Change column length options', 'When data is longer than a shortened field.', [
       { value: 'truncate', label: 'Truncate data if field too short', description: 'Longer values are cut.' },
       { value: 'skip', label: 'Skip record if field too short', description: 'The record is not altered.' }
-    ], 'skip', true),
+    ], 'skip'),
     flag('build.alter.adds', 'Alter any: Adds', 'Columns added to the record are added to the table.', true),
     flag('build.alter.changes', 'Alter any: Changes', 'Changed columns are altered.', true),
-    flag('build.alter.renames', 'Alter any: Renames', 'Renamed fields are renamed in the table.', true),
+    flag('build.alter.renames', 'Alter any: Renames', 'Renamed fields are renamed in the table.', true, true),
     flag('build.alter.deletes', 'Alter any: Deletes', 'Columns removed from the record are dropped from the table.', true),
-    flag('build.alter.evenIfNoChanges', 'Alter even if no changes', 'Alters the table when it already matches the record.', false),
+    flag('build.alter.evenIfNoChanges', 'Alter even if no changes', 'Alters the table when it already matches the record.', false, true),
     choice('build.alter.tableOption', 'buildAlter', 'Alter table options', 'How a table is altered.', [
       { value: 'inPlace', label: 'Alter in Place', description: 'ALTER TABLE statements on the table.' },
       { value: 'rename', label: 'Alter by Table Rename', description: 'A new table is created, the data copied, the old table dropped and the new one renamed.' }
-    ], 'rename', true),
-    flag('build.alter.inMemory', 'Alter Table In Memory', 'Alters the table\'s Oracle In-Memory setting with the table.', false)
+    ], 'rename'),
+    flag('build.alter.inMemory', 'Alter Table In Memory', 'Alters the table\'s Oracle In-Memory setting with the table.', false, true)
   ];
 }
 
@@ -344,8 +420,14 @@ export function validateSetting(key: EditableSettingKey, value: unknown): Valida
       return { ok: true, value: trimmed };
     }
     default: {
-      // The Build Settings: a choice or a check, as their descriptors say.
+      // The PeopleCode Editor and Build Settings: a choice, a check or a number, as their descriptors say.
       const control = descriptorFor(key)?.control;
+      if (control?.kind === 'number') {
+        const n = typeof value === 'string' && /^\s*\d+\s*$/.test(value) ? Number(value) : value;
+        return typeof n === 'number' && Number.isInteger(n) && n >= control.min && n <= control.max
+          ? { ok: true, value: n }
+          : { ok: false, error: `Must be a whole number from ${control.min} to ${control.max}.` };
+      }
       if (control?.kind === 'boolean') {
         return typeof value === 'boolean' ? { ok: true, value } : { ok: false, error: 'Must be on or off.' };
       }

@@ -1431,10 +1431,32 @@
           "maximum": 10000,
           "markdownDescription": "The most rows *Run SQL* shows. A query runs read only and is always rolled back: one SELECT, no `INTO` or `FOR UPDATE`; `%Table(record)` is the only meta-SQL expanded."
         },
+        "peoplesoft.peoplecode.languageServer.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "PeopleCode language features: completion, hover, signature help, Go to Definition, Find References, the outline and validation as you type. Off: PeopleCode editors are plain text with highlighting; Validate PeopleCode still runs on demand."
+        },
         "peoplesoft.peoplecode.validateAsYouType": {
           "type": "boolean",
           "default": true,
-          "description": "Compile the PeopleCode in the editor with PeopleSoft Studio's compiler a moment after you stop typing, and show where it stops in Problems (Validate PeopleCode, as you type). Large programs compile on a background thread. Application Designer has the last word."
+          "description": "Compile the PeopleCode in the editor with PeopleSoft Studio's compiler a moment after you stop typing, and show where it stops in Problems (Validate PeopleCode, as you type). Large programs compile on a background thread. Application Designer has the last word. Needs peoplesoft.peoplecode.languageServer.enabled."
+        },
+        "peoplesoft.peoplecode.validationDelay": {
+          "type": "integer",
+          "default": 500,
+          "minimum": 100,
+          "maximum": 5000,
+          "description": "Milliseconds typing must pause before validation as you type compiles the program."
+        },
+        "peoplesoft.peoplecode.checkEnvironment": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check RECORD.FIELD references against the connection's records, as Validate Syntax does (\"Field REC.FIELD not defined. (2,17)\"), and offer to qualify bare field names with the program's record as Application Designer stores them. Reads record definitions from the database."
+        },
+        "peoplesoft.peoplecode.unknownFunctionWarnings": {
+          "type": "boolean",
+          "default": true,
+          "description": "Warn about a call to a function that is neither a PeopleCode built-in nor declared in the program (\"Unknown function. (2,15)\")."
         },
         "peoplesoft.build.create.table": {
           "type": "string",

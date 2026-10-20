@@ -30,8 +30,8 @@ export interface ValidationRunner {
 }
 
 export interface LiveValidationOptions {
-  /** Quiet time after the last change before compiling. */
-  delayMs?: number;
+  /** Quiet time after the last change before compiling (a function is read at each change, so a setting applies at once). */
+  delayMs?: number | (() => number);
   /** A run for text that has changed is abandoned after this long. */
   staleAfterMs?: number;
 }
@@ -41,7 +41,7 @@ export class LiveValidator {
   private readonly queued = new Map<string, ValidationRequest>();
   private running: { request: ValidationRequest; started: number } | undefined;
   private staleTimer: ReturnType<typeof setTimeout> | undefined;
-  private readonly delayMs: number;
+  private readonly delayMs: () => number;
   private readonly staleAfterMs: number;
   private disposed = false;
 
@@ -53,7 +53,8 @@ export class LiveValidator {
     private readonly isCurrent: (uri: string, version: number) => boolean,
     options: LiveValidationOptions = {}
   ) {
-    this.delayMs = options.delayMs ?? 500;
+    const delay = options.delayMs ?? 500;
+    this.delayMs = typeof delay === 'function' ? delay : () => delay;
     this.staleAfterMs = options.staleAfterMs ?? 1500;
   }
 
@@ -66,7 +67,7 @@ export class LiveValidator {
       this.timers.delete(request.uri);
       this.queued.set(request.uri, request);
       this.next();
-    }, this.delayMs));
+    }, this.delayMs()));
     // A run for this document's older text is now wasted: give it a little longer, then restart the worker.
     if (this.running?.request.uri === request.uri && this.running.request.version !== request.version && !this.staleTimer) {
       const wait = Math.max(0, this.staleAfterMs - (Date.now() - this.running.started));

@@ -32,6 +32,10 @@ checks what App Designer's compiler checks against the environment: bare field
 names are qualified as App Designer stores them (quick fix), undefined fields
 are 2,17 and unknown functions 2,15.
 
+Settings has a **PeopleCode Editor** section: the Language Server switch,
+Validate as you type and its delay, the environment checks, unknown-function
+warnings and the default decoder.
+
 Track the remaining project completion gates in
 [1.0 readiness](../RELEASE_1_0_READINESS.md). No 1.0 delivery date is committed.
 

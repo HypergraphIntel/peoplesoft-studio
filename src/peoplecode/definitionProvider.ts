@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { parseUri, toUri } from '../util/uri.js';
 import type { Workspace } from '../workspace.js';
 import { matchStoredKey, resolveDeclaredFunction, resolveReference } from './definition.js';
+import { gated } from './languageFeatures.js';
 
 /*
  * The VS Code side of Go to Definition: find the reference under the cursor
@@ -38,5 +39,5 @@ export function registerPeopleCodeDefinition(context: vscode.ExtensionContext, w
     }
   };
   context.subscriptions.push(
-    vscode.languages.registerDefinitionProvider({ language: 'psft-peoplecode' }, provider));
+    vscode.languages.registerDefinitionProvider({ language: 'psft-peoplecode' }, gated(provider)));
 }

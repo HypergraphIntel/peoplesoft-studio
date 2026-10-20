@@ -97,6 +97,7 @@ section > .description { margin-bottom: 0.9rem; }
 }
 .setting .description { margin-bottom: 0.4rem; }
 .setting .hint { margin: 0.35rem 0 0; }
+.setting.inactive > :not(.setting-title):not(:last-child) { opacity: 0.6; }
 
 .control-row {
   display: flex;

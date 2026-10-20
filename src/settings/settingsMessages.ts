@@ -27,6 +27,8 @@ export interface SettingView {
   label: string;
   description: string;
   appliesWhen?: string;
+  /** The switch this setting only matters under. */
+  requires?: EditableSettingKey;
   control: SettingControl;
   value: SettingValue;
   /** Where the effective value is defined; edits are written there. */

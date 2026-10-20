@@ -71,6 +71,18 @@ test('a long run for stale text is abandoned by restarting the worker', async ()
   live.dispose();
 });
 
+test('the quiet time is read at each change, so a new setting applies at once', async () => {
+  const fake = fakeRunner(1);
+  let delay = 200;
+  const published: number[] = [];
+  const live = new LiveValidator(fake.runner, (r) => published.push(r.version), () => true, { delayMs: () => delay });
+  delay = 10;
+  live.schedule(request(1));
+  await sleep(60);
+  assert.deepEqual(published, [1]);
+  live.dispose();
+});
+
 test('a closed document is forgotten before it compiles', async () => {
   const fake = fakeRunner(1);
   const live = new LiveValidator(fake.runner, () => assert.fail('published'), () => true, { delayMs: 20 });

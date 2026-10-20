@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { BUILTIN_SIGNATURES, signatureContextAt } from './signatures.js';
+import { gated } from './languageFeatures.js';
 
 /*
  * Signature help for the built-in functions in BUILTIN_SIGNATURES: while a call
@@ -25,5 +26,5 @@ export function registerPeopleCodeSignatureHelp(context: vscode.ExtensionContext
     }
   };
   context.subscriptions.push(
-    vscode.languages.registerSignatureHelpProvider({ language: 'psft-peoplecode' }, provider, '(', ','));
+    vscode.languages.registerSignatureHelpProvider({ language: 'psft-peoplecode' }, gated(provider), '(', ','));
 }

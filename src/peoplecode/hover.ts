@@ -4,6 +4,7 @@ import { parseUri } from '../util/uri.js';
 import type { Workspace } from '../workspace.js';
 import { matchStoredKey, resolveReference } from './definition.js';
 import { definitionHoverMarkdown, fieldHoverMarkdown } from './hoverText.js';
+import { gated } from './languageFeatures.js';
 
 /** Keyword / statement docs. Keys are matched case-insensitively. */
 const KEYWORDS: Record<string, string> = {
@@ -281,6 +282,6 @@ export function registerPeopleCodeHover(context: vscode.ExtensionContext, worksp
   };
 
   context.subscriptions.push(
-    vscode.languages.registerHoverProvider({ language: 'psft-peoplecode' }, provider)
+    vscode.languages.registerHoverProvider({ language: 'psft-peoplecode' }, gated(provider))
   );
 }

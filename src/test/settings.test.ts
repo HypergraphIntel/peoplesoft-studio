@@ -165,8 +165,10 @@ test('reads every configured connection and setting from configuration', () => {
   const port = state.settings.find((s) => s.key === 'mcp.port');
   assert.equal(port?.value, 8123);
   assert.equal(port?.source, 'workspace');
-  // The decoder is per connection now; the global key is only the default.
-  assert.equal(state.settings.some((s) => (s.key as string) === 'peoplecode.decoder'), false);
+  // The decoder is per connection; the global key is the default, edited under PeopleCode Editor.
+  const decoder = state.settings.find((s) => s.key === 'peoplecode.decoder');
+  assert.equal(decoder?.section, 'peoplecodeEditor');
+  assert.equal(decoder?.value, 'auto');
   assert.equal(state.defaultDecoder, 'auto');
   const libDir = state.settings.find((s) => s.key === 'oracle.thickModeLibDir');
   assert.equal(libDir?.value, '');
@@ -275,6 +277,32 @@ test('invalid setting values are rejected against the field and not written', as
   assert.equal(validateSetting('oracle.thickModeLibDir', 'C:\\oracle\\ic21').ok, true);
   assert.deepEqual(validateSetting('oracle.thickModeLibDir', '   '), { ok: true, value: '' });
   assert.equal(validateSetting('oracle.thickModeLibDir', 42).ok, false);
+});
+
+test('the PeopleCode Editor section: the Language Server switch, what depends on it, and the default decoder', async () => {
+  const { service, config } = setup();
+  const settings = service.getState().settings.filter((s) => s.section === 'peoplecodeEditor');
+  assert.deepEqual(settings.map((s) => [s.key, s.value, s.requires]), [
+    ['peoplecode.languageServer.enabled', true, undefined],
+    ['peoplecode.validateAsYouType', true, 'peoplecode.languageServer.enabled'],
+    ['peoplecode.validationDelay', 500, 'peoplecode.validateAsYouType'],
+    ['peoplecode.checkEnvironment', true, 'peoplecode.languageServer.enabled'],
+    ['peoplecode.unknownFunctionWarnings', true, 'peoplecode.languageServer.enabled'],
+    ['peoplecode.decoder', 'auto', undefined]
+  ]);
+  // The delay is a whole number of milliseconds within bounds; typed text is accepted.
+  assert.deepEqual(validateSetting('peoplecode.validationDelay', ' 750 '), { ok: true, value: 750 });
+  assert.equal(validateSetting('peoplecode.validationDelay', 50).ok, false);
+  assert.equal(validateSetting('peoplecode.validationDelay', 6000).ok, false);
+  assert.equal(validateSetting('peoplecode.validationDelay', 1.5).ok, false);
+  assert.equal(validateSetting('peoplecode.decoder', 'nope').ok, false);
+  await service.handleMessage({ type: 'updateSetting', key: 'peoplecode.languageServer.enabled', value: false });
+  await service.handleMessage({ type: 'updateSetting', key: 'peoplecode.decoder', value: 'strict' });
+  assert.deepEqual(config.writes.map((w) => [w.key, w.value, w.scope]), [
+    ['peoplecode.languageServer.enabled', false, 'global'],
+    ['peoplecode.decoder', 'strict', 'global']
+  ]);
+  assert.equal(service.getState().defaultDecoder, 'strict');
 });
 
 test('MCP settings are read with their types and defaults', () => {
@@ -748,7 +776,6 @@ test('parseWebviewMessage accepts the contract and nothing else', () => {
     { type: 'selectConnection', connectionId: 'oracle:X' },
     // Connections have their own editor; they cannot be overwritten as a plain value.
     { type: 'updateSetting', key: 'connections', value: [] },
-    { type: 'updateSetting', key: 'peoplecode.decoder', value: 'raw' },
     { type: 'setConnectionOption', connectionId: 'oracle:X', option: 'decoder' },
     { type: 'setConnectionOption', connectionId: 'oracle:X', option: 'decoder', value: 1 },
     // Only the three per-connection options; never an arbitrary connection field.

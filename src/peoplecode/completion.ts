@@ -5,6 +5,7 @@ import { parseUri } from '../util/uri.js';
 import type { Workspace } from '../workspace.js';
 import { parseApplicationClassSource } from './applicationClassProgram.js';
 import { declaredClassOf, publicMembers, qualifiedExtends } from './memberCompletion.js';
+import { gated } from './languageFeatures.js';
 
 const KEYWORDS: string[] = [
   'If', 'Then', 'Else', 'End-If',
@@ -534,7 +535,7 @@ export function registerPeopleCodeCompletion(context: vscode.ExtensionContext, w
   context.subscriptions.push(
     vscode.languages.registerCompletionItemProvider(
       { language: 'psft-peoplecode' },
-      provider,
+      gated(provider),
       '.',
       '&',
       '%'

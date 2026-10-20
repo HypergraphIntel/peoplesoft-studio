@@ -53,6 +53,7 @@
 
   const SECTIONS = [
     { id: 'connections', title: 'Connections' },
+    { id: 'peoplecodeEditor', title: 'PeopleCode Editor' },
     { id: 'mcp', title: 'AI Integration' },
     { id: 'projects', title: 'Project Contents' },
     { id: 'build', title: 'Build Settings' },
@@ -352,7 +353,28 @@
     return form;
   }
 
+  /** The switch, if any, that is off and leaves this setting unused (a setting's `requires`, followed up). */
+  function offSwitch(s) {
+    for (let at = s; at && at.requires;) {
+      const parent = state.settings.find((x) => x.key === at.requires);
+      if (!parent) return undefined;
+      if (parent.value === false) return parent;
+      at = parent;
+    }
+    return undefined;
+  }
+
   function renderSetting(s) {
+    const node = renderSettingControl(s);
+    const off = offSwitch(s);
+    if (off) {
+      node.classList.add('inactive');
+      node.append(h('p', { className: 'hint', text: `Used only while ${off.label} is on.` }));
+    }
+    return node;
+  }
+
+  function renderSettingControl(s) {
     const draftKey = `setting:${s.key}`;
     const settingErrors = errors[draftKey] || {};
     const inputId = `setting-${s.key.replace(/\W/g, '-')}`;
@@ -693,6 +715,8 @@
     renderToc(!!state.mcp);
     root.replaceChildren(...[
       renderConnections(),
+      renderSettingsSection('peoplecodeEditor', 'PeopleCode Editor',
+        'What PeopleCode editors do as you work: the Language Server\'s completion, navigation and checks, and how stored PeopleCode is decoded.'),
       renderMcp(),
       renderSettingsSection('projects', 'Project Contents',
         'Which definition types an AI agent places into projects. Some organizations never migrate these in projects; turning one off still lets the agent create the definitions.'),

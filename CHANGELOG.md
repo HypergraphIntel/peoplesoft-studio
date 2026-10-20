@@ -2,6 +2,18 @@
 
 ## Unreleased — 0.9.6
 
+- **Settings: PeopleCode Editor.** A new Settings section gathers the
+  PeopleCode editor's options: *Language Server* (new; off leaves completion,
+  hover, signature help, Go to Definition, references, the outline and
+  validation as you type silent), *Validate as you type*, the validation delay
+  (new, 500 ms), *Check against the environment* (new: the 2,17 field checks
+  and bare-field qualification) and *Unknown function warnings* (new), and the
+  default PeopleCode decoder, which was only settable in settings.json. Options
+  that depend on a switch that is off are dimmed. The Build Settings that
+  Build now uses no longer say they are pending.
+- **CI: the validation-thread test no longer fails on Node 20.** The worker
+  is held referenced while a validation is in flight.
+
 - **PeopleCode checked against the environment, as App Designer checks it.**
   Bare field names in Record and Component Record PeopleCode used to fail
   ("bare identifiers are only supported as calls"); they now compile as App

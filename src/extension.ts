@@ -70,6 +70,7 @@ import { combineBuildPlans, planAlterTable, planCreateIndexes, planCreateViews, 
 import { tableName } from './model/recordDdl.js';
 import { lineAndColumn, validatePeopleCode, type Qualification, type Validation } from './peoplecode/validate.js';
 import { LiveValidator } from './peoplecode/liveValidation.js';
+import { languageFeaturesOn } from './peoplecode/languageFeatures.js';
 import { WorkerValidationRunner } from './peoplecode/validateWorkerClient.js';
 import type { DefinitionProvider } from './providers/provider.js';
 import { StatusBar } from './views/statusBar.js';
@@ -349,8 +350,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     return fields;
   };
   // App Designer's "Field REC.FIELD not defined. (2,17)" for a reference the connection does not have (native Validate Syntax).
+  const peoplecodeSetting = <T>(key: string, fallback: T) => vscode.workspace.getConfiguration('peoplesoft').get<T>(`peoplecode.${key}`) ?? fallback;
+  // Settings > PeopleCode Editor: environment checks and unknown-function warnings can each be turned off.
+  const checkEnvironment = () => peoplecodeSetting('checkEnvironment', true);
+  const editorProblems = (v: Validation): Validation => peoplecodeSetting('unknownFunctionWarnings', true)
+    ? v : { ...v, problems: v.problems.filter((p) => p.code !== 'unknown-function') };
   const referenceProblems = async (handle: string, v: Validation) => {
     const problems: Validation['problems'] = [];
+    if (!checkEnvironment()) return problems;
     for (const r of v.fieldReferences ?? []) {
       const p = await workspace.requireByHandle(handle).catch(() => undefined);
       if (!(p instanceof DatabaseProvider)) break;
@@ -365,20 +372,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const extra = await referenceProblems(handle, v);
     if (doc.version !== version) return;
     qualificationsByUri.set(doc.uri.toString(), { version, items: v.qualifications ?? [] });
-    validationDiagnostics.set(doc.uri, peopleCodeDiagnostics(text, { ...v, problems: [...v.problems, ...extra].sort((a, b) => a.offset - b.offset) }));
+    const shown = editorProblems(v);
+    validationDiagnostics.set(doc.uri, peopleCodeDiagnostics(text, { ...shown, problems: [...shown.problems, ...extra].sort((a, b) => a.offset - b.offset) }));
   };
   const ownerFieldsFor = async (handle: string, key: DefinitionKey) => {
-    const owner = ownerRecordOf(key);
+    const owner = checkEnvironment() ? ownerRecordOf(key) : undefined;
     return owner ? [...((await recordFields(handle, owner)) ?? [])] : undefined;
   };
-  const liveOn = () => vscode.workspace.getConfiguration('peoplesoft').get<boolean>('peoplecode.validateAsYouType') ?? true;
+  const liveOn = () => languageFeaturesOn() && peoplecodeSetting('validateAsYouType', true);
   const live = new LiveValidator(
     new WorkerValidationRunner(path.join(context.extensionPath, 'dist', 'validateWorker.js')),
     (request, result) => {
       const doc = vscode.workspace.textDocuments.find((d) => d.uri.toString() === request.uri);
       if (doc && liveOn()) void showValidation(doc, parseUri(doc.uri).handle, request.text, request.version, result);
     },
-    (uri, version) => vscode.workspace.textDocuments.some((d) => d.uri.toString() === uri && d.version === version));
+    (uri, version) => vscode.workspace.textDocuments.some((d) => d.uri.toString() === uri && d.version === version),
+    { delayMs: () => Math.min(5000, Math.max(100, peoplecodeSetting('validationDelay', 500))) });
   const validateLive = async (doc: vscode.TextDocument) => {
     if (!liveOn() || doc.uri.scheme !== SCHEME || doc.languageId !== 'psft-peoplecode') return;
     let parsed: ReturnType<typeof parseUri>;
@@ -416,9 +425,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.workspace.onDidCloseTextDocument((d) => { live.cancel(d.uri.toString()); validationDiagnostics.delete(d.uri); }),
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (!e.affectsConfiguration('peoplesoft.peoplecode.validateAsYouType')) return;
+      const keys = ['languageServer.enabled', 'validateAsYouType', 'checkEnvironment', 'unknownFunctionWarnings'];
+      if (!keys.some((k) => e.affectsConfiguration(`peoplesoft.peoplecode.${k}`))) return;
+      validationDiagnostics.clear();
       if (liveOn()) for (const d of vscode.workspace.textDocuments) void validateLive(d);
-      else validationDiagnostics.clear();
     })
   );
   for (const d of vscode.workspace.textDocuments) void validateLive(d);
@@ -695,7 +705,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         const ownerFields = await ownerFieldsFor(handle, key);
         const v = validatePeopleCode(text, key, release ?? '8.62', ownerFields?.length ? { ownerFields } : {});
         await showValidation(doc, handle, text, doc.version, v);
-        v.problems.push(...(await referenceProblems(handle, v)));
+        v.problems = [...editorProblems(v).problems, ...(await referenceProblems(handle, v))];
         const where = `${v.profile}${release ? '' : ', no PeopleTools release known for this source'}`;
         if (v.problems.some((p) => p.severity !== 'info')) vscode.window.showWarningMessage(`${displayName(key)} does not compile with PeopleSoft Studio's compiler (${where}): see Problems.`);
         else vscode.window.showInformationMessage(`${displayName(key)} compiles with PeopleSoft Studio's compiler (${where}).`);

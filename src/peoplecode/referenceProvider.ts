@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { parseUri, toUri } from '../util/uri.js';
 import type { Workspace } from '../workspace.js';
 import { findPeopleCodeReferences } from './findReferences.js';
+import { gated } from './languageFeatures.js';
 
 /*
  * Find All References (Shift+F12 / the references peek) for PeopleCode, so the
@@ -31,5 +32,5 @@ export function registerPeopleCodeReferences(context: vscode.ExtensionContext, w
     }
   };
   context.subscriptions.push(
-    vscode.languages.registerReferenceProvider({ language: 'psft-peoplecode' }, provider));
+    vscode.languages.registerReferenceProvider({ language: 'psft-peoplecode' }, gated(provider)));
 }

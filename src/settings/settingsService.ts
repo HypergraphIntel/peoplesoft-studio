@@ -162,6 +162,7 @@ export class SettingsService implements Disposable {
         label: d.label,
         description: d.description,
         ...(d.appliesWhen !== undefined ? { appliesWhen: d.appliesWhen } : {}),
+        ...(d.requires !== undefined ? { requires: d.requires } : {}),
         control: d.control,
         value: this.config.get(d.key) ?? d.defaultValue,
         source: sourceOf(this.config.inspect(d.key))
@@ -456,7 +457,7 @@ export class SettingsService implements Disposable {
   }
 }
 
-const SETTING_KEYS: readonly SettingKey[] = ['connections', 'peoplecode.decoder', ...SETTING_DESCRIPTORS.map((d) => d.key)];
+const SETTING_KEYS: readonly SettingKey[] = ['connections', ...SETTING_DESCRIPTORS.map((d) => d.key)];
 
 function valueAt<T>(inspection: SettingInspection<T> | undefined, scope: SettingScope): T | undefined {
   switch (scope) {
