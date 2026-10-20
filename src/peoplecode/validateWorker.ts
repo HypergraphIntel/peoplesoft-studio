@@ -9,8 +9,8 @@ import type { ValidationRequest } from './liveValidation.js';
  */
 parentPort?.on('message', (message: { id: number; request: ValidationRequest }) => {
   try {
-    const { text, key, release } = message.request;
-    parentPort!.postMessage({ id: message.id, result: validatePeopleCode(text, key, release) });
+    const { text, key, release, ownerFields } = message.request;
+    parentPort!.postMessage({ id: message.id, result: validatePeopleCode(text, key, release, ownerFields ? { ownerFields } : {}) });
   } catch (error) {
     parentPort!.postMessage({ id: message.id, error: error instanceof Error ? error.message : String(error) });
   }

@@ -18,6 +18,8 @@ export interface ValidationRequest {
   key: DefinitionKey;
   /** The connection's PeopleTools release, e.g. "8.62" (it picks the compiler profile). */
   release: string;
+  /** The program record's fields, when known: bare names among them are qualified as App Designer qualifies them. */
+  ownerFields?: string[];
 }
 
 export interface ValidationRunner {

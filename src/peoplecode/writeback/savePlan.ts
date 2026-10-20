@@ -323,7 +323,11 @@ export function compileForSave(
       profile: compilerProfileForToolsRelease(toolsRelease)
     });
   } catch (error) {
-    throw new SaveRefusedError(`The PeopleCode does not compile: ${error instanceof Error ? error.message : String(error)}`);
+    const message = error instanceof Error ? error.message : String(error);
+    // A bare field name: App Designer stores it qualified, and so must the source Studio saves.
+    const bare = /bare identifiers are only supported as calls/.test(message)
+      ? ' -- a field name must be written RECORD.FIELD, as Application Designer stores it; Validate PeopleCode offers the quick fix (psft_validate_peoplecode returns qualifiedSource).' : '';
+    throw new SaveRefusedError(`The PeopleCode does not compile: ${message}${bare}`);
   }
   const names = referencesToNameRows(artifacts.references);
   const decoded = decodeProgram(artifacts.program, nameTable(names), { mode: 'strict', isApplicationClass: target.applicationClass });

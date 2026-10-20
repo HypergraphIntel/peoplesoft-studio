@@ -56,7 +56,7 @@ export function registerPeopleCodeTools(server: McpServer, workspace: Workspace)
   server.registerTool('psft_validate_peoplecode', {
     title: 'PeopleCode: validate before saving',
     description: 'Checks PeopleCode as a save would, without saving: the rules in psft_peoplecode_reference (PC001-PC005, PC007-PC010), Studio\'s compiler, and -- with a connection -- that ' +
-      'every imported class and package exists (PC006). Key as psft_save_peoplecode takes it (type and parts); App Engine action PeopleCode is type 43, an ' +
+      'every imported class and package exists (PC006) and every RECORD.FIELD reference is a field (App Designer 2,17). In Record and Component Record PeopleCode, bare field names of the program\'s record are qualified as App Designer stores them and returned as qualifiedSource -- save that. Undeclared function calls are reported (2,15). Key as psft_save_peoplecode takes it (type and parts); App Engine action PeopleCode is type 43, an ' +
       'Application Class 58. Returns each problem with its line and column; valid is true only when there are none. Read only.',
     inputSchema: z.object({
       connection: z.string().optional().describe('For the release\'s compiler and the import check; without one, PeopleTools 8.62 and no import check.'),
@@ -72,11 +72,33 @@ export function registerPeopleCodeTools(server: McpServer, workspace: Workspace)
       const p = await requireProvider(workspace, connection);
       if (p instanceof DatabaseProvider && p.isConnected) { provider = p; release = (await p.databaseRelease()).toolsRelease.trim() || release; }
     }
-    const compiled = validatePeopleCode(text, key, release);
+    // Record and Component Record (Field) PeopleCode: bare names of the program's record are qualified as App Designer stores them.
+    const owner = type === DefinitionType.RecordPeopleCode ? key.parts[0]
+      : type === DefinitionType.ComponentRecordPeopleCode || type === DefinitionType.ComponentRecordFieldPeopleCode ? key.parts[2] : undefined;
+    const ownerFields = provider && owner ? await provider.expandedFieldNames(owner.toUpperCase()) : undefined;
+    const compiled = validatePeopleCode(text, key, release, ownerFields?.length ? { ownerFields } : {});
     const imports = provider ? await provider.peopleCodeImportProblems(text) : [];
-    const problems = [...compiled.problems, ...imports.map((p) => ({ offset: p.offset, message: `${p.message} (${p.code})` }))]
+    // App Designer's "Field REC.FIELD not defined. (2,17)" for references the database does not have.
+    const references: typeof compiled.problems = [];
+    if (provider) {
+      const known = new Map<string, Set<string>>();
+      for (const r of compiled.fieldReferences ?? []) {
+        if (!known.has(r.record)) known.set(r.record, new Set((await provider.expandedFieldNames(r.record)).map((f) => f.toUpperCase())));
+        if (!known.get(r.record)!.has(r.field)) references.push({ offset: r.offset, code: 'field-not-defined', message: `Field ${r.record}.${r.field} not defined. (2,17)` });
+      }
+    }
+    const qualifications = compiled.qualifications ?? [];
+    let qualifiedSource: string | undefined;
+    if (qualifications.length) {
+      qualifiedSource = text;
+      for (const q of [...qualifications].sort((a, b) => b.offset - a.offset)) qualifiedSource = qualifiedSource.slice(0, q.offset) + q.text + qualifiedSource.slice(q.offset + q.length);
+    }
+    const problems = [...compiled.problems, ...references, ...imports.map((p) => ({ offset: p.offset, message: `${p.message} (${p.code})` }))]
       .sort((a, b) => a.offset - b.offset)
-      .map((p) => { const at = lineAndColumn(text, p.offset); return { line: at.line + 1, column: at.column + 1, message: p.message }; });
-    return jsonResult({ valid: problems.length === 0, profile: compiled.profile, importsChecked: !!provider, kind: key.type === DefinitionType.ApplicationClassPeopleCode ? 'Application Class' : 'program', problems });
+      .map((p) => { const at = lineAndColumn(text, p.offset); return { line: at.line + 1, column: at.column + 1, severity: 'severity' in p && p.severity === 'info' ? 'info' : 'error', message: p.message }; });
+    return jsonResult({
+      valid: problems.length === 0, profile: compiled.profile, importsChecked: !!provider, kind: key.type === DefinitionType.ApplicationClassPeopleCode ? 'Application Class' : 'program', problems,
+      ...(qualifiedSource ? { qualifiedSource, note: 'Studio saves field references qualified, as Application Designer stores them: save qualifiedSource.' } : {})
+    });
   });
 }

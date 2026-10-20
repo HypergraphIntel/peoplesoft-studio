@@ -88,7 +88,9 @@ test('the worker thread compiles with the editor\'s compiler and reports where i
     assert.equal(bad.profile, 'PT862');
     assert.equal(bad.problems.length, 1);
     assert.equal(bad.problems[0].offset, 28);
-    assert.deepEqual((await runner.run({ ...request(2, 'Local string &s = "x";\n'), release: '8.61' })), { profile: 'PT861', problems: [] });
+    const ok = await runner.run({ ...request(2, 'Local string &s = "x";\n'), release: '8.61' });
+    assert.equal(ok.profile, 'PT861');
+    assert.deepEqual(ok.problems, []);
     // Restarting abandons the run in progress; the next run starts a fresh thread.
     const abandoned = runner.run(request(3, 'Local string &s;\n'));
     runner.restart();

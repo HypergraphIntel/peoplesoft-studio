@@ -68,7 +68,7 @@ import { prepareReadOnlyQuery } from './sql/readOnlyQuery.js';
 import { ddlRecordFromLayout, planProjectCreateTables, unbuildableReason, type BuildPlan, type ProjectBuildRecord, type TableOption } from './model/recordBuild.js';
 import { combineBuildPlans, planAlterTable, planCreateIndexes, planCreateViews, type AlterSettings, type IndexOption, type ViewOption } from './model/recordAlter.js';
 import { tableName } from './model/recordDdl.js';
-import { lineAndColumn, validatePeopleCode, type Validation } from './peoplecode/validate.js';
+import { lineAndColumn, validatePeopleCode, type Qualification, type Validation } from './peoplecode/validate.js';
 import { LiveValidator } from './peoplecode/liveValidation.js';
 import { WorkerValidationRunner } from './peoplecode/validateWorkerClient.js';
 import type { DefinitionProvider } from './providers/provider.js';
@@ -302,11 +302,21 @@ function peopleCodeDiagnostics(text: string, v: Validation): vscode.Diagnostic[]
   return v.problems.map((p) => {
     const at = lineAndColumn(normalized, p.offset);
     const start = new vscode.Position(at.line, at.column);
-    const d = new vscode.Diagnostic(new vscode.Range(start, start.translate(0, 1)),
-      `${p.message} (PeopleSoft Studio's compiler, ${v.profile}; Application Designer has the last word)`, vscode.DiagnosticSeverity.Warning);
+    const info = p.severity === 'info';
+    const d = new vscode.Diagnostic(new vscode.Range(start, start.translate(0, Math.max(1, p.length ?? 1))),
+      info ? p.message : `${p.message} (PeopleSoft Studio's compiler, ${v.profile}; Application Designer has the last word)`,
+      info ? vscode.DiagnosticSeverity.Information : vscode.DiagnosticSeverity.Warning);
     d.source = 'PeopleCode';
+    if (p.code) d.code = p.code;
     return d;
   });
+}
+
+/** The record whose fields a PeopleCode program's bare names are (Record and Component Record [Field] PeopleCode). */
+function ownerRecordOf(key: DefinitionKey): string | undefined {
+  if (key.type === DefinitionType.RecordPeopleCode) return key.parts[0];
+  if (key.type === DefinitionType.ComponentRecordPeopleCode || key.type === DefinitionType.ComponentRecordFieldPeopleCode) return key.parts[2];
+  return undefined;
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
@@ -326,12 +336,47 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }
     return release;
   };
+  // A record's fields (subrecords expanded) from the connection, kept a minute: bare names and RECORD.FIELD references are checked against them.
+  const fieldCache = new Map<string, { at: number; fields: Promise<Set<string> | undefined> }>();
+  const recordFields = (handle: string, record: string): Promise<Set<string> | undefined> => {
+    const id = `${handle}|${record.toUpperCase()}`;
+    const cached = fieldCache.get(id);
+    if (cached && Date.now() - cached.at < 60_000) return cached.fields;
+    const fields = workspace.requireByHandle(handle)
+      .then((p) => (p instanceof DatabaseProvider ? p.expandedFieldNames(record.toUpperCase()) : undefined))
+      .then((f) => (f && f.length ? new Set(f.map((x) => x.toUpperCase())) : undefined), () => undefined);
+    fieldCache.set(id, { at: Date.now(), fields });
+    return fields;
+  };
+  // App Designer's "Field REC.FIELD not defined. (2,17)" for a reference the connection does not have (native Validate Syntax).
+  const referenceProblems = async (handle: string, v: Validation) => {
+    const problems: Validation['problems'] = [];
+    for (const r of v.fieldReferences ?? []) {
+      const p = await workspace.requireByHandle(handle).catch(() => undefined);
+      if (!(p instanceof DatabaseProvider)) break;
+      const fields = await recordFields(handle, r.record);
+      if (fields?.has(r.field)) continue;
+      problems.push({ offset: r.offset, length: r.record.length + 1 + r.field.length, code: 'field-not-defined', message: `Field ${r.record}.${r.field} not defined. (2,17)` });
+    }
+    return problems;
+  };
+  const qualificationsByUri = new Map<string, { version: number; items: Qualification[] }>();
+  const showValidation = async (doc: vscode.TextDocument, handle: string, text: string, version: number, v: Validation) => {
+    const extra = await referenceProblems(handle, v);
+    if (doc.version !== version) return;
+    qualificationsByUri.set(doc.uri.toString(), { version, items: v.qualifications ?? [] });
+    validationDiagnostics.set(doc.uri, peopleCodeDiagnostics(text, { ...v, problems: [...v.problems, ...extra].sort((a, b) => a.offset - b.offset) }));
+  };
+  const ownerFieldsFor = async (handle: string, key: DefinitionKey) => {
+    const owner = ownerRecordOf(key);
+    return owner ? [...((await recordFields(handle, owner)) ?? [])] : undefined;
+  };
   const liveOn = () => vscode.workspace.getConfiguration('peoplesoft').get<boolean>('peoplecode.validateAsYouType') ?? true;
   const live = new LiveValidator(
     new WorkerValidationRunner(path.join(context.extensionPath, 'dist', 'validateWorker.js')),
     (request, result) => {
       const doc = vscode.workspace.textDocuments.find((d) => d.uri.toString() === request.uri);
-      if (doc && liveOn()) validationDiagnostics.set(doc.uri, peopleCodeDiagnostics(request.text, result));
+      if (doc && liveOn()) void showValidation(doc, parseUri(doc.uri).handle, request.text, request.version, result);
     },
     (uri, version) => vscode.workspace.textDocuments.some((d) => d.uri.toString() === uri && d.version === version));
   const validateLive = async (doc: vscode.TextDocument) => {
@@ -339,8 +384,27 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     let parsed: ReturnType<typeof parseUri>;
     try { parsed = parseUri(doc.uri); } catch { return; }
     const release = (await releaseFor(parsed.handle)) ?? '8.62';
-    live.schedule({ uri: doc.uri.toString(), version: doc.version, text: doc.getText(), key: parsed.key, release });
+    const ownerFields = await ownerFieldsFor(parsed.handle, parsed.key);
+    live.schedule({ uri: doc.uri.toString(), version: doc.version, text: doc.getText(), key: parsed.key, release, ...(ownerFields?.length ? { ownerFields } : {}) });
   };
+  // Quick fix: write the bare field names as App Designer stores them.
+  context.subscriptions.push(vscode.languages.registerCodeActionsProvider({ language: 'psft-peoplecode' }, {
+    provideCodeActions(document, _range, ctx) {
+      const latest = qualificationsByUri.get(document.uri.toString());
+      if (!latest || latest.version !== document.version || !latest.items.length) return [];
+      if (!ctx.diagnostics.some((d) => d.code === 'qualify')) return [];
+      const action = new vscode.CodeAction(`Qualify ${latest.items.length} field reference${latest.items.length === 1 ? '' : 's'} as Application Designer stores them`, vscode.CodeActionKind.QuickFix);
+      const edit = new vscode.WorkspaceEdit();
+      const normalized = document.getText().replace(/\r\n/g, '\n');
+      for (const q of latest.items) {
+        const a = lineAndColumn(normalized, q.offset), b = lineAndColumn(normalized, q.offset + q.length);
+        edit.replace(document.uri, new vscode.Range(a.line, a.column, b.line, b.column), q.text);
+      }
+      action.edit = edit;
+      action.isPreferred = true;
+      return [action];
+    }
+  }, { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }));
   context.subscriptions.push(
     validationDiagnostics,
     { dispose: () => live.dispose() },
@@ -628,10 +692,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         // The connection's PeopleTools release picks the compiler profile; a project export has none, so the newest is used.
         const release = (await provider.readEnvironment?.())?.toolsRelease;
         const text = doc.getText();
-        const v = validatePeopleCode(text, key, release ?? '8.62');
-        validationDiagnostics.set(doc.uri, peopleCodeDiagnostics(text, v));
+        const ownerFields = await ownerFieldsFor(handle, key);
+        const v = validatePeopleCode(text, key, release ?? '8.62', ownerFields?.length ? { ownerFields } : {});
+        await showValidation(doc, handle, text, doc.version, v);
+        v.problems.push(...(await referenceProblems(handle, v)));
         const where = `${v.profile}${release ? '' : ', no PeopleTools release known for this source'}`;
-        if (v.problems.length) vscode.window.showWarningMessage(`${displayName(key)} does not compile with PeopleSoft Studio's compiler (${where}): see Problems.`);
+        if (v.problems.some((p) => p.severity !== 'info')) vscode.window.showWarningMessage(`${displayName(key)} does not compile with PeopleSoft Studio's compiler (${where}): see Problems.`);
         else vscode.window.showInformationMessage(`${displayName(key)} compiles with PeopleSoft Studio's compiler (${where}).`);
       });
     }),

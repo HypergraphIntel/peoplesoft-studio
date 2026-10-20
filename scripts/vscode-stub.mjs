@@ -132,6 +132,9 @@ export function createStub() {
     DocumentSymbol, Range, Position, Diagnostic,
     QuickPickItemKind: { Separator: -1, Default: 0 },
     DiagnosticSeverity: { Error: 0, Warning: 1, Information: 2, Hint: 3 },
+    CodeActionKind: { QuickFix: 'quickfix' },
+    CodeAction: class CodeAction { constructor(title, kind) { this.title = title; this.kind = kind; } },
+    WorkspaceEdit: class WorkspaceEdit { constructor() { this.edits = []; } replace(uri, range, text) { this.edits.push({ uri, range, text }); } },
 
     FileType: { Unknown: 0, File: 1, Directory: 2, SymbolicLink: 64 },
     FilePermission: { Readonly: 1 },
@@ -413,6 +416,9 @@ export function createStub() {
         return new Disposable(() => {});
       },
       registerDocumentSymbolProvider(_selector, _provider) {
+        return new Disposable(() => {});
+      },
+      registerCodeActionsProvider(_selector, _provider, _metadata) {
         return new Disposable(() => {});
       }
     },

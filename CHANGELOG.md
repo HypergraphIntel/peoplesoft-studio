@@ -2,6 +2,17 @@
 
 ## Unreleased — 0.9.6
 
+- **PeopleCode checked against the environment, as App Designer checks it.**
+  Bare field names in Record and Component Record PeopleCode used to fail
+  ("bare identifiers are only supported as calls"); they now compile as App
+  Designer stores them -- qualified with the program's record, which a native
+  probe confirmed -- with an Information hint and a quick fix that writes
+  them so before saving (MCP: `qualifiedSource`). A name that is not a field,
+  or a RECORD.FIELD the database lacks, is App Designer's "Field ... not
+  defined. (2,17)"; an undeclared call to a name that is not one of the 468
+  built-ins the HCDEV corpus uses (or Studio documents) is "Unknown function"
+  (2,15), as a warning that never blocks a save.
+
 - **PeopleCode diagnostics as you type.** Validate PeopleCode now runs on its
   own half a second after typing stops (setting
   `peoplesoft.peoplecode.validateAsYouType`, on by default). It compiles on a

@@ -27,7 +27,10 @@ refused. See [Build: indexes, views and Alter](../RECORD_SAVE.md#build-indexes-v
 
 PeopleCode problems now appear as you type: Validate PeopleCode runs half a
 second after typing stops, on a worker thread, with only the latest text
-counting (`peoplesoft.peoplecode.validateAsYouType`).
+counting (`peoplesoft.peoplecode.validateAsYouType`). With a database it also
+checks what App Designer's compiler checks against the environment: bare field
+names are qualified as App Designer stores them (quick fix), undefined fields
+are 2,17 and unknown functions 2,15.
 
 Track the remaining project completion gates in
 [1.0 readiness](../RELEASE_1_0_READINESS.md). No 1.0 delivery date is committed.
