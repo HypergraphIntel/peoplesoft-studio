@@ -4,7 +4,10 @@ import { DefinitionType, displayName } from '../model/definitions.js';
 import { parseUri } from '../util/uri.js';
 import type { Workspace } from '../workspace.js';
 import { parseApplicationClassSource } from './applicationClassProgram.js';
-import { declaredClassOf, publicMembers, qualifiedExtends } from './memberCompletion.js';
+import { classCandidates, classMembers, declaredTypeOf, type MemberCompletion } from './memberCompletion.js';
+import { BUILTIN_FUNCTION_NAMES } from './builtinFunctions.js';
+import { DEFINITION_KEYWORDS } from './validate.js';
+import { DatabaseProvider } from '../providers/database.js';
 import { gated } from './languageFeatures.js';
 
 const KEYWORDS: string[] = [
@@ -395,40 +398,99 @@ function receiverBeforeDot(prefix: string): string | undefined {
   return m?.[1];
 }
 
-/** Public members of the class `&obj` is declared as, walking its qualified `extends` chain, as completion items. */
+/** The class package a PeopleCode document belongs to: an application class's key parts without its name (and event). */
+function ownPackageOf(document: vscode.TextDocument): string[] | undefined {
+  try {
+    const { key } = parseUri(document.uri);
+    if (key.type !== DefinitionType.ApplicationClassPeopleCode) return undefined;
+    const parts = key.parts.filter((p) => p !== 'OnExecute');
+    return parts.slice(0, -1);
+  } catch { return undefined; }
+}
+
+/**
+ * Members of an application class, as completion items: after `&obj.` the
+ * public members of the class `&obj` is declared as; after `%This.` the
+ * current class's own members (private ones too) and the public and protected
+ * members it inherits; after `%Super.` the base class's public and protected
+ * members. The `extends` chain is followed through each class's imports.
+ */
 async function completeClassMembers(document: vscode.TextDocument, workspace: Workspace, receiver: string): Promise<vscode.CompletionItem[]> {
   let handle: string;
   try { handle = parseUri(document.uri).handle; } catch { return []; }
   const provider = workspace.getProviderByHandle(handle);
-  if (!provider) return [];
-  let parts = declaredClassOf(document.getText(), receiver);
-  if (!parts) return [];
+  const text = document.getText();
+  const lower = receiver.toLowerCase();
+  const own = ownPackageOf(document);
 
+  // A class to read: where it may be, and the text and package its own names resolve against.
+  type Step = { candidates: string[][]; visibilities: string[]; inherited: boolean };
+  let first: Step | undefined;
   const items: vscode.CompletionItem[] = [];
-  const seenClasses = new Set<string>();
   const seenNames = new Set<string>();
   const kindOf = { method: vscode.CompletionItemKind.Method, property: vscode.CompletionItemKind.Property, constant: vscode.CompletionItemKind.Constant };
-  for (let depth = 0; parts && depth < 8; depth++) {
-    const id = parts.join(':');
-    if (seenClasses.has(id)) break;
-    seenClasses.add(id);
-    let program;
-    try {
-      const source = await provider.readText({ type: DefinitionType.ApplicationClassPeopleCode, parts });
-      program = parseApplicationClassSource(source);
-    } catch { break; } // the class (or a parent) is not readable here
-    if (!program) break;
-    for (const m of publicMembers(program)) {
+  const add = (members: MemberCompletion[], inherited: boolean, from?: string) => {
+    for (const m of members) {
       if (seenNames.has(m.name.toLowerCase())) continue; // a subclass override wins over the parent's
       seenNames.add(m.name.toLowerCase());
       const item = new vscode.CompletionItem(m.name, kindOf[m.kind]);
-      item.detail = depth === 0 ? m.detail : `${m.detail} (inherited)`;
+      item.detail = inherited ? `${m.detail} (inherited${from ? ` from ${from}` : ''})` : m.detail;
       item.sortText = `0_${m.name}`;
       items.push(item);
     }
-    parts = qualifiedExtends(program); // follow a qualified base class
+  };
+
+  if (lower === '%this' || lower === '%super') {
+    const program = parseApplicationClassSource(text);
+    if (!program) return [];
+    if (lower === '%this') add(classMembers(program, ['public', 'protected', 'private'], true), false);
+    if (!program.extendsType) return items;
+    first = { candidates: classCandidates(program.extendsType, text, own), visibilities: ['public', 'protected'], inherited: lower === '%this' };
+  } else {
+    const type = declaredTypeOf(text, receiver);
+    if (!type) return [];
+    first = { candidates: classCandidates(type, text, own), visibilities: ['public'], inherited: false };
+  }
+  if (!provider) return items;
+
+  const seenClasses = new Set<string>();
+  let step: Step | undefined = first;
+  for (let depth = 0; step && depth < 8; depth++) {
+    let found: { parts: string[]; source: string; program: NonNullable<ReturnType<typeof parseApplicationClassSource>> } | undefined;
+    for (const parts of step.candidates) {
+      if (seenClasses.has(parts.join(':').toLowerCase())) continue;
+      try {
+        const source = await provider.readText({ type: DefinitionType.ApplicationClassPeopleCode, parts });
+        const program = parseApplicationClassSource(source);
+        if (program) { found = { parts, source, program }; break; }
+      } catch { /* not this candidate: try the next */ }
+    }
+    if (!found) break; // the class (or a parent) is not readable here
+    seenClasses.add(found.parts.join(':').toLowerCase());
+    add(classMembers(found.program, step.visibilities, lower === '%this' || lower === '%super'), step.inherited, found.parts.join(':'));
+    const base = found.program.extendsType;
+    step = base ? {
+      candidates: classCandidates(base, found.source, found.parts.slice(0, -1)),
+      visibilities: step.visibilities,
+      inherited: true
+    } : undefined;
   }
   return items;
+}
+
+/** A record's fields (subrecords expanded) from the document's connection, kept a minute; empty when it has none or is not a record. */
+const recordFieldCache = new Map<string, { at: number; fields: Promise<string[]> }>();
+function recordFieldsFor(document: vscode.TextDocument, workspace: Workspace, record: string): Promise<string[]> {
+  let handle: string;
+  try { handle = parseUri(document.uri).handle; } catch { return Promise.resolve([]); }
+  const provider = workspace.getProviderByHandle(handle);
+  if (!(provider instanceof DatabaseProvider)) return Promise.resolve([]);
+  const id = `${handle}|${record.toUpperCase()}`;
+  const cached = recordFieldCache.get(id);
+  if (cached && Date.now() - cached.at < 60_000) return cached.fields;
+  const fields = provider.expandedFieldNames(record.toUpperCase()).catch(() => [] as string[]);
+  recordFieldCache.set(id, { at: Date.now(), fields });
+  return fields;
 }
 
 /** The definitions of `type` whose name starts with `partial`, as completion items, from the document's connection. */
@@ -470,10 +532,28 @@ export function registerPeopleCodeCompletion(context: vscode.ExtensionContext, w
       if (afterDot) {
         const receiver = receiverBeforeDot(prefix) ?? '';
 
-        // `&obj.` where &obj has an explicit application-class type: that class's real public members.
+        // `&obj.` where &obj has an explicit application-class type: that class's real members; `%This.` and
+        // `%Super.` in a class: its own and inherited members. Never the generic guesses below.
+        const lowerReceiver = receiver.toLowerCase();
+        if (lowerReceiver === '%this' || lowerReceiver === '%super') {
+          return document.uri.scheme === 'psft' || lowerReceiver === '%this' ? completeClassMembers(document, workspace, receiver) : [];
+        }
         if (receiver.startsWith('&') && document.uri.scheme === 'psft') {
-          const classMembers = await completeClassMembers(document, workspace, receiver);
-          if (classMembers.length) return classMembers;
+          const members = await completeClassMembers(document, workspace, receiver);
+          if (members.length) return members;
+        }
+
+        // `RECORD.`: that record's fields, from the connection (a name that is no record falls through).
+        if (/^[A-Za-z][A-Za-z0-9_#$@]*$/.test(receiver) && !DEFINITION_KEYWORDS.has(receiver.toUpperCase()) && document.uri.scheme === 'psft') {
+          const fields = await recordFieldsFor(document, workspace, receiver);
+          if (fields.length) {
+            return fields.map((f) => {
+              const item = new vscode.CompletionItem(f, vscode.CompletionItemKind.Field);
+              item.detail = `Field of ${receiver.toUpperCase()}`;
+              item.sortText = `0_${f}`;
+              return item;
+            });
+          }
         }
 
         const members = membersForReceiver(receiver);
@@ -496,11 +576,21 @@ export function registerPeopleCodeCompletion(context: vscode.ExtensionContext, w
         items.push(item);
       }
 
+      // Every built-in App Designer compiles (the HCDEV census): the documented ones with their snippets.
+      const documented = new Set<string>();
       for (const fn of BUILTIN_FUNCTIONS) {
         const item = new vscode.CompletionItem(fn.label, vscode.CompletionItemKind.Function);
         item.detail = fn.detail;
         if (fn.insert) item.insertText = new vscode.SnippetString(fn.insert);
         item.sortText = `2_${fn.label}`;
+        items.push(item);
+        documented.add(fn.label.toLowerCase());
+      }
+      for (const name of BUILTIN_FUNCTION_NAMES) {
+        if (documented.has(name.toLowerCase())) continue;
+        const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Function);
+        item.detail = 'PeopleTools built-in function';
+        item.sortText = `2_${name}`;
         items.push(item);
       }
 

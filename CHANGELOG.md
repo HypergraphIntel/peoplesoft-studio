@@ -2,7 +2,34 @@
 
 ## Unreleased — 0.9.7
 
-Development starts from 0.9.6. No 0.9.7 feature changes are claimed yet.
+- **Fixed: `Page.X`, `SQL.X`, `HTML.X`, `MenuName.X` ... were checked as
+  fields.** 0.9.6's environment check took these definition references for
+  RECORD.FIELD (the compiler stores them that way in PSPCMNAME) and reported
+  "Field SQL.X not defined. (2,17)" against a database. The editor and
+  `psft_validate_peoplecode` now tell definition references from fields, by
+  the qualifiers a census of the HCDEV snapshot's PSPCMNAME shows.
+- **Definition references checked against the environment.** A `Record.X`,
+  `Page.X`, `Component.X`, `Field.X`, `Scroll.X`, `SQL.X`, `HTML.X`,
+  `MenuName.X`, `StyleSheet.X`, `CompIntfc.X`, `FileLayout.X`, `Message.X`,
+  `Operation.X`, `Node.X` or `URL.X` the database lacks is an Information
+  note. Native Validate Syntax probes on HRDMO 8.62.09 showed App Designer
+  compiles all of these without checking; only `Image.X` (and a menu passed
+  to IsMenuItemAuthorized) draws its warning "No definition of IMAGE.X found.
+  (2,68)", which Studio reports the same way for `Image.X`. A note does not
+  make the MCP's result invalid.
+- **RECORD.FIELD completion from the database.** After `JOB.`, completion
+  offers JOB's fields (subrecords expanded) from the editor's connection.
+- **Completion knows every built-in function.** All 468 built-ins App
+  Designer compiles (the HCDEV census) are offered, in their stored casing;
+  before, only a hand-written list was, so typing e.g. `CreateSQL` often
+  showed no list at all.
+- **`%This.` and `%Super.` complete the class's real members.** Inside an
+  application class, `%This.` offers the class's own methods and properties
+  (private ones too) and those it inherits; `%Super.` the base class's public
+  and protected members. Before, both offered generic Rowset/Record/Field
+  guesses. A base class or `&obj` type named without its package (`extends
+  Config` after `import PKG:*;`) is now resolved through the imports, then the
+  class's own package, as App Designer resolves it.
 
 ## 0.9.6 — October 20, 2026
 

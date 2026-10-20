@@ -12,7 +12,7 @@ import { BUILTIN_SIGNATURES } from '../../src/peoplecode/signatures.js';
 
 
 const db = new DatabaseSync('tools/corpus/hcdev-snapshot.sqlite', { readOnly: true });
-const counts = new Map<string, { name: string; programs: number }>();
+const counts = new Map<string, { name: string; programs: number; casings: Map<string, number> }>();
 let programs = 0;
 for (const row of db.prepare('SELECT source_text FROM snapshot_definition').iterate() as Iterable<{ source_text: string }>) {
   programs++;
@@ -22,8 +22,9 @@ for (const row of db.prepare('SELECT source_text FROM snapshot_definition').iter
     const lower = c.name.toLowerCase();
     if (declared.has(lower) || seen.has(lower)) continue;
     seen.add(lower);
-    const entry = counts.get(lower) ?? { name: c.name, programs: 0 };
+    const entry = counts.get(lower) ?? { name: c.name, programs: 0, casings: new Map<string, number>() };
     entry.programs++;
+    entry.casings.set(c.name, (entry.casings.get(c.name) ?? 0) + 1);
     counts.set(lower, entry);
   }
 }
@@ -31,10 +32,17 @@ for (const row of db.prepare('SELECT source_text FROM snapshot_definition').iter
 const hover = readFileSync('src/peoplecode/hover.ts', 'utf8'), completion = readFileSync('src/peoplecode/completion.ts', 'utf8');
 const hoverNames = [...(hover.split('const BUILTINS')[1] ?? '').split('\n};')[0].matchAll(/^\s+([A-Za-z_]\w*)\s*:/gm)].map((x) => x[1]);
 const completionNames = [...(completion.split('const BUILTIN_FUNCTIONS')[1] ?? '').split('\n];')[0].matchAll(/label:\s*'([A-Za-z_]\w*)'/g)].map((x) => x[1]);
-const documented = [...new Set([...Object.keys(BUILTIN_SIGNATURES), ...hoverNames, ...completionNames])];
-for (const name of documented) if (!counts.has(name.toLowerCase())) counts.set(name.toLowerCase(), { name, programs: 0 });
+const signatureNames = Object.values(BUILTIN_SIGNATURES).map((s) => s.label.split('(')[0].trim());
+const documented = [...new Set([...signatureNames, ...hoverNames, ...completionNames])];
+for (const name of documented) if (!counts.has(name.toLowerCase())) counts.set(name.toLowerCase(), { name, programs: 0, casings: new Map() });
+// The name as completion shows it: the casing Studio documents, else the one stored source uses most.
+const documentedCase = new Map(documented.map((d) => [d.toLowerCase(), d]));
+for (const [lower, e] of counts) {
+  e.name = documentedCase.get(lower) ?? [...e.casings.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? e.name;
+}
 const names = [...counts.keys()].sort();
 const lines = names.map((n) => `  '${n}',`);
+const display = names.map((n) => `  '${counts.get(n)!.name}',`);
 writeFileSync('src/peoplecode/builtinFunctions.ts', `/*
  * PeopleTools built-in functions Studio knows (functionCheck.ts), lower case:
  * every function called without being declared somewhere in the ${programs.toLocaleString('en-US')}
@@ -45,6 +53,11 @@ writeFileSync('src/peoplecode/builtinFunctions.ts', `/*
 export const KNOWN_BUILTIN_FUNCTIONS: ReadonlySet<string> = new Set<string>([
 ${lines.join('\n')}
 ]);
+
+/** The same functions as completion offers them: the casing Studio documents, else the one stored source uses most. */
+export const BUILTIN_FUNCTION_NAMES: readonly string[] = [
+${display.join('\n')}
+];
 `);
 console.log(JSON.stringify({ programs, names: names.length, documentedOnly: documented.filter((d) => (counts.get(d.toLowerCase())?.programs ?? 0) === 0).length,
   rare: [...counts.values()].filter((e) => e.programs === 1).map((e) => e.name).slice(0, 60) }));
