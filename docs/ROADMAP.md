@@ -56,6 +56,21 @@ open. Resume from
 [full user proposal](change-review/PROPOSAL.md) defines scope and acceptance.
 This is a separate architecture initiative beyond the 0.9.0 release.
 
+**Planned: fewer approval round trips.** In the October 19 native acceptance
+sessions, every agent Change Set cost the developer three separate actions
+(approve the approach, approve the objects, apply), and each inverse or redo
+was another set. The developer asked for this to be on the roadmap. Candidate
+changes, none decided or built:
+
+- A combined **Approve and apply** action for a validated set whose approach
+  is already approved, keeping the same approval hash, precommit after-image
+  guard and per-object review visible on the page. This changes the safety
+  model, so it needs an explicit design decision first.
+- Agent-side batching: one Change Set per coherent trial or task instead of one
+  per object, and one inverse covering it.
+- Optionally, an approach approval that also covers the inverse/redo the plan
+  already names, so a planned reversal does not need its own plan review.
+
 ## Done
 
 - Provider abstraction with declared capabilities
