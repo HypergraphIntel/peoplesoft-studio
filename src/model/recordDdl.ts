@@ -212,13 +212,15 @@ export function notNull(f: DdlField): boolean {
 }
 
 /**
- * One logical line cut as App Designer cuts it: at most SCRIPT_WIDTH, cut
- * before the last space or comma within it, which starts the next line.
+ * One logical line cut as App Designer cuts it: before the last space or
+ * comma at or before column SCRIPT_WIDTH, which starts the next line, while
+ * what remains is longer than `longest` (SCRIPT_WIDTH; a view's CREATE VIEW
+ * passes SCRIPT_WIDTH + 1 -- see createViewLines).
  */
-export function wrapLine(line: string, width = SCRIPT_WIDTH): string[] {
+export function wrapLine(line: string, width = SCRIPT_WIDTH, longest = width): string[] {
   const out: string[] = [];
   let rest = line;
-  while (rest.length > width) {
+  while (rest.length > longest) {
     let cut = -1;
     for (let i = width; i > 0; i--) if (rest[i] === ' ' || rest[i] === ',') { cut = i; break; }
     if (cut <= 0) break;
@@ -343,10 +345,130 @@ export const VIEW_SCRIPT_HEADER = [
   '--SET SQLBLANKLINES ON', ''
 ];
 
+/** A record a view's meta-SQL names: its table, its keys and its fields in order (subrecords expanded). */
+export interface ViewRecordInfo { table: string; keys: string[]; fields?: string[] }
+
+/** What resolving a view's meta-SQL needs from the database: the records and SQL definitions it names. */
+export interface ViewMetaContext {
+  records: ReadonlyMap<string, ViewRecordInfo>;
+  /** SQL definitions' text (SQL type 0) by SQLID, upper case. */
+  sql?: ReadonlyMap<string, string>;
+}
+
+const CURRENT_DATE_IN = "TO_DATE(TO_CHAR(SYSDATE,'YYYY-MM-DD'),'YYYY-MM-DD')";
+
+/** The text with every single-quoted literal blanked (same length), so meta-SQL and case are judged outside them. */
+function blankLiterals(text: string): string {
+  let out = '', quoted = false;
+  for (const ch of text) {
+    if (ch === "'") { quoted = !quoted; out += ch; continue; }
+    out += quoted ? ' ' : ch;
+  }
+  return out;
+}
+
+/** Upper case outside single-quoted literals, as App Designer writes a view (captures V10, V16, V17). */
+function upperOutsideLiterals(text: string): string {
+  let out = '', quoted = false;
+  for (const ch of text) {
+    if (ch === "'") quoted = !quoted;
+    out += quoted ? ch : ch.toUpperCase();
+  }
+  return out;
+}
+
+/** Each %Name(...) call: its arguments' text, split at top-level commas (quotes and nested parentheses respected). */
+function replaceMetaCalls(text: string, name: string, replace: (args: string[], whole: string) => string): string {
+  const blanked = blankLiterals(text);
+  const re = new RegExp(`%${name}\\s*\\(`, 'gi');
+  let out = '', last = 0;
+  for (let m = re.exec(blanked); m; m = re.exec(blanked)) {
+    let depth = 1, i = m.index + m[0].length;
+    const args: string[] = [];
+    let start = i;
+    for (; i < blanked.length && depth > 0; i++) {
+      const ch = blanked[i];
+      if (ch === '(') depth++;
+      else if (ch === ')') { depth--; if (depth === 0) break; }
+      else if (ch === ',' && depth === 1) { args.push(text.slice(start, i)); start = i + 1; }
+    }
+    if (depth !== 0) break;
+    args.push(text.slice(start, i));
+    out += text.slice(last, m.index) + replace(args, text.slice(m.index, i + 1));
+    last = i + 1;
+    re.lastIndex = i + 1;
+  }
+  return out + text.slice(last);
+}
+
+/**
+ * The view SQL with the meta-SQL App Designer was seen to resolve on Oracle
+ * (captures V2-V17), then upper case outside string literals:
+ *   %CurrentDateIn -> TO_DATE(TO_CHAR(SYSDATE,'YYYY-MM-DD'),'YYYY-MM-DD')
+ *   %DateIn(d) -> TO_DATE(d,'YYYY-MM-DD'), %DateNull -> NULL, %Concat -> ||
+ *   %Substring -> SUBSTR, %Coalesce -> NVL, %NumToChar -> TO_CHAR, %Round -> ROUND
+ *   %TrimSubstr(a) -> RTRIM(SUBSTR(a)), %Table(rec) -> its table
+ *   %SubRec(rec, x) -> x.F1, x.F2 ... (its fields), %Sql(id) -> the SQL definition's text
+ *   %EffdtCheck(rec [a], x, d) -> x.EFFDT=(SELECT MAX(EFFDT) FROM <table> <a or rec>
+ *     WHERE <a>.<key>=x.<key> AND ... AND <a>.EFFDT<=d), over the keys before EFFDT.
+ * Anything else outside literals that starts with % is returned as unsupported.
+ */
+export function resolveViewMetaSql(sql: string, ctx: ViewMetaContext | ReadonlyMap<string, ViewRecordInfo>): { sql: string } | { unsupported: string[] } {
+  const context: ViewMetaContext = ctx instanceof Map ? { records: ctx as ReadonlyMap<string, ViewRecordInfo> } : ctx as ViewMetaContext;
+  const unsupported = new Set<string>();
+  const record = (name: string) => context.records.get(name.trim().toUpperCase());
+  let out = sql;
+  // %Sql first: the definition's text may hold meta-SQL of its own (a few levels at most).
+  for (let depth = 0; depth < 5 && /%sql\s*\(/i.test(blankLiterals(out)); depth++) {
+    out = replaceMetaCalls(out, 'Sql', (args, whole) => {
+      const text = context.sql?.get(args[0].trim().toUpperCase());
+      if (args.length !== 1 || text === undefined) { unsupported.add(args.length !== 1 ? '%Sql with parameters' : `%Sql(${args[0].trim()})`); return whole.replace(/^%/, '\u0000'); }
+      return text;
+    });
+  }
+  out = out.replace(/%CurrentDateIn\b/gi, CURRENT_DATE_IN).replace(/%DateNull\b/gi, 'NULL').replace(/%Concat\b/gi, '||')
+    .replace(/%Substring\s*\(/gi, 'SUBSTR(').replace(/%Coalesce\s*\(/gi, 'NVL(').replace(/%NumToChar\s*\(/gi, 'TO_CHAR(').replace(/%Round\s*\(/gi, 'ROUND(');
+  out = replaceMetaCalls(out, 'TrimSubstr', (args) => `RTRIM(SUBSTR(${args.join(',')}))`);
+  out = replaceMetaCalls(out, 'DateIn', (args) => `TO_DATE(${args.join(',').trim()},'YYYY-MM-DD')`);
+  out = replaceMetaCalls(out, 'Table', (args, whole) => {
+    const info = record(args[0]);
+    if (args.length !== 1 || !info) { unsupported.add(`%Table(${args[0].trim()})`); return whole.replace(/^%/, '\u0000'); }
+    return info.table;
+  });
+  out = replaceMetaCalls(out, 'SubRec', (args, whole) => {
+    const info = record(args[0]);
+    if (args.length !== 2 || !info?.fields?.length) { unsupported.add(`%SubRec(${args[0].trim()})`); return whole.replace(/^%/, '\u0000'); }
+    return info.fields.map((f) => `${args[1].trim()}.${f}`).join(', ');
+  });
+  out = replaceMetaCalls(out, 'EffdtCheck', (args, whole) => {
+    const [rec, inner] = args[0].trim().split(/\s+/);
+    const info = record(rec);
+    const effdt = info?.keys.findIndex((k) => k.toUpperCase() === 'EFFDT') ?? -1;
+    if (args.length !== 3 || !info || effdt < 0) { unsupported.add(`%EffdtCheck(${rec}...)`); return whole.replace(/^%/, '\u0000'); }
+    const a = inner ?? rec, outer = args[1].trim();
+    const joins = info.keys.slice(0, effdt).map((k) => `${a}.${k}=${outer}.${k} AND `).join('');
+    return `${outer}.EFFDT=(SELECT MAX(EFFDT) FROM ${info.table} ${a} WHERE ${joins}${a}.EFFDT<=${args[2].trim()})`;
+  });
+  for (const m of blankLiterals(out).matchAll(/%[A-Za-z]\w*/g)) unsupported.add(m[0]);
+  return unsupported.size ? { unsupported: [...unsupported] } : { sql: upperOutsideLiterals(out) };
+}
+
+/** The records and SQL definitions a view's meta-SQL names (to read before resolving). */
+export function viewMetaSqlNeeds(sql: string): { records: string[]; sql: string[] } {
+  const b = blankLiterals(sql);
+  const first = (re: RegExp) => [...b.matchAll(re)].map((m) => m[1].toUpperCase());
+  return {
+    records: [...new Set([...first(/%(?:EffdtCheck|Table|SubRec)\s*\(\s*([A-Za-z0-9_#$@]+)/gi)])],
+    sql: [...new Set(first(/%Sql\s*\(\s*([A-Za-z0-9_#$@]+)/gi))]
+  };
+}
+
 /** CREATE VIEW for a view record: its fields as the column list, and its SQL with each CR, LF and tab a space (HRDMO capture V1). */
 export function createViewLines(view: string, columns: readonly string[], sql: string): string[] {
   const body = sql.replace(/[\r\n\t]/g, ' ').trimEnd().replace(/;$/, '').trimEnd();
-  return [...wrapLine(`CREATE VIEW ${view} (${columns.join(', ')}) AS ${body}`), '/'];
+  // App Designer leaves a view statement's remainder of 71 characters uncut (FLSA_PERIOD_VW's last line,
+  // capture V2), while it cuts a 71-character DDL line (BA_CD_TBL's index STORAGE line, I4).
+  return [...wrapLine(`CREATE VIEW ${view} (${columns.join(', ')}) AS ${body}`, SCRIPT_WIDTH, SCRIPT_WIDTH + 1), '/'];
 }
 
 /**

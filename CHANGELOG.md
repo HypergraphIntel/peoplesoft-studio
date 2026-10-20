@@ -16,8 +16,14 @@
   database's physical clauses (DBMS_METADATA), new indexes come from the DDL
   model, and Alter rebuilds by table rename or adds columns in place exactly
   as App Designer chooses. Script lines are now cut at a comma as well as a
-  space, as App Designer cuts them. Uncaptured cases are refused with the
-  reason. Native Alter and index execution passed on a lab table.
+  space, as App Designer cuts them. Create Views resolves thirteen meta-SQL
+  forms (%EffdtCheck, %Sql, %SubRec, %Table, %Concat, %DateIn ...) exactly as
+  App Designer does -- 17 captured views reproduced, about 97% of HRDMO's
+  views buildable. Uncaptured cases are refused with the reason. Native Alter
+  and index execution passed on a lab table.
+- **View SQL reads the platform's own text.** A view with database-specific
+  SQL rows showed (and would have built) every variant run together; it now
+  takes the connection platform's text over the generic one.
 
 - **Bounded Integration Broker structural review.** `psft_ib_save` now stages
   existing service owner/namespace edits and operation header, version,

@@ -1458,10 +1458,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
               }
               const wanted = operation.operation === 'views' ? RecordType.View : RecordType.Table;
               if (layout.recordType !== wanted) continue;
-              if (layout.fields.some((f) => f.isSubrecord)) { plans.push({ script: '', statements: [], notes: [`${layout.name}: has subrecords (not built here yet).`] }); continue; }
+              if (layout.fields.some((f) => f.isSubrecord) && operation.operation !== 'views') { plans.push({ script: '', statements: [], notes: [`${layout.name}: has subrecords (not built here yet).`] }); continue; }
               if (operation.operation === 'views') {
-                plans.push(planCreateViews(record, layout.viewSql ?? '', await provider.viewExists(tableName(record)),
-                  config.get<ViewOption>('build.create.view') === 'skip' ? 'skip' : 'recreate', model));
+                const viewSql = layout.viewSql ?? '';
+                plans.push(planCreateViews(record, viewSql, await provider.viewExists(tableName(record)),
+                  config.get<ViewOption>('build.create.view') === 'skip' ? 'skip' : 'recreate', model, await provider.readViewMetaContext(viewSql), await provider.expandedFieldNames(layout.name)));
               } else {
                 const facts = await provider.readBuildFacts(tableName(record));
                 plans.push(operation.operation === 'indexes'

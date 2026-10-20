@@ -29,7 +29,7 @@ import { deleteRecord, saveRecord, verifyRecordSave, type RecordSaveRequest, typ
 import { readProjectCreationSnapshot } from './projectSnapshot.js';
 import { hash as reviewHash } from '../changeReview/model.js';
 import { readStructuredSnapshot, readStructuredForCreation, type StructuredFamily, type StructuredRead } from './structuredSnapshot.js';
-import { ddlPlatformFor, tableName, type DdlModel } from '../model/recordDdl.js';
+import { ddlPlatformFor, tableName, viewMetaSqlNeeds, type DdlModel, type ViewMetaContext, type ViewRecordInfo } from '../model/recordDdl.js';
 import type { DbTableFacts } from '../model/recordAlter.js';
 import { maskSql, prepareReadOnlyQuery } from '../sql/readOnlyQuery.js';
 import { saveTranslate as saveTranslateRows, type TranslateChange } from './translateWriter.js';
@@ -960,6 +960,62 @@ export class DatabaseProvider implements DefinitionProvider {
         })))
       };
     });
+  }
+
+  /**
+   * What a view's meta-SQL needs from the database (recordDdl.resolveViewMetaSql):
+   * each record it names -- its table, keys and fields in order, subrecords
+   * expanded (PSRECFIELDDB) -- and each SQL definition %Sql inlines (the
+   * Oracle text over the generic one), followed into the definitions' own %Sql.
+   */
+  async readViewMetaContext(sql: string): Promise<ViewMetaContext> {
+    const records = new Map<string, ViewRecordInfo>();
+    const texts = new Map<string, string>();
+    const STRING = this.types.STRING;
+    return this.withConnection(async (c) => {
+      const pending = [sql];
+      for (let round = 0; round < 6 && pending.length; round++) {
+        const needs = viewMetaSqlNeeds(pending.splice(0).join('\n'));
+        for (const r of needs.records.filter((x) => !records.has(x))) {
+          const head = (await c.execute<{ T: string }>(`SELECT SQLTABLENAME AS T FROM PSRECDEFN WHERE RECNAME = :r`, { r })).rows?.[0];
+          if (!head) continue;
+          const fields = (await c.execute<{ F: string; U: number }>(
+            `SELECT FIELDNAME AS F, USEEDIT AS U FROM PSRECFIELDDB WHERE RECNAME = :r ORDER BY FIELDNUM`, { r })).rows ?? [];
+          records.set(r, { table: String(head.T ?? '').trim() || `PS_${r}`, keys: fields.filter((f) => (Number(f.U) & 1) !== 0).map((f) => String(f.F).trim()), fields: fields.map((f) => String(f.F).trim()) });
+        }
+        for (const id of needs.sql.filter((x) => !texts.has(x))) {
+          const rows = (await c.execute<{ D: string; T: string }>(
+            `SELECT DBTYPE AS D, SQLTEXT AS T FROM PSSQLTEXTDEFN WHERE SQLID = :id AND SQLTYPE = '0' AND DBTYPE IN (' ', '2') ORDER BY DBTYPE DESC, SEQNUM`,
+            { id }, { fetchInfo: { T: { type: STRING } } })).rows ?? [];
+          const dbtype = rows[0]?.D;
+          if (dbtype === undefined) continue;
+          const text = rows.filter((x) => x.D === dbtype).map((x) => String(x.T ?? '')).join('');
+          texts.set(id, text);
+          pending.push(text);
+        }
+      }
+      return { records, sql: texts };
+    });
+  }
+
+  /**
+   * A view's SQL: the text for this connection's platform (PSSQLTEXTDEFN DBTYPE,
+   * numbered as PSDDLMODEL's PLATFORMID) when it has one, else the generic
+   * text (DBTYPE ' '). CUR_RT_TYPE_TBL carries three; joining every row ran them together.
+   */
+  private async viewText(c: Connection, recname: string): Promise<string> {
+    const platform = String(this.pool?.ddlPlatformId ?? 2);
+    const rows = (await c.execute<{ D: string; SQLTEXT: string }>(
+      `SELECT DBTYPE AS D, SQLTEXT FROM PSSQLTEXTDEFN WHERE SQLID = :r AND SQLTYPE = 2 AND DBTYPE IN (' ', :p) ORDER BY SEQNUM`,
+      { r: recname, p: platform }, { fetchInfo: { SQLTEXT: { type: this.types.STRING } } })).rows ?? [];
+    const own = rows.some((x) => x.D === platform) ? platform : ' ';
+    return rows.filter((x) => x.D === own).map((x) => x.SQLTEXT).join('');
+  }
+
+  /** A record's fields with subrecords expanded, in order (PSRECFIELDDB): a view's column list. */
+  async expandedFieldNames(recname: string): Promise<string[]> {
+    return this.withConnection(async (c) => ((await c.execute<{ F: string }>(
+      `SELECT FIELDNAME AS F FROM PSRECFIELDDB WHERE RECNAME = :r ORDER BY FIELDNUM`, { r: recname })).rows ?? []).map((x) => String(x.F).trim()));
   }
 
   /** Whether a view exists in the PeopleTools schema (Oracle: ALL_VIEWS). */
@@ -3304,10 +3360,7 @@ export class DatabaseProvider implements DefinitionProvider {
         })
       };
       if (layout.recordType === RecordType.View || layout.recordType === RecordType.DynamicView) {
-        const sql = await c.execute<{ SQLTEXT: string }>(
-          `SELECT SQLTEXT FROM PSSQLTEXTDEFN WHERE SQLID = :r AND SQLTYPE = 2 ORDER BY SEQNUM`, { r: recname },
-          { fetchInfo: { SQLTEXT: { type: this.types.STRING } } });
-        layout.viewSql = (sql.rows ?? []).map((x) => x.SQLTEXT).join('');
+        layout.viewSql = await this.viewText(c, recname);
       }
       // Every label of the record's fields, for the Record Field Label ID choice.
       const labelRows = (await c.execute<{ FIELDNAME: string; LABEL_ID: string; LONGNAME: string; SHORTNAME: string; DEFAULT_LABEL: number }>(
@@ -3549,11 +3602,7 @@ export class DatabaseProvider implements DefinitionProvider {
       };
 
       if (record.recordType === RecordType.View || record.recordType === RecordType.DynamicView) {
-        const sql = await c.execute<{ SQLTEXT: string }>(
-          `SELECT SQLTEXT FROM PSSQLTEXTDEFN
-            WHERE SQLID = :r AND SQLTYPE = 2 ORDER BY SEQNUM`, { r: recname },
-          { fetchInfo: { SQLTEXT: { type: this.types.STRING } } });
-        record.viewSql = (sql.rows ?? []).map((x) => x.SQLTEXT).join('');
+        record.viewSql = await this.viewText(c, recname);
       }
 
       return record;

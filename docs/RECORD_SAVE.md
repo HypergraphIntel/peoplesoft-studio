@@ -523,14 +523,30 @@ on, are golden tests (`src/test/fixtures/build`, `recordAlter.test.ts`): I3-I6
     uniqueness is left alone, so no script is written. A modified index is
     dropped and re-created with its new columns and old clauses. A missing
     index comes from the DDL model, as Create Tables writes it (`CREATE   INDEX`).
-- **Create Views**:
+- **Create Views** (captures V1-V17, every one reproduced from the live
+  definitions):
   - The script starts with App Designer's four `--UNCOMMENT SET DEFINE OFF` /
     `SQLBLANKLINES` comment lines, each followed by a blank line. Only view
     scripts have them.
   - Then `DROP VIEW` when the view exists (with *Recreate*), and
-    `CREATE VIEW name (col, col) AS <SQL>` with each CR, LF and tab a space.
-  - SQL using meta-SQL (`%...`) is refused: App Designer's resolution of it is
-    not captured.
+    `CREATE VIEW name (col, col) AS <SQL>`. The columns are the record's fields
+    with subrecords expanded (PSRECFIELDDB, V10). The SQL is the platform's own
+    text over the generic one (DBTYPE), each CR, LF and tab a space, in upper
+    case outside string literals (V16, V17).
+  - Meta-SQL resolved as App Designer resolves it: `%CurrentDateIn`
+    (`TO_DATE(TO_CHAR(SYSDATE,'YYYY-MM-DD'),'YYYY-MM-DD')`), `%DateIn(d)`
+    (`TO_DATE(d,'YYYY-MM-DD')`, argument trimmed), `%DateNull` (`NULL`),
+    `%Concat` (`||`), `%Substring` (`SUBSTR`), `%Coalesce` (`NVL`),
+    `%NumToChar` (`TO_CHAR`), `%Round` (`ROUND`), `%TrimSubstr`
+    (`RTRIM(SUBSTR(...))`), `%Table(rec)` (its table), `%SubRec(rec, a)`
+    (`a.F1, a.F2 ...`), `%Sql(id)` (the SQL definition's text, itself resolved)
+    and `%EffdtCheck(rec [a], x, d)` (`x.EFFDT=(SELECT MAX(EFFDT) FROM <table>
+    <a or rec> WHERE <a>.<key>=x.<key> AND ... AND <a>.EFFDT<=d)` over the keys
+    before EFFDT). That covers 21,246 of HRDMO's 21,806 views; the rest (for
+    example `%DatePart`, `%Join`, `%DateAdd`, `%Sql` with parameters) are refused.
+  - A view statement's last line may run to 71 characters (V2): App Designer
+    cuts a view only while more than 71 remain, though it cuts a 71-character
+    DDL line (I4).
 - **Alter Tables** (it implies Create Indexes and Create Trigger):
   - *Only keys or indexes changed*: the index work alone (A0).
   - *By table rename*:
@@ -561,8 +577,8 @@ on, are golden tests (`src/test/fixtures/build`, `recordAlter.test.ts`): I3-I6
 - **Refused, not captured**: Alter and Create Indexes/Views on SQL Server and
   DB2, column type changes, a narrowed number holding data, a new required
   Date/Time/DateTime/Long/Image column, NOT NULL changes other than a DateTime,
-  LOB storage of a kept column, partitions, a custom SQL table name and
-  *Alter even if no changes*.
+  LOB storage of a kept column, partitions, a custom SQL table name,
+  *Alter even if no changes* and the uncaptured view meta-SQL above.
 - **Not generated**: the PSOPTSYNC trigger App Designer appends for a record
   with OPTTRIGFLAG Y (only ZZ_PCODE_LAB_R1 in HRDMO). A note says so.
 - App Designer warns *Potentially data destructive settings are active

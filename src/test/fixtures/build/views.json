@@ -1,0 +1,495 @@
+[
+ {
+  "capture": "V1",
+  "name": "ZZ_DSTNCT_DEPT",
+  "fields": [
+   "SETID",
+   "DEPTID",
+   "TREE_NODE_NUM",
+   "TREE_NODE_NUM_END"
+  ],
+  "sql": "SELECT\r\nSETID,\r\nDEPTID,\r\nTREE_NODE_NUM,\r\nTREE_NODE_NUM_END\r\nFROM PS_TRN_DPTSCRTY_VW\r\nGROUP BY SETID, DEPTID,TREE_NODE_NUM,\r\nTREE_NODE_NUM_END",
+  "records": [],
+  "sqlTexts": []
+ },
+ {
+  "capture": "V2",
+  "name": "FLSA_PERIOD_VW",
+  "fields": [
+   "FLSA_PERIOD_TYPE"
+  ],
+  "sql": "SELECT %Substring(A.FIELDVALUE, 1, 2) FROM PSXLATITEM A WHERE FIELDNAME = 'FLSA_PERIOD_TYPE' AND EFF_STATUS = 'A' AND %EffdtCheck(PSXLATITEM, A, %CurrentDateIn)",
+  "records": [
+   [
+    "PSXLATITEM",
+    {
+     "table": "PSXLATITEM",
+     "keys": [
+      "FIELDNAME",
+      "FIELDVALUE",
+      "EFFDT"
+     ],
+     "fields": [
+      "FIELDNAME",
+      "FIELDVALUE",
+      "EFFDT",
+      "EFF_STATUS",
+      "XLATLONGNAME",
+      "XLATSHORTNAME",
+      "LASTUPDDTTM",
+      "LASTUPDOPRID",
+      "SYNCID"
+     ]
+    }
+   ]
+  ],
+  "sqlTexts": []
+ },
+ {
+  "capture": "V3",
+  "name": "SEC_DEPT_PR_VW",
+  "fields": [
+   "SCRTY_KEY1",
+   "DEPTID",
+   "DESCR"
+  ],
+  "sql": "SELECT SETID , DEPTID , DESCR FROM PS_DEPT_TBL D WHERE %EffdtCheck(DEPT_TBL B, D, %CurrentDateIn)",
+  "records": [
+   [
+    "DEPT_TBL",
+    {
+     "table": "PS_DEPT_TBL",
+     "keys": [
+      "SETID",
+      "DEPTID",
+      "EFFDT"
+     ],
+     "fields": [
+      "SETID",
+      "DEPTID",
+      "EFFDT",
+      "EFF_STATUS",
+      "DESCR",
+      "DESCRSHORT",
+      "COMPANY",
+      "SETID_LOCATION",
+      "LOCATION",
+      "TAX_LOCATION_CD",
+      "MANAGER_ID",
+      "MANAGER_POSN",
+      "BUDGET_YR_END_DT",
+      "BUDGET_LVL",
+      "GL_EXPENSE",
+      "EEO4_FUNCTION",
+      "CAN_IND_SECTOR",
+      "ACCIDENT_INS",
+      "SI_ACCIDENT_NUM",
+      "HAZARD",
+      "ESTABID",
+      "RISKCD",
+      "GVT_DESCR40",
+      "GVT_SUB_AGENCY",
+      "GVT_PAR_LINE2",
+      "GVT_PAR_LINE3",
+      "GVT_PAR_LINE4",
+      "GVT_PAR_LINE5",
+      "GVT_PAR_DESCR2",
+      "GVT_PAR_DESCR3",
+      "GVT_PAR_DESCR4",
+      "GVT_PAR_DESCR5",
+      "FTE_EDIT_INDC",
+      "DEPT_TENURE_FLG",
+      "TL_DISTRIB_INFO",
+      "USE_BUDGETS",
+      "USE_ENCUMBRANCES",
+      "USE_DISTRIBUTION",
+      "BUDGET_DEPTID",
+      "HP_STATS_DEPT_CD",
+      "HP_STATS_DPCD_NW",
+      "HP_STATS_FACULTY",
+      "MANAGER_NAME",
+      "ACCOUNTING_OWNER",
+      "COUNTRY_GRP",
+      "HP_RTBC_OPTION",
+      "HP_AUTO_RTBC",
+      "CLASS_UNIT_NZL",
+      "ORG_UNIT_AUS",
+      "WORK_SECTOR_AUS",
+      "APS_AGENT_CD_AUS",
+      "IND_COMMITTEE_BEL",
+      "NACE_CD_BEL",
+      "LASTUPDDTTM"
+     ]
+    }
+   ]
+  ],
+  "sqlTexts": []
+ },
+ {
+  "capture": "V4",
+  "name": "SCH_ALTDUMMY_VW",
+  "fields": [
+   "DUMMY_FIELD"
+  ],
+  "sql": "SELECT 'X' FROM %Table(INSTALLATION)",
+  "records": [
+   [
+    "INSTALLATION",
+    {
+     "table": "PS_INSTALLATION",
+     "keys": [],
+     "fields": [
+      "COMPANY",
+      "MIN_STD_HRS",
+      "MAX_STD_HRS",
+      "EMPLID_LENGTH",
+      "STD_HRS_DEFAULT",
+      "STD_HRS_FREQUENCY",
+      "TEMP_SSN_MASK",
+      "COMMIT_AFTER",
+      "POSITION_MGMT",
+      "COUNTRY",
+      "COMP_FREQUENCY",
+      "CAN_CMA",
+      "CAN_IND_SECTOR",
+      "MULTI_STEP_GRADE",
+      "FSA_CLAIMS",
+      "BENEFIT_ADMINISTRN",
+      "START_EVENT_DT",
+      "EXCHNG_TO_CURRENCY",
+      "EXCHNG_TO_RT_TYPE",
+      "HR",
+      "AM",
+      "AP",
+      "AR",
+      "GL",
+      "BD",
+      "PC",
+      "PO",
+      "INV",
+      "BI",
+      "OM",
+      "PUBLIC_SECTOR",
+      "RETRO_DEDUCTIONS",
+      "TL",
+      "AUTO_EE_TAX",
+      "SAME_ST_LCL_RSDNCE",
+      "FMLA_ADMINISTRN",
+      "BAL_ID_FOR_CAL_YR",
+      "MAX_ROWS_SCROLL",
+      "PA",
+      "BEN_BILLING",
+      "COBRA_ADMINISTRN",
+      "ORGCHART",
+      "US",
+      "CAN",
+      "GER",
+      "FRA",
+      "UK",
+      "JPN",
+      "BEL",
+      "NLD",
+      "ESP",
+      "MEX",
+      "AUS",
+      "MYS",
+      "NZL",
+      "SGP",
+      "HKG",
+      "INSTALLED_PAY_GBL",
+      "IND",
+      "BRA",
+      "CHN",
+      "THA",
+      "INSTALLED_PAY_NA",
+      "INSTALLED_PAY_INT",
+      "USE_POINTS_SW",
+      "USE_RTCD_GROUP_SW",
+      "ROWSECCLASS",
+      "FED",
+      "FP_FLAG",
+      "GVT_PAY_BASIS",
+      "CHE",
+      "ITA",
+      "ALLW_CONC_CALCCONF",
+      "GP_CST_INSTALL_IND",
+      "ST",
+      "ADJ_TL_FINAL_CHK",
+      "ADJ_TL_ONL_CHK",
+      "ADJ_TL_REV_ADJ",
+      "REFRSH_TL_JOB_CHG",
+      "REFRSH_TL_PRECALC",
+      "PSEBENEFITS",
+      "PSECOMP",
+      "PSEPAY",
+      "PSEPROFILE",
+      "PSERECRUIT",
+      "CCU",
+      "PSEA",
+      "INSTALLED_GP_AUS",
+      "INSTALLED_GP_BRA",
+      "INSTALLED_GP_CAN",
+      "INSTALLED_GP_CHE",
+      "INSTALLED_GP_CHN",
+      "INSTALLED_GP_DEU",
+      "INSTALLED_GP_ESP",
+      "INSTALLED_GP_FRA",
+      "INSTALLED_GP_HKG",
+      "INSTALLED_GP_IND",
+      "INSTALLED_GP_ITA",
+      "INSTALLED_GP_JPN",
+      "INSTALLED_GP_MEX",
+      "INSTALLED_GP_MYS",
+      "INSTALLED_GP_NLD",
+      "INSTALLED_GP_NZL",
+      "INSTALLED_GP_SGP",
+      "INSTALLED_GP_THA",
+      "INSTALLED_GP_UK",
+      "INSTALLED_GP_USA",
+      "PSECOMP_MGR",
+      "PSEPROFILE_MGR",
+      "PSERECRUIT_MGR",
+      "FO_PBM",
+      "AUTO_JOB_END",
+      "AUTO_JOB_SUSPEND",
+      "EHC",
+      "EPU",
+      "APS_AUS",
+      "DI",
+      "INSTALLED_GP_ARG",
+      "INSTALLED_GP_IRL",
+      "INSTALLED_GP_TWN",
+      "TL_MOBILE",
+      "PSEPERF_MANAGEMENT",
+      "AA_ENABLED_JPN",
+      "INSTALLED_PAY_PPS",
+      "AV",
+      "SA",
+      "SG",
+      "HGA",
+      "ELM",
+      "PS_GL_VERSION",
+      "ADP",
+      "CSS",
+      "HMCF_VALID_CACHE",
+      "HMCF_CACHE_RETAIN",
+      "HMCF_EIP_LIMIT",
+      "GVT_NFC_INDICATOR",
+      "MILITARY",
+      "BEN_DED_CLS_ORDER",
+      "ENC_TRIGGER",
+      "UPD_INCUMB_LMT",
+      "INSTALLED_OWS",
+      "SAIP",
+      "HP_ENFORCE_RTBC",
+      "HP_KK_BUDGET_PROC",
+      "ARG",
+      "TMOD",
+      "SPN",
+      "USA_TWO_QUESTION",
+      "GPS",
+      "HCSC_MAP_INDICATOR",
+      "TALENT_LINKS",
+      "LRM",
+      "ORCL_ELOC_OPT",
+      "TAX_DATA_RESET",
+      "EONC_INSTALLED",
+      "NOTIF_DFLT_FLG",
+      "NOTIF_TEXT_FLG",
+      "EMERG_CNTCT_GB",
+      "EMERG_TYP_OPT"
+     ]
+    }
+   ]
+  ],
+  "sqlTexts": []
+ },
+ {
+  "capture": "V5",
+  "name": "TC_DEPT_VW",
+  "fields": [
+   "TC_DEPT",
+   "EFFDT",
+   "DESCR"
+  ],
+  "sql": "SELECT SETID %Concat DEPTID , EFFDT , DESCR FROM PS_DEPT_TBL WHERE EFF_STATUS = 'A'",
+  "records": [],
+  "sqlTexts": []
+ },
+ {
+  "capture": "V6",
+  "name": "HRS_DM_STATE_LN",
+  "fields": [
+   "HRS_DM_FKEY",
+   "LANGUAGE_CD",
+   "HRS_DM_DESCR"
+  ],
+  "sql": "SELECT COUNTRY %Concat '_' %Concat STATE , LANGUAGE_CD , DESCR FROM PS_HRS_STATE_LN_I",
+  "records": [],
+  "sqlTexts": []
+ },
+ {
+  "capture": "V7",
+  "name": "DISABLTY_ESP_VW",
+  "fields": [
+   "EMPLID",
+   "DISABLED"
+  ],
+  "sql": "SELECT A.EMPLID ,%Coalesce(B.DISABLED, 'N') FROM PS_PERSONAL_DATA A LEFT OUTER JOIN PS_DISABILITY B ON A.EMPLID = B.EMPLID",
+  "records": [],
+  "sqlTexts": []
+ },
+ {
+  "capture": "V8",
+  "name": "ST_TX_DTA_IN_VW",
+  "fields": [
+   "EMPLID",
+   "COMPANY",
+   "EFFDT",
+   "STATE"
+  ],
+  "sql": "SELECT DISTINCT 'XXX' , 'XXX' , %DateIn('1990-01-01') , 'XX' FROM PS_INSTALLATION",
+  "records": [],
+  "sqlTexts": []
+ },
+ {
+  "capture": "V9",
+  "name": "EPO_NODE_ARY_VW",
+  "fields": [
+   "EPO_NODE_ID",
+   "EFFDT",
+   "EPO_PAGE_ID"
+  ],
+  "sql": "SELECT ' ' , %DateNull , 0 FROM PS_EP_INSTALLATION",
+  "records": [],
+  "sqlTexts": []
+ },
+ {
+  "capture": "V10",
+  "name": "GP_ACM_ADD_SRCH",
+  "fields": [
+   "PIN_ACCUM_NUM",
+   "PIN_NUM",
+   "PIN_NM"
+  ],
+  "sql": "%sql(gp_add_sql)",
+  "records": [],
+  "sqlTexts": [
+   [
+    "GP_ADD_SQL",
+    "SELECT pin_num , pin_num , pin_nm FROM ps_gp_pin"
+   ]
+  ]
+ },
+ {
+  "capture": "V11",
+  "name": "EOTR_PROD_SRCH",
+  "fields": [
+   "PRODUCT",
+   "DESCR"
+  ],
+  "sql": "SELECT %subrec(EOTR_PROD_SRCH,A) FROM PS_EOTR_PROD A",
+  "records": [
+   [
+    "EOTR_PROD_SRCH",
+    {
+     "table": "PS_EOTR_PROD_SRCH",
+     "keys": [
+      "PRODUCT"
+     ],
+     "fields": [
+      "PRODUCT",
+      "DESCR"
+     ]
+    }
+   ]
+  ],
+  "sqlTexts": []
+ },
+ {
+  "capture": "V12",
+  "name": "GP_PYMT_NBR_VW",
+  "fields": [
+   "CAL_RUN_ID",
+   "PYMT_NBR_CHAR"
+  ],
+  "sql": "SELECT DISTINCT CAL_RUN_ID ,%NumToChar(PYMT_NBR) FROM PS_GP_PMT_NP_VW",
+  "records": [],
+  "sqlTexts": []
+ },
+ {
+  "capture": "V13",
+  "name": "EO_CHUNKALT_VW",
+  "fields": [
+   "RECNAME",
+   "RECDESCR"
+  ],
+  "sql": "SELECT RECNAME ,RECDESCR FROM PSRECDEFN WHERE %TrimSubstr(RECNAME, 1, 15) LIKE '%_EOV'",
+  "records": [],
+  "sqlTexts": []
+ },
+ {
+  "capture": "V14",
+  "name": "GPGB_RSLT_BAL",
+  "fields": [
+   "EMPLID",
+   "CAL_RUN_ID",
+   "EMPL_RCD",
+   "GP_PAYGROUP",
+   "CAL_ID",
+   "RSLT_SEG_NUM",
+   "GPGB_ELE_ORDER",
+   "GPGB_PSLIP_DETAIL",
+   "GPGB_PSLIP_D_TXT",
+   "GPGB_PIN_NUM_CUR",
+   "GPGB_PSLIP_DESCR",
+   "GPGB_RSLT_VAL_CUR",
+   "GPGB_ADJ_VAL",
+   "GPGB_PIN_NUM_YTD",
+   "GPGB_RSLT_VAL_YTD",
+   "GPGB_ADJ_VAL_YTD"
+  ],
+  "sql": "SELECT A.EMPLID , A.CAL_RUN_ID , A.EMPL_RCD , A.GP_PAYGROUP , A.CAL_ID , A.RSLT_SEG_NUM , 0 , 0 , ' ' , A.PIN_NUM , ' ' , %Round(A.CALC_RSLT_VAL ,2) , %Round(A.USER_ADJ_VAL ,2) , 0 , 0 , 0 FROM PS_GP_RSLT_ACUM A",
+  "records": [],
+  "sqlTexts": []
+ },
+ {
+  "capture": "V15",
+  "name": "EOCC_RECKEYS_VW",
+  "fields": [
+   "RECNAME",
+   "FIELDNAME",
+   "FLDSEQNO"
+  ],
+  "sql": "SELECT RECNAME   ,FIELDNAME   ,FIELDNUM   FROM PSRECFIELDDB   WHERE ((%ROUND(((USEEDIT) / (2)),0) ) * ( 2)) <> USEEDIT",
+  "records": [],
+  "sqlTexts": []
+ },
+ {
+  "capture": "V16",
+  "name": "CUR_RT_TYPE_TBL",
+  "fields": [
+   "CUR_RT_TYPE",
+   "EFFDT",
+   "EFF_STATUS",
+   "DESCR",
+   "DESCRSHORT"
+  ],
+  "sql": "SELECT rt_type , %DateIn( '1900-01-01') , 'A' , descr , descrshort FROM ps_rt_type_tbl",
+  "records": [],
+  "sqlTexts": []
+ },
+ {
+  "capture": "V17",
+  "name": "HR_PSEL_MSTKEYV",
+  "fields": [
+   "SELECT_BTN",
+   "KEY1",
+   "KEY2",
+   "KEY3"
+  ],
+  "sql": "SELECT 'btn' ,'1' ,'2' , '3' FROM PS_INSTALLATION",
+  "records": [],
+  "sqlTexts": []
+ }
+]

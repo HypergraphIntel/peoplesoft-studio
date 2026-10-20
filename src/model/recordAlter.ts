@@ -1,7 +1,7 @@
 import { FieldType, RecordType } from './record.js';
 import {
   columnType, createColumnOrder, createViewLines, ddlIndexes, metadataIndexLines, metadataTableLines, modelIndexLines, modelTableLines, notNull, tableName,
-  VIEW_SCRIPT_HEADER, wrapLine, type DdlField, type DdlIndex, type DdlModel, type DdlRecord
+  resolveViewMetaSql, VIEW_SCRIPT_HEADER, wrapLine, type DdlField, type DdlIndex, type DdlModel, type DdlRecord, type ViewMetaContext
 } from './recordDdl.js';
 import { scriptStatements, type BuildPlan } from './recordBuild.js';
 
@@ -18,7 +18,8 @@ import { scriptStatements, type BuildPlan } from './recordBuild.js';
  * required Date/Time/DateTime/Long/Image column, a column made NOT NULL other
  * than a DateTime, LOB storage of a column that stays and partition clauses on
  * the existing table, a custom SQL table name, Alter even if no changes, and
- * views whose SQL uses meta-SQL (%...).
+ * views whose meta-SQL resolution was not captured (all but %CurrentDateIn,
+ * %Substring and %EffdtCheck).
  */
 
 export interface DbColumn {
@@ -109,16 +110,26 @@ export function planCreateIndexes(r: DdlRecord, model: DdlModel, facts: DbTableF
   return finish(lines, lines.length ? [] : [`${r.name}: every index is unchanged (Build Settings: Recreate index only if modified).`]);
 }
 
-/** Build > Create Views (Oracle): the view, dropped first when it exists, under App Designer's view-script header. */
-export function planCreateViews(r: DdlRecord, sql: string, viewExists: boolean, option: ViewOption, model: DdlModel): BuildPlan {
+/**
+ * Build > Create Views (Oracle): the view, dropped first when it exists, under
+ * App Designer's view-script header. Meta-SQL is resolved where App Designer's
+ * resolution was captured (resolveViewMetaSql); `context` holds the records
+ * and SQL definitions it names (DatabaseProvider.readViewMetaContext). The
+ * column list is the record's fields with subrecords expanded (capture V10).
+ */
+export function planCreateViews(r: DdlRecord, sql: string, viewExists: boolean, option: ViewOption, model: DdlModel,
+  context: ViewMetaContext = { records: new Map() }, columns: readonly string[] = r.fields.map((f) => f.name)): BuildPlan {
   const refused = oracleOnly(model, 'Create Views');
   if (refused) return none([refused]);
   if (r.recordType !== RecordType.View) return none([`${r.name} is not an SQL View.`]);
   if (!sql.trim()) return none([`${r.name} has no view SQL.`]);
-  if (sql.includes('%')) return none([`${r.name}: its SQL uses meta-SQL (%...), which App Designer resolves when it builds; that resolution is not captured here.`]);
+  const resolved = resolveViewMetaSql(sql, context);
+  if ('unsupported' in resolved) {
+    return none([`${r.name}: its SQL uses meta-SQL (${resolved.unsupported.join(', ')}) whose resolution by App Designer has not been captured, or names a definition that was not found.`]);
+  }
   const view = tableName(r);
   if (viewExists && option === 'skip') return none([`${view} exists: skipped (Build Settings: Skip view if it already exists).`]);
-  return finish([...VIEW_SCRIPT_HEADER, ...(viewExists ? [`DROP VIEW ${view}`, '/'] : []), ...createViewLines(view, r.fields.map((f) => f.name), sql)], []);
+  return finish([...VIEW_SCRIPT_HEADER, ...(viewExists ? [`DROP VIEW ${view}`, '/'] : []), ...createViewLines(view, columns, resolved.sql)], []);
 }
 
 type Family = 'char' | 'number' | 'date' | 'timestamp' | 'clob' | 'blob';

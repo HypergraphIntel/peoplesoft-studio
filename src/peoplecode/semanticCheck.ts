@@ -31,7 +31,8 @@ import { maskNonCode, parseApplicationClassSource } from './applicationClassProg
 export interface SemanticProblem { code: string; offset: number; message: string }
 
 /** maskNonCode, and the compiler's /+ ... +/ signature comments too (they name classes but are not code). */
-function mask(source: string, preserveStringDelimiters = false): string {
+/** The source with comments and string contents blanked, offsets preserved. */
+export function mask(source: string, preserveStringDelimiters = false): string {
   return maskNonCode(source, preserveStringDelimiters).replace(/\/\+[\s\S]*?\+\//g, (m) => m.replace(/[^\n]/g, ' '));
 }
 

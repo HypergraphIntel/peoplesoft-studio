@@ -161,7 +161,9 @@ test('Create Views is App Designer\'s view script, header and all (ZZ_DSTNCT_DEP
   assert.equal(planCreateViews(view, sql, true, 'recreate', MODEL).script, expected('V1'));
   assert.match(planCreateViews(view, sql, true, 'skip', MODEL).notes[0], /Skip view/);
   assert.ok(!planCreateViews(view, sql, false, 'recreate', MODEL).script.includes('DROP VIEW'));
-  assert.match(planCreateViews(view, 'SELECT %CurrentDateIn FROM PS_INSTALLATION', true, 'recreate', MODEL).notes[0], /meta-SQL/);
+  assert.match(planCreateViews(view, 'SELECT %DateTimeOut(X) FROM %Table(INSTALLATION)', true, 'recreate', MODEL).notes[0], /meta-SQL \(%Table\(INSTALLATION\), %DateTimeOut\)/);
+  // A % inside a string literal is not meta-SQL.
+  assert.equal(planCreateViews(view, "SELECT SETID FROM PS_SETID_TBL WHERE DESCR LIKE '%x'", false, 'recreate', MODEL).notes.length, 0);
 });
 
 test('a view script runs without its header, and Build Project writes the header once', () => {
@@ -171,4 +173,30 @@ test('a view script runs without its header, and Build Project writes the header
   const both = combineBuildPlans([one, planCreateViews(view('ZZ_V2'), 'SELECT SETID FROM PS_SETID_TBL', false, 'recreate', MODEL)]);
   assert.equal(both.script.split('--SET DEFINE OFF').length, 2);
   assert.deepEqual(both.statements.map((x) => x.split(' ').slice(0, 3).join(' ')), ['DROP VIEW PS_ZZ_V1', 'CREATE VIEW PS_ZZ_V1', 'CREATE VIEW PS_ZZ_V2']);
+});
+
+test('meta-SQL App Designer resolves in a view: %Substring, %CurrentDateIn and %EffdtCheck, with or without its own alias (V2, V3)', () => {
+  const records = { records: new Map([
+    ['PSXLATITEM', { table: 'PSXLATITEM', keys: ['FIELDNAME', 'FIELDVALUE', 'EFFDT'] }],
+    ['DEPT_TBL', { table: 'PS_DEPT_TBL', keys: ['SETID', 'DEPTID', 'EFFDT'] }]]) };
+  const view = (name: string, fields: string[]): DdlRecord => ({ name, recordType: RecordType.View, sqlTableName: ' ', fields: fields.map((n) => f(n, FieldType.Character, 10)) });
+  // V2's last line is 71 characters: App Designer cuts only while more than 71 remain.
+  assert.equal(planCreateViews(view('FLSA_PERIOD_VW', ['FLSA_PERIOD_TYPE']),
+    "SELECT %Substring(A.FIELDVALUE, 1, 2) FROM PSXLATITEM A WHERE FIELDNAME = 'FLSA_PERIOD_TYPE' AND EFF_STATUS = 'A' AND %EffdtCheck(PSXLATITEM, A, %CurrentDateIn)",
+    true, 'recreate', MODEL, records).script, expected('V2'));
+  assert.equal(planCreateViews(view('SEC_DEPT_PR_VW', ['SCRTY_KEY1', 'DEPTID', 'DESCR']),
+    'SELECT SETID , DEPTID , DESCR FROM PS_DEPT_TBL D WHERE %EffdtCheck(DEPT_TBL B, D, %CurrentDateIn)', true, 'recreate', MODEL, records).script, expected('V3'));
+  const missing = planCreateViews(view('X_VW', ['A']), 'SELECT A FROM PS_X WHERE %EffdtCheck(NO_REC, A, %CurrentDateIn) AND %Concat', true, 'recreate', MODEL, records);
+  assert.match(missing.notes[0], /meta-SQL \(%EffdtCheck\(NO_REC\.\.\.\)\)/);
+});
+
+test('every captured view script, from the view\'s SQL, its meta-SQL context and expanded columns (V1-V17)', () => {
+  type Captured = { capture: string; name: string; fields: string[]; sql: string; records: Array<[string, { table: string; keys: string[]; fields?: string[] }]>; sqlTexts: Array<[string, string]> };
+  const views = JSON.parse(readFileSync(path.join('src', 'test', 'fixtures', 'build', 'views.json'), 'utf8')) as Captured[];
+  assert.equal(views.length, 17);
+  for (const v of views) {
+    const record: DdlRecord = { name: v.name, recordType: RecordType.View, sqlTableName: ' ', fields: [] };
+    const plan = planCreateViews(record, v.sql, true, 'recreate', MODEL, { records: new Map(v.records), sql: new Map(v.sqlTexts) }, v.fields);
+    assert.equal(plan.script, expected(v.capture), `${v.capture} ${v.name}`);
+  }
 });

@@ -249,8 +249,8 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
     const provider = doc.provider;
     const shown = doc.shownLayout();
     if (!shown) return;
-    if (shown.fields.some((f) => f.isSubrecord)) {
-      void vscode.window.showInformationMessage('Records with subrecords cannot be built here yet.');
+    if (shown.fields.some((f) => f.isSubrecord) && shown.recordType !== RecordType.View) {
+      void vscode.window.showInformationMessage('Tables with subrecords cannot be built here yet (views can).');
       return;
     }
     if (!(provider instanceof DatabaseProvider)) {
@@ -301,7 +301,8 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
     let loss = '';
     if (picked.operation === 'views') {
       const option = config.get<ViewOption>('build.create.view') === 'skip' ? 'skip' : 'recreate';
-      plan = planCreateViews(record, doc.viewSql() ?? '', await provider.viewExists(table), option, model);
+      const viewSql = doc.viewSql() ?? '';
+      plan = planCreateViews(record, viewSql, await provider.viewExists(table), option, model, await provider.readViewMetaContext(viewSql), await provider.expandedFieldNames(shown.name));
     } else if (picked.operation === 'tables') {
       const state = await provider.tableState(table);
       const option = config.get<TableOption>('build.create.table') === 'skip' ? 'skip' : 'recreate';
