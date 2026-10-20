@@ -58,8 +58,14 @@ PSQRYFIELD cells changed) and typed inverse
 with live MATCHES_RECORDED, query VERSION read 16 before, 27 after apply and
 28 after the inverse, and generated SQL
 checked at each step. Query create/copy stay natively unverified because no
-calibrated delete adapter exists to undo them. Next: Query criteria/prompt
-edits, or 8.61 / REST consumer structural evidence.
+calibrated delete adapter exists to undo them. Query criteria/order then passed
+too: apply `ac56e70a-478c-40ac-b2b0-b1644d5c6bf0` (a rollback dry run first
+showed the calibrated `constant` operation replaces the single criterion; SQL
+became `WHERE ( A.ESTABID = 'ZZLAB') ORDER BY 1`, no prompts) and typed inverse
+`13d7ef06-672d-4633-b617-b018899be296` restoring `WHERE ( A.DESCR = :2)` with
+prompt BIND2; VERSION 29 -> 30. Next: 8.61 / REST consumer structural
+evidence; further native trials should be batched into one Change Set to cut
+developer round trips.
 
 Latest checkpoint: the native startup-trace Process UPDATE rolled back on a
 JSON property-order comparison bug; its original full live baseline is intact.
