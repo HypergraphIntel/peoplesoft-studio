@@ -15,6 +15,8 @@ export class WorkerValidationRunner implements ValidationRunner {
     const id = ++this.sequence;
     return new Promise<Validation>((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
+      // A run in progress holds the process open; an idle thread never does.
+      worker.ref();
       worker.postMessage({ id, request });
     });
   }
@@ -34,6 +36,7 @@ export class WorkerValidationRunner implements ValidationRunner {
       const waiting = this.pending.get(message.id);
       if (!waiting) return;
       this.pending.delete(message.id);
+      if (!this.pending.size) worker.unref();
       if (message.result) waiting.resolve(message.result);
       else waiting.reject(new Error(message.error ?? 'Validation failed.'));
     });
