@@ -164,3 +164,15 @@ Evidence is in `structured-review-native-validation.json`. The older Static
 Text flag trial remains explicitly FAILED; this separate corrected acceptance
 does not alter that evidence. Page redo, inserted controls and unsupported
 structural operations remain outside this result.
+
+Native Page redo (October 19, installed 0.9.6 candidate): a redo of inverse
+`8c52441a…` was refused ("Live state changed since application") because the
+page had been edited outside review since. A fresh description cycle on
+`ZZ_PCODE_LAB_PG` then passed: apply `2709920a-7370-46af-99b3-33ff96c2fd7b`
+(PSPNLDEFN.DESCR `Lab Page Edited` -> `Page redo acceptance`), checkpoint
+inverse `3da9bfad-54ce-4eab-aa43-fadcae1a5160` and redo
+`2c568d3c-d3ac-484a-8635-1ad2f7198b79`, each developer-approved, VERIFIED with
+live MATCHES_RECORDED and independent description readback. The timeline
+correctly marks the forward revision GAP after the unrecorded external edit,
+then MATCHES_PREVIOUS for the inverse and redo. Inserted controls and other
+structure remain outside this result.

@@ -47,8 +47,11 @@ MATCHES_RECORDED. The comment remains on these lab programs after the redo.
 Found on the way: the plan buttons briefly hid the taken decision, which moved
 "Reject approach" under the cursor (fixed 9eee74b: both stay, the taken one is
 disabled), and redo titles read "Redo Revert ..." (now "Redo <original>").
-Next: Page redo, Query create/copy native, or 8.61 / REST consumer structural
-evidence.
+Native Page redo then passed on ZZ_PCODE_LAB_PG (apply `2709920a…`, inverse
+`3da9bfad…`, redo `2c568d3c…`; see PAGE_ADAPTER.md); the stale earlier redo was
+correctly refused. Also fixed: an unknown Change Set ID returned a raw ENOENT
+with the local storage path; it is now "Change Set not found". Next: Query
+create/copy native, or 8.61 / REST consumer structural evidence.
 
 Latest checkpoint: the native startup-trace Process UPDATE rolled back on a
 JSON property-order comparison bug; its original full live baseline is intact.

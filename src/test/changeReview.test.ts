@@ -161,6 +161,12 @@ test('an adapter reversal refusal blocks the inverse up front with its reason an
         assert.equal((await f.service.reversalSupport(applied)).supported, true);
     } finally { await f.close(); }
 });
+test('an unknown Change Set ID is reported without the storage path', async () => {
+    const f = await fixture();
+    try {
+        await assert.rejects(f.service.store.get('00000000-0000-0000-0000-000000000000'), (e: Error) => e.message === 'Change Set not found: 00000000-0000-0000-0000-000000000000' && !e.message.includes(f.root));
+    } finally { await f.close(); }
+});
 test('validating an empty Change Set is refused without marking it conflicted', async () => {
     const f = await fixture();
     try {

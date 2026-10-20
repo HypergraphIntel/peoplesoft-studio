@@ -125,7 +125,11 @@ export class ReviewStore {
         await this.atomic(this.location('sets', set.id), canonical({ checksum: hash(value), value }));
     }
     async get(id: string): Promise<ChangeSet> {
-        const envelope = JSON.parse(await fs.readFile(this.location('sets', id), 'utf8')) as {
+        const text = await fs.readFile(this.location('sets', id), 'utf8').catch((e: NodeJS.ErrnoException) => {
+            // Never echo the local storage path for an unknown ID.
+            throw e.code === 'ENOENT' ? new Error('Change Set not found: ' + id) : e;
+        });
+        const envelope = JSON.parse(text) as {
             checksum: string;
             value: ChangeSet;
         };

@@ -23,6 +23,9 @@
 - **Approach approval buttons reflect the decision.** The review page hides
   "Approve approach" once approved and "Reject approach" once rejected.
 
+- **Native Page redo verified**, and an unknown Change Set ID reports "Change
+  Set not found" instead of a file error carrying the local storage path.
+
 - **Native reviewed PeopleCode event cycle with redo.** Page, Component and
   Component Record Field PeopleCode passed installed HRDMO apply, typed
   inverse and redo, each developer-approved. Redo proposals are titled
