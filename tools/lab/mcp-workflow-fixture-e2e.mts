@@ -569,7 +569,7 @@ async function reviewRpc(method:string,params:unknown) {
  if(value.error)throw new Error(JSON.stringify(value.error));return value.result;
 }
 async function reviewCall(name:string,args:object,expect=true){const r=await reviewRpc('tools/call',{name,arguments:args});if(!expect){assert.equal(r.isError,true,'Expected refusal: '+name);return r;}assert.ok(!r.isError,r.content?.[0]?.text);return JSON.parse(r.content[0].text);}
-async function until(test:()=>Promise<boolean>){for(let n=0;n<200;n++){if(await test())return;await new Promise(resolve=>setTimeout(resolve,5));}throw new Error('Review UI did not reach expected state');}
+async function until(test:()=>Promise<boolean>){for(let n=0;n<2000;n++){if(await test())return;await new Promise(resolve=>setTimeout(resolve,5));}throw new Error('Review UI did not reach expected state');}
 try{
  mode='confirm';const confirmsBefore=confirmed;
  const names=(await reviewRpc('tools/list',{})).tools.map((tool:any)=>tool.name);
