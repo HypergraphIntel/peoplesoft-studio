@@ -31,13 +31,15 @@ export interface BuildPlan {
 
 /**
  * The statements of a script: each ends at a "/" line (Oracle), a "go" line
- * (SQL Server), or a ";" ending its last line (DB2).
+ * (SQL Server), or a ";" ending its last line (DB2). Comment lines are left out.
  */
 export function scriptStatements(script: string, platform: DdlPlatform = 'oracle'): string[] {
   const out: string[] = [];
   let current: string[] = [];
   const end = platform === 'oracle' ? '/' : platform === 'mssql' ? 'go' : undefined;
   for (const line of script.split('\n')) {
+    // A comment line (a view script's header) is the script's, not a statement's.
+    if (/^\s*--/.test(line)) continue;
     if (end !== undefined ? line.trim().toLowerCase() === end : /;\s*$/.test(line)) {
       if (end === undefined) current.push(line.replace(/;\s*$/, ''));
       const text = current.join('\n').trim();
@@ -68,6 +70,7 @@ export function ddlRecordFromLayout(r: RecordLayout): DdlRecord {
   return {
     name: r.name, recordType: r.recordType, sqlTableName: r.sqlTableName,
     ...(r.tablespace ? { tablespace: r.tablespace } : {}),
+    ...(r.properties?.optTrigFlag === 'Y' ? { optimizationTrigger: true } : {}),
     fields: r.fields.map((f) => ({
       name: f.name, type: f.type!, length: f.length ?? 0, decimalPositions: f.decimalPositions ?? 0,
       ...(f.format !== undefined ? { format: f.format } : {}), useEdit: f.useEdit

@@ -14,7 +14,8 @@ import {
 } from '../model/recordEdit.js';
 import { renderRecordHtml } from './recordHtml.js';
 import { lobColumn, tableName } from '../model/recordDdl.js';
-import { ddlRecordFromLayout, planCreateTables, type TableOption } from '../model/recordBuild.js';
+import { ddlRecordFromLayout, planCreateTables, type BuildPlan, type TableOption } from '../model/recordBuild.js';
+import { planAlterTable, planCreateIndexes, planCreateViews, type IndexOption, type ViewOption } from '../model/recordAlter.js';
 import {
   FIELD_TYPE_LABELS, RecordDefinition, RecordField, RecordType, UseEdit, UseEdit2, hasFlag
 } from '../model/record.js';
@@ -238,9 +239,11 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
   }
 
   /**
-   * App Designer's Build > Current Definition, Create Tables (recordBuild.ts):
-   * Build script opens the script; Build and execute also runs it on a
-   * Writable connection, after a confirmation, and logs each statement.
+   * App Designer's Build > Current Definition (recordBuild.ts, recordAlter.ts):
+   * Create Tables, Create Indexes or Alter Tables for an SQL Table, Create
+   * Views for an SQL View. Build script opens the script; Build and execute
+   * also runs it on a Writable connection, after a confirmation, and logs
+   * each statement. Build Settings come from PeopleSoft Studio Settings.
    */
   private async build(doc: RecordDocument): Promise<void> {
     const provider = doc.provider;
@@ -254,21 +257,36 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
       void vscode.window.showInformationMessage('The build script comes from the database\'s DDL model; a project export does not carry one.');
       return;
     }
+    const view = shown.recordType === RecordType.View;
+    if (!view && shown.recordType !== RecordType.Table) {
+      void vscode.window.showInformationMessage('Only SQL Tables and SQL Views are built.');
+      return;
+    }
     const model = await provider.readDdlModel(shown.name);
     if (!model) {
       void vscode.window.showInformationMessage(`${provider.displayName} has no DDL model for its platform (PSDDLMODEL).`);
       return;
     }
+    type Operation = 'tables' | 'indexes' | 'alter' | 'views';
+    const operations: Array<vscode.QuickPickItem & { operation: Operation }> = view
+      ? [{ label: 'Create Views', detail: 'Drop and re-create the view from its SQL (Build Settings: view option).', operation: 'views' }]
+      : [
+          { label: 'Create Tables', detail: 'Create the table and its indexes (Build Settings: table option).', operation: 'tables' },
+          { label: 'Create Indexes', detail: 'Create missing indexes and re-create changed ones (Build Settings: index option).', operation: 'indexes' },
+          { label: 'Alter Tables', detail: 'Bring the existing table and its indexes in line with the record (Build Settings: Alter).', operation: 'alter' }
+        ];
+    const picked = operations.length === 1 ? operations[0] : await vscode.window.showQuickPick(operations, { title: `Build ${shown.name}`, placeHolder: 'Build option' });
+    if (!picked) return;
     const writable = this.workspace.isWritable(provider.id);
     const choice = await vscode.window.showQuickPick([
-      { label: 'Build script', detail: 'Write the Create Tables script and open it; nothing is run.', execute: false },
+      { label: 'Build script', detail: `Write the ${picked.label} script and open it; nothing is run.`, execute: false },
       {
         label: 'Build and execute',
         detail: !writable ? `${provider.displayName} is read-only (Access in PeopleSoft Studio Settings).`
           : doc.dirty ? 'Save the record first: the build runs what is saved.' : `Run the script on ${provider.displayName}, and open it.`,
         execute: true
       }
-    ], { title: `Build ${shown.name}: Create Tables`, placeHolder: 'Build Settings apply (PeopleSoft Studio Settings)' });
+    ], { title: `Build ${shown.name}: ${picked.label}`, placeHolder: 'Build Settings apply (PeopleSoft Studio Settings)' });
     if (!choice) return;
     if (choice.execute && (!writable || doc.dirty)) {
       void vscode.window.showWarningMessage(!writable ? `${provider.displayName} is read-only: the script can be built, not run.`
@@ -276,26 +294,50 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
       return;
     }
 
+    const config = vscode.workspace.getConfiguration('peoplesoft');
     const record = ddlRecordFromLayout(shown);
     const table = tableName(record);
-    const state = await provider.tableState(table);
-    const option = vscode.workspace.getConfiguration('peoplesoft').get<TableOption>('build.create.table') === 'skip' ? 'skip' : 'recreate';
-    const plan = planCreateTables(record, model, option, state.exists);
+    let plan: BuildPlan;
+    let loss = '';
+    if (picked.operation === 'views') {
+      const option = config.get<ViewOption>('build.create.view') === 'skip' ? 'skip' : 'recreate';
+      plan = planCreateViews(record, doc.viewSql() ?? '', await provider.viewExists(table), option, model);
+    } else if (picked.operation === 'tables') {
+      const state = await provider.tableState(table);
+      const option = config.get<TableOption>('build.create.table') === 'skip' ? 'skip' : 'recreate';
+      plan = planCreateTables(record, model, option, state.exists);
+      if (plan.drops) loss = state.hasRows ? ` DROP TABLE ${plan.drops} deletes the table and the data in it.` : ` ${plan.drops} is dropped (it holds no rows).`;
+    } else {
+      const facts = await provider.readBuildFacts(table);
+      if (picked.operation === 'indexes') {
+        plan = planCreateIndexes(record, model, facts, config.get<IndexOption>('build.create.index') === 'recreate' ? 'recreate' : 'ifModified');
+      } else {
+        const a = (k: string, d: boolean) => config.get<boolean>(`build.alter.${k}`) ?? d;
+        plan = planAlterTable(record, model, facts, {
+          tableOption: config.get<string>('build.alter.tableOption') === 'inPlace' ? 'inPlace' : 'rename',
+          dropColumn: config.get<string>('build.alter.dropColumn') === 'drop' ? 'drop' : 'skip',
+          changeLength: config.get<string>('build.alter.changeLength') === 'truncate' ? 'truncate' : 'skip',
+          adds: a('adds', true), changes: a('changes', true), renames: a('renames', true), deletes: a('deletes', true), evenIfNoChanges: a('evenIfNoChanges', false)
+        });
+        if (plan.statements.some((x) => x.startsWith(`DROP TABLE ${table}`))) {
+          loss = ` ${table} is rebuilt: its rows are copied to PSY${record.name}, it is dropped, and the copy renamed.` + (plan.drops ? ` ${plan.drops} are lost.` : '');
+        }
+      }
+    }
     for (const note of plan.notes) void vscode.window.showInformationMessage(note);
     if (plan.statements.length === 0) return;
     const sql = await vscode.workspace.openTextDocument({ content: plan.script, language: 'psft-sql' });
     await vscode.window.showTextDocument(sql, { preview: false });
     if (!choice.execute) return;
 
-    const loss = plan.drops ? (state.hasRows ? ` DROP TABLE ${plan.drops} deletes the table and the data in it.` : ` ${plan.drops} is dropped (it holds no rows).`) : '';
     const go = await vscode.window.showWarningMessage(
       `Run ${plan.statements.length} statements on ${provider.displayName} (schema ${provider.schema ?? '?'})?${loss}`,
       { modal: true, detail: 'DDL commits as it runs: it cannot be rolled back.' }, 'Execute');
     if (go !== 'Execute') return;
     const log = buildLog();
-    log.appendLine(`-- ${new Date().toISOString()} Build ${shown.name} on ${provider.displayName} (schema ${provider.schema ?? '?'}): Create Tables, ${option}`);
+    log.appendLine(`-- ${new Date().toISOString()} Build ${shown.name} on ${provider.displayName} (schema ${provider.schema ?? '?'}): ${picked.label}`);
     const result = await provider.executeBuild(plan.statements);
-    for (const s of plan.statements.slice(0, result.ran)) log.appendLine(`${s}\n-- done`);
+    for (const x of plan.statements.slice(0, result.ran)) log.appendLine(`${x}\n-- done`);
     if (result.error) {
       log.appendLine(`${result.error.statement}\n-- FAILED: ${result.error.message}`);
       log.show(true);
@@ -303,7 +345,7 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
       return;
     }
     log.appendLine(`-- ${shown.name}: ${result.ran} statements, no errors`);
-    void vscode.window.showInformationMessage(`Built ${table} on ${provider.displayName}: ${result.ran} statements run.`);
+    void vscode.window.showInformationMessage(`Built ${table} on ${provider.displayName} (${picked.label}): ${result.ran} statements run.`);
   }
 
   /** App Designer's field menu: the actions that leave the record editor. */

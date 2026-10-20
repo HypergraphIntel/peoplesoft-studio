@@ -18,6 +18,13 @@ HRDMO application passes for a standard operation with typed inverse and for a
 REST provider handler addition whose reversal is refused. See
 [IB structure](../change-review/IB_STRUCTURE.md).
 
+Build gains Create Indexes, Alter Tables (by table rename or in place) and
+Create Views on Oracle, in the record editor and Build Project. Every script
+matches App Designer's own, captured script-only on HRDMO 8.62.09, and the
+captures are golden tests. Studio's Alter and index rebuilds executed natively
+on an empty lab table and left nothing to change; uncaptured cases are
+refused. See [Build: indexes, views and Alter](../RECORD_SAVE.md#build-indexes-views-and-alter).
+
 Track the remaining project completion gates in
 [1.0 readiness](../RELEASE_1_0_READINESS.md). No 1.0 delivery date is committed.
 

@@ -490,10 +490,97 @@ Direct case x47 rebuilt PS_ZZ_PCODE_LAB_R1, which App Designer had built:
 `DBMS_METADATA` gives the same table and index DDL (storage included)
 before and after, and no PeopleTools row or version counter moved.
 
-Not built yet, App Designer's output not captured: Create Indexes on its
-own (*Recreate index only if modified*), Create Views, Alter Tables (every
-Alter setting), and whether App Designer's Build and Execute writes any
-PeopleTools rows of its own.
+Create Indexes, Create Views and Alter Tables follow in
+[Build: indexes, views and Alter](#build-indexes-views-and-alter). Still not
+established: whether App Designer's Build and Execute writes any PeopleTools
+rows of its own.
+
+## Build: indexes, views and Alter
+
+`src/model/recordAlter.ts` writes App Designer's Create Indexes, Create Views
+and Alter Tables scripts for Oracle. They were calibrated on HRDMO 8.62.09
+(2026-10-19) against App Designer's own scripts, built **script-only**, so
+nothing ran while capturing. Each was kept byte for byte (CRLF) by copying
+`PSBUILD.SQL` into a lab HTML definition (`ZZ_BCAP_*`); an SQL definition
+collapses whitespace on save. The captures, and the database DDL they relied
+on, are golden tests (`src/test/fixtures/build`, `recordAlter.test.ts`): I3-I6
+(indexes), V1 (view), A0-A5 (Alter), T1 (Create Tables, unchanged).
+
+- **Line cutting**: at most 70 characters, cut before the last space *or
+  comma* within the limit (a view's `DEPTID` / `,TREE_NODE_NUM`; the trigger
+  text). The comma rule changes no Create Tables script.
+- **Existing physical clauses come from the database.** An existing index is
+  re-created with the DDL model's head (`CREATE [UNIQUE]  INDEX name ON table
+  (col,\n   col) `, capital `INDEX`) followed by every line of
+  `DBMS_METADATA.GET_DDL('INDEX')` after its CREATE line, verbatim. An Alter
+  by rename copies the table's clauses from `GET_DDL('TABLE')` after the column
+  list's `)`, each line without trailing blanks. Then
+  `ALTER INDEX ... NOPARALLEL LOGGING`.
+- **Create Indexes**:
+  - *Recreate index if it already exists*: every `DROP INDEX` first, then each
+    index.
+  - *Recreate index only if modified*: an index unchanged in columns and
+    uniqueness is left alone, so no script is written. A modified index is
+    dropped and re-created with its new columns and old clauses. A missing
+    index comes from the DDL model, as Create Tables writes it (`CREATE   INDEX`).
+- **Create Views**:
+  - The script starts with App Designer's four `--UNCOMMENT SET DEFINE OFF` /
+    `SQLBLANKLINES` comment lines, each followed by a blank line. Only view
+    scripts have them.
+  - Then `DROP VIEW` when the view exists (with *Recreate*), and
+    `CREATE VIEW name (col, col) AS <SQL>` with each CR, LF and tab a space.
+  - SQL using meta-SQL (`%...`) is refused: App Designer's resolution of it is
+    not captured.
+- **Alter Tables** (it implies Create Indexes and Create Trigger):
+  - *Only keys or indexes changed*: the index work alone (A0).
+  - *By table rename*:
+    1. `UPDATE t SET c = SYSDATE\n   WHERE c IS NULL` for a DateTime becoming
+       NOT NULL.
+    2. `CREATE TABLE PSY<RECORD>` with the new columns.
+    3. `INSERT INTO PSY<RECORD> (\n        c1,\n    c2 ...)\n  SELECT\n        c1,\n    ...\n  FROM t`.
+       A new NOT NULL column is filled with `' '` (character, image reference)
+       or `0` (numbers); a new nullable column is left out. A shortened
+       column is copied as `SUBSTR(c, 1, n)`; a deleted one is left out.
+    4. `DROP TABLE t`, `RENAME PSY<RECORD> TO t`.
+    5. The indexes: an existing one with its old clauses, a new one from the
+       model.
+
+    When a deleted column had LOB storage, App Designer warns that the
+    storage resets to the DDL model defaults and builds the temporary table
+    from the model (A5).
+  - *In place*: chosen only when every change is an add (A3). One
+    `ALTER TABLE t ADD c TYPE` per column, in field order and without NOT
+    NULL (a DateTime is `TIMESTAMP` here, not `tIMESTAMP`). Then one
+    `UPDATE t SET c = v, ...` and `ALTER TABLE t MODIFY c NOT NULL` for each
+    NOT NULL add. With a delete, a lengthened column and a NOT NULL change,
+    App Designer rebuilt by rename even with *Alter in Place* set (A4).
+  - *Build Settings*: a drop with data under *Skip record if data present*, a
+    shortening with data under *Skip record if field too short* (Studio checks
+    for any row, App Designer for data that does not fit) and an Alter Any
+    option turned off skip the record with a note.
+- **Refused, not captured**: Alter and Create Indexes/Views on SQL Server and
+  DB2, column type changes, a narrowed number holding data, a new required
+  Date/Time/DateTime/Long/Image column, NOT NULL changes other than a DateTime,
+  LOB storage of a kept column, partitions, a custom SQL table name and
+  *Alter even if no changes*.
+- **Not generated**: the PSOPTSYNC trigger App Designer appends for a record
+  with OPTTRIGFLAG Y (only ZZ_PCODE_LAB_R1 in HRDMO). A note says so.
+- App Designer warns *Potentially data destructive settings are active
+  (76,43)* before a recreate. Studio's execute confirmation names the dropped
+  table, or the rebuilt table and any column whose data is lost.
+
+**Native execution** (2026-10-19, empty lab table `PS_ZZ_PCODE_LAB_R1`):
+1. Studio's Alter for the A4 definition ran: 18 columns and both indexes,
+   VALID, with no `PSY` table left. A re-plan reported no changes.
+2. After the record was restored in App Designer (checked against an Oracle
+   flashback of its rows), Studio's A5 Alter ran: back to the original ten
+   columns and key index, again with nothing left to change.
+3. Create Indexes (recreate) left the index's DDL identical.
+
+The only difference from the original `GET_DDL` is Oracle's own: a table whose
+segment now exists prints its full storage defaults (MINEXTENTS, FREELISTS,
+BUFFER_POOL) instead of the short form of `SEGMENT CREATION DEFERRED`. The
+sizes are the same.
 
 ## Cases r45-r53: last key, to Derived/Work, a deleted name, audit, timestamp, subrecord
 

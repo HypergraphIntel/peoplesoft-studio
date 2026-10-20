@@ -9,8 +9,9 @@ import { FieldType, hasFlag, RecordType, UseEdit } from './record.js';
  *
  *   - the first column follows "CREATE TABLE <name> (", the others start a
  *     line indented three spaces;
- *   - a line is at most 70 characters: a word that would pass that starts
- *     the next line, after one space;
+ *   - a line is at most 70 characters: it is cut before the last space or
+ *     comma that keeps it within that, the space or comma starting the next
+ *     line (a view's "DEPTID" / ",TREE_NODE_NUM", HRDMO 2026-10-19);
  *   - each statement ends with a line "/";
  *   - App Designer writes "iNDEX" in CREATE INDEX, and marks two column
  *     types by a lowercase first letter: "tIMESTAMP" for DateTime (Time is
@@ -106,6 +107,8 @@ export interface DdlRecord {
   /** PSRECTBLSPC.DDLSPACENAME. */
   tablespace?: string;
   fields: DdlField[];
+  /** PSRECDEFN.OPTTRIGFLAG 'Y': App Designer also builds a PSOPTSYNC trigger (not generated here). */
+  optimizationTrigger?: boolean;
 }
 
 /** App Designer's widest script line. */
@@ -208,12 +211,16 @@ export function notNull(f: DdlField): boolean {
   }
 }
 
-/** One logical line cut as App Designer cuts it: at most SCRIPT_WIDTH, a moved word keeping its leading space. */
+/**
+ * One logical line cut as App Designer cuts it: at most SCRIPT_WIDTH, cut
+ * before the last space or comma within it, which starts the next line.
+ */
 export function wrapLine(line: string, width = SCRIPT_WIDTH): string[] {
   const out: string[] = [];
   let rest = line;
   while (rest.length > width) {
-    const cut = rest.lastIndexOf(' ', width);
+    let cut = -1;
+    for (let i = width; i > 0; i--) if (rest[i] === ' ' || rest[i] === ',') { cut = i; break; }
     if (cut <= 0) break;
     out.push(rest.slice(0, cut));
     rest = rest.slice(cut);
@@ -244,45 +251,131 @@ function statementFor(platform: DdlPlatform) {
   };
 }
 
-/** The Create Table script, or the reason there is none. */
-export function createTableScript(r: DdlRecord, model: DdlModel): string {
-  if (r.recordType !== RecordType.Table) {
-    throw new Error(`${r.name} is not an SQL Table: only SQL Tables have a Create Table script here.`);
+/** A record's Create Table columns: LOBs last, in field order (R6), each after the first on its own line three spaces in. */
+export function createColumnOrder(r: DdlRecord, platform: DdlPlatform = 'oracle'): DdlField[] {
+  const lob = (f: DdlField) => isLob(columnType(f, platform));
+  return [...r.fields.filter((f) => !lob(f)), ...r.fields.filter(lob)];
+}
+
+function columnList(r: DdlRecord, platform: DdlPlatform): string {
+  return createColumnOrder(r, platform).map((f) => `${f.name} ${columnType(f, platform)}${notNull(f) ? ' NOT NULL' : ''}`).join(',\n   ');
+}
+
+/** An index the record defines: its key index (PS_<RECORD>) and an index PS<n><RECORD> per alternate search key. */
+export interface DdlIndex {
+  name: string;
+  unique: boolean;
+  /** The key index (written "iNDEX" when the DDL model creates it on Oracle). */
+  key: boolean;
+  columns: string[];
+  parms: Readonly<Record<string, string>>;
+}
+
+export function ddlIndexes(r: DdlRecord, model: DdlModel): DdlIndex[] {
+  const table = tableName(r);
+  const out: DdlIndex[] = [];
+  const keys = r.fields.filter((f) => hasFlag(f.useEdit, UseEdit.Key) || hasFlag(f.useEdit, UseEdit.DuplicateOrderKey));
+  if (keys.length > 0) {
+    out.push({ name: table, unique: !keys.some((k) => hasFlag(k.useEdit, UseEdit.DuplicateOrderKey)), key: true, columns: keys.map((k) => k.name), parms: model.indexParms });
   }
-  if (r.fields.length === 0) throw new Error(`${r.name} has no fields.`);
+  const keyFields = r.fields.filter((f) => hasFlag(f.useEdit, UseEdit.Key));
+  for (const [i, alt] of r.fields.filter((f) => hasFlag(f.useEdit, UseEdit.AltSearchKey)).entries()) {
+    out.push({ name: `PS${i}${r.name}`, unique: false, key: false, columns: [alt, ...keyFields].map((k) => k.name),
+      parms: model.altIndexParms?.[String(i)] ?? model.indexDefaults ?? model.indexParms });
+  }
+  return out;
+}
+
+function indexTokens(table: string, x: DdlIndex, platform: DdlPlatform): Record<string, string> {
+  return { UNIQUE: x.unique ? 'UNIQUE' : '', CLUSTER: platform === 'mssql' && x.key ? 'CLUSTERED' : '', IDXNAME: x.name, TBNAME: table, IDXCOLLIST: x.columns.join(',\n   ') };
+}
+
+/** The DDL model's Create Index for an index, then ALTER INDEX ... NOPARALLEL LOGGING after a PARALLEL NOLOGGING build. */
+export function modelIndexLines(table: string, x: DdlIndex, model: DdlModel): string[] {
   const platform = model.platform ?? 'oracle';
   const statement = statementFor(platform);
-  const table = tableName(r);
-  const lob = (f: DdlField) => isLob(columnType(f, platform));
-  const columns = [...r.fields.filter((f) => !lob(f)), ...r.fields.filter(lob)]
-    .map((f) => `${f.name} ${columnType(f, platform)}${notNull(f) ? ' NOT NULL' : ''}`).join(',\n   ');
+  let index = fill(model.index, indexTokens(table, x, platform), x.parms);
+  if (x.key) index = index.replace(/ INDEX /, platform === 'oracle' ? ' iNDEX ' : ' INDEX ');
+  const out = statement(index);
+  if (/\bPARALLEL NOLOGGING\b/.test(index)) out.push(...statement(`ALTER INDEX ${x.name} NOPARALLEL LOGGING`));
+  return out;
+}
+
+/**
+ * Oracle: an existing index re-created as App Designer re-creates it (Create
+ * Indexes with "Recreate index if it already exists", a modified index, and
+ * the indexes Alter puts back): the DDL model's head through the record's
+ * column list, then the physical clauses DBMS_METADATA.GET_DDL gives for the
+ * index in the database -- every line after its CREATE line, verbatim --
+ * each line cut at 70. HRDMO captures I3, I4, I6, A1 (2026-10-19).
+ */
+export function metadataIndexLines(table: string, x: DdlIndex, model: DdlModel, ddl: string): string[] {
+  const end = model.index.indexOf('([IDXCOLLIST])');
+  if (end < 0) throw new Error('The DDL model\'s Create Index has no ([IDXCOLLIST]).');
+  const head = fill(model.index.slice(0, end + '([IDXCOLLIST])'.length), indexTokens(table, x, 'oracle'), x.parms) + ' ';
+  const lines = ddl.split('\n');
+  const at = lines.findIndex((l) => /^\s*CREATE\b/i.test(l));
+  if (at < 0) throw new Error(`No CREATE INDEX in the database's DDL for ${x.name}.`);
+  const out = [...head.split('\n').flatMap((l) => wrapLine(l)), ...lines.slice(at + 1).flatMap((l) => wrapLine(l)), '/'];
+  if (/\bPARALLEL NOLOGGING\b/.test(fill(model.index, indexTokens(table, x, 'oracle'), x.parms))) out.push(`ALTER INDEX ${x.name} NOPARALLEL LOGGING`, '/');
+  return out;
+}
+
+/**
+ * Oracle Alter by table rename: CREATE TABLE <temporary> with the record's
+ * columns as Create Table lists them, then the table's physical clauses from
+ * DBMS_METADATA.GET_DDL -- what follows its column list's ")", each line
+ * without trailing blanks (HRDMO captures A1, A2, A4).
+ */
+export function metadataTableLines(r: DdlRecord, temporary: string, ddl: string): string[] {
+  const lines = ddl.split('\n');
+  const close = lines.findIndex((l) => /^\s*\)/.test(l));
+  if (close < 0) throw new Error(`No column list in the database's DDL for ${tableName(r)}.`);
+  const text = `CREATE TABLE ${temporary} (${columnList(r, 'oracle')})` + lines[close].replace(/^\s*\)/, '').trimEnd();
+  return [...text.split('\n').flatMap((l) => wrapLine(l)), ...lines.slice(close + 1).map((l) => l.trimEnd()).flatMap((l) => wrapLine(l)), '/'];
+}
+
+/** App Designer's first lines of an Oracle view script (only view scripts carry them). */
+export const VIEW_SCRIPT_HEADER = [
+  '--UNCOMMENT SET DEFINE OFF TO RUN THIS SCRIPT IN SQLPLUS/SQL DEVELOPER', '',
+  '--SET DEFINE OFF', '',
+  '--UNCOMMENT SET SQLBLANKLINES ON TO RUN THIS SCRIPT IN SQLPLUS', '',
+  '--SET SQLBLANKLINES ON', ''
+];
+
+/** CREATE VIEW for a view record: its fields as the column list, and its SQL with each CR, LF and tab a space (HRDMO capture V1). */
+export function createViewLines(view: string, columns: readonly string[], sql: string): string[] {
+  const body = sql.replace(/[\r\n\t]/g, ' ').trimEnd().replace(/;$/, '').trimEnd();
+  return [...wrapLine(`CREATE VIEW ${view} (${columns.join(', ')}) AS ${body}`), '/'];
+}
+
+/**
+ * The DDL model's Create Table for a record, under another name when asked:
+ * Alter by table rename builds its temporary table so when the table's LOB
+ * storage belonged to a deleted column (App Designer resets the storage to
+ * the DDL model defaults; capture A5).
+ */
+export function modelTableLines(r: DdlRecord, model: DdlModel, name = tableName(r)): string[] {
+  const platform = model.platform ?? 'oracle';
   const tokens: Record<string, string> = {
-    TBNAME: table, TBCOLLIST: columns, TBSPCNAME: r.tablespace ?? '',
+    TBNAME: name, TBCOLLIST: columnList(r, platform), TBSPCNAME: r.tablespace ?? '',
     // DB2: no VOLATILE marking and no separate LOB table space unless a record names them.
     VOLATILE: '', DBXLOBTBSPCNAME: '', DBNAME: model.dbName ?? ''
   };
   let tableStatement = fill(model.table, tokens, model.tableParms);
   // DB2 LUW without a table space of its own: the database's default, and indexes with the table.
   if (platform === 'db2' && !r.tablespace) tableStatement = tableStatement.replace(/\s+IN\s+INDEX IN\s+IDX\s*/, ' ');
-  const out = statement(tableStatement);
+  return statementFor(platform)(tableStatement);
+}
 
-  const keys = r.fields.filter((f) => hasFlag(f.useEdit, UseEdit.Key) || hasFlag(f.useEdit, UseEdit.DuplicateOrderKey));
-  if (keys.length > 0) {
-    const unique = !keys.some((k) => hasFlag(k.useEdit, UseEdit.DuplicateOrderKey));
-    const index = fill(model.index,
-      { UNIQUE: unique ? 'UNIQUE' : '', CLUSTER: platform === 'mssql' ? 'CLUSTERED' : '', IDXNAME: table, TBNAME: table, IDXCOLLIST: keys.map((k) => k.name).join(',\n   ') },
-      model.indexParms).replace(/ INDEX /, platform === 'oracle' ? ' iNDEX ' : ' INDEX ');
-    out.push(...statement(index));
-    if (/\bPARALLEL NOLOGGING\b/.test(index)) out.push(...statement(`ALTER INDEX ${table} NOPARALLEL LOGGING`));
+/** The Create Table script, or the reason there is none. */
+export function createTableScript(r: DdlRecord, model: DdlModel): string {
+  if (r.recordType !== RecordType.Table) {
+    throw new Error(`${r.name} is not an SQL Table: only SQL Tables have a Create Table script here.`);
   }
-  const keyFields = r.fields.filter((f) => hasFlag(f.useEdit, UseEdit.Key));
-  for (const [i, alt] of r.fields.filter((f) => hasFlag(f.useEdit, UseEdit.AltSearchKey)).entries()) {
-    const name = `PS${i}${r.name}`;
-    const parms = model.altIndexParms?.[String(i)] ?? model.indexDefaults ?? model.indexParms;
-    const index = fill(model.index,
-      { UNIQUE: '', CLUSTER: '', IDXNAME: name, TBNAME: table, IDXCOLLIST: [alt, ...keyFields].map((k) => k.name).join(',\n   ') }, parms);
-    out.push(...statement(index));
-    if (/\bPARALLEL NOLOGGING\b/.test(index)) out.push(...statement(`ALTER INDEX ${name} NOPARALLEL LOGGING`));
-  }
+  if (r.fields.length === 0) throw new Error(`${r.name} has no fields.`);
+  const table = tableName(r);
+  const out = modelTableLines(r, model);
+  for (const x of ddlIndexes(r, model)) out.push(...modelIndexLines(table, x, model));
   return out.join('\n') + '\n';
 }

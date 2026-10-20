@@ -2,6 +2,16 @@
 
 ## Unreleased — 0.9.6
 
+- **Build: Create Indexes, Alter Tables and Create Views.** The record
+  editor's Build... and Build Project now offer App Designer's other build
+  options on Oracle. Each script matches App Designer's own, captured on
+  HRDMO 8.62.09: re-created indexes and Alter's rebuilt table keep the
+  database's physical clauses (DBMS_METADATA), new indexes come from the DDL
+  model, and Alter rebuilds by table rename or adds columns in place exactly
+  as App Designer chooses. Script lines are now cut at a comma as well as a
+  space, as App Designer cuts them. Uncaptured cases are refused with the
+  reason. Native Alter and index execution passed on a lab table.
+
 - **Bounded Integration Broker structural review.** `psft_ib_save` now stages
   existing service owner/namespace edits and operation header, version,
   parameter and handler edits, plus the calibrated ApplicationClass OnRequest

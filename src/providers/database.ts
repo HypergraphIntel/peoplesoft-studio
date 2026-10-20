@@ -30,6 +30,7 @@ import { readProjectCreationSnapshot } from './projectSnapshot.js';
 import { hash as reviewHash } from '../changeReview/model.js';
 import { readStructuredSnapshot, readStructuredForCreation, type StructuredFamily, type StructuredRead } from './structuredSnapshot.js';
 import { ddlPlatformFor, tableName, type DdlModel } from '../model/recordDdl.js';
+import type { DbTableFacts } from '../model/recordAlter.js';
 import { maskSql, prepareReadOnlyQuery } from '../sql/readOnlyQuery.js';
 import { saveTranslate as saveTranslateRows, type TranslateChange } from './translateWriter.js';
 import { createField as createFieldRows, saveField as saveFieldRows, type FieldCreateRequest, type FieldSaveRequest } from './fieldWriter.js';
@@ -922,6 +923,51 @@ export class DatabaseProvider implements DefinitionProvider {
       const rows = await c.execute(`SELECT 1 AS X FROM ${table} FETCH FIRST 1 ROWS ONLY`);
       return { exists: true, hasRows: (rows.rows?.length ?? 0) > 0 };
     });
+  }
+
+  /**
+   * What Create Indexes and Alter Tables compare a record with (recordAlter.ts):
+   * the table's columns, its indexes and their columns, whether it holds a
+   * row, and DBMS_METADATA's DDL for the table and each index (the physical
+   * clauses App Designer re-creates them with). Oracle only; elsewhere the
+   * planners refuse before using it.
+   */
+  async readBuildFacts(table: string): Promise<DbTableFacts> {
+    if (!/^[A-Z][A-Z0-9_#$]{0,127}$/.test(table)) throw new ProviderError(`${table} is not a table name.`);
+    const STRING = this.types.STRING;
+    return this.withConnection(async (c) => {
+      if (!(await c.catalog.tableExists(c, table))) return { exists: false, hasRows: false, columns: [], indexes: [] };
+      const hasRows = ((await c.execute(`SELECT 1 AS X FROM ${table} FETCH FIRST 1 ROWS ONLY`)).rows?.length ?? 0) > 0;
+      if (this.platform !== 'oracle') return { exists: true, hasRows, columns: [], indexes: [] };
+      const owner = `SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')`;
+      const cols = await c.execute<{ N: string; T: string; L: number; P: number | null; S: number | null; NL: string }>(
+        `SELECT COLUMN_NAME AS N, DATA_TYPE AS T, CHAR_LENGTH AS L, DATA_PRECISION AS P, DATA_SCALE AS S, NULLABLE AS NL
+           FROM ALL_TAB_COLUMNS WHERE OWNER = ${owner} AND TABLE_NAME = :t ORDER BY COLUMN_ID`, { t: table });
+      const idx = await c.execute<{ N: string; U: string }>(
+        `SELECT INDEX_NAME AS N, UNIQUENESS AS U FROM ALL_INDEXES
+          WHERE TABLE_OWNER = ${owner} AND TABLE_NAME = :t AND INDEX_TYPE NOT LIKE 'LOB%' ORDER BY INDEX_NAME`, { t: table });
+      const idxCols = await c.execute<{ I: string; C: string }>(
+        `SELECT INDEX_NAME AS I, COLUMN_NAME AS C FROM ALL_IND_COLUMNS
+          WHERE TABLE_OWNER = ${owner} AND TABLE_NAME = :t ORDER BY INDEX_NAME, COLUMN_POSITION`, { t: table });
+      const ddl = async (type: 'TABLE' | 'INDEX', name: string) => String((await c.execute<{ D: string }>(
+        `SELECT DBMS_METADATA.GET_DDL(:k, :n, ${owner}) AS D FROM DUAL`, { k: type, n: name }, { fetchInfo: { D: { type: STRING } } })).rows?.[0]?.D ?? '');
+      return {
+        exists: true, hasRows,
+        columns: (cols.rows ?? []).map((r) => ({ name: r.N, dataType: r.T, charLength: Number(r.L ?? 0), precision: r.P === null ? null : Number(r.P), scale: r.S === null ? null : Number(r.S), nullable: r.NL === 'Y' })),
+        ddl: await ddl('TABLE', table),
+        indexes: await Promise.all((idx.rows ?? []).map(async (r) => ({
+          name: r.N, unique: r.U === 'UNIQUE', columns: (idxCols.rows ?? []).filter((x) => x.I === r.N).map((x) => x.C), ddl: await ddl('INDEX', r.N)
+        })))
+      };
+    });
+  }
+
+  /** Whether a view exists in the PeopleTools schema (Oracle: ALL_VIEWS). */
+  async viewExists(view: string): Promise<boolean> {
+    if (!/^[A-Z][A-Z0-9_#$]{0,127}$/.test(view)) throw new ProviderError(`${view} is not a view name.`);
+    if (this.platform !== 'oracle') return false;
+    return this.withConnection(async (c) => Number((await c.execute<{ N: number }>(
+      `SELECT COUNT(*) AS N FROM ALL_VIEWS WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND VIEW_NAME = :v`, { v: view })).rows?.[0]?.N ?? 0) > 0);
   }
 
   /**

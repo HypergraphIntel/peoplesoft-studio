@@ -168,14 +168,15 @@ test('the page carries the field menu, the dialog and each field\'s properties, 
   assert.ok(!html.includes('A</script><b>'), 'a field value cannot end the data block');
 });
 
-test('the page carries Record Properties and offers the build script for an SQL Table', () => {
+test('the page carries Record Properties and offers the build script for an SQL Table or View', () => {
   const props = { description: 'D', definition: 'Long </script>', ownerId: 'O', lastUpdated: '', lastUpdatedBy: '', setControlField: '',
     parentRecord: 'P', relatedLanguageRecord: '', querySecurityRecord: '', analyticDeleteRecord: '', auditRecord: '',
     systemIdField: '', timestampField: '', auxFlagMask: 0x10000, recUse: 0, optTrigFlag: 'N' };
   const html = renderRecordHtml({ ...layout, properties: props }, 'X', 'n');
   assert.ok(html.includes('<script type="application/json" id="record">') && !html.includes('Long </script>'));
   assert.ok(html.includes('data-act="build"'));
-  assert.ok(!renderRecordHtml({ ...layout, recordType: RecordType.View }, 'X', 'n').includes('data-act="build"'));
+  assert.ok(renderRecordHtml({ ...layout, recordType: RecordType.View }, 'X', 'n').includes('data-act="build"'), 'an SQL View builds (Create Views)');
+  assert.ok(!renderRecordHtml({ ...layout, recordType: RecordType.DerivedWork }, 'X', 'n').includes('data-act="build"'));
 });
 
 test('a duplicate order key reads "Dup", ordered and Asc, as App Designer shows ACA_RES_F_TBL', () => {

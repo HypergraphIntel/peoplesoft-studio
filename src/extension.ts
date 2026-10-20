@@ -65,7 +65,8 @@ import { showTextSearchResults } from './views/textSearchResults.js';
 import { htmlPreviewPage } from './editors/htmlPreview.js';
 import { renderQueryResults } from './editors/queryResults.js';
 import { prepareReadOnlyQuery } from './sql/readOnlyQuery.js';
-import { ddlRecordFromLayout, planProjectCreateTables, unbuildableReason, type ProjectBuildRecord, type TableOption } from './model/recordBuild.js';
+import { ddlRecordFromLayout, planProjectCreateTables, unbuildableReason, type BuildPlan, type ProjectBuildRecord, type TableOption } from './model/recordBuild.js';
+import { combineBuildPlans, planAlterTable, planCreateIndexes, planCreateViews, type AlterSettings, type IndexOption, type ViewOption } from './model/recordAlter.js';
 import { tableName } from './model/recordDdl.js';
 import { lineAndColumn, validatePeopleCode } from './peoplecode/validate.js';
 import type { DefinitionProvider } from './providers/provider.js';
@@ -1377,23 +1378,55 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         }
         if (!project) return;
         const projectName = project;
-        const option: TableOption = vscode.workspace.getConfiguration('peoplesoft').get<TableOption>('build.create.table') === 'skip' ? 'skip' : 'recreate';
+        const config = vscode.workspace.getConfiguration('peoplesoft');
+        const operation = (await vscode.window.showQuickPick([
+          { label: 'Create Tables', operation: 'tables' as const, detail: 'Each SQL Table, with its indexes (Build Settings: table option).' },
+          { label: 'Create Indexes', operation: 'indexes' as const, detail: 'Missing and changed indexes of each existing SQL Table (Build Settings: index option).' },
+          { label: 'Create Views', operation: 'views' as const, detail: 'Each SQL View (Build Settings: view option).' },
+          { label: 'Alter Tables', operation: 'alter' as const, detail: 'Each existing SQL Table brought in line with its record (Build Settings: Alter).' }
+        ], { title: `Build ${projectName}`, placeHolder: 'Build option (a script; nothing is run)' }));
+        if (!operation) return;
+        const option: TableOption = config.get<TableOption>('build.create.table') === 'skip' ? 'skip' : 'recreate';
+        const a = (k: string, d: boolean) => config.get<boolean>(`build.alter.${k}`) ?? d;
+        const alter: AlterSettings = {
+          tableOption: config.get<string>('build.alter.tableOption') === 'inPlace' ? 'inPlace' : 'rename',
+          dropColumn: config.get<string>('build.alter.dropColumn') === 'drop' ? 'drop' : 'skip',
+          changeLength: config.get<string>('build.alter.changeLength') === 'truncate' ? 'truncate' : 'skip',
+          adds: a('adds', true), changes: a('changes', true), renames: a('renames', true), deletes: a('deletes', true), evenIfNoChanges: a('evenIfNoChanges', false)
+        };
         const plan = await vscode.window.withProgress(
-          { location: vscode.ProgressLocation.Notification, title: `Building ${projectName}: Create Tables` },
+          { location: vscode.ProgressLocation.Notification, title: `Building ${projectName}: ${operation.label}` },
           async (progress) => {
             const records = (await provider.listProjectItems(projectName)).filter((i) => i.key.type === DefinitionType.Record);
             const inputs: ProjectBuildRecord[] = [];
             const missing: string[] = [];
+            const plans: BuildPlan[] = [];
             for (const [i, item] of records.entries()) {
               progress.report({ message: `${i + 1} of ${records.length}` });
               const layout = await provider.readRecordLayout(item.key);
               if (!layout) { missing.push(item.key.parts[0]); continue; }
               const model = await provider.readDdlModel(layout.name);
               if (!model) throw new Error(`${provider.displayName} has no DDL model for its platform (PSDDLMODEL).`);
-              const exists = unbuildableReason(layout) ? false : (await provider.tableState(tableName(ddlRecordFromLayout(layout)))).exists;
-              inputs.push({ layout, model, tableExists: exists });
+              const record = ddlRecordFromLayout(layout);
+              if (operation.operation === 'tables') {
+                const exists = unbuildableReason(layout) ? false : (await provider.tableState(tableName(record))).exists;
+                inputs.push({ layout, model, tableExists: exists });
+                continue;
+              }
+              const wanted = operation.operation === 'views' ? RecordType.View : RecordType.Table;
+              if (layout.recordType !== wanted) continue;
+              if (layout.fields.some((f) => f.isSubrecord)) { plans.push({ script: '', statements: [], notes: [`${layout.name}: has subrecords (not built here yet).`] }); continue; }
+              if (operation.operation === 'views') {
+                plans.push(planCreateViews(record, layout.viewSql ?? '', await provider.viewExists(tableName(record)),
+                  config.get<ViewOption>('build.create.view') === 'skip' ? 'skip' : 'recreate', model));
+              } else {
+                const facts = await provider.readBuildFacts(tableName(record));
+                plans.push(operation.operation === 'indexes'
+                  ? planCreateIndexes(record, model, facts, config.get<IndexOption>('build.create.index') === 'recreate' ? 'recreate' : 'ifModified')
+                  : planAlterTable(record, model, facts, alter));
+              }
             }
-            const p = planProjectCreateTables(inputs, option);
+            const p = operation.operation === 'tables' ? planProjectCreateTables(inputs, option) : combineBuildPlans(plans);
             return { ...p, notes: [...p.notes, ...missing.map((m) => `${m}: in the project, but not in the database.`)], records: records.length };
           });
         if (!plan.script) {
@@ -1403,8 +1436,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         const doc = await vscode.workspace.openTextDocument({ content: plan.script, language: 'psft-sql' });
         await vscode.window.showTextDocument(doc, { preview: false });
         vscode.window.showInformationMessage(
-          `${projectName}: Create Tables script for ${plan.statements.filter((st) => /^CREATE TABLE/i.test(st)).length} table(s)${plan.drops ? `, dropping ${plan.drops} first (Build Settings: recreate)` : ''}. ` +
-          `Nothing was run.${plan.notes.length ? ` Left out: ${plan.notes.join(' ')}` : ''}`);
+          `${projectName}: ${operation.label} script, ${plan.statements.length} statement(s)${plan.drops ? `, dropping ${plan.drops} first (Build Settings: recreate)` : ''}. ` +
+          `Nothing was run.${plan.notes.length ? ` Notes: ${plan.notes.join(' ')}` : ''}`);
       });
     }),
 
