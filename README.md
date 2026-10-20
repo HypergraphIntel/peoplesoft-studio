@@ -18,6 +18,8 @@ Views; a PeopleCode language server with problems as you type; the AE/file
 workflow from requirements to verified output); see the
 [release notes](docs/releases/0.9.6.md) and [changelog](CHANGELOG.md).
 
+Development version: **0.9.7** (unreleased).
+
 Track completion gates in [1.0 readiness](docs/RELEASE_1_0_READINESS.md).
 
 ## Why PeopleSoft Studio

@@ -26,7 +26,7 @@ detail is the [README](../README.md#what-works-now), [roadmap](ROADMAP.md) and
 
 ## Next sequence
 
-1. Complete: bounded, evidenced 0.9.6 release published.
+1. Complete: bounded, evidenced 0.9.6 release published; 0.9.7 development prepared.
 2. Broaden IB structural review through explicit per-operation snapshot,
    dependency, validation and typed inverse contracts; retain native approval.
    In 0.9.6: bounded service/operation structure is implemented; installed

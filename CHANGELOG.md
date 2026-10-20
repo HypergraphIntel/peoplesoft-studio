@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — 0.9.7
+
+Development starts from 0.9.6. No 0.9.7 feature changes are claimed yet.
+
 ## 0.9.6 — October 20, 2026
 
 - **Settings: PeopleCode Editor.** A new Settings section gathers the

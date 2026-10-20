@@ -5,7 +5,7 @@ Designer parity is the goal; this is the path to it. The
 [1.0 readiness gates](RELEASE_1_0_READINESS.md) separate demonstrated progress
 from the remaining completion work; no 1.0 delivery date is committed.
 
-## Current release: 0.9.6
+## Current release: 0.9.6; development: 0.9.7
 
 0.9.4 adds calibrated 8.61.15 Query and standard Integration Broker writes,
 release-aware Page and Field Configurator mapping, application-class signature
