@@ -2,6 +2,13 @@
 
 ## Unreleased — 0.9.6
 
+- **PeopleCode diagnostics as you type.** Validate PeopleCode now runs on its
+  own half a second after typing stops (setting
+  `peoplesoft.peoplecode.validateAsYouType`, on by default). It compiles on a
+  worker thread with only the latest text counting, so even the largest
+  delivered application classes (600 KB, about four seconds) never block the
+  editor, and a stale compile is abandoned.
+
 - **Build: Create Indexes, Alter Tables and Create Views.** The record
   editor's Build... and Build Project now offer App Designer's other build
   options on Oracle. Each script matches App Designer's own, captured on

@@ -25,6 +25,10 @@ captures are golden tests. Studio's Alter and index rebuilds executed natively
 on an empty lab table and left nothing to change; uncaptured cases are
 refused. See [Build: indexes, views and Alter](../RECORD_SAVE.md#build-indexes-views-and-alter).
 
+PeopleCode problems now appear as you type: Validate PeopleCode runs half a
+second after typing stops, on a worker thread, with only the latest text
+counting (`peoplesoft.peoplecode.validateAsYouType`).
+
 Track the remaining project completion gates in
 [1.0 readiness](../RELEASE_1_0_READINESS.md). No 1.0 delivery date is committed.
 

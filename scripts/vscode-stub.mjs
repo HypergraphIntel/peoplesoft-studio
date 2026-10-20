@@ -364,6 +364,8 @@ export function createStub() {
       },
       onDidSaveTextDocument: () => new Disposable(() => {}),
       onDidCloseTextDocument: () => new Disposable(() => {}),
+      onDidOpenTextDocument: () => new Disposable(() => {}),
+      textDocuments: [],
       onDidChangeTextDocument: () => new Disposable(() => {}),
       registerTextDocumentContentProvider(scheme, provider) {
         vscode._contentProviders.set(scheme, provider);

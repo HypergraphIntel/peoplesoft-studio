@@ -1431,6 +1431,11 @@
           "maximum": 10000,
           "markdownDescription": "The most rows *Run SQL* shows. A query runs read only and is always rolled back: one SELECT, no `INTO` or `FOR UPDATE`; `%Table(record)` is the only meta-SQL expanded."
         },
+        "peoplesoft.peoplecode.validateAsYouType": {
+          "type": "boolean",
+          "default": true,
+          "description": "Compile the PeopleCode in the editor with PeopleSoft Studio's compiler a moment after you stop typing, and show where it stops in Problems (Validate PeopleCode, as you type). Large programs compile on a background thread. Application Designer has the last word."
+        },
         "peoplesoft.build.create.table": {
           "type": "string",
           "enum": [

@@ -68,7 +68,9 @@ import { prepareReadOnlyQuery } from './sql/readOnlyQuery.js';
 import { ddlRecordFromLayout, planProjectCreateTables, unbuildableReason, type BuildPlan, type ProjectBuildRecord, type TableOption } from './model/recordBuild.js';
 import { combineBuildPlans, planAlterTable, planCreateIndexes, planCreateViews, type AlterSettings, type IndexOption, type ViewOption } from './model/recordAlter.js';
 import { tableName } from './model/recordDdl.js';
-import { lineAndColumn, validatePeopleCode } from './peoplecode/validate.js';
+import { lineAndColumn, validatePeopleCode, type Validation } from './peoplecode/validate.js';
+import { LiveValidator } from './peoplecode/liveValidation.js';
+import { WorkerValidationRunner } from './peoplecode/validateWorkerClient.js';
 import type { DefinitionProvider } from './providers/provider.js';
 import { StatusBar } from './views/statusBar.js';
 import { selectConnection } from './views/connectionSelection.js';
@@ -294,19 +296,68 @@ async function chooseComponentPeopleCode(workspace: Workspace, which: 'object' |
   await vscode.commands.executeCommand('psft.openDefinition', provider.id, componentPeopleCodeKey(def.name, def.market, object, pick.event));
 }
 
+/** Validate PeopleCode's problems as diagnostics on the text they were found in (any line endings). */
+function peopleCodeDiagnostics(text: string, v: Validation): vscode.Diagnostic[] {
+  const normalized = text.replace(/\r\n/g, '\n');
+  return v.problems.map((p) => {
+    const at = lineAndColumn(normalized, p.offset);
+    const start = new vscode.Position(at.line, at.column);
+    const d = new vscode.Diagnostic(new vscode.Range(start, start.translate(0, 1)),
+      `${p.message} (PeopleSoft Studio's compiler, ${v.profile}; Application Designer has the last word)`, vscode.DiagnosticSeverity.Warning);
+    d.source = 'PeopleCode';
+    return d;
+  });
+}
+
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   // Writes go to every definition unless a name prefix limits them (writeScope.ts).
   setWriteNamePrefix(vscode.workspace.getConfiguration('peoplesoft').get<string>('writeNamePrefix'));
   const workspace = new Workspace(context.secrets);
   workspace.db2DriverDir = path.join(context.globalStorageUri.fsPath, 'db2-driver');
   context.subscriptions.push(workspace);
-  // Validate PeopleCode's results, cleared as soon as the text changes.
+  // Validate PeopleCode's results: as you type (liveValidation.ts) unless that is off, when they are cleared as soon as the text changes.
   const validationDiagnostics = vscode.languages.createDiagnosticCollection('psft-peoplecode-validate');
+  const releaseByHandle = new Map<string, Promise<string | undefined>>();
+  const releaseFor = (handle: string) => {
+    let release = releaseByHandle.get(handle);
+    if (!release) {
+      release = workspace.requireByHandle(handle).then((p) => p.readEnvironment?.()).then((e) => e?.toolsRelease, () => undefined);
+      releaseByHandle.set(handle, release);
+    }
+    return release;
+  };
+  const liveOn = () => vscode.workspace.getConfiguration('peoplesoft').get<boolean>('peoplecode.validateAsYouType') ?? true;
+  const live = new LiveValidator(
+    new WorkerValidationRunner(path.join(context.extensionPath, 'dist', 'validateWorker.js')),
+    (request, result) => {
+      const doc = vscode.workspace.textDocuments.find((d) => d.uri.toString() === request.uri);
+      if (doc && liveOn()) validationDiagnostics.set(doc.uri, peopleCodeDiagnostics(request.text, result));
+    },
+    (uri, version) => vscode.workspace.textDocuments.some((d) => d.uri.toString() === uri && d.version === version));
+  const validateLive = async (doc: vscode.TextDocument) => {
+    if (!liveOn() || doc.uri.scheme !== SCHEME || doc.languageId !== 'psft-peoplecode') return;
+    let parsed: ReturnType<typeof parseUri>;
+    try { parsed = parseUri(doc.uri); } catch { return; }
+    const release = (await releaseFor(parsed.handle)) ?? '8.62';
+    live.schedule({ uri: doc.uri.toString(), version: doc.version, text: doc.getText(), key: parsed.key, release });
+  };
   context.subscriptions.push(
     validationDiagnostics,
-    vscode.workspace.onDidChangeTextDocument((e) => { if (e.contentChanges.length) validationDiagnostics.delete(e.document.uri); }),
-    vscode.workspace.onDidCloseTextDocument((d) => validationDiagnostics.delete(d.uri))
+    { dispose: () => live.dispose() },
+    vscode.workspace.onDidOpenTextDocument((d) => void validateLive(d)),
+    vscode.workspace.onDidChangeTextDocument((e) => {
+      if (!e.contentChanges.length) return;
+      if (liveOn()) void validateLive(e.document);
+      else validationDiagnostics.delete(e.document.uri);
+    }),
+    vscode.workspace.onDidCloseTextDocument((d) => { live.cancel(d.uri.toString()); validationDiagnostics.delete(d.uri); }),
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (!e.affectsConfiguration('peoplesoft.peoplecode.validateAsYouType')) return;
+      if (liveOn()) for (const d of vscode.workspace.textDocuments) void validateLive(d);
+      else validationDiagnostics.clear();
+    })
   );
+  for (const d of vscode.workspace.textDocuments) void validateLive(d);
   // Compare With Environment's other side: read-only snapshots, forgotten when their tab closes.
   const compareContent = new CompareContent();
   compareContentForProjects = compareContent;
@@ -578,15 +629,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         const release = (await provider.readEnvironment?.())?.toolsRelease;
         const text = doc.getText();
         const v = validatePeopleCode(text, key, release ?? '8.62');
-        const normalized = text.replace(/\r\n/g, '\n');
-        validationDiagnostics.set(doc.uri, v.problems.map((p) => {
-          const at = lineAndColumn(normalized, p.offset);
-          const start = new vscode.Position(at.line, at.column);
-          const d = new vscode.Diagnostic(new vscode.Range(start, start.translate(0, 1)),
-            `${p.message} (PeopleSoft Studio's compiler, ${v.profile}; Application Designer has the last word)`, vscode.DiagnosticSeverity.Warning);
-          d.source = 'PeopleCode';
-          return d;
-        }));
+        validationDiagnostics.set(doc.uri, peopleCodeDiagnostics(text, v));
         const where = `${v.profile}${release ? '' : ', no PeopleTools release known for this source'}`;
         if (v.problems.length) vscode.window.showWarningMessage(`${displayName(key)} does not compile with PeopleSoft Studio's compiler (${where}): see Problems.`);
         else vscode.window.showInformationMessage(`${displayName(key)} compiles with PeopleSoft Studio's compiler (${where}).`);

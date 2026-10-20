@@ -3,9 +3,10 @@ import * as esbuild from 'esbuild';
 const watch = process.argv.includes('--watch');
 
 const ctx = await esbuild.context({
-  entryPoints: ['src/extension.ts'],
+  // The extension, and the thread Validate as you type compiles PeopleCode on.
+  entryPoints: { extension: 'src/extension.ts', validateWorker: 'src/peoplecode/validateWorker.ts' },
   bundle: true,
-  outfile: 'dist/extension.js',
+  outdir: 'dist',
   platform: 'node',
   target: 'node20',
   format: 'cjs',
