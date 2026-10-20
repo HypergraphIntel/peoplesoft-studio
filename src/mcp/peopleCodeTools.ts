@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import { DefinitionType } from '../model/definitions.js';
+import { definitionExists, missingDefinitionProblems } from '../peoplecode/definitionCheck.js';
 import { lineAndColumn, validatePeopleCode } from '../peoplecode/validate.js';
 import { DatabaseProvider } from '../providers/database.js';
 import { Workspace } from '../workspace.js';
@@ -86,6 +87,8 @@ export function registerPeopleCodeTools(server: McpServer, workspace: Workspace)
         if (!known.has(r.record)) known.set(r.record, new Set((await provider.expandedFieldNames(r.record)).map((f) => f.toUpperCase())));
         if (!known.get(r.record)!.has(r.field)) references.push({ offset: r.offset, code: 'field-not-defined', message: `Field ${r.record}.${r.field} not defined. (2,17)` });
       }
+      // Record.X, Page.X, SQL.X ... the database lacks: a note (App Designer compiles them), App Designer's 2,68 for Image.X.
+      references.push(...(await missingDefinitionProblems(compiled.definitionReferences ?? [], (t, name) => definitionExists(provider!, t, name))));
     }
     const qualifications = compiled.qualifications ?? [];
     let qualifiedSource: string | undefined;
@@ -96,8 +99,10 @@ export function registerPeopleCodeTools(server: McpServer, workspace: Workspace)
     const problems = [...compiled.problems, ...references, ...imports.map((p) => ({ offset: p.offset, message: `${p.message} (${p.code})` }))]
       .sort((a, b) => a.offset - b.offset)
       .map((p) => { const at = lineAndColumn(text, p.offset); return { line: at.line + 1, column: at.column + 1, severity: 'severity' in p && p.severity === 'info' ? 'info' : 'error', message: p.message }; });
+    // A missing-definition note does not make a program invalid: App Designer compiles it.
+    const notes = new Set(references.filter((r) => r.code === 'definition-not-found' && r.severity === 'info').map((r) => r.message));
     return jsonResult({
-      valid: problems.length === 0, profile: compiled.profile, importsChecked: !!provider, kind: key.type === DefinitionType.ApplicationClassPeopleCode ? 'Application Class' : 'program', problems,
+      valid: problems.every((p) => p.severity === 'info' && notes.has(p.message)), profile: compiled.profile, importsChecked: !!provider, kind: key.type === DefinitionType.ApplicationClassPeopleCode ? 'Application Class' : 'program', problems,
       ...(qualifiedSource ? { qualifiedSource, note: 'Studio saves field references qualified, as Application Designer stores them: save qualifiedSource.' } : {})
     });
   });

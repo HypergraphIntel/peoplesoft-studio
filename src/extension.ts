@@ -71,6 +71,7 @@ import { tableName } from './model/recordDdl.js';
 import { lineAndColumn, validatePeopleCode, type Qualification, type Validation } from './peoplecode/validate.js';
 import { LiveValidator } from './peoplecode/liveValidation.js';
 import { languageFeaturesOn } from './peoplecode/languageFeatures.js';
+import { definitionExists, missingDefinitionProblems } from './peoplecode/definitionCheck.js';
 import { WorkerValidationRunner } from './peoplecode/validateWorkerClient.js';
 import type { DefinitionProvider } from './providers/provider.js';
 import { StatusBar } from './views/statusBar.js';
@@ -349,6 +350,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     fieldCache.set(id, { at: Date.now(), fields });
     return fields;
   };
+  // Whether a definition exists on the connection, kept a minute: undefined when that cannot be told (no database, a failed or
+  // truncated search -- names match with LIKE, so only an exact name in a complete result counts).
+  const existsCache = new Map<string, { at: number; exists: Promise<boolean | undefined> }>();
+  const cachedDefinitionExists = (handle: string, type: DefinitionType, name: string): Promise<boolean | undefined> => {
+    const id = `${handle}|${type}|${name}`;
+    const cached = existsCache.get(id);
+    if (cached && Date.now() - cached.at < 60_000) return cached.exists;
+    const exists = workspace.requireByHandle(handle)
+      .then((p) => (p instanceof DatabaseProvider ? definitionExists(p, type, name) : undefined), () => undefined);
+    existsCache.set(id, { at: Date.now(), exists });
+    return exists;
+  };
   // App Designer's "Field REC.FIELD not defined. (2,17)" for a reference the connection does not have (native Validate Syntax).
   const peoplecodeSetting = <T>(key: string, fallback: T) => vscode.workspace.getConfiguration('peoplesoft').get<T>(`peoplecode.${key}`) ?? fallback;
   // Settings > PeopleCode Editor: environment checks and unknown-function warnings can each be turned off.
@@ -365,6 +378,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (fields?.has(r.field)) continue;
       problems.push({ offset: r.offset, length: r.record.length + 1 + r.field.length, code: 'field-not-defined', message: `Field ${r.record}.${r.field} not defined. (2,17)` });
     }
+    // Record.X, Page.X, SQL.X ... that the connection lacks (definitionCheck.ts: a note, or App Designer's 2,68 for Image.X).
+    problems.push(...(await missingDefinitionProblems(v.definitionReferences ?? [], (type, name) => cachedDefinitionExists(handle, type, name))));
     return problems;
   };
   const qualificationsByUri = new Map<string, { version: number; items: Qualification[] }>();

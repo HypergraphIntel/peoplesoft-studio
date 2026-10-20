@@ -43,7 +43,27 @@ export interface Validation {
   qualifications?: Qualification[];
   /** The RECORD.FIELD references the program compiled with (for checking against the database). */
   fieldReferences?: Array<{ record: string; field: string; offset: number }>;
+  /** The definition references (Record.X, Page.X, SQL.X ...) the program compiled with, keyword upper case. */
+  definitionReferences?: DefinitionReference[];
 }
+
+/** A `Keyword.NAME` definition reference in the program: `length` characters at `offset` (the validated text). */
+export interface DefinitionReference {
+  keyword: string;
+  name: string;
+  offset: number;
+  length: number;
+}
+
+/**
+ * The qualifiers PSPCMNAME stores for definition references rather than
+ * records (HCDEV snapshot census of 35,831 programs): `Page.X` compiles as a
+ * RECORD.FIELD-shaped name pair whose "record" is PAGE, and so on.
+ */
+export const DEFINITION_KEYWORDS: ReadonlySet<string> = new Set([
+  'RECORD', 'SCROLL', 'FIELD', 'PAGE', 'PANEL', 'COMPONENT', 'PANELGROUP', 'MENUNAME', 'BARNAME', 'ITEMNAME', 'SQL', 'IMAGE',
+  'HTML', 'STYLESHEET', 'MESSAGE', 'COMPINTFC', 'FILELAYOUT', 'URL', 'OPERATION', 'NODE', 'BUSPROCESS', 'BUSACTIVITY', 'BUSEVENT', 'INTERLINK'
+]);
 
 export interface ValidateOptions {
   /** The fields of the program's record (subrecords expanded): bare names among them are qualified as App Designer qualifies them. */
@@ -115,7 +135,8 @@ export function validatePeopleCode(source: string, key: DefinitionKey, toolsRele
       const problems: PeopleCodeProblem[] = qualifications.map((q) => ({ offset: q.offset, length: q.length, severity: 'info', code: 'qualify',
         message: `Application Designer stores this as ${q.text}.` }));
       for (const u of unknownFunctions(text)) problems.push({ offset: u.offset, length: u.name.length, code: 'unknown-function', message: u.message });
-      return { profile: profile.id, problems: problems.sort((a, b) => a.offset - b.offset), qualifications, fieldReferences: fieldReferences(text, encoded.references, qualifications) };
+      return { profile: profile.id, problems: problems.sort((a, b) => a.offset - b.offset), qualifications, fieldReferences: fieldReferences(text, encoded.references, qualifications),
+        definitionReferences: definitionReferences(text, encoded.references) };
     } catch (error) {
       if (!(error instanceof UnsupportedPeopleCodeError)) {
         return { profile: profile.id, problems: [{ offset: 0, message: error instanceof Error ? error.message : String(error) }], qualifications };
@@ -146,11 +167,33 @@ function fieldReferences(text: string, references: readonly PeopleCodeReference[
   const upper = text.toUpperCase();
   for (const r of references) {
     if (r.kind !== 'record-field' || !r.recordName || !r.fieldName) continue;
+    if (DEFINITION_KEYWORDS.has(r.recordName.toUpperCase())) continue; // Page.X, SQL.X ...: a definition, not a field
     const id = `${r.recordName}.${r.fieldName}`.toUpperCase();
     if (out.has(id)) continue;
     const at = upper.indexOf(id);
     const offset = at >= 0 ? at : qualified.find((q) => q.text === id)?.offset ?? 0;
     out.set(id, { record: r.recordName.toUpperCase(), field: r.fieldName.toUpperCase(), offset });
+  }
+  return [...out.values()];
+}
+
+/** The program's definition references, each at its first place in the text. */
+function definitionReferences(text: string, references: readonly PeopleCodeReference[]): DefinitionReference[] {
+  const out = new Map<string, DefinitionReference>();
+  for (const r of references) {
+    let keyword: string | undefined, name: string | undefined;
+    if (r.kind === 'record' || r.kind === 'scroll') { keyword = r.kind.toUpperCase(); name = r.recordName; }
+    else if (r.kind === 'field') { keyword = 'FIELD'; name = r.fieldName; }
+    else if (r.kind === 'component') { keyword = 'COMPONENT'; name = r.objectName; }
+    else if ((r.kind === 'record-field' || r.kind === 'quoted-reference') && r.recordName && DEFINITION_KEYWORDS.has(r.recordName.toUpperCase())) {
+      keyword = r.recordName.toUpperCase(); name = r.fieldName;
+    }
+    if (!keyword || !name) continue;
+    const id = `${keyword}.${name}`.toUpperCase();
+    if (out.has(id)) continue;
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const at = new RegExp(`\\b${keyword}\\s*\\.\\s*"?${escaped}"?`, 'i').exec(text);
+    out.set(id, { keyword, name: name.toUpperCase(), offset: at?.index ?? 0, length: at ? at[0].length : 1 });
   }
   return [...out.values()];
 }

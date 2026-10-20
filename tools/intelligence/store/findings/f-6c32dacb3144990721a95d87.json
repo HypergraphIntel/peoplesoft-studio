@@ -1,0 +1,70 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-6c32dacb3144990721a95d87",
+  "fingerprint": "6c32dacb3144990721a95d8767533d0a14f5a5bf43d5d120146a7f192c135fad",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "peoplecode",
+    "objectType": "Record PeopleCode",
+    "tables": [
+      "PSPCMNAME"
+    ]
+  },
+  "assertion": {
+    "kind": "compile-check",
+    "facts": {
+      "missingRecordRef": "no message",
+      "missingPageRef": "no message",
+      "missingComponentRef": "no message",
+      "missingFieldRef": "no message",
+      "missingScrollRef": "no message",
+      "missingSqlRef": "no message",
+      "missingHtmlRef": "no message",
+      "missingBarNameItemNameRef": "no message",
+      "missingImageRef": "warning 2,68",
+      "missingMenuInIsMenuItemAuthorized": "warning 2,68",
+      "missingMenuInGenerateComponentContentURL": "no message",
+      "missingRecordFieldOperand": "error 2,17"
+    }
+  },
+  "title": "App Designer's compiler does not check that most definition references exist; only Image.X (and a menu in IsMenuItemAuthorized) warns 2,68",
+  "statement": "Validate Syntax accepts Record.X, Page.X, Component.X, Field.X, Scroll.X, SQL.X, HTML.X, BarName.X and ItemName.X naming definitions that do not exist, with no message. Image.X and the menu argument of IsMenuItemAuthorized draw the non-blocking warning 'No definition of IMAGE.X found. (2,68)' in the Validate output; a MenuName.X passed to GenerateComponentContentURL draws nothing. A missing field used as a RECORD.FIELD operand is the blocking error 'Field REC.FIELD not defined. (2,17)'.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-20T12:45:00.000Z",
+      "method": "manual-inspection",
+      "experimentId": "validate-syntax-definition-refs",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Typed into ZZ_PCODE_LAB_R1.LASTUPDDTTM FieldFormula (not saved) and ran Tools > Validate Syntax: missing Record/Page/Component/Field/SQL/HTML/Scroll/BarName/ItemName references gave no message; Image.ZZ_NO_SUCH_IMG and MenuName.ZZ_NO_M in IsMenuItemAuthorized gave 'No definition of ... found. (2,68)' in the Validate pane; the control ZZ_NO_SUCH_REC.ZZ_F gave the modal 2,17 error.",
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/peoplecode/definitionCheck.ts"
+        }
+      ],
+      "digest": "3ac645e331ba2f2c56c2a3310498396ac3c5e9edbafac88423f032ef77dca680"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "manual",
+    "createdAt": "2026-10-20T13:01:05.992Z",
+    "updatedAt": "2026-10-20T13:01:05.992Z",
+    "schemaVersion": 1
+  }
+}

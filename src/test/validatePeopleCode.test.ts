@@ -65,3 +65,23 @@ test('compiled RECORD.FIELD references are returned for the database check; an u
   // Built-ins, the program's own functions and methods are known.
   assert.deepEqual(validatePeopleCode('Function Helper()\nEnd-Function;\nHelper();\nMessageBox(0, "", 0, 0, "x");\n', R2, '8.62').problems, []);
 });
+
+test('definition references are not field references: Page.X, SQL.X ... are reported as definitions to check', () => {
+  const source = [
+    'Local SQL &q = GetSQL(SQL.ZZ_TEST);',
+    'Local string &h = GetHTMLText(HTML.ZZ_HTML);',
+    'Transfer(False, MenuName.ZZ_M, BarName.ZZ_B, ItemName.ZZ_I, Page.ZZ_PG, "U");',
+    'Local Record &r = CreateRecord(Record.ZZ_REC);',
+    'Local number &n = ActiveRowCount(Scroll.ZZ_REC);',
+    '&x = Image.ZZ_IMG;',
+    '&y = ZZ_REC.ZZ_FLD;',
+    ''
+  ].join('\n');
+  const v = validatePeopleCode(source, { type: 8, parts: ['ZZ_R', 'ZZ_F', 'FieldChange'] }, '8.62');
+  assert.deepEqual(v.fieldReferences?.map((r) => `${r.record}.${r.field}`), ['ZZ_REC.ZZ_FLD']);
+  const defs = v.definitionReferences ?? [];
+  assert.deepEqual(defs.map((d) => `${d.keyword}.${d.name}`).sort(),
+    ['BARNAME.ZZ_B', 'HTML.ZZ_HTML', 'IMAGE.ZZ_IMG', 'ITEMNAME.ZZ_I', 'MENUNAME.ZZ_M', 'PAGE.ZZ_PG', 'RECORD.ZZ_REC', 'SCROLL.ZZ_REC', 'SQL.ZZ_TEST']);
+  const sql = defs.find((d) => d.keyword === 'SQL')!;
+  assert.equal(source.slice(sql.offset, sql.offset + sql.length), 'SQL.ZZ_TEST');
+});
