@@ -55,7 +55,8 @@ then passed on ZZ_QRY_LAB02: apply `b7bc09bc-99f7-4ba9-afaa-a98e49383de5`
 (ESTABID selected as column 2, DESCR text heading "Lab description"; only four
 PSQRYFIELD cells changed) and typed inverse
 `6c504db6-9e8a-4a0a-b509-f031841c1d2e`, both developer-approved and VERIFIED
-with live MATCHES_RECORDED, native version 26 -> 27 -> 28, and generated SQL
+with live MATCHES_RECORDED, query VERSION read 16 before, 27 after apply and
+28 after the inverse, and generated SQL
 checked at each step. Query create/copy stay natively unverified because no
 calibrated delete adapter exists to undo them. Next: Query criteria/prompt
 edits, or 8.61 / REST consumer structural evidence.
