@@ -42,6 +42,17 @@
         "configuration": "./language-configuration.json"
       }
     ],
+    "configurationDefaults": {
+      "[psft-peoplecode]": {
+        "editor.quickSuggestions": {
+          "other": "on",
+          "comments": "off",
+          "strings": "off"
+        },
+        "editor.suggest.snippetsPreventQuickSuggestions": false,
+        "editor.inlineSuggest.enabled": false
+      }
+    },
     "grammars": [
       {
         "language": "psft-peoplecode",

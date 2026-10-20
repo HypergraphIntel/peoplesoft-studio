@@ -23,13 +23,21 @@
   Designer compiles (the HCDEV census) are offered, in their stored casing;
   before, only a hand-written list was, so typing e.g. `CreateSQL` often
   showed no list at all.
+- **The completion list opens while you type in PeopleCode.** VS Code
+  1.141's built-in Copilot offers inline (ghost-text) suggestions for every
+  language, completed from text already in the file, and while one shows the
+  suggestion list stays closed; snippet placeholders also kept it closed.
+  PeopleCode editors now default to the list: inline suggestions off and
+  quick suggestions not held back by an active snippet (language-scoped
+  defaults; `[psft-peoplecode]` settings override them).
 - **`%This.` and `%Super.` complete the class's real members.** Inside an
   application class, `%This.` offers the class's own methods and properties
   (private ones too) and those it inherits; `%Super.` the base class's public
   and protected members. Before, both offered generic Rowset/Record/Field
   guesses. A base class or `&obj` type named without its package (`extends
   Config` after `import PKG:*;`) is now resolved through the imports, then the
-  class's own package, as App Designer resolves it.
+  class's own package, as App Designer resolves it. A class Studio's parser does not model yet
+  still completes, from its header's declarations.
 
 ## 0.9.6 — October 20, 2026
 

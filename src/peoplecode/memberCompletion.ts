@@ -95,6 +95,11 @@ const BUILT_IN_TYPES = new Set(['any', 'array', 'boolean', 'date', 'datetime', '
   'jsonvalue', 'jsongenerator', 'api', 'apiobject', 'chart', 'grid', 'gridcolumn', 'page', 'aesection', 'crypt', 'exception', 'intbroker',
   'mcfimclient', 'packagemanager', 'pagelet', 'postreport', 'processrequest', 'query', 'response', 'request', 'session', 'tree', 'treenode']);
 
+/** Whether a type name is one of PeopleCode's own (Rowset, Exception ...), which no application class source defines. */
+export function isBuiltInType(name: string): boolean {
+  return BUILT_IN_TYPES.has(name.toLowerCase());
+}
+
 /** The class `&varName` is declared as in `text` (qualified, or a bare imported name), or undefined. */
 export function declaredTypeOf(text: string, varName: string): string | undefined {
   const v = varName.replace(/^&/, '').replace(/[.$^|?*+()[\]{}\\]/g, '');
@@ -104,4 +109,38 @@ export function declaredTypeOf(text: string, varName: string): string | undefine
   const param = new RegExp(`&${v}\\s+As\\s+(${type})\\b`, 'i').exec(text);
   const name = (decl ?? param)?.[1];
   return name && !BUILT_IN_TYPES.has(name.toLowerCase()) ? name : undefined;
+}
+
+/**
+ * The members a class header declares, read from its declaration lines when
+ * the class does not parse (Studio's parser stops at constructs it does not
+ * model yet): methods, properties and constants up to `end-class`, with the
+ * section each falls in. Used so %This still completes in such a class.
+ */
+export function headerMembers(text: string): Array<MemberCompletion & { visibility: string; extendsType?: string }> {
+  const header = /\bclass\s+([A-Za-z_]\w*)(?:\s+extends\s+([A-Za-z_][\w:]*))?([\s\S]*?)\bend-class\b/i.exec(text);
+  if (!header) return [];
+  const [, className, extendsType, body] = header;
+  const out: Array<MemberCompletion & { visibility: string; extendsType?: string }> = [];
+  let visibility = 'public';
+  for (const raw of body.split('\n')) {
+    const line = raw.replace(/\/\*[\s\S]*?\*\/|\/\+[\s\S]*?\+\//g, '').trim();
+    if (/^(protected|private)\b/i.test(line)) { visibility = line.split(/\W/)[0].toLowerCase(); continue; }
+    const method = /^method\s+([A-Za-z_]\w*)\s*\(/i.exec(line);
+    if (method && method[1].toLowerCase() !== className.toLowerCase()) {
+      const returns = /\bReturns\s+([\w:]+)/i.exec(line)?.[1];
+      out.push({ name: method[1], kind: 'method', detail: `method${returns ? ` Returns ${returns}` : ''}`, visibility, ...(extendsType ? { extendsType } : {}) });
+      continue;
+    }
+    const property = /^property\s+([\w:]+)\s+([A-Za-z_]\w*)/i.exec(line);
+    if (property) { out.push({ name: property[2], kind: 'property', detail: `property ${property[1]}`, visibility }); continue; }
+    const constant = /^constant\s+&([A-Za-z_]\w*)/i.exec(line);
+    if (constant) out.push({ name: `&${constant[1]}`, kind: 'constant', detail: 'constant', visibility });
+  }
+  return out;
+}
+
+/** The base class a class header names, when the class does not parse. */
+export function headerExtends(text: string): string | undefined {
+  return /\bclass\s+[A-Za-z_]\w*\s+extends\s+([A-Za-z_][\w:]*)/i.exec(text)?.[1];
 }

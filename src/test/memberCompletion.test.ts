@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseApplicationClassSource } from '../peoplecode/applicationClassProgram.js';
-import { classCandidates, classMembers, declaredClassOf, declaredTypeOf, importsOf, publicMembers, qualifiedExtends } from '../peoplecode/memberCompletion.js';
+import { classCandidates, classMembers, declaredClassOf, declaredTypeOf, headerExtends, headerMembers, importsOf, isBuiltInType, publicMembers, qualifiedExtends } from '../peoplecode/memberCompletion.js';
 
 const CLASS = [
   'class Widget extends ZZ_PCODE_LAB:ORDERING:BASECLS',
@@ -74,4 +74,28 @@ test('declaredTypeOf accepts a bare imported class name but never a PeopleCode t
   assert.equal(declaredTypeOf('Local string &s;', '&s'), undefined);
   assert.equal(declaredTypeOf('Local Rowset &rs;', '&rs'), undefined);
   assert.equal(declaredTypeOf('Local array of string &a;', '&a'), undefined);
+});
+
+test('headerMembers reads a class header Studio cannot parse: members by section, without the constructor', () => {
+  const text = [
+    'import ZZ_PKG:*;',
+    'class Fmt extends Config',
+    '   method Fmt();',
+    '   method Zeros(&len As integer) Returns string;',
+    '   property string Label get;',
+    'protected',
+    '   method Shared();',
+    'private',
+    '   method helper(); /* a note */',
+    '   instance number &n;',
+    '   Constant &MAX = 10;',
+    'end-class;'
+  ].join('\n');
+  assert.deepEqual(headerMembers(text).map((m) => [m.name, m.kind, m.visibility]), [
+    ['Zeros', 'method', 'public'], ['Label', 'property', 'public'], ['Shared', 'method', 'protected'],
+    ['helper', 'method', 'private'], ['&MAX', 'constant', 'private']
+  ]);
+  assert.equal(headerExtends(text), 'Config');
+  assert.equal(isBuiltInType('Exception'), true);
+  assert.equal(isBuiltInType('Config'), false);
 });

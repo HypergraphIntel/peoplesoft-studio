@@ -4,7 +4,7 @@ import { DefinitionType, displayName } from '../model/definitions.js';
 import { parseUri } from '../util/uri.js';
 import type { Workspace } from '../workspace.js';
 import { parseApplicationClassSource } from './applicationClassProgram.js';
-import { classCandidates, classMembers, declaredTypeOf, type MemberCompletion } from './memberCompletion.js';
+import { classCandidates, classMembers, declaredTypeOf, headerExtends, headerMembers, isBuiltInType, type MemberCompletion } from './memberCompletion.js';
 import { BUILTIN_FUNCTION_NAMES } from './builtinFunctions.js';
 import { DEFINITION_KEYWORDS } from './validate.js';
 import { DatabaseProvider } from '../providers/database.js';
@@ -416,9 +416,9 @@ function ownPackageOf(document: vscode.TextDocument): string[] | undefined {
  * members. The `extends` chain is followed through each class's imports.
  */
 async function completeClassMembers(document: vscode.TextDocument, workspace: Workspace, receiver: string): Promise<vscode.CompletionItem[]> {
-  let handle: string;
-  try { handle = parseUri(document.uri).handle; } catch { return []; }
-  const provider = workspace.getProviderByHandle(handle);
+  // The connection, when the document has one: it supplies other classes (a base class, &obj's class); the class itself needs none.
+  let provider: ReturnType<Workspace['getProviderByHandle']>;
+  try { provider = workspace.getProviderByHandle(parseUri(document.uri).handle); } catch { provider = undefined; }
   const text = document.getText();
   const lower = receiver.toLowerCase();
   const own = ownPackageOf(document);
@@ -441,11 +441,13 @@ async function completeClassMembers(document: vscode.TextDocument, workspace: Wo
   };
 
   if (lower === '%this' || lower === '%super') {
-    const program = parseApplicationClassSource(text);
-    if (!program) return [];
-    if (lower === '%this') add(classMembers(program, ['public', 'protected', 'private'], true), false);
-    if (!program.extendsType) return items;
-    first = { candidates: classCandidates(program.extendsType, text, own), visibilities: ['public', 'protected'], inherited: lower === '%this' };
+    // The class being edited: parsed, or -- for a class Studio's parser does not model yet -- read from its header lines.
+    let program: ReturnType<typeof parseApplicationClassSource>;
+    try { program = parseApplicationClassSource(text); } catch { program = undefined; }
+    if (lower === '%this') add(program ? classMembers(program, ['public', 'protected', 'private'], true) : headerMembers(text), false);
+    const base = program ? program.extendsType : headerExtends(text);
+    if (!base || isBuiltInType(base)) return items;
+    first = { candidates: classCandidates(base, text, own), visibilities: ['public', 'protected'], inherited: lower === '%this' };
   } else {
     const type = declaredTypeOf(text, receiver);
     if (!type) return [];
@@ -456,20 +458,24 @@ async function completeClassMembers(document: vscode.TextDocument, workspace: Wo
   const seenClasses = new Set<string>();
   let step: Step | undefined = first;
   for (let depth = 0; step && depth < 8; depth++) {
-    let found: { parts: string[]; source: string; program: NonNullable<ReturnType<typeof parseApplicationClassSource>> } | undefined;
+    let found: { parts: string[]; source: string; program: ReturnType<typeof parseApplicationClassSource> } | undefined;
     for (const parts of step.candidates) {
       if (seenClasses.has(parts.join(':').toLowerCase())) continue;
       try {
         const source = await provider.readText({ type: DefinitionType.ApplicationClassPeopleCode, parts });
-        const program = parseApplicationClassSource(source);
-        if (program) { found = { parts, source, program }; break; }
+        let program: ReturnType<typeof parseApplicationClassSource>;
+        try { program = parseApplicationClassSource(source); } catch { program = undefined; }
+        if (program || headerMembers(source).length || /\bclass\s/i.test(source)) { found = { parts, source, program }; break; }
       } catch { /* not this candidate: try the next */ }
     }
     if (!found) break; // the class (or a parent) is not readable here
     seenClasses.add(found.parts.join(':').toLowerCase());
-    add(classMembers(found.program, step.visibilities, lower === '%this' || lower === '%super'), step.inherited, found.parts.join(':'));
-    const base = found.program.extendsType;
-    step = base ? {
+    const inside = lower === '%this' || lower === '%super';
+    const members = found.program ? classMembers(found.program, step.visibilities, inside)
+      : headerMembers(found.source).filter((m) => step!.visibilities.includes(m.visibility));
+    add(members, step.inherited, found.parts.join(':'));
+    const base = found.program ? found.program.extendsType : headerExtends(found.source);
+    step = base && !isBuiltInType(base) ? {
       candidates: classCandidates(base, found.source, found.parts.slice(0, -1)),
       visibilities: step.visibilities,
       inherited: true
