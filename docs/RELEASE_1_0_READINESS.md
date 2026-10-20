@@ -1,10 +1,10 @@
 # 1.0 readiness
 
-Assessment at 0.9.5: meaningful implementation and native verification progress,
+Assessment at 0.9.6: meaningful implementation and native verification progress,
 but not feature-complete for the project's stated full Application Designer
 parity goal. No 1.0 delivery date or final feature cut has been agreed. A claim
-that delivery is on schedule is therefore not supported. Version 0.9.5 does not
-mean 95 percent complete.
+that delivery is on schedule is therefore not supported. Version 0.9.6 does not
+mean 96 percent complete.
 
 Keep the completion goal visible rather than silently narrowing it to match
 what already works. This is a readiness inventory, not a newly agreed schedule
@@ -26,7 +26,7 @@ detail is the [README](../README.md#what-works-now), [roadmap](ROADMAP.md) and
 
 ## Next sequence
 
-1. Complete: bounded, evidenced 0.9.5 release published; 0.9.6 development prepared.
+1. Complete: bounded, evidenced 0.9.6 release published.
 2. Broaden IB structural review through explicit per-operation snapshot,
    dependency, validation and typed inverse contracts; retain native approval.
    In 0.9.6: bounded service/operation structure is implemented; installed

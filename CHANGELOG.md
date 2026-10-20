@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — 0.9.6
+## 0.9.6 — October 20, 2026
 
 - **Settings: PeopleCode Editor.** A new Settings section gathers the
   PeopleCode editor's options: *Language Server* (new; off leaves completion,
@@ -66,8 +66,8 @@
   use) when present, instead of the program decoded from PSPCMPROG. A
   read-modify-save no longer re-indents every line of a reviewed proposal.
 
-- **Approach approval buttons reflect the decision.** The review page hides
-  "Approve approach" once approved and "Reject approach" once rejected.
+- **Approach approval buttons reflect the decision.** Both stay in place; the
+  decided one is disabled ("Approach approved" / "Approach rejected").
 
 - **Native reviewed Query structural edit.** A selected column and text
   heading on a lab query passed installed HRDMO apply and typed inverse.

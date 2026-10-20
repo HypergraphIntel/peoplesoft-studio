@@ -5,7 +5,7 @@ Designer parity is the goal; this is the path to it. The
 [1.0 readiness gates](RELEASE_1_0_READINESS.md) separate demonstrated progress
 from the remaining completion work; no 1.0 delivery date is committed.
 
-## Current release: 0.9.5; development: 0.9.6
+## Current release: 0.9.6
 
 0.9.4 adds calibrated 8.61.15 Query and standard Integration Broker writes,
 release-aware Page and Field Configurator mapping, application-class signature
@@ -18,6 +18,12 @@ input changes from `publicAccess` to `access`. See the
 and manual routings), corrects their generated rows, and clears PFC mapping
 tombstones on 8.62 as observed in PIA. It also adds bounded IB header Change
 Review and fixes Build Request message ordering. See [release notes](releases/0.9.5.md).
+
+0.9.6 adds Oracle Create Indexes, Alter Tables and Create Views matching App
+Designer's scripts, PeopleCode problems as you type with environment checks
+and a PeopleCode Editor settings section, bounded IB structural review, and
+completes the synthetic requirements-to-running-AE/file workflow. See
+[release notes](releases/0.9.6.md).
 
 Immediate priority: installed Build Requests acceptance, from attached
 requirements through a configured agent, questions, exact spec approval,
