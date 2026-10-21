@@ -9,14 +9,15 @@ import type { Row } from '../model/queryDefinition.js';
 
 // Transactional adapter drives the real writer, including SQL generation,
 // native row replacement, readback and rollback of both rows and counters.
-function adapter() {
+const DESCR = { type: 0, length: 30, decimalPositions: 0, format: 6, shortName: 'Descr', longName: 'Description', editTable: '', useEdit: 0 };
+function adapter(release: [string, number] = ['8.62', 9]) {
   let committed = 0, rolledBack = 0;
-  const view = applyQueryOp(newQueryDocument('ZZ_MCP_QUERY', 'JARED', 'AAP_TBL'), { kind: 'select', field: 'DESCR', selected: true }, {
-    DESCR: { type: 0, length: 30, decimalPositions: 0, format: 6, shortName: 'Descr', longName: 'Description', editTable: '', useEdit: 0 }
-  });
+  const view = applyQueryOp(newQueryDocument('ZZ_MCP_QUERY', 'JARED', 'AAP_TBL'), { kind: 'select', field: 'DESCR', selected: true }, { DESCR });
   const tables: Record<string, Row[]> = Object.fromEntries(Object.keys(QUERY_TABLES).map(table => [table, []]));
+  // Column lists come from a view that has a criterion, an expression and a prompt.
+  const full = applyQueryOp(view, { kind: 'criteria', criteria: [{ field: 'DESCR', operator: 'like', value: { prompt: 'new' } }] }, { DESCR });
   const columns = Object.fromEntries(Object.entries(QUERY_TABLES).map(([table, property]) => {
-    const sample = property === 'query' ? view.query : view[property][0];
+    const sample = property === 'query' ? full.query : full[property][0];
     return [table, Object.keys(sample ?? { QRYNAME: '', OPRID: '' }).map(name => ({ name, dataType: /DTTM$/.test(name) ? 'TIMESTAMP' : 'VARCHAR2' } as ColumnInfo))];
   }));
   let counters = { qdm: 3, sys: 20 };
@@ -26,11 +27,12 @@ function adapter() {
     async execute<T>(sql: string, binds: Record<string, unknown> = {}) {
       statements.push(sql);
       let rows: unknown[] = [], rowsAffected = 0;
-      if (sql.includes('FROM PSSTATUS')) rows = [{ TOOLSREL: '8.62', PTPATCHREL: 9 }];
+      if (sql.includes('FROM PSSTATUS')) rows = [{ TOOLSREL: release[0], PTPATCHREL: release[1] }];
       else if (sql.includes('FROM PSOPRDEFN')) rows = [{ N: 1 }];
       else if (sql.includes('FROM PSROLEUSER')) rows = [{ ACCESSIBLE: 'Y' }];
       else if (sql.includes('FROM PSRECDEFN')) rows = [{ RECNAME: 'AAP_TBL', QRYSECRECNAME: ' ', SQLTABLENAME: ' ', RECTYPE: 0 }];
       else if (sql.includes('FROM PSRECFIELD')) rows = [{ FIELDNAME: 'DESCR', FIELDTYPE: 0 }];
+      else if (sql.startsWith('SELECT FIELDTYPE FROM PSDBFIELD')) rows = [{ FIELDTYPE: 0 }];
       else if (sql.includes('FROM PSDBFIELD')) rows = sql.includes('FIELDTYPE=0') ? [] : [{ LENGTH: 30 }];
       else if (sql.includes('FROM PSVERSION')) rows = [{ OBJECTTYPENAME: 'QDM', VERSION: counters.qdm }, { OBJECTTYPENAME: 'SYS', VERSION: counters.sys }];
       else if (sql.includes('FROM PSLOCK')) rows = [{ VERSION: counters.qdm }];
@@ -76,4 +78,17 @@ test('Query save commits the verified plan while a stale token rolls back before
   const stale = adapter();
   await assert.rejects(saveQuery(stale.c, ADAPTER_TYPES, { view: stale.view, openedToken: 'stale', operatorId: 'JARED', dryRun: true }), /changed since/);
   assert.ok(!stale.statements.some(sql => sql.startsWith('DELETE FROM')));
+});
+
+test('typed criteria save on 8.62.09 and are refused on 8.61.15, where one equal-to criterion stays calibrated', async () => {
+  const criteria = { kind: 'criteria' as const, criteria: [{ field: 'DESCR', operator: 'like' as const, value: { constant: 'A%' } }, { field: 'DESCR', operator: 'isNotNull' as const, logical: 'OR' as const }] };
+  const newer = adapter();
+  assert.equal((await saveQuery(newer.c, ADAPTER_TYPES, { view: applyQueryOp(newer.view, criteria, { DESCR }), openedToken: 'absent', operatorId: 'JARED' })).written, true);
+  assert.equal(newer.tables.PSQRYCRITERIA.length, 2);
+  const older = adapter(['8.61', 15]);
+  await assert.rejects(saveQuery(older.c, ADAPTER_TYPES, { view: applyQueryOp(older.view, criteria, { DESCR }), openedToken: 'absent', operatorId: 'JARED', dryRun: true }), /calibrated on PeopleTools 8.62.09; this database is 8.61.15/);
+  assert.ok(!older.statements.some(sql => sql.startsWith('INSERT INTO')));
+  const single = adapter(['8.61', 15]);
+  const equal = applyQueryOp(single.view, { kind: 'constant', field: 'DESCR', value: 'A' }, { DESCR });
+  assert.equal((await saveQuery(single.c, ADAPTER_TYPES, { view: equal, openedToken: 'absent', operatorId: 'JARED', dryRun: true })).written, false);
 });

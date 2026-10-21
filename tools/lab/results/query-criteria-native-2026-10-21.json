@@ -1,0 +1,72 @@
+{
+  "at": "2026-10-21T23:48:09.936Z",
+  "mode": "save",
+  "database": "HRDMO",
+  "owner": "JARED",
+  "queries": [
+    {
+      "name": "ZZ_QRY_STUDIO_CRIT",
+      "sql": "SELECT A.DESCR,A.ESTABID\nFROM PS_AAP_TBL A\nWHERE ( NOT A.ESTABID <> A.DESCR\n     OR ( A.DESCR IS NULL\n     AND A.ESTABID IN ('A','B'))\n     OR A.DESCR LIKE '%')",
+      "prompts": {},
+      "rows": [
+        {
+          "DESCR": "GBI HQ Affirmative Action Plan",
+          "ESTABID": "KU001"
+        },
+        {
+          "DESCR": "GBI Data Processing Cntr",
+          "ESTABID": "KU002"
+        }
+      ]
+    },
+    {
+      "name": "ZZ_QRY_STUDIO_NUM",
+      "sql": "SELECT A.ESTABID,TO_CHAR(A.START_DT,'YYYY-MM-DD'),A.FEMALE_GOAL\nFROM PS_AAP_YEAR A\nWHERE ( A.FEMALE_GOAL >= 0\n     AND A.START_DT > TO_DATE(:1,'YYYY-MM-DD'))",
+      "prompts": {
+        "1": "1900-01-01"
+      },
+      "rows": [
+        {
+          "ESTABID": "KU001",
+          "TO_CHAR(A.START_DT,'YYYY-MM-DD')": "2000-01-01",
+          "FEMALE_GOAL": 23
+        },
+        {
+          "ESTABID": "KU002",
+          "TO_CHAR(A.START_DT,'YYYY-MM-DD')": "2000-01-01",
+          "FEMALE_GOAL": 3
+        },
+        {
+          "ESTABID": "KU002",
+          "TO_CHAR(A.START_DT,'YYYY-MM-DD')": "2002-01-01",
+          "FEMALE_GOAL": 0
+        }
+      ]
+    }
+  ],
+  "passed": true,
+  "windowsQueryReopen": {
+    "checkedAt": "2026-10-21",
+    "tool": "Windows Query 8.62.09 on HRDMO",
+    "ZZ_QRY_STUDIO_CRIT": {
+      "criteriaGrid": "NOT ESTABID not equal to field DESCR; OR (DESCR is null; AND ESTABID in list (A,B)); OR DESCR like %",
+      "sqlTab": "identical to Studio SQL",
+      "results": [
+        "GBI HQ Affirmative Action Plan|KU001",
+        "GBI Data Processing Cntr|KU002"
+      ],
+      "matchesStudio": true
+    },
+    "ZZ_QRY_STUDIO_NUM": {
+      "criteriaGrid": "FEMALE_GOAL not less than 0; AND START_DT greater than :1",
+      "sqlTab": "identical to Studio SQL",
+      "prompt": "Start Date 01/01/1900 (required)",
+      "results": [
+        "KU001|01/01/2000|23",
+        "KU002|01/01/2000|3",
+        "KU002|01/01/2002|0"
+      ],
+      "matchesStudio": true
+    }
+  }
+}

@@ -86,7 +86,11 @@ App Designer checks of migration-made definitions pass; see
 (alternate search keys, custom index DDL, translations, subpackage/class
 metadata, nested or SQL Table subrecords, updates to indexed records), as do
 cross-database migration and Data Migration Workbench. Component editing and
-Data Mover script templates already exist. Full PS Query parity and browser
+Data Mover script templates already exist. PS Query authoring on 8.62.09 now
+covers multiple criteria (AND/OR, NOT, grouping, every comparison, like, null,
+list and between operator), number and date fields and typed prompts, natively
+replayed and reopened in Windows Query ([evidence](PS_QUERY_WINDOWS.md)).
+Full PS Query parity (joins, unions, subqueries, expressions, aggregates) and browser
 SAML SSO remain open.
 
 See the [README capability tables](../README.md#what-works-now),

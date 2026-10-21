@@ -120,7 +120,7 @@ were captured with the full save-protocol sweep (1,592 tables); background
 Integration Broker timestamp changes are separated from query evidence.
 Later property captures use the narrower query-keyed table/counter tool.
 
-Fixtures: `src/test/fixtures/query/`. Full captures (not yet committed):
+Fixtures: `src/test/fixtures/query/`. Full captures:
 `tools/corpus/save-protocol/results/qry*`. The narrow tool is
 `tools/lab/query-capture.mts`; it inventories actual tables with QRYNAME
 and OPRID (48 on this HRDMO), keeps row identities and exact timestamp
@@ -225,15 +225,67 @@ tables have exactly the columns and types they have on the calibrated patch.
 Studio compares fingerprints of the tables (`src/providers/calibratedSchemas.ts`)
 and refuses a mismatch, naming the tables that differ. Other releases are refused.
 
+### Criteria and numeric/date captures (October 21, 8.62.09)
+
+Private `ZZ_QRY_CRIT01` (AAP_TBL ESTABID, DESCR) and `ZZ_QRY_NUM01`
+(AAP_YEAR ESTABID, START_DT date, FEMALE_GOAL number), one native save per
+case, narrow query-capture tool (`tools/corpus/save-protocol/results/qcr*`,
+`qnm*`). Every save rewrites the definition rows and moves QDM/SYS by one.
+
+| Case | Change | Stored |
+| --- | --- | --- |
+| qcr01-create | ESTABID not equal to 'ZZZ' | CONDTYPE 3, EXPRTYPE 1, COMBTYPE 3 on the first criterion |
+| qcr02-and-like | AND DESCR like 'A%' | COMBTYPE 1, CONDTYPE 14 |
+| qcr03-or | AND to OR | COMBTYPE 2 |
+| qcr04-greater | AND ESTABID greater than 'A' | CONDTYPE 4 |
+| qcr05-group | Group criteria 2-3 | LPARENLVL 1 on the first, RPARENLVL 1 on the last |
+| qcr06-not | NOT on criterion 1 | NEGATION 'N' (blank otherwise; delivered rows use only 'N' and blank) |
+| qcr07-between | between Const-Const 'A' and 'M' | CONDTYPE 10, EXPRTYPE 9, R2CRTEXPNUM to a second expression |
+| qcr08-in-list | in list A, B | CONDTYPE 8, EXPRTYPE 5, one expression text `('A','B')`; unused expressions removed |
+| qcr09-is-null | like to is null | CONDTYPE 16, EXPRTYPE 0; the old expression and R1CRTEXPNUM are kept |
+| qcr10-field | criterion 1 Expression 2 = field DESCR | EXPRTYPE 2, R1CRTSELNUM/R1CRTFLDNUM; DESCR USECOUNT 2; expressions renumbered |
+| qnm01-create | FEMALE_GOAL greater than 5 | numeric constant expression FIELDTYPE 2 |
+| qnm02-date-const | START_DT greater than 01/01/2000 | expression `2000-01-01` FIELDTYPE 4 |
+| qnm03-date-prompt | date criterion to prompt | EXPRTYPE 8, expression `:1` FIELDTYPE 0; PSQRYBIND FIELDTYPE 4 LENGTH 10 HDGTYPE 4 |
+| qnm04-number-prompt | numeric criterion to a new prompt | PSQRYBIND BIND2 FIELDTYPE 2 LENGTH 6; expressions compacted in existing order |
+
+Windows Query SQL (SQL tab, saved cases plus unsaved operator views): `=`,
+`<>`, `>`, `<=` (not greater than), `<`, `>=` (not less than), `IN (...)`,
+`NOT IN (...)`, `BETWEEN x AND y`, `NOT BETWEEN x AND y`, `LIKE`, `NOT LIKE`,
+`IS NULL`, `IS NOT NULL`; NOT prefixes the criterion (`NOT A.ESTABID <> ...`);
+AND/OR and parentheses as stored. Character constants are quoted, numeric
+constants bare, date constants `TO_DATE('2000-01-01','YYYY-MM-DD')`, date
+prompts `TO_DATE(:1,'YYYY-MM-DD')`. A selected date column is
+`TO_CHAR(A.START_DT,'YYYY-MM-DD')`. New numeric criteria default to constant 0,
+date constants to today (entered MM/DD/YYYY). With `like` only Constant and
+Prompt operands are offered; `in list` offers In List and Subquery.
+
 ### Deliberate limits and next evidence
 
-This first release is calibrated on **Oracle / PeopleTools 8.62.09 and
-8.61.15** for one
-SQL Table record without subrecords, direct character fields, and at most one
-ungrouped equal-to criterion with a character constant or uppercase/mixed-case
-prompt. It does not yet edit/run joins, unions, subqueries, effective-date
-criteria, grouped Boolean criteria, expression columns, numeric/date fields,
-aggregate SQL, translate SQL, DISTINCT, or row-security SQL. Rename, Delete,
+Authoring is calibrated on **Oracle / PeopleTools 8.62.09 and 8.61.15** for
+one SQL Table record without subrecords. On 8.61.15 that is direct character
+fields and at most one equal-to criterion with a character constant or
+uppercase/mixed-case prompt. On **8.62.09** it also covers number and date
+fields and a `criteria` operation that replaces every criterion: AND/OR, NOT,
+parentheses, every comparison operator, like/not like, is (not) null, in/not
+in constant lists and between/not between two constants, with constant,
+character field, prompt (new or existing, character/number/date) and list
+operands. Between, lists, like and field comparison are calibrated for
+character fields; the writer refuses these shapes on other releases. It does
+not yet edit/run joins, unions, subqueries, effective-date criteria,
+expression columns, aggregate SQL, translate SQL, DISTINCT, or row-security
+SQL.
+
+Native acceptance: the replay tests reproduce all fourteen qcr/qnm saves
+column for column (expression numbering included), and every captured
+definition compiles to the SQL Windows Query shows. Studio then saved
+`ZZ_QRY_STUDIO_CRIT` (NOT field comparison, OR group, is null, in list, like)
+and `ZZ_QRY_STUDIO_NUM` (not less than 0, date prompt) on HRDMO; Windows
+Query reopened both with the same criteria and SQL, and its Results matched
+Studio's run row for row (2 and 3 rows,
+`tools/lab/results/query-criteria-native-2026-10-21.json`). Studio's reader
+and designer now show NOT for NEGATION 'N', the only value Windows Query and
+the delivered queries use (they previously expected 'Y'). Rename, Delete,
 Excel export and printing remain future workflows. Unsupported shapes show a
 reason and retain their readable definition.
 

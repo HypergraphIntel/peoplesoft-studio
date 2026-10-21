@@ -36,5 +36,28 @@ test('unsupported security, aggregate, join and date shapes produce no partial S
   assert.throws(() => compileQuerySql(view,{...context,querySecurityRecord:'SECURITY_VW'}),/row security/);
   assert.throws(() => compileQuerySql({...view,records:[...view.records,...view.records]},context),/Joins/);
   assert.throws(() => compileQuerySql({...view,fields:view.fields.map(f=>({...f,TTLTYPE:3}))},context),/Aggregate/);
-  assert.throws(() => compileQuerySql(view,{...context,fields:{ESTABID:{type:4}}}),/character/);
+  assert.throws(() => compileQuerySql(view,{...context,fields:{ESTABID:{type:3}}}),/character, number and date/);
+});
+
+// Windows Query's SQL tab for each native save (qcr05-qcr10, qnm02, qnm04), whitespace normalized.
+test('criteria, number and date SQL matches what Windows Query shows for the native saves', () => {
+  const normalize = (sql: string) => sql.replace(/\s+/g, ' ').replace(/, /g, ',').trim();
+  const years: QuerySqlContext = {record:'AAP_YEAR',table:'PS_AAP_YEAR',recordType:0,querySecurityRecord:'',fields:{ESTABID:{type:0},START_DT:{type:4},FEMALE_GOAL:{type:2}}};
+  const head = "SELECT A.DESCR, A.ESTABID FROM PS_AAP_TBL A WHERE ( ";
+  const cases: Array<[string,QuerySqlContext,string]> = [
+    ['qcr05-group',context,head+"A.ESTABID <> 'ZZZ' OR ( A.DESCR LIKE 'A%' AND A.ESTABID > 'A'))"],
+    ['qcr06-not',context,head+"NOT A.ESTABID <> 'ZZZ' OR ( A.DESCR LIKE 'A%' AND A.ESTABID > 'A'))"],
+    ['qcr07-between',context,head+"NOT A.ESTABID <> 'ZZZ' OR ( A.DESCR LIKE 'A%' AND A.ESTABID BETWEEN 'A' AND 'M'))"],
+    ['qcr08-in-list',context,head+"NOT A.ESTABID <> 'ZZZ' OR ( A.DESCR LIKE 'A%' AND A.ESTABID IN ('A','B')))"],
+    ['qcr09-is-null',context,head+"NOT A.ESTABID <> 'ZZZ' OR ( A.DESCR IS NULL AND A.ESTABID IN ('A','B')))"],
+    ['qcr10-field',context,head+"NOT A.ESTABID <> A.DESCR OR ( A.DESCR IS NULL AND A.ESTABID IN ('A','B')))"],
+    ['qnm02-date-const',years,"SELECT A.ESTABID, TO_CHAR(A.START_DT,'YYYY-MM-DD'), A.FEMALE_GOAL FROM PS_AAP_YEAR A WHERE ( A.FEMALE_GOAL > 5 AND A.START_DT > TO_DATE('2000-01-01','YYYY-MM-DD'))"],
+    ['qnm04-number-prompt',years,"SELECT A.ESTABID, TO_CHAR(A.START_DT,'YYYY-MM-DD'), A.FEMALE_GOAL FROM PS_AAP_YEAR A WHERE ( A.FEMALE_GOAL > :2 AND A.START_DT > TO_DATE(:1,'YYYY-MM-DD'))"]
+  ];
+  for (const [name,ctx,sql] of cases) assert.equal(normalize(compileQuerySql(snapshot(name),ctx).sql),normalize(sql),name);
+  const plan = compileQuerySql(snapshot('qnm04-number-prompt'),years);
+  assert.deepEqual(plan.prompts.map(p => String(p.BNDNAME)), ['BIND2','BIND1']);
+  assert.deepEqual(bindQueryPrompts(plan,{'1':'2000-01-01','2':'5'}),{'1':'2000-01-01','2':'5'});
+  assert.throws(() => bindQueryPrompts(plan,{'1':'01/01/2000','2':'5'}),/YYYY-MM-DD/);
+  assert.throws(() => bindQueryPrompts(plan,{'1':'2000-01-01','2':'5 or 1=1'}),/whole number/);
 });

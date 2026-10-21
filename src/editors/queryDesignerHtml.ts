@@ -63,7 +63,7 @@ export function renderQueryDesigner(name: string, connection: string, view: Quer
       const right = refs.operand(c, 'R1');
       return [n(c.COMBTYPE) === 3 ? '' : CONNECTORS[n(c.COMBTYPE)] ?? `combine ${n(c.COMBTYPE)}`,
         '('.repeat(Math.max(0,n(c.LPARENLVL))) + (n(c.LCRTFLDNUM) ? refs.field(n(c.LCRTSELNUM),n(c.LCRTFLDNUM)) : ''),
-        `${s(c.NEGATION) === 'Y' ? 'not ' : ''}${CONDITIONS[condition] ?? `condition ${condition}`}`,
+        `${s(c.NEGATION) === 'N' ? 'not ' : ''}${CONDITIONS[condition] ?? `condition ${condition}`}`,
         (condition === 10 || condition === 11 ? `${right} and ${refs.operand(c,'R2')}` : right) + ')'.repeat(Math.max(0,n(c.RPARENLVL))),
         n(c.QRYOJSELNUM) ? refs.alias(id,n(c.QRYOJSELNUM)) : ''];
     }))}</section>`;

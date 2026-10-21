@@ -143,7 +143,8 @@ export function renderQuery(name: string, view: QueryView): string {
         const r1 = operand(c, 'R1');
         const r2 = operand(c, 'R2');
         const right = cond === 10 || cond === 11 ? `${r1} and ${r2}` : r1;
-        const words = `${str(c.NEGATION) === 'Y' ? 'not ' : ''}${CONDITIONS[cond] ?? `condition ${cond}`}`;
+        // qcr06: Windows Query stores NOT as NEGATION 'N' (delivered rows use only 'N' and blank).
+        const words = `${str(c.NEGATION) === 'N' ? 'not ' : ''}${CONDITIONS[cond] ?? `condition ${cond}`}`;
         const joinOn = num(c.QRYOJSELNUM) ? `  (ON ${alias(n, num(c.QRYOJSELNUM))})` : '';
         const open = '('.repeat(Math.max(0, num(c.LPARENLVL)));
         const close = ')'.repeat(Math.max(0, num(c.RPARENLVL)));

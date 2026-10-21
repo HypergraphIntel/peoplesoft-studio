@@ -46,8 +46,10 @@ export function validateQuerySaveShape(view: QueryView): void {
   }
   const counts={SELCOUNT:view.selects.length,EXPCOUNT:view.expressions.length,BNDCOUNT:view.binds.length};
   for (const [column,value] of Object.entries(counts)) if (Number(header[column])!==value) throw new Error(`Query ${column} is inconsistent.`);
-  if (view.expressions.length!==view.criteria.length || Number(view.selects[0]?.FLDCOUNT)!==view.fields.length
-    || Number(view.selects[0]?.CRTCOUNT)!==view.criteria.length) throw new Error('Query field, criterion or expression counts are inconsistent.');
+  // A criterion has zero to two expressions (qcr07 between, qcr10 field, qcr09 keeps an is-null's old one); each expression belongs to one.
+  const used=view.criteria.flatMap(c=>[Number(c.R1CRTEXPNUM),Number(c.R2CRTEXPNUM)]).filter(Boolean);
+  if (new Set(used).size!==used.length || used.length!==view.expressions.length || view.expressions.some(e=>!used.includes(Number(e.EXPNUM)))
+    || Number(view.selects[0]?.FLDCOUNT)!==view.fields.length || Number(view.selects[0]?.CRTCOUNT)!==view.criteria.length) throw new Error('Query field, criterion or expression counts are inconsistent.');
   for (const table of TABLES) for (const row of queryRows(view,table)) {
     if (String(row.QRYNAME).trim()!==String(header.QRYNAME).trim() || String(row.OPRID).trim()!==String(header.OPRID).trim()) {
       throw new Error('All query rows must belong to the same query key.');
@@ -84,7 +86,18 @@ export async function saveQuery(c: DbConnection, types: DbTypes, request: QueryS
   if (refusal) throw new Error(refusal);
   if (!/^[A-Z][A-Z0-9_]*$/.test(name)) throw new Error('Invalid query name.');
   try {
-    await requireCalibratedRelease(c,'query');
+    const release=await requireCalibratedRelease(c,'query');
+    // Typed criteria and number/date fields are calibrated on 8.62.09 (qcr01-qcr10, qnm01-qnm04);
+    // 8.61.15 keeps the one equal-to character criterion its captures established.
+    if (!release.startsWith('8.62.')) {
+      const view=request.view, names=[...new Set(view.fields.map(f=>String(f.FIELDNAME).trim()))];
+      const types=names.length?(await c.execute<{FIELDTYPE:number}>(`SELECT FIELDTYPE FROM PSDBFIELD WHERE FIELDNAME IN (${names.map((_,i)=>':f'+i).join(',')})`,
+        Object.fromEntries(names.map((f,i)=>['f'+i,f])))).rows ?? []:[];
+      if (view.criteria.length>1 || view.criteria.some(c=>Number(c.CONDTYPE)!==2 || ![1,8].includes(Number(c.EXPRTYPE)) || String(c.NEGATION ?? '').trim()
+        || Number(c.LPARENLVL) || Number(c.RPARENLVL)) || types.some(t=>Number(t.FIELDTYPE)!==0)) {
+        throw new Error(`Multiple, grouped or non-equal criteria and number/date fields are calibrated on PeopleTools 8.62.09; this database is ${release}.`);
+      }
+    }
     await prepareQueryExecution(c,request.view,request.operatorId);
     validateQuerySaveShape(request.view);
     const [limits]=(await c.execute<{LENGTH:number}>('SELECT LENGTH FROM PSDBFIELD WHERE FIELDNAME=:f',{f:'QRYNAME'})).rows ?? [];
