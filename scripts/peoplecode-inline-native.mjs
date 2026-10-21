@@ -1,0 +1,19 @@
+/** Package and exercise the actual installed candidate in a private VS Code window. */
+import {execFile} from 'node:child_process';import {promisify} from 'node:util';import {mkdtempSync,mkdirSync,readFileSync,writeFileSync,readdirSync,rmSync} from 'node:fs';import os from 'node:os';import path from 'node:path';import {createServer} from 'node:net';import {createHash} from 'node:crypto';
+const exec=promisify(execFile),root=process.cwd(),dir=mkdtempSync(path.join(os.tmpdir(),'psft-inline-installed-')),artifacts=path.join(root,'tools/lab/results');mkdirSync(artifacts,{recursive:true});
+const env={...process.env,PSFT_DISABLE_MCP:'1'};for(const k of Object.keys(env))if(k.startsWith('VSCODE_')||k==='ELECTRON_RUN_AS_NODE')delete env[k];delete env.WAYLAND_DISPLAY;env.XDG_SESSION_TYPE='x11';
+const hash=file=>createHash('sha256').update(readFileSync(file)).digest('hex');
+try {
+ const vsix=path.join(dir,'candidate.vsix');await exec(path.join(root,'node_modules/.bin/vsce'),['package','--out',vsix],{cwd:root,maxBuffer:4e6});
+ const extensions=path.join(dir,'extensions'),user=path.join(dir,'user');await exec('code',['--install-extension',vsix,'--force','--extensions-dir',extensions,'--user-data-dir',user],{maxBuffer:2e6});
+ const candidate=path.join(extensions,readdirSync(extensions).find(n=>n.toLowerCase().startsWith('jarednorris.peoplesoft-studio-'))),bundle=path.join(candidate,'dist/extension.js'),before=hash(bundle);
+ const driver=path.join(dir,'driver');mkdirSync(driver);writeFileSync(path.join(driver,'package.json'),JSON.stringify({name:'inline-preview-acceptance',publisher:'psft-tests',version:'0.0.1',engines:{vscode:'^1.90.0'},main:'driver.cjs'}));writeFileSync(path.join(driver,'driver.cjs'),'exports.activate=()=>{};');
+ mkdirSync(path.join(user,'User'),{recursive:true});writeFileSync(path.join(user,'User/settings.json'),JSON.stringify({'files.autoSave':'off','workbench.startupEditor':'none','security.workspace.trust.enabled':false,'update.mode':'none','extensions.autoUpdate':false,'chat.disableAIFeatures':true,'peoplesoft.mcp.enabled':false,'peoplesoft.peoplecode.validateAsYouType':false,'editor.accessibilitySupport':'off','editor.fontSize':16,'editor.minimap.enabled':false,'window.zoomLevel':0}));
+ const server=createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));const port=server.address().port;await new Promise(r=>server.close(r));
+ const input=path.join(dir,'input.json'),result=path.join(dir,'result.json');writeFileSync(input,JSON.stringify({candidate,cdpUrl:`http://127.0.0.1:${port}`,artifacts}));
+ const host=exec('xvfb-run',['-a','-s','-screen 0 1280x1024x24','/usr/share/code/code','--ozone-platform=x11','--no-sandbox','--disable-gpu','--disable-workspace-trust','--skip-welcome','--skip-release-notes','--new-window',`--remote-debugging-port=${port}`,'--remote-debugging-address=127.0.0.1','--user-data-dir',user,'--extensions-dir',extensions,'--extensionDevelopmentPath',driver,'--extensionTestsPath',path.join(root,'scripts/peoplecode-inline-native.cjs'),root],{cwd:root,detached:true,maxBuffer:4e6,env:{...env,PSFT_INLINE_INPUT:input,PSFT_INLINE_RESULT:result}});
+ const timer=setTimeout(()=>{try{process.kill(-host.child.pid,'SIGTERM');}catch{}},90000);let failed;
+ try{await host;}catch(e){failed=e;}finally{clearTimeout(timer);}
+ const report=JSON.parse(readFileSync(result,'utf8'));report.bundleSha256=before;report.bundleUnmodified=hash(bundle)===before;report.passed&&=report.bundleUnmodified;writeFileSync(path.join(artifacts,'peoplecode-inline-installed-2026-10-20.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));
+ if(failed||!report.passed){if(failed)writeFileSync('/tmp/psft-inline-host-debug.log',String(failed.stdout??''));if(failed)console.error(String(failed.stdout??'').slice(-1500));throw Error('Installed inline preview acceptance failed.');}
+}finally{rmSync(dir,{recursive:true,force:true});}

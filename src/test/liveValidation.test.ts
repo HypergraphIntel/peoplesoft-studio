@@ -93,6 +93,34 @@ test('a closed document is forgotten before it compiles', async () => {
   live.dispose();
 });
 
+test('closing a document abandons its running compilation so another editor can validate', async () => {
+  const fake = fakeRunner(400);
+  const live = new LiveValidator(fake.runner, () => {}, () => true, { delayMs: 5 });
+  live.schedule(request(1));
+  await sleep(20);
+  live.schedule(request(2, undefined, 'psft://x/other'));
+  live.cancel('psft://x/a');
+  await sleep(40);
+  assert.equal(fake.restarts(), 1);
+  assert.deepEqual(fake.ran, [1, 2]);
+  live.dispose();
+});
+
+test('a connection/settings revision makes otherwise unchanged text stale', async () => {
+  const fake = fakeRunner(30);
+  let contextVersion = 1;
+  const published: number[] = [];
+  const live = new LiveValidator(fake.runner, (r) => published.push(r.contextVersion!),
+    (_uri, _version, r) => r.contextVersion === contextVersion, { delayMs: 5 });
+  live.schedule({ ...request(1), contextVersion });
+  await sleep(15);
+  contextVersion++;
+  live.schedule({ ...request(1), contextVersion });
+  await sleep(100);
+  assert.deepEqual(published, [2]);
+  live.dispose();
+});
+
 test('the worker thread compiles with the editor\'s compiler and reports where it stops', async () => {
   const runner = new WorkerValidationRunner(path.join(__dirname, '..', 'peoplecode', 'validateWorker.js'));
   try {

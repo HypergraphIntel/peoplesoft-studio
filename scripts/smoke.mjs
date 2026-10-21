@@ -421,7 +421,9 @@ try {
   {
     const programUri = vscode._diffs.at(-1)?.left;
     const editorBefore = vscode.window.activeTextEditor;
-    vscode.window.activeTextEditor = { document: { uri: programUri, languageId: 'psft-peoplecode', getText: () => 'Local number &n = 1;\nLocal string &c = ;\n' } };
+    const documentsBefore = vscode.workspace.textDocuments;
+    vscode.window.activeTextEditor = { document: { uri: programUri, version: 1, languageId: 'psft-peoplecode', getText: () => 'Local number &n = 1;\nLocal string &c = ;\n' } };
+    vscode.workspace.textDocuments = [vscode.window.activeTextEditor.document];
     await vscode.commands.executeCommand('psft.peoplecode.validate');
     const diags = vscode._diagnostics.get('psft-peoplecode-validate')?.get(programUri) ?? [];
     check(diags.length === 1 && diags[0].range.start.line === 1 && diags[0].range.start.character === 18 && diags[0].severity === 1,
@@ -431,6 +433,7 @@ try {
     check((vscode._diagnostics.get('psft-peoplecode-validate')?.get(programUri) ?? []).length === 0
       && /compiles with PeopleSoft Studio's compiler/.test(vscode._messages.at(-1)?.[1] ?? ''), 'Validate PeopleCode did not clear the problem once the program compiles');
     vscode.window.activeTextEditor = editorBefore;
+    vscode.workspace.textDocuments = documentsBefore;
   }
 
   // Find References searches the active connection's PeopleCode and opens the line chosen.
@@ -515,10 +518,10 @@ try {
     'context-menu Open did not open the clicked definition');
   vscode._messages.length = 0;
   await vscode.commands.executeCommand('psft.changeReview.objectHistory', tabUri);
-  // Fields have no history adapter, so this must neither open a review for an
-  // unrelated active editor nor claim there are recorded revisions.
-  check(!vscode._messages.some(([, message]) => message.includes('No retained Change Review history')),
-    'an unsupported Field history request fell back to the active editor');
+  // Field migration now retains history. Resolve the clicked field, without
+  // falling back to the unrelated active PeopleCode editor.
+  check(vscode._messages.some(([, message]) => message.includes('No retained Change Review history for DEMO_ID')),
+    'Field migration history did not resolve the clicked field');
 
   // Record Field PeopleCode: a field under its record lists every record field
   // event; a bare field is asked to be chosen under its record.

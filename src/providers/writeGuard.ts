@@ -74,19 +74,27 @@ const requestSignal=new AsyncLocalStorage<AbortSignal|undefined>();
 export function withWriteRequest<T>(signal:AbortSignal|undefined,fn:()=>T):T {return requestSignal.run(signal,fn);}
 
 /** MCP approval cannot keep a tool alive indefinitely or authorize a cancelled request later. */
-export async function awaitWriteApproval<T>(pending:PromiseLike<T>,stage:string,timeoutMs=60_000):Promise<T> {
-  if(writeOrigin()!=='agent')return await pending;
+export class WriteApprovalTimeoutError extends Error {
+  constructor(stage: string, timeoutMs: number) {
+    super(`${stage} timed out after ${Math.ceil(timeoutMs / 1000)} seconds. Nothing was written. Open PeopleSoft: AI Write Approvals to see the expired request, then retry the original tool for a fresh approval.`);
+    this.name = 'WriteApprovalTimeoutError';
+  }
+}
+
+export async function awaitWriteApproval<T>(pending:PromiseLike<T>|((signal:AbortSignal)=>PromiseLike<T>),stage:string,timeoutMs=60_000):Promise<T> {
+  if(writeOrigin()!=='agent')return await (typeof pending === 'function' ? pending(new AbortController().signal) : pending);
   const signal=requestSignal.getStore();
   signal?.throwIfAborted();
+  const approval = new AbortController();
   let timer:ReturnType<typeof setTimeout>|undefined;
   let fail:()=>void=()=>{};
   try {
     return await new Promise<T>((resolve,reject)=>{
-      fail=()=>reject(new Error(`${stage} was cancelled; nothing was written.`));
-      timer=setTimeout(()=>reject(new Error(`${stage} timed out after ${Math.ceil(timeoutMs/1000)} seconds. Approval is required in VS Code; nothing was written. Retry the tool after reviewing the request.`)),timeoutMs);
+      fail=()=>{const error=new Error(`${stage} was cancelled; nothing was written.`);approval.abort(error);reject(error);};
+      timer=setTimeout(()=>{const error=new WriteApprovalTimeoutError(stage,timeoutMs);approval.abort(error);reject(error);},timeoutMs);
       signal?.addEventListener('abort',fail,{once:true});
       if(signal?.aborted)fail();
-      Promise.resolve(pending).then(resolve,reject);
+      if(!approval.signal.aborted)Promise.resolve(typeof pending === 'function' ? pending(approval.signal) : pending).then(resolve,reject);
     });
   } finally {if(timer)clearTimeout(timer);signal?.removeEventListener('abort',fail);}
 }

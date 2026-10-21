@@ -394,6 +394,7 @@ export function createStub() {
           name, entries,
           set: (uri, diags) => entries.set(String(uri), diags),
           delete: (uri) => entries.delete(String(uri)),
+          clear: () => entries.clear(),
           get: (uri) => entries.get(String(uri)),
           dispose() {}
         };
@@ -403,6 +404,7 @@ export function createStub() {
       registerCompletionItemProvider(_selector, _provider, ..._triggerCharacters) {
         return new Disposable(() => {});
       },
+      registerInlineCompletionItemProvider() { return new Disposable(() => {}); },
       registerHoverProvider(_selector, _provider) {
         return new Disposable(() => {});
       },

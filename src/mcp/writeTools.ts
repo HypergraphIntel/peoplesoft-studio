@@ -40,7 +40,7 @@ export type McpWriteMode = 'confirm' | 'allow' | 'off';
 export interface McpWriteHost {
   mode(): McpWriteMode;
   /** Asks the user; true only on an explicit yes. */
-  confirm(request: { title: string; detail: string }): Promise<boolean>;
+  confirm(request: { title: string; detail: string; signal?: AbortSignal }): Promise<boolean>;
   /** Whether an open editor has unsaved changes to the definition. */
   hasUnsavedEditor(connectionId: string, key: DefinitionKey): boolean;
   /** After a write: refresh open editors and the trees; a PeopleCode save also leaves its report (the rows it replaced). */
@@ -85,9 +85,9 @@ export async function approve(host: McpWriteHost, gate: Gate, key: DefinitionKey
     throw new Error(`${displayName(key)} is open in VS Code with unsaved changes; the user must save or revert them first.`);
   }
   if (host.mode() === 'allow') return;
-  const ok = await awaitWriteApproval(host.confirm({
+  const ok = await awaitWriteApproval(signal => host.confirm({
     title: `An AI agent wants to ${action} on ${gate.provider.displayName}.`,
-    detail: `${detail}\n\nSaved as operator ${gate.operatorId}, through the PeopleSoft Studio MCP.`
+    detail: `${detail}\n\nSaved as operator ${gate.operatorId}, through the PeopleSoft Studio MCP.`, signal
   }), 'MCP write approval');
   if (!ok) throw new Error('The user declined this write in VS Code; nothing was saved.');
 }

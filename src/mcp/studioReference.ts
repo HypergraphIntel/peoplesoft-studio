@@ -6,7 +6,7 @@ import { DEFINITION_TYPE_GUIDE } from './definitionTypes.js';
 // inventory so adding a pane entry cannot silently hide it from MCP clients.
 export const CONFIGURATION_GUIDES: Record<string, { tools: string[]; limitation?: string }> = {
   'Data Mover Scripts': { tools: [], limitation: 'Studio UI creates untitled scripts from templates. RichardWood.peoplesoft-datamover supplies language support when installed. No Data Mover execution or MCP authoring tool.' },
-  'Import Migration Package…': { tools: [], limitation: 'Trusted Studio UI imports a definition migration package after its existing preview and confirmation checks. No MCP import/apply tool; this is not Data Mover execution.' },
+  'Import Migration Package…': { tools: [], limitation: 'Trusted Studio UI previews a definition migration package and stages its exact target changes in durable Change Review; the developer approves and applies there. No MCP import/apply tool; this is not Data Mover execution.' },
   'PS Query': { tools: ['psft_query_reference', 'psft_query_list', 'psft_query_get', 'psft_query_prepare', 'psft_query_run', 'psft_query_create', 'psft_query_save', 'psft_query_copy'], limitation: 'Bounded Oracle 8.62.09 / 8.61.15 character-field query authoring; Query access checks apply. No joins, rename or delete.' },
   'Process Definitions': { tools: ['psft_search_definitions', 'psft_process_reference', 'psft_process_get', 'psft_process_save'], limitation: 'Existing definitions only; Oracle saves and rollback previews. No scheduling or execution.' },
   'Page and Field Configurator': { tools: ['psft_page_field_config_get', 'psft_page_field_config_fields', 'psft_page_field_config_save', 'psft_page_field_config_apply'], limitation: 'Standard and Masking saves; Change Tracking is read only. On 8.61 a save maps nothing; psft_page_field_config_apply maps it (Apply Configuration). Runtime application depends on EOCC Event Mapping.' },
@@ -55,7 +55,7 @@ export function studioReference() {
     },
     projectMigration: {
       tools: ['psft_project_migration_review', 'psft_project_export_migration', 'psft_project_preview_migration'],
-      scope: 'Studio versioned definition packages: supported fields, SQL Table/Derived Work records and full Application Engine documents. Unsupported members block export. Review is not complete dependency closure; preview does not apply changes.',
+      scope: 'Studio versioned definition packages: supported fields, SQL Table/Derived Work records, bounded Oracle standalone SQL with descriptions/comments/owner, full Application Engine documents, bounded HTML/freeform stylesheets, authoritative standalone/associated Record PeopleCode, bounded Oracle PS Queries, and scoped standard/popup menus with ItemSelected PeopleCode. Trusted UI import stages exact target changes and project membership in durable Change Review for developer approval. Preview compares target payloads and binds the target identity and concurrency tokens; import verifies complete readback. Unsupported members block export. Review is not complete dependency closure; preview does not apply changes.',
       limits: 'No MCP import/apply tool. Studio project packages are distinct from Data Mover data scripts and Data Migration Workbench; Studio creates Data Mover scripts from templates and uses RichardWood.peoplesoft-datamover for language support when installed; it does not run Data Mover. Data Migration Workbench remains planned.'
     },
     buildRequests: {

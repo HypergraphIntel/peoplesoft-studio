@@ -50,6 +50,20 @@ const provider = (overrides: Partial<DefinitionProvider> = {}) => ({
   ...overrides
 } as DefinitionProvider);
 
+test('native SQL comparison includes description, comments and owner but excludes version and token', async () => {
+  const data = { name: 'ZZ_A_B', text: 'SELECT 1', description: 'Source', definition: 'Full comments', ownerId: 'PPT' };
+  const here = provider({ readSqlForMigration: async () => ({ data, token: 'source', version: 1 }) });
+  const other = provider({ readSqlForMigration: async () => ({ data, token: 'other', version: 99 }) });
+  assert.equal((await compareProjectItems(items, here, other))[0].outcome, 'same');
+  for (const field of ['description', 'definition', 'ownerId'] as const) {
+    other.readSqlForMigration = async () => ({ data: { ...data, [field]: 'Changed' }, token: 'other', version: 99 });
+    const diff = (await compareProjectItems(items, here, other))[0];
+    assert.equal(diff.outcome, 'different');
+    assert.match(diff.otherText!, /Changed/);
+    assert.match(diff.detail!, /SQL text, description, comments and owner/);
+  }
+});
+
 test('target read errors are not missing definitions', async () => {
   const broken = provider({ readText: async () => { throw new Error('connection lost'); } });
   const result = await compareProjectItems(items, provider(), broken);

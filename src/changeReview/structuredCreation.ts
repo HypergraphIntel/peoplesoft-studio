@@ -61,7 +61,7 @@ export function proposedAeReferences(live: AeReferenceLookup, context?: ReviewVa
         if (d.adapter === 'record-create') {
             const edit = creationRecordEdit(d.after, d.key);
             put(records, d.key, edit.fields.map(f => f.name));
-        } else if (d.adapter === 'sql' && d.after && typeof d.after === 'object' && !Array.isArray(d.after) && typeof d.after.text === 'string') {
+        } else if (['sql','sql-definition'].includes(d.adapter) && d.after && typeof d.after === 'object' && !Array.isArray(d.after) && typeof d.after.text === 'string') {
             put(sql, d.key, { binds: bindMarkerCount(d.after.text), columns: selectList(d.after.text)?.length ?? 0 });
         } else if (d.adapter === 'ae-create') {
             const doc = creationAeDocument(d.after, d.key);
@@ -84,11 +84,17 @@ export function proposedProjectMembers(context?: ReviewValidationContext): Defin
     if (!context || context.phase === 'live') return [];
     const keys: DefinitionKey[] = [];
     for (const d of context.dependencies) {
+        // A Query review key is [name, owner]; its project member carries the owner (blank = public).
+        if (d.adapter === 'query' && d.after !== null && Array.isArray(d.key) && d.key.length === 2 && d.key.every(x => typeof x === 'string')) {
+            const [name, owner] = (d.key as string[]).map(x => x.trim());
+            keys.push(owner ? makeKey(DefinitionType.Query, name, owner) : makeKey(DefinitionType.Query, name));
+            continue;
+        }
         if (typeof d.key !== 'string') continue;
         if (d.adapter === 'record-create') {
             creationRecordEdit(d.after, d.key);
             keys.push(makeKey(DefinitionType.Record, d.key));
-        } else if (d.adapter === 'sql' && d.after !== null) keys.push(makeKey(DefinitionType.SqlDefinition, d.key, '0'));
+        } else if (['sql','sql-definition'].includes(d.adapter) && d.after !== null) keys.push(makeKey(DefinitionType.SqlDefinition, d.key, '0'));
         else if (d.adapter === 'ae-create') {
             const doc = creationAeDocument(d.after, d.key), native = structuredSnapshot(d.after, 'ae');
             keys.push(makeKey(DefinitionType.AppEngineProgram, d.key));

@@ -204,7 +204,7 @@ export class ProjectsView implements vscode.TreeDataProvider<Node> {
           kind: 'packageGroup',
           provider: node.provider,
           project: node.project.name,
-          roots: buildPackageTree(packageItems),
+          roots: buildPackageTree(packageItems, true),
           count: packageItems.length
         });
       }

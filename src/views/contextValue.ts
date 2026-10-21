@@ -18,5 +18,6 @@ export function definitionContextValue(key: DefinitionKey, navigation?: { compar
     (key.type === DefinitionType.Field && key.parts.length >= 2 ? '.recordField' : '') +
     (key.type === DefinitionType.Record ? '.record' : '') +
     (key.type === DefinitionType.HtmlDefinition || key.type === DefinitionType.StyleSheet ? '.description' : '') +
-    (key.type === DefinitionType.Component ? '.component' : '');
+    (key.type === DefinitionType.Component ? '.component' : '') +
+    (key.type === DefinitionType.ApplicationPackage ? '.applicationPackage' : '');
 }

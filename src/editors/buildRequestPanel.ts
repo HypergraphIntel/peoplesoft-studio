@@ -5,6 +5,7 @@ import {
   agentPrompt, approvalBlocker, buildOrder, isApproved, REQUEST_KINDS, status, STATUS_LABELS, unansweredQuestions, type BuildRequest, type RequestEdit
 } from '../buildRequest/model.js';
 import { routeFor } from '../buildRequest/routes.js';
+import { agentLaunch } from '../buildRequest/handoff.js';
 import type { BuildRequestStore } from '../buildRequest/store.js';
 import { escapeHtml as esc } from './propertiesHtml.js';
 
@@ -23,7 +24,7 @@ export interface BuildRequestHost {
   store: BuildRequestStore;
   extensionUri: vscode.Uri;
   connections(): string[];
-  mcp(): { running: boolean; writes: boolean };
+  mcp(): { running: boolean; writes: boolean; url: string };
 }
 
 type Message =
@@ -139,11 +140,12 @@ export class BuildRequestPanel {
     if (phase === 'build' && !isApproved(r)) { void vscode.window.showWarningMessage('Approve the spec before handing it over to build.'); return; }
     if (phase === 'analyze' && !r.narrative.trim() && !r.attachments.length) { void vscode.window.showWarningMessage('Describe the request or attach its documents first.'); return; }
     await vscode.workspace.getConfiguration('peoplesoft.buildRequests').update('agent', agent, vscode.ConfigurationTarget.Global);
-    const mcp = this.host.mcp();
+    let mcp = this.host.mcp();
     if (!mcp.running) {
       const pick = await vscode.window.showWarningMessage('The agent reads the request through the PeopleSoft Studio MCP server, which is not running.', 'Start MCP Server', 'Continue Anyway');
       if (pick === 'Start MCP Server') await vscode.commands.executeCommand('psft.mcp.start');
       else if (pick !== 'Continue Anyway') return;
+      mcp = this.host.mcp();
     }
     if (phase === 'build' && !mcp.writes) {
       void vscode.window.showWarningMessage('MCP writes are off (peoplesoft.mcp.writes), so the agent can only report every object as a manual step.', 'Open Setting')
@@ -155,10 +157,18 @@ export class BuildRequestPanel {
       void vscode.window.showInformationMessage('Prompt copied. Paste it into an agent connected to the PeopleSoft Studio MCP server.');
     } else {
       const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? this.host.store.folder(this.id);
-      const terminal = vscode.window.createTerminal({ name: `${AGENTS[agent]}: ${r.title}`.slice(0, 60), cwd, iconPath: new vscode.ThemeIcon('tools') });
-      terminal.show();
-      // The prompt is plain prose built by agentPrompt; dropping quote and expansion characters keeps it one argument in any shell.
-      terminal.sendText(`${agent} "${prompt.replace(/["`$\\!]/g, '')}"`);
+      const launch = agentLaunch(r, phase, agent, mcp.url);
+      const name = `${AGENTS[agent]}: ${r.title}`.slice(0, 60);
+      if (process.platform === 'win32') {
+        // VS Code quotes literal arguments for the configured Windows shell, including .cmd launchers.
+        const task = new vscode.Task({ type: 'psft-build-request', request: r.id }, vscode.TaskScope.Global, name, 'PeopleSoft Studio',
+          new vscode.ShellExecution(launch.command, launch.args.map(value => ({ value, quoting: vscode.ShellQuoting.Strong })), { cwd }));
+        task.presentationOptions = { reveal: vscode.TaskRevealKind.Always, focus: true, panel: vscode.TaskPanelKind.New };
+        await vscode.tasks.executeTask(task);
+      } else {
+        const terminal = vscode.window.createTerminal({ name, cwd, shellPath: launch.command, shellArgs: launch.args, iconPath: new vscode.ThemeIcon('tools') });
+        terminal.show();
+      }
     }
     await this.host.store.recordHandoff(this.id, phase, agent);
   }

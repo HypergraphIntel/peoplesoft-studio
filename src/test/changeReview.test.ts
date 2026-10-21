@@ -6,7 +6,8 @@ import path from 'node:path';
 import { ReviewStore } from '../changeReview/store.js';
 import { ReviewService, type ReviewAdapter } from '../changeReview/service.js';
 import { buildObjectTimeline } from '../changeReview/timeline.js';
-import { approvalHash, canonical, differences, hash, privacy, type Environment, type Json } from '../changeReview/model.js';
+import { completedFollowUp, reviewList } from '../changeReview/navigation.js';
+import { approvalHash, canonical, differences, hash, privacy, reviewStateToken, reviewEligibleIds, type Environment, type Json } from '../changeReview/model.js';
 import { isHeaderOnlyRequest } from '../changeReview/structuredHeaders.js';
 import { isStageablePageRequest } from '../model/pageOperations.js';
 async function fixture() {
@@ -46,6 +47,156 @@ async function ready(f: Awaited<ReturnType<typeof fixture>>, keys = ['A']) {
     assert.equal(set.status, 'READY_FOR_REVIEW');
     return f.service.review(set.id, set.objects.map(c => c.id), 'APPROVED', set.revision);
 }
+
+test('combined approval/application keeps exact hashes, checkpoints and dependency order under one lock', async () => {
+    const f = await fixture();
+    try {
+        let set = await f.service.create('Combined', 'oracle:LAB');
+        set = await f.service.stage(set.id, 'fixture', 'A', { text: 'A' });
+        set = await f.service.stage(set.id, 'fixture', 'B', { text: 'B' }, [set.objects[0].id]);
+        set = await f.service.validate(set.id);
+        const rendered = reviewStateToken(set), exclusive = f.store.exclusive.bind(f.store);
+        let locks = 0;
+        f.store.exclusive = async fn => { locks++; return exclusive(fn); };
+        const result = await f.service.approveAndApply(set.id, reviewEligibleIds(set), set.revision, rendered);
+        assert.equal(locks, 1);
+        assert.equal(result.status, 'APPLIED');
+        assert.deepEqual(f.writes, ['A', 'B']);
+        assert.equal(result.checkpoint?.objects.length, 2);
+        assert.ok(result.objects.every(c => c.approvedHash === approvalHash(result, c) && c.application === 'VERIFIED' && c.verified === c.after));
+        assert.ok(result.journal.some(e => e.action === 'APPROVE_AND_APPLY_REQUESTED' && e.detail === rendered));
+        assert.equal(result.journal.filter(e => e.action === 'APPROVED').length, 1);
+        await assert.rejects(f.service.approveAndApply(set.id, reviewEligibleIds(set), set.revision, rendered), /stale/);
+        assert.deepEqual(f.writes, ['A', 'B']);
+    } finally { await f.close(); }
+});
+
+test('combined action refuses changed revision, same-revision review state and forged object selections', async () => {
+    const f = await fixture();
+    try {
+        let set = await f.service.create('Exact selection', 'oracle:LAB');
+        for (const key of ['A', 'B']) set = await f.service.stage(set.id, 'fixture', key, { text: key });
+        set = await f.service.validate(set.id);
+        const rendered = reviewStateToken(set), ids = reviewEligibleIds(set);
+        for (const selection of [[], [ids[0]], [...ids, ids[0]], [ids[1], ids[0]], [...ids, 'foreign']]) {
+            await assert.rejects(f.service.approveAndApply(set.id, selection, set.revision, rendered), /exactly the displayed/);
+        }
+        await assert.rejects(f.service.approveAndApply(set.id, ids, set.revision - 1, rendered), /stale/);
+        await assert.rejects(f.service.approveAndApply(set.id, ids, set.revision, ''), /current rendered/);
+        const rejected = await f.service.review(set.id, [ids[0]], 'REJECTED', set.revision);
+        assert.equal(rejected.revision, set.revision);
+        await assert.rejects(f.service.approveAndApply(set.id, ids, set.revision, rendered), /stale/);
+        const result = await f.service.approveAndApply(rejected.id, reviewEligibleIds(rejected), rejected.revision, reviewStateToken(rejected));
+        assert.deepEqual(f.writes, ['B']);
+        assert.equal(result.objects[0].review, 'REJECTED');
+        assert.equal(result.objects[0].application, 'PENDING');
+    } finally { await f.close(); }
+});
+
+test('rejected prerequisites and their pending transitive dependents stay excluded from the combined action', async () => {
+    const f = await fixture();
+    try {
+        let set = await f.service.create('Exclusions', 'oracle:LAB');
+        set = await f.service.stage(set.id, 'fixture', 'A', { text: 'A' });
+        set = await f.service.stage(set.id, 'fixture', 'B', { text: 'B' }, [set.objects[0].id]);
+        set = await f.service.stage(set.id, 'fixture', 'C', { text: 'C' }, [set.objects[1].id]);
+        set = await f.service.stage(set.id, 'fixture', 'D', { text: 'D' });
+        set = await f.service.validate(set.id);
+        set = await f.service.review(set.id, [set.objects[0].id], 'REJECTED', set.revision);
+        assert.deepEqual(reviewEligibleIds(set), [set.objects[3].id]);
+        const result = await f.service.approveAndApply(set.id, reviewEligibleIds(set), set.revision, reviewStateToken(set));
+        assert.equal(result.status, 'APPLIED'); assert.deepEqual(f.writes, ['D']);
+        assert.ok(result.objects.slice(0, 3).every(c => c.application === 'PENDING' && c.review !== 'APPROVED'));
+    } finally { await f.close(); }
+});
+
+test('combined action cannot approve an approach, skip validation or omit destructive approval', async () => {
+    const f = await fixture();
+    try {
+        let planned = await f.service.create('Plan', 'oracle:LAB', undefined, undefined, 'Review approach first.');
+        await assert.rejects(f.service.approveAndApply(planned.id, [], planned.revision, reviewStateToken(planned)), /separate developer plan approval/);
+        planned = await f.service.reviewPlan(planned.id, 'APPROVED', planned.revision);
+        planned = await f.service.stage(planned.id, 'fixture', 'A', { text: 'A' });
+        await assert.rejects(f.service.approveAndApply(planned.id, reviewEligibleIds(planned), planned.revision, reviewStateToken(planned)), /Validate before review/);
+        planned = await f.service.validate(planned.id);
+        assert.equal((await f.service.approveAndApply(planned.id, reviewEligibleIds(planned), planned.revision, reviewStateToken(planned))).status, 'APPLIED');
+        let deletion = await f.service.create('Delete', 'oracle:LAB');
+        deletion = await f.service.stage(deletion.id, 'fixture', 'A', null);
+        deletion = await f.service.validate(deletion.id);
+        await assert.rejects(f.service.approveAndApply(deletion.id, reviewEligibleIds(deletion), deletion.revision, reviewStateToken(deletion)), /destructive/);
+        assert.equal((await f.store.get(deletion.id)).objects[0].review, 'PENDING');
+        assert.equal((await f.service.approveAndApply(deletion.id, reviewEligibleIds(deletion), deletion.revision, reviewStateToken(deletion), true)).status, 'APPLIED');
+    } finally { await f.close(); }
+});
+
+test('combined action repeats drift, validation, policy, identity and exact writer preflight gates', async () => {
+    for (const gate of ['drift', 'validation', 'policy', 'identity', 'authorization']) {
+        const f = await fixture();
+        try {
+            let stamp = 'initial'; f.adapter.authorizationState = async () => stamp;
+            let set = await f.service.create('Gates', 'oracle:LAB');
+            set = await f.service.stage(set.id, 'fixture', 'A', { text: 'A' });
+            set = await f.service.validate(set.id);
+            if (gate === 'drift') f.live.set('A', { value: { text: 'someone else' }, token: 'changed' });
+            if (gate === 'validation') f.adapter.validate = async () => ['new validation finding'];
+            if (gate === 'policy') f.readonly();
+            if (gate === 'identity') f.setTarget({ ...set.environment, identity: 'other database' });
+            if (gate === 'authorization') stamp = 'changed';
+            const result = await f.service.approveAndApply(set.id, reviewEligibleIds(set), set.revision, reviewStateToken(set));
+            assert.equal(result.status, 'CONFLICTED', gate); assert.deepEqual(f.writes, []);
+            assert.ok(result.journal.some(e => e.action === 'APPLICATION_STOPPED'));
+        } finally { await f.close(); }
+    }
+});
+
+test('combined action preserves partial/uncertain results and never replays a writer after failure', async () => {
+    const f = await fixture();
+    try {
+        let set = await f.service.create('Partial', 'oracle:LAB');
+        for (const key of ['A', 'B', 'C']) set = await f.service.stage(set.id, 'fixture', key, { text: key });
+        set = await f.service.validate(set.id); f.fail('B', true);
+        const result = await f.service.approveAndApply(set.id, reviewEligibleIds(set), set.revision, reviewStateToken(set));
+        assert.equal(result.status, 'PARTIALLY_APPLIED');
+        assert.deepEqual(result.objects.map(c => c.application), ['VERIFIED', 'UNCERTAIN', 'PENDING']);
+        await assert.rejects(f.service.approveAndApply(result.id, reviewEligibleIds(result), result.revision, reviewStateToken(result)), /Validate before review/);
+        assert.deepEqual(f.writes, ['A', 'B']);
+    } finally { await f.close(); }
+});
+
+test('apply checks the page revision/state again inside its store lock', async () => {
+    const f = await fixture();
+    try {
+        const approved = await ready(f), token = reviewStateToken(approved);
+        const set = await f.service.stage(approved.id, 'fixture', 'A', { text: 'new revision' }, [], approved.objects[0].id);
+        await assert.rejects(f.service.apply(set.id, false, approved.revision, token), /stale/);
+        await f.service.validate(set.id);
+        await assert.rejects(f.service.review(set.id, [set.objects[0].id], 'APPROVED', set.revision, false, token), /stale/);
+        assert.deepEqual(f.writes, []);
+    } finally { await f.close(); }
+});
+
+test('combined application holds the lock against revisions/duplicate clicks and still accepts cancellation', async () => {
+    const f = await fixture();
+    let release!: () => void;
+    try {
+        let entered!: () => void;
+        const gate = new Promise<void>(r => { release = r; }), started = new Promise<void>(r => { entered = r; });
+        const write = f.adapter.write;
+        f.adapter.write = async (...args) => { entered(); await gate; return write(...args); };
+        let set = await f.service.create('Concurrent actions', 'oracle:LAB');
+        for (const key of ['A', 'B']) set = await f.service.stage(set.id, 'fixture', key, { text: key });
+        set = await f.service.validate(set.id);
+        const pending = f.service.approveAndApply(set.id, reviewEligibleIds(set), set.revision, reviewStateToken(set));
+        await started;
+        await assert.rejects(f.service.approveAndApply(set.id, reviewEligibleIds(set), set.revision, reviewStateToken(set)), /locked/);
+        await assert.rejects(f.service.stage(set.id, 'fixture', 'C', { text: 'unreviewed' }), /locked/);
+        await f.service.cancel(set.id); release();
+        const result = await pending;
+        assert.equal(result.status, 'PARTIALLY_APPLIED');
+        assert.deepEqual(f.writes, ['A']);
+        assert.deepEqual(result.objects.map(c => c.application), ['VERIFIED', 'PENDING']);
+    } finally { release?.(); await f.close(); }
+});
 test('proposal validation sees only declared transitive dependencies; apply validates live verified prerequisites', async () => {
     const f = await fixture();
     try {
@@ -129,7 +280,7 @@ test('trusted one-object application pauses only at a verified writer boundary a
         assert.deepEqual(f.writes, ['A', 'B']);
     } finally { await f.close(); }
 });
-test('one-object application does not partially reverse checkpoints and still checks every baseline before writing', async () => {
+test('one-object reversal can pause at a verified boundary and still checks every baseline before writing', async () => {
     const f = await fixture();
     try {
         f.live.set('A', { value: { text: 'old' }, token: '1' });
@@ -138,11 +289,11 @@ test('one-object application does not partially reverse checkpoints and still ch
         let inverse = await f.service.reverse(set.id);
         inverse = await f.service.validate(inverse.id);
         inverse = await f.service.review(inverse.id, inverse.objects.map(c => c.id), 'APPROVED', inverse.revision);
-        await assert.rejects(f.service.apply(inverse.id, true), /Partial reversal/);
+        assert.equal((await f.service.apply(inverse.id, true)).status, 'APPLIED');
         set = await ready(f, ['B', 'C']);
         f.live.set('C', { value: { text: 'outside' }, token: '2' });
         assert.equal((await f.service.apply(set.id, true)).status, 'CONFLICTED');
-        assert.deepEqual(f.writes, ['A']);
+        assert.deepEqual(f.writes, ['A', 'A']);
     } finally { await f.close(); }
 });
 test('an adapter reversal refusal blocks the inverse up front with its reason and proposes nothing', async () => {
@@ -218,7 +369,7 @@ test('remaining work is a durable fresh proposal after reconciliation; confirmed
         assert.deepEqual(f.writes, ['A', 'B', 'C', 'D']);
         assert.equal((await f.store.get(set.id)).status, 'PARTIALLY_APPLIED', 'original outcome remains an honest historical record');
         assert.equal((await f.service.prepareRemaining(set.id)).id, proposal.id, 'duplicate preparation never replays an applied follow-up');
-        await assert.rejects(f.service.reverse(proposal.id), /combined recovery plan/);
+        assert.equal((await f.service.reverse(proposal.id)).schema, 3);
     } finally { await f.close(); }
 });
 
@@ -227,7 +378,7 @@ test('remaining preparation refuses unknown outcomes, native drift and environme
         const f = await fixture();
         try {
             const set = await partialChain(f);
-            if (mode === 'uncertain') f.live.delete('B');
+            if (mode === 'uncertain') f.live.set('B', { value: { text: 'outside' }, token: 'unknown' });
             await f.service.recover(set.id);
             if (mode === 'confirmed-token') f.live.get('A')!.token = 'external-resave';
             if (mode === 'pending-content') f.live.set('C', { value: { text: 'outside' }, token: 'external' });
@@ -569,7 +720,7 @@ test('a rolled-back update reconciles its exact original snapshot and token with
         assert.deepEqual(f.writes, ['A', 'A']);
     } finally { await f.close(); }
 });
-test('baseline recovery refuses content drift, token drift, absent creations and unknown manual results', async () => {
+test('baseline recovery refuses content drift, token drift, changed absent scopes and unknown manual results', async () => {
     for (const mode of ['content', 'token', 'create', 'manual']) {
         const f = await fixture();
         try {
@@ -579,6 +730,7 @@ test('baseline recovery refuses content drift, token drift, absent creations and
             const failed = await f.service.apply(set.id);
             if (mode === 'content') f.live.set('A', { value: { text: 'outside' }, token: '7' });
             if (mode === 'token') f.live.get('A')!.token = '8';
+            if (mode === 'create') f.live.set('A', { value: null, token: 'different-vacancy' });
             if (mode === 'manual') {
                 failed.objects[0].resultKnown = false;
                 await f.store.exclusive(() => f.store.put(failed));
@@ -841,4 +993,268 @@ test('only bounded Page edits stage; inserting or deleting a control takes the l
     assert.equal(isStageablePageRequest([{ op: 'move', id: 3, left: 0, top: 0 }], true), false);
     assert.equal(isStageablePageRequest([], undefined), false);
     assert.equal(isStageablePageRequest(undefined, undefined), false);
+});
+
+test('completed continuation reverses all confirmed checkpoints in dependency order and redo uses fresh approval', async () => {
+    const f = await fixture();
+    try {
+        const source = await partialChain(f);
+        await f.service.recover(source.id);
+        let continuation = await f.service.prepareRemaining(source.id);
+        continuation = await f.service.validate(continuation.id);
+        continuation = await f.service.review(continuation.id, continuation.objects.map(c => c.id), 'APPROVED', continuation.revision);
+        f.fail(''); continuation = await f.service.apply(continuation.id);
+        assert.equal(continuation.status, 'APPLIED');
+        assert.equal((await f.service.reversalSupport(continuation)).supported, true);
+        let inverse = await f.service.reverse(continuation.id);
+        assert.equal(inverse.schema, 3);
+        assert.deepEqual(new Set(inverse.reversalSources?.map(s => s.changeSetId)), new Set([source.id, continuation.id]));
+        assert.deepEqual(new Set(inverse.objects.map(c => c.key)), new Set(['A','B','C','D']));
+        assert.ok(inverse.objects.every(c => c.review === 'PENDING' && !c.approvedHash));
+        assert.equal((await new ReviewStore(f.root).get(inverse.id)).schema, 3);
+        await assert.rejects(f.service.apply(inverse.id), /approved/);
+        inverse = await f.service.validate(inverse.id);
+        inverse = await f.service.review(inverse.id, inverse.objects.map(c => c.id), 'APPROVED', inverse.revision, true);
+        inverse = await f.service.apply(inverse.id);
+        assert.equal(inverse.status, 'APPLIED');
+        assert.deepEqual(f.writes, ['A','B','C','D','D','C','B','A']);
+        assert.equal((await f.store.get(source.id)).status, 'REVERTED');
+        assert.equal((await f.store.get(continuation.id)).status, 'REVERTED');
+        assert.ok([...f.live.values()].every(v => v.value === null));
+        let redo = await f.service.redo(continuation.id);
+        assert.ok(redo.objects.every(c => c.review === 'PENDING' && !c.approvedHash));
+        redo = await f.service.validate(redo.id);
+        redo = await f.service.review(redo.id, redo.objects.map(c => c.id), 'APPROVED', redo.revision);
+        redo = await f.service.apply(redo.id);
+        assert.equal(redo.status, 'APPLIED');
+        assert.deepEqual(f.writes.slice(-4), ['A','B','C','D']);
+        assert.ok([...f.live.values()].every(v => v.value !== null));
+    } finally { await f.close(); }
+});
+
+test('combined continuation inverse refuses drift, missing deletion support and forged source lineage before writing', async () => {
+    const f = await fixture();
+    try {
+        const source = await ready(f, ['A','B']);
+        await f.service.apply(source.id, true);
+        let continuation = await f.service.prepareRemaining(source.id);
+        continuation = await f.service.validate(continuation.id);
+        continuation = await f.service.review(continuation.id, continuation.objects.map(c => c.id), 'APPROVED', continuation.revision);
+        continuation = await f.service.apply(continuation.id);
+        f.adapter.canDelete = false;
+        assert.equal((await f.service.reversalSupport(continuation)).supported, false);
+        const count = (await f.store.list()).length;
+        await assert.rejects(f.service.reverse(continuation.id), /unsupported deletion/);
+        assert.equal((await f.store.list()).length, count);
+        f.adapter.canDelete = true;
+        const token = f.live.get('A')!.token;
+        f.live.get('A')!.token = 'changed';
+        await assert.rejects(f.service.reverse(continuation.id), /prerequisite changed/);
+        f.live.get('A')!.token = token;
+        let inverse = await f.service.reverse(continuation.id);
+        const stamped = await f.store.get(inverse.id);
+        stamped.reversalSources![0].objects[0].token = 'forged';
+        await f.store.put(stamped);
+        const conflicted = await f.service.validate(inverse.id);
+        assert.equal(conflicted.status, 'CONFLICTED');
+        assert.match(conflicted.journal.at(-1)!.detail ?? '', /checkpoint changed/);
+        assert.deepEqual(f.writes, ['A','B']);
+        inverse.schema = 1;
+        await f.store.put(inverse);
+        await assert.rejects(f.store.get(inverse.id), /schema 3/);
+    } finally { await f.close(); }
+});
+
+test('combined reversal reconciliation completes interrupted lineage publication idempotently without replay', async () => {
+    const f = await fixture();
+    try {
+        const source = await ready(f, ['A','B']); await f.service.apply(source.id,true);
+        let leaf = await f.service.prepareRemaining(source.id);
+        leaf = await f.service.validate(leaf.id); leaf = await f.service.review(leaf.id,leaf.objects.map(o=>o.id),'APPROVED',leaf.revision); leaf = await f.service.apply(leaf.id);
+        let inverse = await f.service.reverse(leaf.id); inverse = await f.service.validate(inverse.id);
+        inverse = await f.service.review(inverse.id,inverse.objects.map(o=>o.id),'APPROVED',inverse.revision,true);
+        const put = f.store.put.bind(f.store); let lose = true;
+        f.store.put = async set => { await put(set); if (lose && set.id === source.id && set.status === 'REVERTED') { lose=false; throw new Error('lost history response'); } };
+        await f.service.apply(inverse.id);
+        const count = f.writes.length, saved = await f.store.get(inverse.id);
+        assert.ok(['APPLIED','PARTIALLY_APPLIED'].includes(saved.status));
+        // A crash after APPLIED must still let an explicit recovery finish history publication.
+        if (saved.status === 'APPLIED') { saved.status='APPLYING'; await put(saved); }
+        const recovered = await f.service.recover(inverse.id);
+        assert.equal(recovered.status,'APPLIED'); assert.equal(f.writes.length,count);
+        assert.equal((await f.store.get(source.id)).status,'REVERTED'); assert.equal((await f.store.get(leaf.id)).status,'REVERTED');
+    } finally { await f.close(); }
+});
+
+test('creation before commit recovers only an exact absent baseline and needs fresh continuation approval', async () => {
+    const f = await fixture();
+    try {
+        const original = await ready(f); f.fail('A'); await f.service.apply(original.id);
+        const recovered = await f.service.recover(original.id);
+        assert.equal(recovered.objects[0].application, 'PENDING'); assert.deepEqual(f.writes,['A']);
+        let next = await f.service.prepareRemaining(original.id);
+        assert.equal(next.objects[0].operation,'CREATE'); assert.equal(next.objects[0].review,'PENDING');
+        await assert.rejects(f.service.apply(next.id),/approved/);
+        next = await f.service.validate(next.id); next = await f.service.review(next.id,next.objects.map(c=>c.id),'APPROVED',next.revision);
+        f.fail(''); assert.equal((await f.service.apply(next.id)).status,'APPLIED'); assert.deepEqual(f.writes,['A','A']);
+    } finally { await f.close(); }
+});
+
+test('approving only part of an inverse cannot write or mark the original fully reverted', async()=>{
+    const f=await fixture();try{
+        f.live.set('A',{value:{text:'old A'},token:'1'});f.live.set('B',{value:{text:'old B'},token:'1'});
+        const original=await ready(f,['A','B']);await f.service.apply(original.id);
+        let inverse=await f.service.reverse(original.id);inverse=await f.service.validate(inverse.id);
+        await f.service.review(inverse.id,[inverse.objects[0].id],'APPROVED',inverse.revision);
+        await assert.rejects(f.service.apply(inverse.id),/Approve every object/);
+        assert.equal((await f.store.get(original.id)).status,'APPLIED');assert.deepEqual(f.writes,['A','B']);
+    }finally{await f.close();}
+});
+
+test('interrupted combined undo resumes only untouched inverses across repeated failures, then redo restores the whole chain', async () => {
+    const f = await fixture();
+    try {
+        const source = await partialChain(f); await f.service.recover(source.id); f.fail('');
+        let forward = await f.service.prepareRemaining(source.id);
+        const approve = async (id: string, destructive = false) => {
+            const s = await f.service.validate(id); assert.equal(s.status, 'READY_FOR_REVIEW', JSON.stringify(s.journal.at(-1)));
+            return f.service.review(id, s.objects.map(c => c.id), 'APPROVED', s.revision, destructive);
+        };
+        forward = await approve(forward.id); forward = await f.service.apply(forward.id);
+        let inverse = await f.service.reverse(forward.id); inverse = await approve(inverse.id, true);
+        f.fail('C', true); inverse = await f.service.apply(inverse.id);
+        assert.deepEqual(inverse.objects.filter(c => c.application === 'VERIFIED').map(c => c.key), ['D']);
+        assert.equal(f.service.remainingSupport(inverse).supported, false);
+        const count = f.writes.length;
+        inverse = await f.service.recover(inverse.id); assert.equal(f.writes.length, count);
+        assert.deepEqual(new Set(inverse.objects.filter(c => c.application === 'VERIFIED').map(c => c.key)), new Set(['C','D']));
+        let remaining = await f.service.prepareRemaining(inverse.id);
+        assert.equal(remaining.schema, 4); assert.equal((await new ReviewStore(f.root).get(remaining.id)).schema, 4);
+        assert.equal(remaining.reverses, forward.id); assert.deepEqual(remaining.reversalSources, inverse.reversalSources);
+        assert.deepEqual(new Set(remaining.objects.map(c => c.key)), new Set(['A','B']));
+        assert.ok(remaining.objects.every(c => c.review === 'PENDING' && !c.approvedHash));
+        await assert.rejects(f.service.apply(remaining.id), /approved/);
+        assert.equal((await f.store.get(forward.id)).status, 'APPLIED'); assert.equal((await f.store.get(source.id)).status, 'PARTIALLY_APPLIED');
+        remaining = await approve(remaining.id, true); f.fail('A'); remaining = await f.service.apply(remaining.id);
+        remaining = await f.service.recover(remaining.id);
+        let last = await f.service.prepareRemaining(remaining.id);
+        assert.deepEqual(last.objects.map(c => c.key), ['A']); assert.equal(last.continuation?.prerequisites.length, 3);
+        last = await approve(last.id, true); f.fail(''); last = await f.service.apply(last.id);
+        assert.equal(last.status, 'APPLIED'); assert.equal((await f.store.get(forward.id)).status, 'REVERTED');
+        assert.equal((await f.store.get(source.id)).status, 'REVERTED');
+        const histories = await f.store.list();
+        assert.equal(completedFollowUp(await f.store.get(inverse.id), histories)?.id, last.id);
+        assert.equal(completedFollowUp(await f.store.get(remaining.id), histories)?.id, last.id);
+        assert.ok(!reviewList(histories, 'pending').some(s => [inverse.id, remaining.id].includes(s.id)));
+        assert.deepEqual(f.writes.slice(count), ['B','A','A']); // confirmed C/D are never replayed
+        assert.ok([...f.live.values()].every(v => v.value === null));
+        let redo = await f.service.redo(source.id);
+        assert.equal(redo.objects.length, 4); assert.ok(redo.objects.every(c => c.review === 'PENDING' && !c.approvedHash));
+        redo = await approve(redo.id); redo = await f.service.apply(redo.id);
+        assert.equal(redo.status, 'APPLIED'); assert.deepEqual(f.writes.slice(-4), ['A','B','C','D']);
+        assert.ok([...f.live.values()].every(v => v.value !== null));
+    } finally { await f.close(); }
+});
+
+test('a paused legacy inverse gains complete forward bindings and cannot drop coverage, alter its target or downgrade its schema', async () => {
+    const f = await fixture();
+    try {
+        const source = await ready(f, ['A','B','C']); await f.service.apply(source.id);
+        let inverse = await f.service.reverse(source.id); assert.equal(inverse.schema, 1);
+        inverse = await f.service.validate(inverse.id); inverse = await f.service.review(inverse.id, inverse.objects.map(c=>c.id), 'APPROVED', inverse.revision, true);
+        inverse = await f.service.apply(inverse.id, true); assert.equal(inverse.status, 'PARTIALLY_APPLIED');
+        const remaining = await f.service.prepareRemaining(inverse.id);
+        assert.equal(remaining.schema, 4); assert.equal(remaining.reversalSources?.[0].objects.length, 3);
+        const persisted = structuredClone(remaining), count = f.writes.length;
+        for (const schema of [1,2,3] as const) {
+            const changed = structuredClone(persisted); changed.schema = schema; await f.store.put(changed);
+            await assert.rejects(f.store.get(changed.id), /schema/);
+        }
+        for (const change of [
+            (s: typeof remaining) => { s.reversalSources![0].objects.pop(); },
+            (s: typeof remaining) => { s.reverses = inverse.id; },
+            (s: typeof remaining) => { s.continuation!.prerequisites = []; },
+            (s: typeof remaining) => { s.objects[0].after = s.objects[0].before; }
+        ]) {
+            const changed = structuredClone(persisted); change(changed); await f.store.put(changed);
+            assert.equal((await f.service.validate(changed.id)).status, 'CONFLICTED'); assert.equal(f.writes.length, count);
+        }
+        await f.store.put(persisted);
+        let next = await f.service.validate(remaining.id); assert.equal(next.status, 'READY_FOR_REVIEW');
+        next = await f.service.review(next.id, next.objects.map(c=>c.id), 'APPROVED', next.revision, true);
+        f.live.get('A')!.token = 'external-change';
+        assert.equal((await f.service.apply(next.id)).status, 'CONFLICTED'); assert.equal(f.writes.length, count);
+        assert.equal((await f.store.get(source.id)).status, 'APPLIED');
+    } finally { await f.close(); }
+});
+
+test('resumed inverse reconciliation completes lost history publication without replaying any inverse', async () => {
+    const f = await fixture();
+    try {
+        const source = await ready(f, ['A','B']); await f.service.apply(source.id);
+        let inverse = await f.service.reverse(source.id); inverse = await f.service.validate(inverse.id);
+        inverse = await f.service.review(inverse.id, inverse.objects.map(c=>c.id), 'APPROVED', inverse.revision, true);
+        await f.service.apply(inverse.id, true);
+        let next = await f.service.prepareRemaining(inverse.id); next = await f.service.validate(next.id);
+        next = await f.service.review(next.id, next.objects.map(c=>c.id), 'APPROVED', next.revision, true);
+        const put = f.store.put.bind(f.store); let fail = true;
+        f.store.put = async s => { await put(s); if (s.id === source.id && s.status === 'REVERTED' && fail) { fail = false; throw Error('lost history response'); } };
+        await f.service.apply(next.id); const count = f.writes.length;
+        const recovered = await f.service.recover(next.id);
+        assert.equal(recovered.status, 'APPLIED'); assert.equal(f.writes.length, count);
+        assert.equal((await f.store.get(source.id)).status, 'REVERTED');
+    } finally { await f.close(); }
+});
+
+test('aliased history scopes cannot stage the same native definition twice or rewrite a confirmed prerequisite',async()=>{
+ const f=await fixture();try{
+  f.adapter.scope=key=>'native:'+String(key);
+  const service=new ReviewService(f.store,{environment:async()=>({connection:'oracle:LAB',identity:'database-schema-1',label:'LAB'}),changed(){}},[f.adapter,{...f.adapter,id:'alias'}]);
+  let s=await service.create('Aliased scopes','oracle:LAB');s=await service.stage(s.id,'fixture','A',{text:'A'});
+  await assert.rejects(service.stage(s.id,'alias','A',{text:'A2'}),/already reviewed/);
+  s=await service.stage(s.id,'alias','B',{text:'B'},[s.objects[0].id]);s=await service.validate(s.id);s=await service.review(s.id,s.objects.map(c=>c.id),'APPROVED',s.revision);s=await service.apply(s.id,true);
+  const next=await service.prepareRemaining(s.id);
+  await assert.rejects(service.stage(next.id,'alias','A',{text:'rewrite verified'}),/already reviewed/);
+  assert.deepEqual(f.writes,['A']);
+ }finally{await f.close();}
+});
+
+test('a creation judged by an owner created earlier in the same run refreshes its stamp; any other stamp change stops the writer', async () => {
+    for (const scenario of ['owner-created-here', 'unrelated-change']) {
+        const f = await fixture();
+        try {
+            // B's ownership evidence follows A's existence, as Record PeopleCode follows its record (classifyDefinition judgedBy).
+            f.adapter.authorizationState = async (_e, key) => String(key) === 'B' ? (f.live.has('A') ? 'owner-exists' : 'not-stored') : 'stable';
+            let set = await f.service.create('Owner and dependent', 'oracle:LAB');
+            set = await f.service.stage(set.id, 'fixture', 'A', { text: 'A' });
+            set = await f.service.stage(set.id, 'fixture', 'B', { text: 'B' }, scenario === 'owner-created-here' ? [set.objects[0].id] : []);
+            set = await f.service.validate(set.id);
+            set = await f.service.review(set.id, set.objects.map(c => c.id), 'APPROVED', set.revision);
+            const result = await f.service.apply(set.id);
+            if (scenario === 'owner-created-here') {
+                assert.equal(result.status, 'APPLIED', JSON.stringify(result.journal.at(-1)));
+                assert.deepEqual(f.writes, ['A', 'B']);
+                assert.ok(result.journal.some(e => e.action === 'AUTHORIZATION_REFRESHED' && e.object === result.objects[1].id));
+            } else {
+                assert.equal(result.status, 'PARTIALLY_APPLIED');
+                assert.deepEqual(f.writes, ['A']);
+                assert.match(JSON.stringify(result.journal), /Authorization context changed before the writer/);
+            }
+        } finally { await f.close(); }
+    }
+});
+
+test('a reviewed write covers later steps on a definition it created itself, and nothing else', async () => {
+    const { withReviewedWrite, noteReviewedCreation, createdInReviewedWrite } = await import('../changeReview/authorization.js');
+    const field = { type: 2, parts: ['ZZ_NEW'] }, other = { type: 2, parts: ['ZZ_OTHER'] };
+    noteReviewedCreation('db', field);
+    assert.equal(createdInReviewedWrite('db', field), false, 'no reviewed write: nothing is recorded');
+    await withReviewedWrite('db', field, async () => {
+        assert.equal(createdInReviewedWrite('db', field), false);
+        noteReviewedCreation('db', field); noteReviewedCreation('other-db', other);
+        assert.equal(createdInReviewedWrite('db', field), true);
+        assert.equal(createdInReviewedWrite('db', other), false, 'only the reviewed key is covered');
+        assert.equal(createdInReviewedWrite('other-db', field), false);
+    });
+    assert.equal(createdInReviewedWrite('db', field), false, 'coverage ends with the write');
 });

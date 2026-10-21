@@ -177,6 +177,34 @@ export async function createField(c: Connection, request: FieldCreateRequest): P
 
 export interface FieldLabelEdit { id: string; longName: string; shortName: string; isDefault: boolean }
 
+/** PSDBFIELD properties beyond type, length and labels, as stored (blanks unpadded). */
+export interface FieldProperties {
+  format: number;
+  formatFamily: string;
+  displayName: string;
+  formatLength: number;
+  defaultCenturyYear: number;
+  imeMode: number;
+  ownerId: string;
+}
+/** What New Field stores (f01): every HRDMO field but 70 keeps DEFCNTRYYR 50. */
+export const DEFAULT_FIELD_PROPERTIES: Readonly<FieldProperties> = { format: 0, formatFamily: '', displayName: '', formatLength: 0, defaultCenturyYear: 50, imeMode: 0, ownerId: '' };
+/** FORMAT values stored per type on HRDMO 8.62 (Character 14 = custom format family). */
+const FIELD_FORMATS: Partial<Record<FieldType, readonly number[]>> = {
+  [FieldType.Character]: [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 14], [FieldType.LongCharacter]: [0, 7], [FieldType.Number]: [0, 7], [FieldType.SignedNumber]: [0, 7],
+  [FieldType.Date]: [0], [FieldType.Time]: [0, 12, 13], [FieldType.DateTime]: [0, 12, 13], [FieldType.ImageReference]: [0]
+};
+export function fieldPropertiesRefusal(type: FieldType, length: number, p: FieldProperties): string | undefined {
+  if (!FIELD_FORMATS[type]?.includes(p.format)) return `Format ${p.format} is not a stored format for this field type.`;
+  if ((p.format === 14) !== !!p.formatFamily || !!p.formatFamily !== !!p.displayName) return 'A custom format (14) needs its format family and display name, and only it has them.';
+  for (const v of [p.formatFamily, p.displayName]) if (!/^([A-Z0-9_]{1,15})?$/.test(v)) return 'Format family and display names are A-Z, 0-9 and _, at most 15.';
+  if (!Number.isInteger(p.formatLength) || p.formatLength < 0 || p.formatLength > length || (p.formatLength && type !== FieldType.Character)) return 'A formatted length is 0 to the field length, on Character fields only.';
+  if (!Number.isInteger(p.defaultCenturyYear) || p.defaultCenturyYear < 0 || p.defaultCenturyYear > 99) return 'The default century year is 0 to 99.';
+  if (![-1, 0, 1].includes(p.imeMode)) return 'The IME mode is -1, 0 or 1.';
+  if (!/^[A-Z0-9_]{0,4}$/.test(p.ownerId)) return 'The owner ID is at most four characters (A-Z, 0-9, _).';
+  return undefined;
+}
+
 export interface FieldSaveRequest {
   name: string;
   /** PSDBFIELD.VERSION when opened. */
@@ -188,6 +216,8 @@ export interface FieldSaveRequest {
   description?: string;
   /** The field's labels as they are to be, every one. */
   labels?: FieldLabelEdit[];
+  /** Every stored property, replacing `format`; a format family must exist in PSFMTITEM. */
+  properties?: FieldProperties;
   operatorId: string;
 }
 
@@ -205,9 +235,16 @@ export async function saveField(c: Connection, request: FieldSaveRequest): Promi
       throw new FieldCreateRefusedError(`${name} was saved since it was opened (version ${row.VERSION}, not ${request.openedVersion}). Reopen it.`);
     }
     const type = Number(row.FIELDTYPE) as FieldType;
-    if(request.format!==undefined && (type!==FieldType.Character || ![0,6].includes(request.format) || ![0,6].includes(Number(row.FORMAT))
+    const props = request.properties;
+    if (props) {
+      if (request.format !== undefined) throw new FieldCreateRefusedError('Give the format inside the field properties.');
+      const refusal = fieldPropertiesRefusal(type, request.length ?? Number(row.LENGTH), props);
+      if (refusal) throw new FieldCreateRefusedError(refusal);
+      if (props.formatFamily && !(await select(c, `SELECT 1 FROM PSFMTITEM WHERE FORMATFAMILY = :m AND DISPFMTNAME = :d`, { m: props.formatFamily, d: props.displayName })).length)
+        throw new FieldCreateRefusedError(`Format family ${props.formatFamily} / ${props.displayName} does not exist in this database.`);
+    } else if(request.format!==undefined && (type!==FieldType.Character || ![0,6].includes(request.format) || ![0,6].includes(Number(row.FORMAT))
       || Number(row.FORMATLENGTH) || String(row.FORMATFAMILY??'').trim() || String(row.DISPFMTNAME??'').trim()))throw new FieldCreateRefusedError('Character format changes are calibrated only between standard Uppercase and Mixed Case fields.');
-    const format=request.format??Number(row.FORMAT);
+    const format=props?.format??request.format??Number(row.FORMAT);
     const length = request.length ?? Number(row.LENGTH);
     const decimalPositions = request.decimalPositions ?? Number(row.DECIMALPOS);
     if (!CREATABLE_FIELD_TYPES.includes(type)) throw new FieldCreateRefusedError('Only fields of the types New Field creates can be saved here yet.');
@@ -265,11 +302,14 @@ export async function saveField(c: Connection, request: FieldSaveRequest): Promi
 
     await expectRows(c,
       `UPDATE PSDBFIELD SET VERSION = :v, LENGTH = :len, DECIMALPOS = :dec, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
-              ${request.format!==undefined?', FORMAT = :fmt':''}
+              ${request.format!==undefined||props?', FORMAT = :fmt':''}
+              ${props ? ', FORMATFAMILY = :fam, DISPFMTNAME = :dsp, FORMATLENGTH = :fl, DEFCNTRYYR = :cy, IMEMODE = :ime, OBJECTOWNERID = :own' : ''}
               ${request.description !== undefined ? ', DESCRLONG = :d' : ''}
         WHERE FIELDNAME = :f`,
       { v: rdm, len: length, dec: decimalPositions, ts: lastupddttm, op: request.operatorId, f: name,
-        ...(request.format!==undefined?{fmt:request.format}:{}), ...(request.description !== undefined ? { d: request.description.trim() === '' ? null : request.description } : {}) },
+        ...(request.format!==undefined||props?{fmt:format}:{}),
+        ...(props ? { fam: props.formatFamily || ' ', dsp: props.displayName || ' ', fl: props.formatLength, cy: props.defaultCenturyYear, ime: props.imeMode, own: props.ownerId || ' ' } : {}),
+        ...(request.description !== undefined ? { d: request.description.trim() === '' ? null : request.description } : {}) },
       1, 'Updating PSDBFIELD');
     await expectRows(c, `DELETE FROM PSDBFLDLABL WHERE FIELDNAME = :f`, { f: name }, stored.length, 'Deleting PSDBFLDLABL');
     for (const lb of labels) {
@@ -284,8 +324,11 @@ export async function saveField(c: Connection, request: FieldSaveRequest): Promi
     for (const [table, n, value] of counters) {
       await expectRows(c, `UPDATE ${table} SET VERSION = :v WHERE OBJECTTYPENAME = :n`, { v: value, n }, 1, `Updating ${table} ${n}`);
     }
-    const [d] = await select<{ VERSION: number; LENGTH: number; DECIMALPOS: number;FORMAT:number; TS: string }>(c,
-      `SELECT VERSION, LENGTH, DECIMALPOS, FORMAT, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM PSDBFIELD WHERE FIELDNAME = :f`, { f: name });
+    const [d] = await select<{ VERSION: number; LENGTH: number; DECIMALPOS: number;FORMAT:number; TS: string; FAM: string; DSP: string; FL: number; CY: number; IME: number; OWN: string }>(c,
+      `SELECT VERSION, LENGTH, DECIMALPOS, FORMAT, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS,
+              FORMATFAMILY AS FAM, DISPFMTNAME AS DSP, FORMATLENGTH AS FL, DEFCNTRYYR AS CY, IMEMODE AS IME, OBJECTOWNERID AS OWN FROM PSDBFIELD WHERE FIELDNAME = :f`, { f: name });
+    if (props && d && (String(d.FAM).trim() !== props.formatFamily || String(d.DSP).trim() !== props.displayName || Number(d.FL) !== props.formatLength
+      || Number(d.CY) !== props.defaultCenturyYear || Number(d.IME) !== props.imeMode || String(d.OWN).trim() !== props.ownerId)) throw new FieldCreateRefusedError('The field properties did not land as planned; rolled back.');
     const [{ N: n, D: defaults }] = await select<{ N: number; D: number }>(c,
       `SELECT COUNT(*) AS N, SUM(DEFAULT_LABEL) AS D FROM PSDBFLDLABL WHERE FIELDNAME = :f`, { f: name });
     if (!d || Number(d.VERSION) !== rdm || Number(d.LENGTH) !== length || Number(d.DECIMALPOS) !== decimalPositions || Number(d.FORMAT)!==format || d.TS !== lastupddttm ||
@@ -294,6 +337,48 @@ export async function saveField(c: Connection, request: FieldSaveRequest): Promi
     }
     await c.commit();
     return { version: rdm, lastupddttm, records };
+  } catch (error) {
+    await c.rollback().catch(() => { /* the original error matters more */ });
+    throw error;
+  }
+}
+
+/**
+ * File > Delete of a field (dl03, dl08): its labels, translate values and translate header go, with no tombstone;
+ * RDM/XTM/SYS and locks RDM/XTM + 1 whether or not it had translate values. Records, pages or projects that still use it
+ * refuse, unless a rollback preview assumes the same inverse deletes them first.
+ */
+export async function deleteField(c: Connection, request: { name: string; openedVersion: number; operatorId: string; dryRun?: boolean;
+  proposed?: { records?: readonly string[]; pages?: readonly string[]; projects?: readonly string[] } }): Promise<void> {
+  const { name, operatorId } = request, assumed = request.proposed ?? {};
+  try {
+    if (request.proposed && !request.dryRun) throw new FieldCreateRefusedError('Proposed deletions are valid only in rollback preview.');
+    const refusal = writeScopeRefusal(name) ?? validateOperatorId(operatorId);
+    if (refusal) throw new FieldCreateRefusedError(refusal);
+    if (!(await operatorExists(c, operatorId))) throw new FieldCreateRefusedError(`PeopleSoft operator ${operatorId} does not exist in this database (PSOPRDEFN).`);
+    const [row] = await select<{ V: number }>(c, `SELECT VERSION AS V FROM PSDBFIELD WHERE FIELDNAME = :f FOR UPDATE`, { f: name });
+    if (!row) throw new FieldCreateRefusedError(`There is no field named ${name}.`);
+    if (Number(row.V) !== request.openedVersion) throw new FieldCreateRefusedError(`${name} was saved since it was opened.`);
+    for (const table of ['PSDBFIELDLANG', 'PSDBFLDLABLLANG', 'PSXLATITEMLANG']) {
+      if (!(await c.catalog.tableExists(c, table))) continue;
+      const [{ N }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM ${table} WHERE FIELDNAME = :f`, { f: name });
+      if (Number(N)) throw new FieldCreateRefusedError(`${name}: ${table} rows are outside this deletion.`);
+    }
+    const others = (rows: { N: string }[], allowed: readonly string[] = []) => rows.map(r => String(r.N).trim()).filter(n => !allowed.includes(n));
+    const users = [
+      ...others(await select<{ N: string }>(c, `SELECT DISTINCT RECNAME AS N FROM PSRECFIELD WHERE FIELDNAME = :f`, { f: name }), assumed.records).map(n => 'record ' + n),
+      ...others(await select<{ N: string }>(c, `SELECT DISTINCT PNLNAME AS N FROM PSPNLFIELD WHERE FIELDNAME = :f AND RECNAME <> ' '`, { f: name }), assumed.pages).map(n => 'page ' + n),
+      ...others(await select<{ N: string }>(c, `SELECT DISTINCT PROJECTNAME AS N FROM PSPROJECTITEM WHERE OBJECTTYPE = 2 AND OBJECTVALUE1 = :f`, { f: name }), assumed.projects).map(n => 'project ' + n)
+    ];
+    if (users.length) throw new FieldCreateRefusedError(`${name} is still used by ${users.slice(0, 5).join(', ')}.`);
+    const v = await select<{ T: string; V: number }>(c, `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSVERSION WHERE OBJECTTYPENAME IN ('RDM', 'XTM', 'SYS') FOR UPDATE`);
+    const l = await select<{ T: string; V: number }>(c, `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSLOCK WHERE OBJECTTYPENAME IN ('RDM', 'XTM') FOR UPDATE`);
+    const get = (rows: { T: string; V: number }[], t: string) => { const r = rows.find(x => String(x.T).trim() === t); if (!r) throw new FieldCreateRefusedError(`${t} is missing from PSVERSION / PSLOCK; refusing to write.`); return Number(r.V); };
+    for (const table of ['PSXLATITEM', 'PSXLATDEFN', 'PSDBFLDLABL']) await c.execute(`DELETE FROM ${table} WHERE FIELDNAME = :f`, { f: name });
+    await expectRows(c, `DELETE FROM PSDBFIELD WHERE FIELDNAME = :f`, { f: name }, 1, 'Deleting PSDBFIELD');
+    for (const t of ['RDM', 'XTM', 'SYS']) await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = :t`, { v: get(v, t) + 1, t }, 1, 'Updating PSVERSION ' + t);
+    for (const t of ['RDM', 'XTM']) await expectRows(c, `UPDATE PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = :t`, { v: get(l, t) + 1, t }, 1, 'Updating PSLOCK ' + t);
+    if (request.dryRun) await c.rollback(); else await c.commit();
   } catch (error) {
     await c.rollback().catch(() => { /* the original error matters more */ });
     throw error;

@@ -1,3 +1,5 @@
+import type { DbTypes } from '../db/connection.js';
+import { readProjectCreationSnapshot } from './projectSnapshot.js';
 import type { DbConnection as Connection } from '../db/connection.js';
 import { DefinitionKey, DefinitionType } from '../model/definitions.js';
 import { PROPERTIES_SPECS } from '../model/properties.js';
@@ -44,6 +46,7 @@ export interface ProjectSaveRequest {
   openedVersion?: number;
   /** Definitions to add as items. */
   add: DefinitionKey[];
+  expectedSnapshotToken?: string;
 }
 
 export interface ProjectSaveResult {
@@ -77,7 +80,7 @@ async function itemSlots(c: Connection): Promise<number> {
 }
 
 /** Whether the definition itself exists, so a project never lists a missing one. */
-async function definitionExists(c: Connection, key: DefinitionKey): Promise<boolean> {
+export async function definitionExists(c: Connection, key: DefinitionKey): Promise<boolean> {
   if (key.type === DefinitionType.RecordPeopleCode || key.type === DefinitionType.ApplicationClassPeopleCode || key.type===DefinitionType.AppEnginePeopleCode
     || key.type === DefinitionType.PagePeopleCode || key.type === DefinitionType.ComponentPeopleCode
     || key.type === DefinitionType.ComponentRecordPeopleCode || key.type === DefinitionType.ComponentRecordFieldPeopleCode) {
@@ -86,6 +89,10 @@ async function definitionExists(c: Connection, key: DefinitionKey): Promise<bool
     const [r] = await select<{ N: number }>(c,
       `SELECT COUNT(*) AS N FROM PSPCMPROG WHERE ${VALUE_PREDICATE}`, valueBinds(pcmProgKeyParts({...key,parts:[...parts]})));
     return Number(r?.N ?? 0) > 0;
+  }
+  if (key.type===DefinitionType.Query) {
+    const [r]=await select<{N:number}>(c,'SELECT COUNT(*) AS N FROM PSQRYDEFN WHERE QRYNAME=:n AND OPRID=:o',{n:key.parts[0],o:key.parts[1]??' '});
+    return Number(r?.N??0)>0;
   }
   if (key.type === DefinitionType.TranslateValue) {
     const [r] = await select<{ N: number }>(c,
@@ -107,6 +114,15 @@ async function definitionExists(c: Connection, key: DefinitionKey): Promise<bool
     const [r] = await select<{ N: number }>(c,
       `SELECT COUNT(*) AS N FROM PSMSGCATDEFN WHERE MESSAGE_SET_NBR = :s AND MESSAGE_NBR = :n`,
       { s: Number(key.parts[0]), n: Number(key.parts[1]) });
+    return Number(r?.N ?? 0) > 0;
+  }
+  if (key.type === DefinitionType.Image) {
+    // Images are every content type but HTML (CONTTYPE 4).
+    const [r] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSCONTDEFN WHERE CONTNAME = :n AND CONTTYPE <> 4`, { n: key.parts[0] });
+    return Number(r?.N ?? 0) > 0;
+  }
+  if (key.type === DefinitionType.UrlDefinition) {
+    const [r] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSURLDEFN WHERE URL_ID = :n`, { n: key.parts[0] });
     return Number(r?.N ?? 0) > 0;
   }
   if(key.type===DefinitionType.AppEngineSection){
@@ -167,7 +183,7 @@ export function planProjectSave(request: ProjectSaveRequest): ProjectItem[] {
  * Saves the project and commits, or rolls back and throws. The caller
  * verifies again after COMMIT (verifyProjectSave).
  */
-export async function saveProject(c: Connection, request: ProjectSaveRequest, transaction?: { deferCommit: true; proposed: readonly DefinitionKey[] }): Promise<ProjectSaveResult> {
+export async function saveProject(c: Connection, request: ProjectSaveRequest, transaction?: { deferCommit: true; proposed: readonly DefinitionKey[] }, types?: DbTypes): Promise<ProjectSaveResult> {
   try {
     const operatorError = validateOperatorId(request.operatorId);
     if (operatorError) throw new ProjectSaveRefusedError(operatorError);
@@ -180,6 +196,9 @@ export async function saveProject(c: Connection, request: ProjectSaveRequest, tr
       throw new ProjectSaveRefusedError(
         `Project ${request.project} was saved since these changes were made (version ${before.VERSION}, not ${request.openedVersion}). ` +
         'Reopen it and reapply them.');
+    }
+    if (request.expectedSnapshotToken !== undefined) {
+      if (!types || (await readProjectCreationSnapshot(c, types, request.project)).token !== request.expectedSnapshotToken) throw new Error('Complete project snapshot changed after review.');
     }
     if (!(await operatorExists(c, request.operatorId))) {
       throw new ProjectSaveRefusedError(`PeopleSoft operator ${request.operatorId} does not exist in this database (PSOPRDEFN).`);
@@ -275,7 +294,8 @@ export async function createProject(c: Connection, request: { project: string; o
     const scope = writeScopeRefusal(project);
     if (scope) throw new ProjectSaveRefusedError(scope);
     const [{ N: taken }] = await select<{ N: number }>(c,
-      `SELECT (SELECT COUNT(*) FROM PSPROJECTDEFN WHERE PROJECTNAME = :p) + (SELECT COUNT(*) FROM PSPROJECTITEM WHERE PROJECTNAME = :p) AS N FROM DUAL`,
+      `SELECT (SELECT COUNT(*) FROM PSPROJECTDEFN WHERE PROJECTNAME = :p) + (SELECT COUNT(*) FROM PSPROJECTITEM WHERE PROJECTNAME = :p)
+            + (SELECT COUNT(*) FROM PSPROJECTDEL WHERE PROJECTNAME = :p) AS N FROM DUAL`,
       { p: project });
     if (Number(taken) > 0) throw new ProjectSaveRefusedError(`A project named ${project} already exists, or left items behind.`);
     if (!(await operatorExists(c, request.operatorId))) {

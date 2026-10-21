@@ -14,6 +14,8 @@ export interface ValidationRequest {
   uri: string;
   /** The document version the text is from. */
   version: number;
+  /** Editor configuration/connection revision; a changed context invalidates otherwise unchanged text. */
+  contextVersion?: number;
   text: string;
   key: DefinitionKey;
   /** The connection's PeopleTools release, e.g. "8.62" (it picks the compiler profile). */
@@ -50,7 +52,7 @@ export class LiveValidator {
     /** Receives a result for the text it was computed from; it is only called when that text is still the document's. */
     private readonly publish: (request: ValidationRequest, result: Validation) => void,
     /** Whether a document still has this version (a newer edit makes a result stale). */
-    private readonly isCurrent: (uri: string, version: number) => boolean,
+    private readonly isCurrent: (uri: string, version: number, request: ValidationRequest) => boolean,
     options: LiveValidationOptions = {}
   ) {
     const delay = options.delayMs ?? 500;
@@ -74,7 +76,7 @@ export class LiveValidator {
       this.staleTimer = setTimeout(() => {
         this.staleTimer = undefined;
         const r = this.running;
-        if (r && !this.isCurrent(r.request.uri, r.request.version)) this.runner.restart();
+        if (r && !this.isCurrent(r.request.uri, r.request.version, r.request)) this.runner.restart();
       }, wait);
     }
   }
@@ -85,6 +87,7 @@ export class LiveValidator {
     if (pending) clearTimeout(pending);
     this.timers.delete(uri);
     this.queued.delete(uri);
+    if (this.running?.request.uri === uri) this.runner.restart();
   }
 
   dispose(): void {
@@ -102,10 +105,10 @@ export class LiveValidator {
     if (first.done) return;
     const [uri, request] = first.value;
     this.queued.delete(uri);
-    if (!this.isCurrent(uri, request.version)) { this.next(); return; }
+    if (!this.isCurrent(uri, request.version, request)) { this.next(); return; }
     this.running = { request, started: Date.now() };
     this.runner.run(request).then(
-      (result) => { if (!this.disposed && this.isCurrent(uri, request.version)) this.publish(request, result); },
+      (result) => { if (!this.disposed && this.isCurrent(uri, request.version, request)) this.publish(request, result); },
       () => { /* abandoned for newer text, or the worker failed: the next run reports */ }
     ).finally(() => {
       this.running = undefined;

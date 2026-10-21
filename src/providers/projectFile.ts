@@ -11,6 +11,7 @@ import {
   FieldType, RecordDefinition, RecordField, RecordType, UseEdit, describeField
 } from '../model/record.js';
 import { parseExport } from './projectFileParser.js';
+import { packageAddress, packageDocument } from '../model/appPackages.js';
 import { fieldFromExport } from './projectFileRender.js';
 import type { FieldDefinition } from '../model/fieldDefinition.js';
 import {
@@ -308,10 +309,20 @@ export class ProjectFileProvider implements DefinitionProvider {
 
   async listChildren(key: DefinitionKey): Promise<DefinitionSummary[]> {
     switch (key.type) {
+      case DefinitionType.ApplicationPackage: {
+        const { root, path } = packageAddress(key);
+        let node = (await this.readApplicationPackage(root))?.tree;
+        for (const segment of path) node = node?.children.find(n => n.kind === 'package' && n.name === segment);
+        return node?.children.flatMap(n => n.key ? [{ key: n.key, label: n.name }] : []) ?? [];
+      }
       case DefinitionType.Record: return this.recordFieldChildren(key);
       case DefinitionType.Component: return this.componentPageChildren(key);
       default: return [];
     }
+  }
+
+  async readApplicationPackage(root: string) {
+    return packageDocument(this.items, root);
   }
 
   /** A record's fields, keyed as field definitions so they open on click. */

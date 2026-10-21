@@ -1,7 +1,8 @@
 import type { DbConnection, DbTypes } from '../db/connection.js';
 import { canonical, hash, privacy, type Json } from '../changeReview/model.js';
 import { NEW_PROJECT_VALUES } from './projectWriter.js';
-import { DefinitionType, type DefinitionKey } from '../model/definitions.js';
+import { makeKey, type DefinitionKey } from '../model/definitions.js';
+import { readTextLob } from '../db/lob.js';
 import { itemKeyColumns, projectItemFor, PROJECT_ITEM_DEFAULTS } from '../model/projectItems.js';
 import type { NativeRow } from './structuredSnapshot.js';
 
@@ -30,8 +31,8 @@ export async function readProjectCreationSnapshot(c: DbConnection, types: DbType
         const selected = columns.filter(col => !omitted.has(col.name));
         const projection = selected.map(col => /^(DATE|TIMESTAMP)/.test(col.dataType)
             ? `TO_CHAR(CAST(${col.name} AS TIMESTAMP(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9') AS ${col.name}` : col.name).join(', ');
-        const fetchInfo = Object.fromEntries(selected.filter(col => /CLOB/.test(col.dataType)).map(col => [col.name, { type: types.STRING }]));
-        const result = (await c.execute<NativeRow>(`SELECT ${projection} FROM ${table} WHERE PROJECTNAME = :p`, { p: project }, { outFormat: types.OUT_FORMAT_OBJECT, fetchInfo })).rows ?? [];
+        const result = (await c.execute<NativeRow>(`SELECT ${projection} FROM ${table} WHERE PROJECTNAME = :p`, { p: project }, { outFormat: types.OUT_FORMAT_OBJECT })).rows ?? [];
+        for(const row of result)for(const col of selected.filter(col=>/CLOB/.test(col.dataType)))row[col.name]=await readTextLob(row[col.name]) as NativeRow[string];
         raw[table] = result.map(row => Object.fromEntries(selected.map(col => {
             const value = row[col.name];
             if (!(col.name in row) || value !== null && typeof value !== 'string' && (typeof value !== 'number' || !Number.isSafeInteger(value))) throw new Error('Incomplete project snapshot column: ' + col.name);
@@ -58,9 +59,9 @@ export function projectCreationItems(value: Json, project: string): DefinitionKe
     if (!s || s.scope !== 'project-create/1' || Object.keys(s).sort().join(',') !== 'scope,tables' || !s.tables || Object.keys(s.tables).sort().join(',') !== 'PSPROJECTDEFN,PSPROJECTITEM'
         || !Array.isArray(s.tables.PSPROJECTDEFN) || s.tables.PSPROJECTDEFN.length !== 1 || s.tables.PSPROJECTDEFN[0].PROJECTNAME !== project || !Array.isArray(s.tables.PSPROJECTITEM)) throw new Error('Incomplete project creation checkpoint.');
     return s.tables.PSPROJECTITEM.map(row => {
-        const type = Number(row.OBJECTTYPE), length = type === DefinitionType.AppEnginePeopleCode ? 4 : [DefinitionType.AppEngineSection, DefinitionType.SqlDefinition].includes(type) ? 2 : 1;
-        if (![DefinitionType.Record, DefinitionType.Field, DefinitionType.SqlDefinition, DefinitionType.AppEngineProgram, DefinitionType.AppEngineSection, DefinitionType.AppEnginePeopleCode].includes(type)) throw new Error('Unsupported project creation member.');
-        const key: DefinitionKey = { type, parts: Array.from({ length }, (_, i) => String(row['OBJECTVALUE' + (i + 1)]).trimEnd()) };
+        const type = Number(row.OBJECTTYPE), length = Math.max(0,...Object.keys(row).filter(k=>/^OBJECTID\d+$/.test(k)&&Number(row[k])!==0).map(k=>Number(k.slice(8))));
+        if(!length)throw new Error('Project member has no calibrated key slots.');
+        const key: DefinitionKey = makeKey(type,...Array.from({ length }, (_, i) => String(row['OBJECTVALUE' + (i + 1)]).trimEnd()));
         const slots = Object.keys(row).filter(k => /^OBJECTVALUE\d+$/.test(k)).length;
         const expected = { PROJECTNAME: project, OBJECTTYPE: type, ...itemKeyColumns(projectItemFor(key), slots), ...PROJECT_ITEM_DEFAULTS };
         if (canonical(row) !== canonical(expected)) throw new Error('Project member differs from its calibrated typed layout.');

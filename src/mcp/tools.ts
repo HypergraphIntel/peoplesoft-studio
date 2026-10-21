@@ -926,7 +926,7 @@ export function registerPeopleSoftTools(
 
   server.registerTool('psft_project_export_migration', {
     title: 'Export Studio migration package',
-    description: 'Export a project to a versioned Studio migration package, including supported fields, SQL Table/Derived Work records, and full App Engine documents with SQL and PeopleCode. Unsupported members block export. No App Designer is required.',
+    description: 'Export a project to a versioned Studio migration package: fields with every stored property and translate values; SQL Table, Derived/Work and SubRecord records (subrecord rows, SQL Table user indexes); standalone SQL, HTML and freeform style sheets; full App Engine documents; authoritative PeopleCode; bounded PS Queries; menus; pages and components as complete native rows; Application Packages with their classes and root properties. Unsupported members or shapes (translations, alternate search keys, custom index DDL, subpackage/class metadata) block export with a concrete error. Import stages each change into Change Review, where an applied migration can also be undone and redone. No App Designer is required.',
     inputSchema: z.object({ connection: z.string().min(1), project: z.string().min(1) }), annotations: READ_ONLY
   }, async ({ connection, project }) => {
     const source = await requireProvider(workspace, connection);

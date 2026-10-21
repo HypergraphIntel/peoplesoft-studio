@@ -50,7 +50,7 @@
           "strings": "off"
         },
         "editor.suggest.snippetsPreventQuickSuggestions": false,
-        "editor.inlineSuggest.enabled": false
+        "editor.inlineSuggest.enabled": true
       }
     },
     "grammars": [
@@ -281,6 +281,16 @@
         "category": "PeopleSoft",
         "icon": "$(new-file)",
         "shortTitle": "New…"
+      },
+      {
+        "command": "psft.package.insertSubpackage",
+        "title": "Insert Subpackage",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.package.insertClass",
+        "title": "Insert Application Class",
+        "category": "PeopleSoft"
       },
       {
         "command": "psft.newPage",
@@ -639,6 +649,11 @@
         "category": "PeopleSoft"
       },
       {
+        "command": "psft.mcp.approvals",
+        "title": "AI Write Approvals",
+        "category": "PeopleSoft"
+      },
+      {
         "command": "psft.mcp.status",
         "title": "MCP Status",
         "category": "PeopleSoft"
@@ -936,6 +951,16 @@
         }
       ],
       "view/item/context": [
+      {
+        "command": "psft.package.insertSubpackage",
+        "when": "(view == psft.projects && viewItem == appPackage.properties) || (view == psft.browser && viewItem =~ /\\bapplicationPackage\\b/)",
+        "group": "2_package@1"
+      },
+      {
+        "command": "psft.package.insertClass",
+        "when": "(view == psft.projects && viewItem == appPackage.properties) || (view == psft.browser && viewItem =~ /\\bapplicationPackage\\b/)",
+        "group": "2_package@2"
+      },
         {
           "command": "psft.findInProject",
           "when": "view == psft.projects && (viewItem == project || viewItem == project.opened)",
@@ -1207,6 +1232,10 @@
       ],
       "psft.settings.mcp": [
         {
+          "command": "psft.mcp.approvals",
+          "group": "1_status@0"
+        },
+        {
           "command": "psft.mcp.status",
           "group": "1_status@1"
         },
@@ -1428,7 +1457,7 @@
             "off"
           ],
           "enumDescriptions": [
-            "VS Code shows what the agent wants to save; nothing is written until you approve it.",
+            "AI Write Approvals shows each live request and its outcome; nothing is written until you approve it. Requests expire after 60 seconds and must be retried explicitly.",
             "Writes go straight through (still only on Writable connections with an Operator ID, within the write scope).",
             "The MCP is read-only."
           ],
@@ -1446,6 +1475,11 @@
           "type": "boolean",
           "default": true,
           "description": "PeopleCode language features: completion, hover, signature help, Go to Definition, Find References, the outline and validation as you type. Off: PeopleCode editors are plain text with highlighting; Validate PeopleCode still runs on demand."
+        },
+        "peoplesoft.peoplecode.inlineCallPreview": {
+          "type": "boolean",
+          "default": true,
+          "description": "Preview supported built-in calls as faint inline text. Tab accepts editable argument placeholders. Does not generate SQL or infer variable names. Requires the PeopleCode Language Server and editor inline suggestions."
         },
         "peoplesoft.peoplecode.validateAsYouType": {
           "type": "boolean",
@@ -1689,7 +1723,7 @@
             "Ask you in VS Code for each agent write to a delivered definition -- even when MCP writes are \"allow\".",
             "Allow agent writes to delivered definitions, recording each."
           ],
-          "description": "The same writes made by an AI agent through the MCP. requireApproval (the default) asks you in VS Code for each, even when peoplesoft.mcp.writes is \"allow\"; an agent cannot approve them."
+          "description": "The same writes made by an AI agent through the MCP. requireApproval (the default) asks you in AI Write Approvals for each, even when peoplesoft.mcp.writes is \"allow\"; an agent cannot approve them."
         },
         "peoplesoft.customization.requireImpactAnalysis": {
           "type": "boolean",
@@ -1777,6 +1811,13 @@
   },
   "scripts": {
     "typecheck": "tsc -p . --noEmit",
+    "test:peoplecode-editor": "node scripts/peoplecode-editor-check.mjs",
+    "test:peoplecode-editor:native": "node scripts/peoplecode-editor-native.mjs",
+    "test:peoplecode-inline:installed": "node scripts/peoplecode-inline-native.mjs",
+    "test:application-packages": "node scripts/application-package-check.mjs",
+    "test:application-packages:native": "tsx tools/lab/application-package-native.mts",
+    "test:application-packages:installed": "node scripts/application-package-native.mjs tools/lab/results/application-package-installed-2026-10-20.json",
+    "test:migration:native": "tsx tools/lab/project-migration-native.mts",
     "test:mcp-workflows": "tsx tools/lab/mcp-workflow-fixture-e2e.mts",
     "bundle": "node esbuild.mjs",
     "compile": "npm run typecheck && npm run bundle",
@@ -1786,7 +1827,7 @@
     "smoke": "cross-env PSFT_DISABLE_MCP=1 node scripts/smoke.mjs",
     "vscode:prepublish": "npm run compile",
     "package": "npm run verify && vsce package --out peoplesoft-studio.vsix",
-    "verify": "npm run compile && npm test && npm run smoke",
+    "verify": "npm run compile && npm test && npm run smoke && npm run test:peoplecode-editor && npm run test:application-packages",
     "dev": "npm run package && code --install-extension peoplesoft-studio.vsix --force",
     "corpus": "tsc -p . && node scripts/corpus-peoplecode.mjs",
     "corpus:harness": "tsx tools/corpus/cli.ts",

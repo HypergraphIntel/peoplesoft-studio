@@ -707,6 +707,7 @@ export interface AeSaveRequest {
   /** Execute and verify the existing writer inside rollback; internal review projection only. */
   captureSnapshots?: boolean;
   expectedSnapshotToken?: string;
+  allowDeletedBaseline?: boolean;
   expectedAfterHash?: string;
 }
 
@@ -747,7 +748,7 @@ export async function saveAppEngine(c: Connection, oracledb: DbTypes, request: A
 
     const stored = await readStoredAppEngine(c, oracledb, request.doc.name, true);
     const creation = request.openedToken === 'absent';
-    const creationBefore = creation && (request.captureSnapshots || request.expectedSnapshotToken || request.expectedAfterHash) ? await readStructuredForCreation(c, oracledb, 'ae', request.doc.name) : undefined;
+    const creationBefore = creation && (request.captureSnapshots || request.expectedSnapshotToken || request.expectedAfterHash) ? await readStructuredForCreation(c, oracledb, 'ae', request.doc.name, request.allowDeletedBaseline) : undefined;
     if (creationBefore?.value) throw new AeSaveRefusedError('Application Engine creation scope is no longer absent.');
     const before = !creation && (request.captureSnapshots || request.expectedSnapshotToken) ? await readStructuredSnapshot(c, oracledb, 'ae', request.doc.name) : undefined;
     if (request.expectedSnapshotToken && (creationBefore ?? before)!.token !== request.expectedSnapshotToken) throw new AeSaveRefusedError('Native Application Engine snapshot changed before writer.');
@@ -835,7 +836,7 @@ export async function verifyAppEngineSave(c: Connection, oracledb: DbTypes, resu
  * Deletes a program as App Designer's File > Delete does [ae15]: every row,
  * its SQL and PeopleCode, with tombstones; AEM, AES, SRM, PCM + 2, SYS + 1.
  */
-export async function deleteAppEngine(c: Connection, oracledb: DbTypes, name: string, openedToken: string, operatorId: string): Promise<{ counters: Counters }> {
+export async function deleteAppEngine(c: Connection, oracledb: DbTypes, name: string, openedToken: string, operatorId: string, expectedSnapshotToken?: string, dryRun = false, proposedProjectDeletions: readonly string[] = []): Promise<{ counters: Counters }> {
   try {
     const operatorError = validateOperatorId(operatorId);
     if (operatorError) throw new AeSaveRefusedError(operatorError);
@@ -844,6 +845,19 @@ export async function deleteAppEngine(c: Connection, oracledb: DbTypes, name: st
     const stored = await readStoredAppEngine(c, oracledb, name, true);
     if (isMissing(stored)) throw new AeSaveRefusedError(`There is no App Engine program ${name}.`);
     if (appEngineToken(stored) !== openedToken) throw new AeSaveRefusedError(`${name} was changed in the database since it was opened.`);
+    if (expectedSnapshotToken !== undefined && (await readStructuredSnapshot(c, oracledb, 'ae', name)).token !== expectedSnapshotToken) throw new AeSaveRefusedError('AE deletion snapshot changed after review.');
+    if (expectedSnapshotToken) {
+      // A rollback preview may assume projects the same inverse deletes first; application sees the real membership.
+      if (proposedProjectDeletions.length && !dryRun) throw new AeSaveRefusedError('Proposed project deletions are valid only in rollback preview.');
+      const projects = proposedProjectDeletions.length ? ` AND PROJECTNAME NOT IN (${proposedProjectDeletions.map((_, i) => ':p' + i).join(',')})` : '';
+      const uses = [
+        "SELECT COUNT(*) AS N FROM PSPROJECTITEM WHERE OBJECTTYPE IN (33,34,43) AND OBJECTVALUE1=:n" + projects,
+        "SELECT COUNT(*) AS N FROM PSAESTEPDEFN WHERE AE_DO_APPL_ID=:n AND AE_APPLID<>:n",
+        "SELECT COUNT(*) AS N FROM PS_PRCSDEFN WHERE PRCSNAME=:n AND PRCSTYPE='Application Engine'"
+      ];
+      const binds = { n: name, ...Object.fromEntries(proposedProjectDeletions.map((v, i) => ['p' + i, v])) };
+      for (const sql of uses) if (Number((await select<{N:number}>(c,sql,sql.includes(':p0')?binds:{n:name}))[0]?.N) !== 0) throw new AeSaveRefusedError('Reviewed AE deletion refuses project, static call or Process Definition references.');
+    }
     const s = stored!;
     const { version } = await readCounters(c, true);
     const next = { ...version, AEM: version.AEM + 2, AES: version.AES + 2, SYS: version.SYS + 1 } as Counters;
@@ -874,7 +888,8 @@ export async function deleteAppEngine(c: Connection, oracledb: DbTypes, name: st
     await run(c, st);
     const after = await readStoredAppEngine(c, oracledb, name, false);
     if (!isMissing(after)) throw new AeSaveRefusedError(`${name} still has rows after the delete.`);
-    await c.commit();
+    if (expectedSnapshotToken && (await readStructuredForCreation(c, oracledb, 'ae', name, true)).value !== null) throw new AeSaveRefusedError('AE scope is not absent after deletion.');
+    if (dryRun) await c.rollback(); else await c.commit();
     return { counters: next };
   } catch (error) {
     await c.rollback().catch(() => { /* the original error matters more */ });

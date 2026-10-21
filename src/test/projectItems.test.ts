@@ -97,3 +97,10 @@ test('AE project keys normalize the API platform label to its native PeopleCode 
  const item=projectItemFor({type:DefinitionType.AppEnginePeopleCode,parts:['ZZ_AE','ORACLE','GBL','Oracle','2000-01-01','Pc','OnExecute']});
  assert.equal(item.objectValues[1],'ORACLE  GBLORACLE   2000-01-01');
 });
+
+test('native Query membership preserves its blank public owner and distinct private owner',()=>{
+  assert.equal(canInsertIntoProject(DefinitionType.Query),true);
+  assert.deepEqual(item(DefinitionType.Query,'ZZ_QRY'),{objectType:10,objectIds:[30,25],objectValues:['ZZ_QRY',' ']});
+  assert.deepEqual(item(DefinitionType.Query,'ZZ_QRY','JARED'),{objectType:10,objectIds:[30,25],objectValues:['ZZ_QRY','JARED']});
+  assert.throws(()=>item(DefinitionType.Query,'ZZ_QRY','JARED','EXTRA'),/optional private owner/);
+});

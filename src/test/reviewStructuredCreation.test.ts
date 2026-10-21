@@ -8,7 +8,8 @@ import { saveAppEngine } from '../providers/appEngineWriter.js';
 import { applyRecordOperations } from '../model/recordOperations.js';
 import { RecordType } from '../model/record.js';
 import { newProgram } from '../model/aeDocument.js';
-import { creationRecordEdit, creationAeDocument, proposedAeReferences } from '../changeReview/structuredCreation.js';
+import { creationRecordEdit, creationAeDocument, proposedAeReferences, proposedProjectMembers } from '../changeReview/structuredCreation.js';
+import { DefinitionType, makeKey } from '../model/definitions.js';
 import { hash, type Json } from '../changeReview/model.js';
 
 for (const family of ['record', 'ae'] as const) {
@@ -54,4 +55,11 @@ test('proposed SQL dependencies supplement only the declared proposal context; l
     assert.deepEqual(overlay?.sql.get('ZZ_ROWS'), { binds: 1, columns: 2 });
     assert.equal(proposedAeReferences(references, { phase: 'live', dependencies: [dependency] }), undefined);
     assert.throws(() => proposedAeReferences(references, { phase: 'proposal', dependencies: [dependency, dependency] }), /Ambiguous/);
+});
+
+test('same-set Query creations are proposed project members with their owner; deletions and live validation are not', () => {
+    const dep = (key: Json, after: Json) => ({ id: String(key), adapter: 'query', key, after });
+    const context = { phase: 'proposal' as const, dependencies: [dep(['ZZ_PUB', ''], {}), dep(['ZZ_OWN', 'JARED'], {}), dep(['ZZ_GONE', ''], null)] };
+    assert.deepEqual(proposedProjectMembers(context), [makeKey(DefinitionType.Query, 'ZZ_PUB'), makeKey(DefinitionType.Query, 'ZZ_OWN', 'JARED')]);
+    assert.deepEqual(proposedProjectMembers({ ...context, phase: 'live' }), []);
 });

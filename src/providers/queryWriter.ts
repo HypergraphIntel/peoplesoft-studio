@@ -1,3 +1,5 @@
+import { querySnapshot } from '../changeReview/query.js';
+import type { Json } from '../changeReview/model.js';
 import type { DbConnection, DbTypes, ColumnInfo } from '../db/connection.js';
 import type { QueryView, Row } from '../model/queryDefinition.js';
 import { QUERY_TABLES, queryRows, queryToken, canonicalQueryRows, planQuerySave, type QueryTable } from '../model/querySavePlan.js';
@@ -5,6 +7,7 @@ import { prepareQueryExecution } from './queryRunner.js';
 import { expectRows } from './peopleCodeWriter.js';
 import { writeScopeRefusal } from './writeScope.js';
 import { requireCalibratedRelease } from './calibratedRelease.js';
+import { readTextLob } from '../db/lob.js';
 
 const TABLES=Object.keys(QUERY_TABLES) as QueryTable[];
 const TIME_FORMAT=`'YYYY-MM-DD"T"HH24:MI:SS.FF9'`;
@@ -17,9 +20,10 @@ async function readTable(c: DbConnection, types: DbTypes, table: QueryTable, nam
   const columns=await c.catalog.columns(c,table);
   if (!columns.length) throw new Error(`${table} is missing.`);
   const projection=columns.map(col=>timestamp(col)?`TO_CHAR(CAST(${col.name} AS TIMESTAMP(9)), ${TIME_FORMAT}) AS ${col.name}`:col.name).join(', ');
-  const fetchInfo=Object.fromEntries(columns.filter(col=>/CLOB/.test(col.dataType)).map(col=>[col.name,{type:types.STRING}]));
-  return (await c.execute<Row>(`SELECT ${projection} FROM ${table} WHERE QRYNAME=:n AND OPRID=:o${lock?' FOR UPDATE':''}`,
-    {n:name,o:owner.trim() || ' '},{outFormat:types.OUT_FORMAT_OBJECT,fetchInfo})).rows ?? [];
+  const rows = (await c.execute<Row>(`SELECT ${projection} FROM ${table} WHERE QRYNAME=:n AND OPRID=:o${lock?' FOR UPDATE':''}`,
+    {n:name,o:owner.trim() || ' '},{outFormat:types.OUT_FORMAT_OBJECT})).rows ?? [];
+  for(const row of rows)for(const col of columns.filter(col=>/CLOB/.test(col.dataType)))row[col.name]=await readTextLob(row[col.name]) as Row[string];
+  return rows;
 }
 
 export async function readQueryForEdit(c: DbConnection, types: DbTypes, name: string, owner: string, lock = false): Promise<QueryEdit | undefined> {
@@ -29,12 +33,12 @@ export async function readQueryForEdit(c: DbConnection, types: DbTypes, name: st
   const view: QueryView={query:query[0],selects:[],records:[],fields:[],criteria:[],expressions:[],binds:[]};
   for (const table of TABLES.filter(t=>t!=='PSQRYDEFN')) {
     const property=QUERY_TABLES[table] as Exclude<typeof QUERY_TABLES[QueryTable],'query'>;
-    view[property]=await readTable(c,types,table,name,owner);
+    view[property]=await readTable(c,types,table,name,owner,lock);
   }
   return {view,token:queryToken(view)};
 }
 
-function validateShape(view: QueryView): void {
+export function validateQuerySaveShape(view: QueryView): void {
   const header=view.query;
   if (String(header.QRYAPPROVED ?? '').trim()!=='A' || String(header.APPROVEOPRID ?? '').trim() || header.APPROVEDTTM!==null
     || String(header.EXECLOGGING ?? '').trim() || Number(header.QRYJOINOPTIMIZE) || Number(header.QRYIMGTYPE)) {
@@ -73,7 +77,7 @@ async function verifyView(c: DbConnection, types: DbTypes, expected: QueryView):
   return read;
 }
 
-export async function saveQuery(c: DbConnection, types: DbTypes, request: QuerySaveRequest): Promise<QuerySaveResult> {
+export async function saveQuery(c: DbConnection, types: DbTypes, request: QuerySaveRequest, deferCommit = false): Promise<QuerySaveResult> {
   const name=String(request.view.query.QRYNAME ?? '').trim();
   const owner=String(request.view.query.OPRID ?? '').trim();
   const refusal=writeScopeRefusal(name);
@@ -82,7 +86,7 @@ export async function saveQuery(c: DbConnection, types: DbTypes, request: QueryS
   try {
     await requireCalibratedRelease(c,'query');
     await prepareQueryExecution(c,request.view,request.operatorId);
-    validateShape(request.view);
+    validateQuerySaveShape(request.view);
     const [limits]=(await c.execute<{LENGTH:number}>('SELECT LENGTH FROM PSDBFIELD WHERE FIELDNAME=:f',{f:'QRYNAME'})).rows ?? [];
     if (!limits || name.length>Number(limits.LENGTH)) throw new Error('Query name exceeds the field definition length.');
     await ancillaryRows(c,name,owner);
@@ -142,11 +146,24 @@ export async function saveQuery(c: DbConnection, types: DbTypes, request: QueryS
     await expectRows(c,"UPDATE PSVERSION SET VERSION=VERSION+1 WHERE OBJECTTYPENAME IN ('QDM','SYS')",{},2,'Updating QDM and SYS');
     await expectRows(c,"UPDATE PSLOCK SET VERSION=VERSION+1 WHERE OBJECTTYPENAME='QDM'",{},1,'Updating QDM lock');
     const verified=await verifyView(c,types,planned);
-    if (request.dryRun) await c.rollback(); else await c.commit();
+    if (request.dryRun) await c.rollback(); else if (!deferCommit) await c.commit();
     return {...verified,written:!request.dryRun,replaced};
   } catch (error) { await c.rollback(); throw error; }
 }
 
 export async function verifyQuerySave(c: DbConnection, types: DbTypes, result: QuerySaveResult): Promise<void> {
   await verifyView(c,types,result.view);
+}
+
+/** Complete supported Query scope; ancillary native rows are never silently dropped. Caller uses a read-only transaction. */
+export async function readQueryMigration(c: DbConnection, types: DbTypes, name: string, owner: string) {
+  await ancillaryRows(c,name,owner);
+  const read = await readQueryForEdit(c,types,name,owner);
+  if (!read) {
+    for (const table of TABLES.filter(t=>t!=='PSQRYDEFN')) if ((await readTable(c,types,table,name,owner)).length) throw new Error('Orphan Query migration rows exist.');
+    return undefined;
+  }
+  validateQuerySaveShape(read.view);
+  if (read.view.records.length!==1 || read.view.selects.length!==1 || read.view.criteria.length>1) throw new Error('Query migration supports the calibrated one-record/one-select shape with at most one criterion.');
+  return { data: { name, owner:owner.trim(), view:querySnapshot(read.view) as Json }, token:read.token };
 }

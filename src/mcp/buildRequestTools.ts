@@ -163,10 +163,10 @@ export function registerBuildRequestTools(server: McpServer, store: BuildRequest
 
   server.registerTool('psft_build_request_report', {
     title: 'Build requests: report build progress',
-    description: 'Records what happened to spec objects during the build: BUILT (made and read back), STAGED (a Change Review proposal awaits the developer; give changeSetId), MANUAL (developer steps in detail), FAILED (the error), SKIPPED (with why). ' +
+    description: 'Records what happened to spec objects during the build: PENDING (deferred or waiting for a prerequisite; still unfinished), BUILT (made and read back), STAGED (a Change Review proposal awaits the developer; give changeSetId), MANUAL (developer steps in detail), FAILED (the error), SKIPPED (intentionally omitted, with why). Use PENDING, not SKIPPED, for work that must resume later. ' +
       'Refused unless the developer has approved the current spec. Writes the local request only, never PeopleSoft.',
     inputSchema: z.object({ id: requestId, entries: z.array(z.object({
-      ref: z.string().min(1).max(64), status: z.enum(OBJECT_STATUSES).exclude(['PENDING']), detail: z.string().min(1).max(20000),
+      ref: z.string().min(1).max(64), status: z.enum(OBJECT_STATUSES), detail: z.string().min(1).max(20000),
       changeSetId: z.string().uuid().optional()
     }).strict()).min(1).max(200) }).strict(),
     annotations: LOCAL_WRITE

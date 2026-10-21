@@ -13,6 +13,7 @@ import {
 } from './appEngineWriter.js';
 import { operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
 import { writeScopeRefusal } from './writeScope.js';
+import { checkMenuMigrationUpdate, checkedMenuMigration, readMenuMigration } from './menuMigration.js';
 
 /*
  * Saving a menu as App Designer's Menu Designer does (docs/MENUS.md).
@@ -464,6 +465,10 @@ export interface MenuSaveRequest {
   openedToken: string;
   operatorId: string;
   dryRun?: boolean;
+  /** Full scoped migration guard; ordinary Menu Designer saves keep their existing token contract. */
+  expectedSnapshotToken?: string;
+  /** Migration preview executes and verifies the native plan before rolling back. */
+  verifyRollback?: boolean;
 }
 
 export interface MenuSaveResult {
@@ -494,6 +499,11 @@ export async function saveMenu(c: Connection, oracledb: DbTypes, request: MenuSa
     const problems = validateMenu(request.doc).filter((d) => d.severity === 'error');
     if (problems.length) throw new MenuSaveRefusedError(`The menu has errors: ${problems.slice(0, 5).map((p) => `${p.path}: ${p.message}`).join('; ')}`);
     const stored = await readStoredMenu(c, oracledb, request.doc.name, true);
+    if(request.expectedSnapshotToken!==undefined) {
+      const full=await readMenuMigration(c,oracledb,request.doc.name,true);
+      if((full?.token??'absent')!==request.expectedSnapshotToken)throw new MenuSaveRefusedError('Menu migration scope changed after preview.');
+      checkMenuMigrationUpdate(full?.data,checkedMenuMigration(request.doc));
+    }
     const token = menuToken(stored);
     if (token !== request.openedToken) {
       throw new MenuSaveRefusedError(request.openedToken === 'absent'
@@ -502,12 +512,17 @@ export async function saveMenu(c: Connection, oracledb: DbTypes, request: MenuSa
     }
     const ctx = await saveContext(c);
     const plan = planMenuSave(stored, request.doc, { operatorId: request.operatorId, ...ctx, oracledb });
-    if (request.dryRun || plan.empty) {
+    if (request.dryRun && !request.verifyRollback || plan.empty) {
       await c.rollback();
       return { plan, token, written: false };
     }
     await run(c, plan.statements);
     await verifyMenu(c, oracledb, plan);
+    if(request.expectedSnapshotToken!==undefined) {
+      const after=await readMenuMigration(c,oracledb,request.doc.name);
+      if(JSON.stringify(after?.data)!==JSON.stringify(checkedMenuMigration(request.doc)))throw new MenuSaveRefusedError('Menu migration native after-image differs from the approved payload.');
+    }
+    if(request.dryRun) { await c.rollback();return {plan,token,written:false}; }
     await c.commit();
     return { plan, token: menuToken(await readStoredMenu(c, oracledb, request.doc.name, false)), written: true };
   } catch (error) {
@@ -556,7 +571,7 @@ export async function verifyMenuSave(c: Connection, oracledb: DbTypes, result: M
  * SYS + 1 (PCM + 1 with PeopleCode). Transfers in other menus that name it
  * are left as App Designer leaves them.
  */
-export async function deleteMenu(c: Connection, oracledb: DbTypes, name: string, openedToken: string, operatorId: string): Promise<{ counters: Counters }> {
+export async function deleteMenu(c: Connection, oracledb: DbTypes, name: string, openedToken: string, operatorId: string, dryRun = false): Promise<{ counters: Counters }> {
   try {
     await prepare(c, operatorId, name);
     const stored = await readStoredMenu(c, oracledb, name, true);
@@ -576,7 +591,7 @@ export async function deleteMenu(c: Connection, oracledb: DbTypes, name: string,
     st.push(...counterStatements(from, to));
     await run(c, st);
     if ((await readStoredMenu(c, oracledb, name, false)).exists) throw new MenuSaveRefusedError(`${name} still has rows after the delete.`);
-    await c.commit();
+    if (dryRun) await c.rollback(); else await c.commit();
     return { counters: to };
   } catch (error) {
     await c.rollback().catch(() => { /* the original error matters more */ });

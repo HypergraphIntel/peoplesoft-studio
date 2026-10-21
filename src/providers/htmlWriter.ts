@@ -1,3 +1,4 @@
+import { readContentMigration } from './contentMigration.js';
 import type { DbConnection as Connection } from '../db/connection.js';
 import { writeScopeRefusal } from './writeScope.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
@@ -40,6 +41,8 @@ export interface HtmlSaveRequest {
   /** A new description (PSCONTDEFN.DESCR, at most 30): saved with the text, as App Designer did (h03). */
   description?: string;
   operatorId: string;
+  /** Complete migration snapshot, checked after native row locks. */
+  expectedSnapshotToken?: string;
 }
 
 export interface HtmlSaveResult {
@@ -94,7 +97,7 @@ export function contentTextRefusal(text: string): string | undefined {
   return undefined;
 }
 
-export async function saveHtmlDefinition(c: Connection, blobType: unknown, request: HtmlSaveRequest): Promise<HtmlSaveResult> {
+export async function saveHtmlDefinition(c: Connection, blobType: unknown, request: HtmlSaveRequest, deferCommit = false): Promise<HtmlSaveResult> {
   const name = request.name;
   try {
     const operatorError = validateOperatorId(request.operatorId);
@@ -114,7 +117,7 @@ export async function saveHtmlDefinition(c: Connection, blobType: unknown, reque
       if (defns.length > 0) throw new HtmlSaveRefusedError(`A content definition named ${name} already exists.`);
       const [{ N: orphans }] = await select<{ N: number }>(c,
         `SELECT (SELECT COUNT(*) FROM PSCONTENT WHERE CONTNAME = :n) + (SELECT COUNT(*) FROM PSCONTDEFNLANG WHERE CONTNAME = :n)
-              + (SELECT COUNT(*) FROM PSCONTENTLANG WHERE CONTNAME = :n) AS N FROM DUAL`, { n: name });
+              + (SELECT COUNT(*) FROM PSCONTENTLANG WHERE CONTNAME = :n) + (SELECT COUNT(*) FROM PSCONTDEL WHERE CONTNAME = :n) AS N FROM DUAL`, { n: name });
       if (Number(orphans) > 0) throw new HtmlSaveRefusedError(`${name} has content rows but no definition; refusing to write.`);
     } else {
       const d = defns[0];
@@ -131,6 +134,11 @@ export async function saveHtmlDefinition(c: Connection, blobType: unknown, reque
     }
     if (!(await operatorExists(c, request.operatorId))) {
       throw new HtmlSaveRefusedError(`PeopleSoft operator ${request.operatorId} does not exist in this database (PSOPRDEFN).`);
+    }
+
+    if (request.expectedSnapshotToken !== undefined) {
+      const live = await readContentMigration(c, name, 'html', true);
+      if ((live?.token ?? 'absent') !== request.expectedSnapshotToken) throw new Error(name + ': complete content snapshot changed after review.');
     }
 
     const counters = await readCounters(c, true);
@@ -168,7 +176,7 @@ export async function saveHtmlDefinition(c: Connection, blobType: unknown, reque
     if (now.crm !== next.crm || now.sys !== next.sys || now.lockCrm !== next.lockCrm) {
       throw new HtmlSaveRefusedError(`counters ${JSON.stringify(now)}, ${JSON.stringify(next)} expected; rolled back.`);
     }
-    await c.commit();
+    if (!deferCommit) await c.commit();
     return result;
   } catch (error) {
     await c.rollback().catch(() => { /* the original error matters more */ });

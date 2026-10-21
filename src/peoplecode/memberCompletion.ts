@@ -1,4 +1,14 @@
-import type { ApplicationClassProgram } from './applicationClassProgram.js';
+import { maskNonCode, type ApplicationClassProgram } from './applicationClassProgram.js';
+
+/** Completion needs declarations, not the potentially huge method implementations. Ignore closers in comments/strings. */
+export function classDeclarationSource(source: string): string {
+  for (const match of source.matchAll(/\bend-(?:class|interface)\b\s*;?/gi)) {
+    const end = match.index! + match[0].length;
+    const header = source.slice(0, end);
+    if (/^end-(?:class|interface)\b/i.test(maskNonCode(header).slice(match.index))) return header;
+  }
+  return '';
+}
 
 /*
  * Completion of an application-class object's members after `&obj.`, `%This.`

@@ -1,7 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseApplicationClassSource } from '../peoplecode/applicationClassProgram.js';
-import { classCandidates, classMembers, declaredClassOf, declaredTypeOf, headerExtends, headerMembers, importsOf, isBuiltInType, publicMembers, qualifiedExtends } from '../peoplecode/memberCompletion.js';
+import { classCandidates, classDeclarationSource, classMembers, declaredClassOf, declaredTypeOf, headerExtends, headerMembers, importsOf, isBuiltInType, publicMembers, qualifiedExtends } from '../peoplecode/memberCompletion.js';
+
+test('completion parses only declarations, ignoring end-class inside comments and strings', () => {
+  const header = '/* end-class; */\nclass Tiny\n method Run();\nend-class;';
+  const source = header + '\nmethod Run\n' + 'Local string &s = "a";\n'.repeat(30_000) + 'end-method;';
+  assert.equal(classDeclarationSource(source), header);
+  assert.deepEqual(classMembers(parseApplicationClassSource(classDeclarationSource(source))!, ['public']).map((m) => m.name), ['Run']);
+  assert.equal(classDeclarationSource('class Incomplete\n method Run();'), '');
+});
 
 const CLASS = [
   'class Widget extends ZZ_PCODE_LAB:ORDERING:BASECLS',

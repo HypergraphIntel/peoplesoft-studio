@@ -34,8 +34,34 @@ export interface RecordSaveRequest {
   tablespace?: string;
   captureSnapshots?: boolean;
   expectedSnapshotToken?: string;
+  allowDeletedBaseline?: boolean;
   /** Refuse before COMMIT if the complete native scope differs from review. */
   expectedAfterHash?: string;
+  /**
+   * A new SQL Table's user-defined indexes, as App Designer's Add Index stores them (ix01): PSINDEXDEFN
+   * (INDEXTYPE 4, no custom DDL) and its PSKEYDEFN rows, without RECNAME. Creation only.
+   */
+  userIndexes?: UserIndexRows[];
+}
+export interface UserIndexRows { index: Row; keys: Row[] }
+
+/** Why these rows are not user indexes this writer can store for the record's PSRECFIELDDB fields. */
+export function userIndexRefusal(indexes: readonly UserIndexRows[], dbFields: readonly string[], tables?: { index: Column[]; key: Column[] }): string | undefined {
+  const ids = new Set<string>();
+  for (const { index, keys } of indexes) {
+    const id = text(index.INDEXID);
+    if (!/^[A-Z]$/.test(id) || ids.has(id)) return `User index ${id || '(blank)'} must be one unique letter A-Z.`;
+    ids.add(id);
+    if (Number(index.INDEXTYPE) !== 4) return `Index ${id} is not a user index (INDEXTYPE 4).`;
+    if (Number(index.DDLCOUNT) !== 0) return `Index ${id} has custom DDL, which is not written here yet.`;
+    if (!keys.length || Number(index.KEYCOUNT) !== keys.length) return `Index ${id} must list its ${index.KEYCOUNT} key fields.`;
+    if (keys.some((k, i) => text(k.INDEXID) !== id || Number(k.KEYPOSN) !== i + 1 || ![0, 1].includes(Number(k.ASCDESC)) || !dbFields.includes(text(k.FIELDNAME))))
+      return `Index ${id} keys must be the record's fields, in KEYPOSN order 1..n, ascending (1) or descending (0).`;
+    if (tables && (tables.index.some(col => col.name !== 'RECNAME' && !(col.name in index)) || Object.keys(index).some(k => !tables.index.some(col => col.name === k))
+      || keys.some(k => tables.key.some(col => col.name !== 'RECNAME' && !(col.name in k)) || Object.keys(k).some(n => !tables.key.some(col => col.name === n)))))
+      return `Index ${id} columns differ from this database's PSINDEXDEFN / PSKEYDEFN.`;
+  }
+  return undefined;
 }
 
 export interface RecordSaveResult {
@@ -170,13 +196,15 @@ async function createRecord(c: Connection, request: RecordSaveRequest, types?: D
   const edit = request.edit;
   const recname = edit.recname;
   if (!/^[A-Z0-9_]{1,15}$/.test(recname)) throw new RecordSaveRefusedError(`${recname} is not a valid record name (A-Z, 0-9, _; at most 15).`);
-  if (edit.recordType !== RecordType.Table && edit.recordType !== RecordType.DerivedWork) {
-    throw new RecordSaveRefusedError('Only SQL Table and Derived/Work records can be created here yet.');
+  // A SubRecord is created exactly as a Derived/Work record, with RECTYPE 3 (sb01).
+  if (edit.recordType !== RecordType.Table && edit.recordType !== RecordType.DerivedWork && edit.recordType !== RecordType.Subrecord) {
+    throw new RecordSaveRefusedError('Only SQL Table, Derived/Work and SubRecord records can be created here yet.');
   }
+  if (edit.recordType === RecordType.Subrecord && edit.fields.some(f => f.isSubrecord)) throw new RecordSaveRefusedError('Nested subrecords are not created here yet.');
   if (edit.fields.some((f) => !f.isNew)) throw new RecordSaveRefusedError('A new record has only new fields.');
   const reviewed = request.captureSnapshots || request.expectedSnapshotToken || request.expectedAfterHash;
   if (reviewed && edit.recordType !== RecordType.DerivedWork) throw new RecordSaveRefusedError('Creation review currently supports Derived/Work records only.');
-  const before = reviewed ? await readStructuredForCreation(c, types!, 'record', recname) : undefined;
+  const before = reviewed ? await readStructuredForCreation(c, types!, 'record', recname, request.allowDeletedBaseline) : undefined;
   if (before && (before.value !== null || request.expectedSnapshotToken && before.token !== request.expectedSnapshotToken)) throw new RecordSaveRefusedError('Record creation baseline changed.');
   const tables: Tables = {
     recfield: await columnsOf(c, 'PSRECFIELD'), recfielddb: await columnsOf(c, 'PSRECFIELDDB'),
@@ -208,6 +236,14 @@ async function createRecord(c: Connection, request: RecordSaveRequest, types?: D
     subrecords: await readSubrecords(c, tables, edit.fields.filter((f) => f.isSubrecord).map((f) => f.name))
   };
   const plan = planRecordSave(stored, edit, { ts: lastupddttm, operatorId: request.operatorId });
+  if (request.userIndexes?.length) {
+    if (edit.recordType !== RecordType.Table) throw new RecordSaveRefusedError('Only an SQL Table has user-defined indexes.');
+    const refusal = userIndexRefusal(request.userIndexes, plan.dbFields.map(r => text(r.FIELDNAME)), tables);
+    if (refusal) throw new RecordSaveRefusedError(refusal);
+    plan.userIndexes = [...request.userIndexes].sort((a, b) => text(a.index.INDEXID) < text(b.index.INDEXID) ? -1 : 1)
+      .map(ix => ({ row: { ...ix.index, RECNAME: recname }, keys: ix.keys.map(k => ({ ...k, RECNAME: recname })) }));
+    plan.indexCount += plan.userIndexes.length;
+  }
   const next: Counters = { ...counters, rdm: counters.rdm + 1, sys: counters.sys + 1, lockRdm: counters.lockRdm + 1 };
 
   if (Number(deleted) === 1) await expectRows(c, `DELETE FROM PSRECDEL WHERE RECNAME = :r`, { r: recname }, 1, 'Deleting PSRECDEL');
@@ -217,7 +253,7 @@ async function createRecord(c: Connection, request: RecordSaveRequest, types?: D
   });
   for (const row of plan.fields) await insertRow(c, 'PSRECFIELD', tables.recfield, row);
   for (const row of plan.dbFields) await insertRow(c, 'PSRECFIELDDB', tables.recfielddb, row);
-  for (const ix of [...(plan.index ? [plan.index] : []), ...plan.altIndexes]) {
+  for (const ix of [...(plan.index ? [plan.index] : []), ...plan.altIndexes, ...plan.userIndexes ?? []]) {
     await insertRow(c, 'PSINDEXDEFN', tables.index, ix.row);
     for (const k of ix.keys) await insertRow(c, 'PSKEYDEFN', tables.key, k);
   }
@@ -456,8 +492,8 @@ export async function verifyRecordSave(c: Connection, request: RecordSaveRequest
   const { plan } = result;
   compare('PSRECFIELD', now.fields, plan.fields, tables.recfield);
   compare('PSRECFIELDDB', now.db, plan.dbFields, tables.recfielddb);
-  // Stored in INDEXID order: '0'-'9' before '_'.
-  const planned = [...plan.altIndexes, ...(plan.index ? [plan.index] : [])];
+  // Stored in INDEXID order: '0'-'9', then user indexes 'A'-'Z', then '_'.
+  const planned = [...plan.altIndexes, ...plan.userIndexes ?? [], ...(plan.index ? [plan.index] : [])];
   compare('PSINDEXDEFN', now.indexes, planned.map((ix) => ix.row), tables.index);
   compare('PSKEYDEFN', now.keys, planned.flatMap((ix) => ix.keys), tables.key);
   const [defn] = await select<{ FIELDCOUNT: number; INDEXCOUNT: number; VERSION: number; TS: string; OPRID: string }>(c,
@@ -490,7 +526,10 @@ export async function verifyRecordSave(c: Connection, request: RecordSaveRequest
  * to by another record, page, component or project, with a materialized
  * view row, or one already marked deleted.
  */
-export async function deleteRecord(c: Connection, request: { recname: string; openedVersion: number; operatorId: string }): Promise<{ version: number }> {
+export async function deleteRecord(c: Connection, request: { recname: string; openedVersion: number; operatorId: string; expectedSnapshotToken?: string; dryRun?: boolean; proposedAeDeletions?: readonly string[];
+  /** Rollback-preview assumptions: projects and this record's PeopleCode programs ([field, event]) the same inverse deletes first. */
+  proposedProjectDeletions?: readonly string[]; proposedPeopleCodeDeletions?: readonly (readonly [string, string])[];
+  proposedPageDeletions?: readonly string[]; proposedComponentDeletions?: readonly string[] }, types?: DbTypes): Promise<{ version: number }> {
   const recname = request.recname;
   try {
     const operatorError = validateOperatorId(request.operatorId);
@@ -503,8 +542,20 @@ export async function deleteRecord(c: Connection, request: { recname: string; op
     if (Number(defn.VERSION) !== request.openedVersion) {
       throw new RecordSaveRefusedError(`${recname} was saved since it was opened (version ${defn.VERSION}, not ${request.openedVersion}).`);
     }
+    if (request.expectedSnapshotToken !== undefined && (!types || (await readStructuredSnapshot(c, types, 'record', recname)).token !== request.expectedSnapshotToken)) throw new RecordSaveRefusedError('Record deletion snapshot changed after review.');
     if (Number(defn.RECTYPE) !== RecordType.Table && Number(defn.RECTYPE) !== RecordType.DerivedWork) {
       throw new RecordSaveRefusedError('Only SQL Table and Derived/Work records can be deleted here yet.');
+    }
+    if (request.proposedAeDeletions?.length && (!request.dryRun || !request.expectedSnapshotToken)) throw new RecordSaveRefusedError('Proposed deletion dependencies are valid only in reviewed rollback preview.');
+    if ((request.proposedProjectDeletions?.length || request.proposedPeopleCodeDeletions?.length || request.proposedPageDeletions?.length || request.proposedComponentDeletions?.length) && !request.dryRun) throw new RecordSaveRefusedError('Proposed deletion dependencies are valid only in rollback preview.');
+    if (request.expectedSnapshotToken) {
+      const proposed = [...new Set(request.proposedAeDeletions ?? [])];
+      if (proposed.some(n => !/^[A-Z][A-Z0-9_]{0,11}$/.test(n))) throw new RecordSaveRefusedError('Invalid proposed AE deletion.');
+      const exclusion = proposed.length ? ` AND AE_APPLID NOT IN (${proposed.map((_,i)=>':p'+i).join(',')})` : '';
+      const binds = { r: recname, ...Object.fromEntries(proposed.map((n,i)=>['p'+i,n])) };
+      for (const sql of ['SELECT COUNT(*) AS N FROM PSAEAPPLSTATE WHERE AE_STATE_RECNAME=:r', 'SELECT COUNT(*) AS N FROM PSAEAPPLTEMPTBL WHERE RECNAME=:r']) {
+        if (Number((await select<{N:number}>(c,sql+exclusion,binds))[0]?.N) !== 0) throw new RecordSaveRefusedError('Record is an AE state/temporary record outside the proposed inverse dependencies.');
+      }
     }
     const uses: [string, string][] = [
       ['has Record PeopleCode', `SELECT COUNT(*) AS N FROM PSPCMPROG WHERE OBJECTID1 = 1 AND OBJECTVALUE1 = :r`],
@@ -517,8 +568,25 @@ export async function deleteRecord(c: Connection, request: { recname: string; op
       ['has an earlier deletion marker (PSRECDEL)', `SELECT COUNT(*) AS N FROM PSRECDEL WHERE RECNAME = :r`]
     ];
     for (const [what, sql] of uses) {
-      const [{ N }] = await select<{ N: number }>(c, sql, { r: recname });
-      if (Number(N) > 0) throw new RecordSaveRefusedError(`${recname} ${what}; deleting it here is not supported yet.`);
+      let n = Number((await select<{ N: number }>(c, sql, { r: recname }))[0].N);
+      // Only a rollback preview may assume what the same inverse deletes first; application checks the real rows.
+      if (n && what === 'has Record PeopleCode' && request.proposedPeopleCodeDeletions?.length) {
+        const programs = await select<{ F: string; E: string }>(c, `SELECT DISTINCT OBJECTVALUE2 AS F, OBJECTVALUE3 AS E FROM PSPCMPROG WHERE OBJECTID1 = 1 AND OBJECTVALUE1 = :r`, { r: recname });
+        n = programs.filter(p => !request.proposedPeopleCodeDeletions!.some(([f, e]) => f === String(p.F).trim() && e === String(p.E).trim())).length;
+      }
+      if (n && what === 'is on pages' && request.proposedPageDeletions?.length) {
+        const pages = await select<{ P: string }>(c, `SELECT DISTINCT PNLNAME AS P FROM PSPNLFIELD WHERE RECNAME = :r`, { r: recname });
+        n = pages.filter(p => !request.proposedPageDeletions!.includes(String(p.P).trim())).length;
+      }
+      if (n && what === 'is a component search record' && request.proposedComponentDeletions?.length) {
+        const components = await select<{ P: string }>(c, `SELECT DISTINCT PNLGRPNAME AS P FROM PSPNLGRPDEFN WHERE :r IN (SEARCHRECNAME, ADDSRCHRECNAME)`, { r: recname });
+        n = components.filter(p => !request.proposedComponentDeletions!.includes(String(p.P).trim())).length;
+      }
+      if (n && what === 'is in projects' && request.proposedProjectDeletions?.length) {
+        const projects = await select<{ P: string }>(c, `SELECT DISTINCT PROJECTNAME AS P FROM PSPROJECTITEM WHERE OBJECTTYPE IN (0, 1, 8) AND OBJECTVALUE1 = :r`, { r: recname });
+        n = projects.filter(p => !request.proposedProjectDeletions!.includes(String(p.P).trim())).length;
+      }
+      if (n > 0) throw new RecordSaveRefusedError(`${recname} ${what}; deleting it here is not supported yet.`);
     }
     if (!(await operatorExists(c, request.operatorId))) {
       throw new RecordSaveRefusedError(`PeopleSoft operator ${request.operatorId} does not exist in this database (PSOPRDEFN).`);
@@ -547,7 +615,8 @@ export async function deleteRecord(c: Connection, request: { recname: string; op
       `SELECT (SELECT COUNT(*) FROM PSRECDEFN WHERE RECNAME = :r) + (SELECT COUNT(*) FROM PSRECFIELD WHERE RECNAME = :r)
             + (SELECT COUNT(*) FROM PSRECFIELDDB WHERE RECNAME = :r) + (SELECT COUNT(*) FROM PSINDEXDEFN WHERE RECNAME = :r) AS N FROM DUAL`, r);
     if (Number(left[0].N) !== 0) throw new RecordSaveRefusedError('Rows of the record remain after the delete; rolled back.');
-    await c.commit();
+    if (request.expectedSnapshotToken && (await readStructuredForCreation(c, types!, 'record', recname, true)).value !== null) throw new RecordSaveRefusedError('Record scope is not absent after deletion.');
+    if (request.dryRun) await c.rollback(); else await c.commit();
     return { version: next.rdm };
   } catch (error) {
     await c.rollback().catch(() => { /* the original error matters more */ });

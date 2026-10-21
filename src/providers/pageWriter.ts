@@ -901,7 +901,7 @@ async function analyticGridProblems(c: Connection, pnlName: string, checked: Rea
 }
 
 /** PSVERSION / PSLOCK 'PDM' and PSVERSION 'SYS', locked for the save. */
-async function counters(c: Connection, forUpdate: boolean): Promise<{ pdm: number; sys: number; lockPdm: number }> {
+export async function counters(c: Connection, forUpdate: boolean): Promise<{ pdm: number; sys: number; lockPdm: number }> {
   const lock = forUpdate ? ' FOR UPDATE' : '';
   const v = await select<{ T: string; V: number }>(c,
     `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSVERSION WHERE OBJECTTYPENAME IN ('PDM', 'SYS')${lock}`);

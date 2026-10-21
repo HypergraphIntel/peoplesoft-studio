@@ -133,10 +133,19 @@ export class ReviewStore {
             checksum: string;
             value: ChangeSet;
         };
-        if (hash(envelope.value) !== envelope.checksum || ![1, 2].includes(envelope.value.schema) || envelope.value.id !== id || !Array.isArray(envelope.value.objects))
+        if (hash(envelope.value) !== envelope.checksum || ![1, 2, 3, 4].includes(envelope.value.schema) || envelope.value.id !== id || !Array.isArray(envelope.value.objects))
             throw new Error('Corrupt or unsupported Change Set.');
-        if ((envelope.value.schema === 2) !== !!envelope.value.continuation)
-            throw new Error('Continuation requires schema 2; older applications must not ignore prerequisites.');
+        if ([2, 4].includes(envelope.value.schema) !== !!envelope.value.continuation)
+            throw new Error('Continuation requires schema 2 or 4; older applications must not ignore prerequisites.');
+        if (envelope.value.schema === 4 && (!envelope.value.reverses || !envelope.value.reversalSources) || envelope.value.schema === 2 && envelope.value.reverses)
+            throw new Error('An interrupted reversal continuation requires schema 4 and its complete forward lineage.');
+        if ([3, 4].includes(envelope.value.schema) !== !!envelope.value.reversalSources || envelope.value.reversalSources &&
+            (!envelope.value.reverses || !Array.isArray(envelope.value.reversalSources) || !envelope.value.reversalSources.length || envelope.value.reversalSources.length > 1000 ||
+             new Set(envelope.value.reversalSources.map(s => s.changeSetId)).size !== envelope.value.reversalSources.length ||
+             envelope.value.reversalSources.some(s => typeof s.changeSetId !== 'string' || !Number.isSafeInteger(s.revision) || s.revision < 1 || !Array.isArray(s.objects) || !s.objects.length || s.objects.length > 1000 ||
+                new Set(s.objects.map(o => o.objectId)).size !== s.objects.length || s.objects.some(o => typeof o.objectId !== 'string' || typeof o.snapshot !== 'string' || typeof o.token !== 'string'))))
+            throw new Error('Combined reversal lineage requires schema 3 and complete source revisions.');
+        for (const source of envelope.value.reversalSources ?? []) for (const object of source.objects) await this.readBlob(object.snapshot);
         for (const c of envelope.value.objects) {
             await this.readBlob(c.before);
             await this.readBlob(c.after);

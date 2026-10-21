@@ -28,6 +28,7 @@ export interface PeopleSoftStudioSettings {
   'db2.driverPath': string;
   'peoplecode.decoder': DecoderMode;
   'peoplecode.languageServer.enabled': boolean;
+  'peoplecode.inlineCallPreview': boolean;
   'peoplecode.validateAsYouType': boolean;
   'peoplecode.validationDelay': number;
   'peoplecode.checkEnvironment': boolean;
@@ -283,6 +284,15 @@ function peopleCodeEditorDescriptors(): SettingDescriptor[] {
       label: 'Language Server',
       description: 'Completion, hover, signature help, Go to Definition, Find References, the outline and validation as you type in PeopleCode editors. ' +
         'Off: PeopleCode editors are plain text with highlighting; Validate PeopleCode still runs on demand.',
+      control: { kind: 'boolean' },
+      defaultValue: true
+    },
+    {
+      key: 'peoplecode.inlineCallPreview',
+      section: 'peoplecodeEditor',
+      label: 'Inline call preview',
+      description: 'Show supported built-in calls as faint text ahead of the cursor. Tab accepts editable argument placeholders. Requires editor inline suggestions.',
+      requires: server,
       control: { kind: 'boolean' },
       defaultValue: true
     },

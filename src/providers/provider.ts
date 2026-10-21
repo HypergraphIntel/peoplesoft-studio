@@ -5,6 +5,7 @@ import type { FieldDefinition } from '../model/fieldDefinition.js';
 import type { RecordLayout, TranslateValue } from '../model/recordLayout.js';
 import type { ImageContent } from '../editors/imageHtml.js';
 import type { AeDocument } from '../model/aeDocument.js';
+import type { SqlDefinitionData } from '../model/sqlDefinition.js';
 
 export interface DefinitionSummary {
   key: DefinitionKey;
@@ -64,6 +65,8 @@ export interface DefinitionProvider {
 
   /** Structured AE metadata, used to review explicit migration dependencies. */
   readAppEngineDocument?(name: string): Promise<{ doc: AeDocument; token: string } | undefined>;
+  /** Complete bounded standalone SQL metadata; display-only text readers cannot promise migration fidelity. */
+  readSqlForMigration?(key: DefinitionKey): Promise<{ data: SqlDefinitionData; token: string; version: number } | undefined>;
 
   search(query: SearchQuery): Promise<DefinitionSummary[]>;
 
@@ -100,6 +103,7 @@ export interface DefinitionProvider {
    * for a type {@link canExpand} accepts.
    */
   listChildren(key: DefinitionKey): Promise<DefinitionSummary[]>;
+  readApplicationPackage?(root: string): Promise<import('../model/appPackages.js').ApplicationPackageDocument | undefined>;
 
   /**
    * The PeopleTools installation behind this provider, read from PSSTATUS.
@@ -169,7 +173,7 @@ export interface EnvironmentInfo {
  */
 export function canExpand(definition: DefinitionType | DefinitionKey): boolean {
   if (typeof definition !== 'object') {
-    return definition === DefinitionType.Record || definition === DefinitionType.Component;
+    return definition === DefinitionType.Record || definition === DefinitionType.Component || definition === DefinitionType.ApplicationPackage;
   }
   if (definition.type === DefinitionType.Field) return definition.parts.length >= 2;
   return canExpand(definition.type);

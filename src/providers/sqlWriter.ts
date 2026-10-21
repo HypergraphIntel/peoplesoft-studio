@@ -1,8 +1,11 @@
-import type { DbConnection as Connection } from '../db/connection.js';
+import type { DbConnection as Connection, DbTypes } from '../db/connection.js';
 import { writeScopeRefusal } from './writeScope.js';
 import { predictSourceSignature } from '../peoplecode/sourceSignature.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
+import { readSqlMigration } from './sqlSnapshot.js';
+import { prepareSqlText, SQL_TEXT_ROW_LIMIT, type SqlDefinitionData } from '../model/sqlDefinition.js';
+export { prepareSqlText, SQL_TEXT_ROW_LIMIT } from '../model/sqlDefinition.js';
 
 /*
  * Saving an SQL definition's text, as App Designer does (docs/RECORD_SAVE.md,
@@ -34,7 +37,6 @@ export class SqlSaveRefusedError extends Error {
   }
 }
 
-export const SQL_TEXT_ROW_LIMIT = 14000;
 const MARKET = 'GBL';
 const DBTYPE = ' ';
 const EFFDT = '1900-01-01';
@@ -45,6 +47,9 @@ export interface SqlSaveRequest {
   /** PSSQLDEFN.VERSION when the text was opened, the save refused if it moved; undefined creates the definition. */
   openedVersion?: number;
   operatorId: string;
+  /** Migration supplies the complete supported metadata and a full-row preview token. */
+  metadata?: Pick<SqlDefinitionData, 'description' | 'definition' | 'ownerId'>;
+  expectedSnapshotToken?: string;
 }
 
 export interface SqlSaveResult {
@@ -69,12 +74,6 @@ async function readCounters(c: Connection, forUpdate: boolean): Promise<Counters
   }
   return { srm: Number(srm), sys: Number(sys), lockSrm: Number(l[0].V) };
 }
-
-/**
- * The text as App Designer stores and hashes it: lines ended CRLF (all 46
- * multi-line delivered SQL texts on HRDMO are CRLF, none bare LF), no
- * trailing whitespace (9,698 of 9,713 have none).
- */
 
 /**
  * Any colon inside a block or line comment. PeopleSoft reads the whole statement
@@ -104,11 +103,7 @@ export function bindMarkerInComment(text: string): string | undefined {
   return undefined;
 }
 
-export function prepareSqlText(text: string): string {
-  return text.replace(/\r?\n/g, '\r\n').replace(/\s+$/, '');
-}
-
-export async function saveSqlDefinition(c: Connection, request: SqlSaveRequest): Promise<SqlSaveResult> {
+export async function saveSqlDefinition(c: Connection, request: SqlSaveRequest, types: DbTypes, deferCommit = false): Promise<SqlSaveResult> {
   const id = request.sqlId;
   try {
     const operatorError = validateOperatorId(request.operatorId);
@@ -126,11 +121,23 @@ export async function saveSqlDefinition(c: Connection, request: SqlSaveRequest):
     }
 
     const create = request.openedVersion === undefined;
+    const metadata = request.metadata;
+    if (metadata && (typeof metadata.description !== 'string' || metadata.description.length > 30
+      || typeof metadata.definition !== 'string' || typeof metadata.ownerId !== 'string' || metadata.ownerId.length > 4)) {
+      throw new SqlSaveRefusedError('SQL metadata requires a description (at most 30 characters), comments and owner ID (at most 4 characters).');
+    }
+    if (request.expectedSnapshotToken !== undefined) {
+      const live = await readSqlMigration(c, types, id, true);
+      if ((live?.token ?? 'absent') !== request.expectedSnapshotToken || (create ? !!live : live?.version !== request.openedVersion)) {
+        throw new SqlSaveRefusedError(id + ': SQL changed after migration preview.');
+      }
+    }
     if (create) {
       if (!/^[A-Z0-9_]{1,30}$/.test(id)) throw new SqlSaveRefusedError(`${id} is not a valid definition name (A-Z, 0-9, _; at most 30).`);
       const [{ N: taken }] = await select<{ N: number }>(c,
         `SELECT (SELECT COUNT(*) FROM PSSQLDEFN WHERE SQLID = :id) + (SELECT COUNT(*) FROM PSSQLDESCR WHERE SQLID = :id)
-              + (SELECT COUNT(*) FROM PSSQLTEXTDEFN WHERE SQLID = :id) + (SELECT COUNT(*) FROM PSSQLHASH WHERE SQLID = :id) AS N FROM DUAL`,
+              + (SELECT COUNT(*) FROM PSSQLTEXTDEFN WHERE SQLID = :id) + (SELECT COUNT(*) FROM PSSQLHASH WHERE SQLID = :id)
+              + (SELECT COUNT(*) FROM PSSQLLANG WHERE SQLID = :id) + (SELECT COUNT(*) FROM PSSQLDEL WHERE SQLID = :id) AS N FROM DUAL`,
         { id });
       if (Number(taken) > 0) throw new SqlSaveRefusedError(`An SQL definition named ${id} (of some SQL type) already exists, or left rows behind.`);
     } else {
@@ -171,11 +178,12 @@ export async function saveSqlDefinition(c: Connection, request: SqlSaveRequest):
     if (create) {
       await expectRows(c,
         `INSERT INTO PSSQLDEFN (SQLID, SQLTYPE, VERSION, LASTUPDOPRID, LASTUPDDTTM, ENABLEEFFDT, OBJECTOWNERID)
-         VALUES (:id, '0', :v, :op, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), 'N', ' ')`,
-        { v: next.srm, ts: lastupddttm, op: request.operatorId, id }, 1, 'Inserting PSSQLDEFN');
+         VALUES (:id, '0', :v, :op, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), 'N', :owner)`,
+        { v: next.srm, ts: lastupddttm, op: request.operatorId, id, owner: metadata?.ownerId || ' ' }, 1, 'Inserting PSSQLDEFN');
       await expectRows(c,
         `INSERT INTO PSSQLDESCR (SQLID, SQLTYPE, MARKET, DBTYPE, EFFDT, DESCR, DESCRLONG)
-         VALUES (:id, '0', :m, :d, TO_DATE(:e, 'YYYY-MM-DD'), ' ', NULL)`, key, 1, 'Inserting PSSQLDESCR');
+         VALUES (:id, '0', :m, :d, TO_DATE(:e, 'YYYY-MM-DD'), :descr, :comments)`,
+        { ...key, descr: metadata?.description || ' ', comments: { val: metadata?.definition || null, type: types.CLOB } }, 1, 'Inserting PSSQLDESCR');
       await expectRows(c,
         `INSERT INTO PSSQLHASH (SQLID, SQLTYPE, MARKET, DBTYPE, EFFDT, HASH_SIGNATURE)
          VALUES (:id, '0', :m, :d, TO_DATE(:e, 'YYYY-MM-DD'), :h)`, { ...key, h: hashSignature }, 1, 'Inserting PSSQLHASH');
@@ -185,6 +193,12 @@ export async function saveSqlDefinition(c: Connection, request: SqlSaveRequest):
           WHERE SQLID = :id AND SQLTYPE = 0`,
         { v: next.srm, ts: lastupddttm, op: request.operatorId, id }, 1, 'Updating PSSQLDEFN');
       await expectRows(c, `DELETE FROM PSSQLTEXTDEFN WHERE SQLID = :id AND SQLTYPE = 0`, { id }, 1, 'Deleting PSSQLTEXTDEFN');
+      if (metadata) {
+        await expectRows(c, `UPDATE PSSQLDEFN SET OBJECTOWNERID = :owner WHERE SQLID = :id AND SQLTYPE = 0`,
+          { id, owner: metadata.ownerId || ' ' }, 1, 'Updating SQL owner');
+        await expectRows(c, `UPDATE PSSQLDESCR SET DESCR = :descr, DESCRLONG = :comments WHERE SQLID = :id AND SQLTYPE = 0`,
+          { id, descr: metadata.description || ' ', comments: { val: metadata.definition || null, type: types.CLOB } }, 1, 'Updating SQL descriptions');
+      }
     }
     await expectRows(c,
       `INSERT INTO PSSQLTEXTDEFN (SQLID, SQLTYPE, MARKET, DBTYPE, EFFDT, SEQNUM, SQLTEXT)
@@ -200,12 +214,12 @@ export async function saveSqlDefinition(c: Connection, request: SqlSaveRequest):
     await expectRows(c, `UPDATE PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'SRM'`, { v: next.lockSrm }, 1, 'Updating PSLOCK SRM');
 
     const result: SqlSaveResult = { version: next.srm, lastupddttm, hashSignature, created: create };
-    await verifySqlSave(c, request, result);
+    await verifySqlSave(c, request, result, types);
     const now = await readCounters(c, false);
     if (now.srm !== next.srm || now.sys !== next.sys || now.lockSrm !== next.lockSrm) {
       throw new SqlSaveRefusedError(`counters ${JSON.stringify(now)}, ${JSON.stringify(next)} expected; rolled back.`);
     }
-    await c.commit();
+    if (!deferCommit) await c.commit();
     return result;
   } catch (error) {
     await c.rollback().catch(() => { /* the original error matters more */ });
@@ -214,7 +228,7 @@ export async function saveSqlDefinition(c: Connection, request: SqlSaveRequest):
 }
 
 /** The stored text, hash and stamp are the save's. */
-export async function verifySqlSave(c: Connection, request: SqlSaveRequest, result: SqlSaveResult): Promise<void> {
+export async function verifySqlSave(c: Connection, request: SqlSaveRequest, result: SqlSaveResult, types: DbTypes): Promise<void> {
   const id = request.sqlId;
   const problems: string[] = [];
   const [d] = await select<{ VERSION: number; TS: string; OPRID: string }>(c,
@@ -231,6 +245,13 @@ export async function verifySqlSave(c: Connection, request: SqlSaveRequest, resu
   else if (!want.startsWith(String(texts[0].T ?? ''))) problems.push('the stored text differs');
   const [h] = await select<{ H: string }>(c, `SELECT HASH_SIGNATURE AS H FROM PSSQLHASH WHERE SQLID = :id AND SQLTYPE = 0`, { id });
   if (h?.H !== result.hashSignature) problems.push(`PSSQLHASH ${h?.H}`);
+  if (request.expectedSnapshotToken !== undefined || request.metadata) {
+    const stored = await readSqlMigration(c, types, id);
+    if (!stored || stored.data.text !== want || (request.metadata &&
+      (stored.data.description !== request.metadata.description || stored.data.definition !== request.metadata.definition || stored.data.ownerId !== request.metadata.ownerId))) {
+      problems.push('complete SQL text or metadata differs');
+    }
+  }
   if (problems.length) throw new SqlSaveRefusedError(`The SQL save did not land as planned (${problems.join('; ')}).`);
 }
 

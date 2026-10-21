@@ -40,7 +40,7 @@ export class WorkerValidationRunner implements ValidationRunner {
       if (message.result) waiting.resolve(message.result);
       else waiting.reject(new Error(message.error ?? 'Validation failed.'));
     });
-    worker.on('error', (error) => this.stop(error));
+    worker.on('error', (error) => { if (this.worker === worker) this.stop(error); });
     worker.on('exit', () => { if (this.worker === worker) this.stop(new Error('The validation thread stopped.')); });
     worker.unref();
     this.worker = worker;

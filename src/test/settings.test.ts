@@ -284,6 +284,7 @@ test('the PeopleCode Editor section: the Language Server switch, what depends on
   const settings = service.getState().settings.filter((s) => s.section === 'peoplecodeEditor');
   assert.deepEqual(settings.map((s) => [s.key, s.value, s.requires]), [
     ['peoplecode.languageServer.enabled', true, undefined],
+    ['peoplecode.inlineCallPreview', true, 'peoplecode.languageServer.enabled'],
     ['peoplecode.validateAsYouType', true, 'peoplecode.languageServer.enabled'],
     ['peoplecode.validationDelay', 500, 'peoplecode.validateAsYouType'],
     ['peoplecode.checkEnvironment', true, 'peoplecode.languageServer.enabled'],

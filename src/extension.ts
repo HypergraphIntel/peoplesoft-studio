@@ -1,3 +1,4 @@
+import { stageMigrationImport } from './changeReview/migration.js';
 import { deserializeRecentProjects, RECENT_PROJECTS_KEY } from './model/recentProjects.js';
 import { isMissingProjectDefinition, missingProjectDefinitionMessage } from './model/projectOpening.js';
 import { PROPERTIES_SPECS } from './model/properties.js';
@@ -5,11 +6,12 @@ import { setManualHistoryObserver } from './changeReview/manualHistory.js';
 import { databaseReviewAdapters } from './changeReview/adapters.js';
 import { ReviewStore } from './changeReview/store.js';
 import { BuildRequestStore } from './buildRequest/store.js';
+import { WriteApprovalWorkspace } from './editors/writeApprovals.js';
 import { registerBuildRequests } from './views/buildRequestsView.js';
 import { ReviewService } from './changeReview/service.js';
 import { ReviewWorkspace } from './changeReview/workspace.js';
 import { ChangeReviewView } from './views/changeReviewView.js';
-import { definitionReviewTarget } from './changeReview/navigation.js';
+import { definitionReviewTargets } from './changeReview/navigation.js';
 import { canonical } from './changeReview/model.js';
 import { openSecurityPanel } from './editors/securityPanel.js';
 import { SECURITY_TITLES } from './model/security.js';
@@ -36,6 +38,8 @@ import { setWriteNamePrefix, writeNamePrefix, writeScopeRefusal } from './provid
 import { RECORD_FIELD_EVENTS } from './model/recordEvents.js';
 import { FIELD_TYPE_LABELS, FieldType, RecordType } from './model/record.js';
 import { PackageCreateRefusedError } from './providers/packageWriter.js';
+import { ApplicationPackagePanel } from './editors/applicationPackagePanel.js';
+import { packageAddress, packageKey } from './model/appPackages.js';
 import { HtmlSaveRefusedError } from './providers/htmlWriter.js';
 import { StyleSheetSaveRefusedError } from './providers/styleSheetWriter.js';
 import { CREATABLE_FIELD_TYPES, FIXED_FIELD_LENGTH, FieldCreateRefusedError, fieldCreateRefusal } from './providers/fieldWriter.js';
@@ -43,7 +47,7 @@ import { toUri } from './util/uri.js';
 import { COMPARE_SCHEME, CompareContent } from './compareContent.js';
 import { compareProjectItems, type ProjectItemComparison, type ProjectItemOutcome } from './projectCompare.js';
 import { reviewProjectMigration, renderMigrationReview } from './projectMigration.js';
-import { exportMigrationPackage, parseMigrationPackage, previewMigrationImport, applyMigrationImport, migrationHash } from './migrationPackage.js';
+import { exportMigrationPackage, parseMigrationPackage, previewMigrationImport } from './migrationPackage.js';
 import { databaseMigrationTarget } from './providers/migrationTarget.js';
 
 /** Compare With Environment's snapshots, shared with Compare Project (set on activation). */
@@ -58,6 +62,7 @@ import { registerPeopleCodeSymbols } from './peoplecode/symbols.js';
 import { registerPeopleCodeDefinition } from './peoplecode/definitionProvider.js';
 import { registerPeopleCodeReferences } from './peoplecode/referenceProvider.js';
 import { registerPeopleCodeSignatureHelp } from './peoplecode/signatureProvider.js';
+import { registerPeopleCodeInlineCalls } from './peoplecode/inlineCallProvider.js';
 import { parseUri, SCHEME } from './util/uri.js';
 import { findPeopleCodeReferences } from './peoplecode/findReferences.js';
 import { findInProject } from './findInProject.js';
@@ -68,11 +73,7 @@ import { prepareReadOnlyQuery } from './sql/readOnlyQuery.js';
 import { ddlRecordFromLayout, planProjectCreateTables, unbuildableReason, type BuildPlan, type ProjectBuildRecord, type TableOption } from './model/recordBuild.js';
 import { combineBuildPlans, planAlterTable, planCreateIndexes, planCreateViews, type AlterSettings, type IndexOption, type ViewOption } from './model/recordAlter.js';
 import { tableName } from './model/recordDdl.js';
-import { lineAndColumn, validatePeopleCode, type Qualification, type Validation } from './peoplecode/validate.js';
-import { LiveValidator } from './peoplecode/liveValidation.js';
-import { languageFeaturesOn } from './peoplecode/languageFeatures.js';
-import { definitionExists, missingDefinitionProblems } from './peoplecode/definitionCheck.js';
-import { WorkerValidationRunner } from './peoplecode/validateWorkerClient.js';
+import { registerPeopleCodeValidation } from './peoplecode/editorValidation.js';
 import type { DefinitionProvider } from './providers/provider.js';
 import { StatusBar } from './views/statusBar.js';
 import { selectConnection } from './views/connectionSelection.js';
@@ -298,155 +299,13 @@ async function chooseComponentPeopleCode(workspace: Workspace, which: 'object' |
   await vscode.commands.executeCommand('psft.openDefinition', provider.id, componentPeopleCodeKey(def.name, def.market, object, pick.event));
 }
 
-/** Validate PeopleCode's problems as diagnostics on the text they were found in (any line endings). */
-function peopleCodeDiagnostics(text: string, v: Validation): vscode.Diagnostic[] {
-  const normalized = text.replace(/\r\n/g, '\n');
-  return v.problems.map((p) => {
-    const at = lineAndColumn(normalized, p.offset);
-    const start = new vscode.Position(at.line, at.column);
-    const info = p.severity === 'info';
-    const d = new vscode.Diagnostic(new vscode.Range(start, start.translate(0, Math.max(1, p.length ?? 1))),
-      info ? p.message : `${p.message} (PeopleSoft Studio's compiler, ${v.profile}; Application Designer has the last word)`,
-      info ? vscode.DiagnosticSeverity.Information : vscode.DiagnosticSeverity.Warning);
-    d.source = 'PeopleCode';
-    if (p.code) d.code = p.code;
-    return d;
-  });
-}
-
-/** The record whose fields a PeopleCode program's bare names are (Record and Component Record [Field] PeopleCode). */
-function ownerRecordOf(key: DefinitionKey): string | undefined {
-  if (key.type === DefinitionType.RecordPeopleCode) return key.parts[0];
-  if (key.type === DefinitionType.ComponentRecordPeopleCode || key.type === DefinitionType.ComponentRecordFieldPeopleCode) return key.parts[2];
-  return undefined;
-}
-
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   // Writes go to every definition unless a name prefix limits them (writeScope.ts).
   setWriteNamePrefix(vscode.workspace.getConfiguration('peoplesoft').get<string>('writeNamePrefix'));
   const workspace = new Workspace(context.secrets);
   workspace.db2DriverDir = path.join(context.globalStorageUri.fsPath, 'db2-driver');
   context.subscriptions.push(workspace);
-  // Validate PeopleCode's results: as you type (liveValidation.ts) unless that is off, when they are cleared as soon as the text changes.
-  const validationDiagnostics = vscode.languages.createDiagnosticCollection('psft-peoplecode-validate');
-  const releaseByHandle = new Map<string, Promise<string | undefined>>();
-  const releaseFor = (handle: string) => {
-    let release = releaseByHandle.get(handle);
-    if (!release) {
-      release = workspace.requireByHandle(handle).then((p) => p.readEnvironment?.()).then((e) => e?.toolsRelease, () => undefined);
-      releaseByHandle.set(handle, release);
-    }
-    return release;
-  };
-  // A record's fields (subrecords expanded) from the connection, kept a minute: bare names and RECORD.FIELD references are checked against them.
-  const fieldCache = new Map<string, { at: number; fields: Promise<Set<string> | undefined> }>();
-  const recordFields = (handle: string, record: string): Promise<Set<string> | undefined> => {
-    const id = `${handle}|${record.toUpperCase()}`;
-    const cached = fieldCache.get(id);
-    if (cached && Date.now() - cached.at < 60_000) return cached.fields;
-    const fields = workspace.requireByHandle(handle)
-      .then((p) => (p instanceof DatabaseProvider ? p.expandedFieldNames(record.toUpperCase()) : undefined))
-      .then((f) => (f && f.length ? new Set(f.map((x) => x.toUpperCase())) : undefined), () => undefined);
-    fieldCache.set(id, { at: Date.now(), fields });
-    return fields;
-  };
-  // Whether a definition exists on the connection, kept a minute: undefined when that cannot be told (no database, a failed or
-  // truncated search -- names match with LIKE, so only an exact name in a complete result counts).
-  const existsCache = new Map<string, { at: number; exists: Promise<boolean | undefined> }>();
-  const cachedDefinitionExists = (handle: string, type: DefinitionType, name: string): Promise<boolean | undefined> => {
-    const id = `${handle}|${type}|${name}`;
-    const cached = existsCache.get(id);
-    if (cached && Date.now() - cached.at < 60_000) return cached.exists;
-    const exists = workspace.requireByHandle(handle)
-      .then((p) => (p instanceof DatabaseProvider ? definitionExists(p, type, name) : undefined), () => undefined);
-    existsCache.set(id, { at: Date.now(), exists });
-    return exists;
-  };
-  // App Designer's "Field REC.FIELD not defined. (2,17)" for a reference the connection does not have (native Validate Syntax).
-  const peoplecodeSetting = <T>(key: string, fallback: T) => vscode.workspace.getConfiguration('peoplesoft').get<T>(`peoplecode.${key}`) ?? fallback;
-  // Settings > PeopleCode Editor: environment checks and unknown-function warnings can each be turned off.
-  const checkEnvironment = () => peoplecodeSetting('checkEnvironment', true);
-  const editorProblems = (v: Validation): Validation => peoplecodeSetting('unknownFunctionWarnings', true)
-    ? v : { ...v, problems: v.problems.filter((p) => p.code !== 'unknown-function') };
-  const referenceProblems = async (handle: string, v: Validation) => {
-    const problems: Validation['problems'] = [];
-    if (!checkEnvironment()) return problems;
-    for (const r of v.fieldReferences ?? []) {
-      const p = await workspace.requireByHandle(handle).catch(() => undefined);
-      if (!(p instanceof DatabaseProvider)) break;
-      const fields = await recordFields(handle, r.record);
-      if (fields?.has(r.field)) continue;
-      problems.push({ offset: r.offset, length: r.record.length + 1 + r.field.length, code: 'field-not-defined', message: `Field ${r.record}.${r.field} not defined. (2,17)` });
-    }
-    // Record.X, Page.X, SQL.X ... that the connection lacks (definitionCheck.ts: a note, or App Designer's 2,68 for Image.X).
-    problems.push(...(await missingDefinitionProblems(v.definitionReferences ?? [], (type, name) => cachedDefinitionExists(handle, type, name))));
-    return problems;
-  };
-  const qualificationsByUri = new Map<string, { version: number; items: Qualification[] }>();
-  const showValidation = async (doc: vscode.TextDocument, handle: string, text: string, version: number, v: Validation) => {
-    const extra = await referenceProblems(handle, v);
-    if (doc.version !== version) return;
-    qualificationsByUri.set(doc.uri.toString(), { version, items: v.qualifications ?? [] });
-    const shown = editorProblems(v);
-    validationDiagnostics.set(doc.uri, peopleCodeDiagnostics(text, { ...shown, problems: [...shown.problems, ...extra].sort((a, b) => a.offset - b.offset) }));
-  };
-  const ownerFieldsFor = async (handle: string, key: DefinitionKey) => {
-    const owner = checkEnvironment() ? ownerRecordOf(key) : undefined;
-    return owner ? [...((await recordFields(handle, owner)) ?? [])] : undefined;
-  };
-  const liveOn = () => languageFeaturesOn() && peoplecodeSetting('validateAsYouType', true);
-  const live = new LiveValidator(
-    new WorkerValidationRunner(path.join(context.extensionPath, 'dist', 'validateWorker.js')),
-    (request, result) => {
-      const doc = vscode.workspace.textDocuments.find((d) => d.uri.toString() === request.uri);
-      if (doc && liveOn()) void showValidation(doc, parseUri(doc.uri).handle, request.text, request.version, result);
-    },
-    (uri, version) => vscode.workspace.textDocuments.some((d) => d.uri.toString() === uri && d.version === version),
-    { delayMs: () => Math.min(5000, Math.max(100, peoplecodeSetting('validationDelay', 500))) });
-  const validateLive = async (doc: vscode.TextDocument) => {
-    if (!liveOn() || doc.uri.scheme !== SCHEME || doc.languageId !== 'psft-peoplecode') return;
-    let parsed: ReturnType<typeof parseUri>;
-    try { parsed = parseUri(doc.uri); } catch { return; }
-    const release = (await releaseFor(parsed.handle)) ?? '8.62';
-    const ownerFields = await ownerFieldsFor(parsed.handle, parsed.key);
-    live.schedule({ uri: doc.uri.toString(), version: doc.version, text: doc.getText(), key: parsed.key, release, ...(ownerFields?.length ? { ownerFields } : {}) });
-  };
-  // Quick fix: write the bare field names as App Designer stores them.
-  context.subscriptions.push(vscode.languages.registerCodeActionsProvider({ language: 'psft-peoplecode' }, {
-    provideCodeActions(document, _range, ctx) {
-      const latest = qualificationsByUri.get(document.uri.toString());
-      if (!latest || latest.version !== document.version || !latest.items.length) return [];
-      if (!ctx.diagnostics.some((d) => d.code === 'qualify')) return [];
-      const action = new vscode.CodeAction(`Qualify ${latest.items.length} field reference${latest.items.length === 1 ? '' : 's'} as Application Designer stores them`, vscode.CodeActionKind.QuickFix);
-      const edit = new vscode.WorkspaceEdit();
-      const normalized = document.getText().replace(/\r\n/g, '\n');
-      for (const q of latest.items) {
-        const a = lineAndColumn(normalized, q.offset), b = lineAndColumn(normalized, q.offset + q.length);
-        edit.replace(document.uri, new vscode.Range(a.line, a.column, b.line, b.column), q.text);
-      }
-      action.edit = edit;
-      action.isPreferred = true;
-      return [action];
-    }
-  }, { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }));
-  context.subscriptions.push(
-    validationDiagnostics,
-    { dispose: () => live.dispose() },
-    vscode.workspace.onDidOpenTextDocument((d) => void validateLive(d)),
-    vscode.workspace.onDidChangeTextDocument((e) => {
-      if (!e.contentChanges.length) return;
-      if (liveOn()) void validateLive(e.document);
-      else validationDiagnostics.delete(e.document.uri);
-    }),
-    vscode.workspace.onDidCloseTextDocument((d) => { live.cancel(d.uri.toString()); validationDiagnostics.delete(d.uri); }),
-    vscode.workspace.onDidChangeConfiguration((e) => {
-      const keys = ['languageServer.enabled', 'validateAsYouType', 'checkEnvironment', 'unknownFunctionWarnings'];
-      if (!keys.some((k) => e.affectsConfiguration(`peoplesoft.peoplecode.${k}`))) return;
-      validationDiagnostics.clear();
-      if (liveOn()) for (const d of vscode.workspace.textDocuments) void validateLive(d);
-    })
-  );
-  for (const d of vscode.workspace.textDocuments) void validateLive(d);
+  const peopleCodeValidation = registerPeopleCodeValidation(context, workspace);
   // Compare With Environment's other side: read-only snapshots, forgotten when their tab closes.
   const compareContent = new CompareContent();
   compareContentForProjects = compareContent;
@@ -485,13 +344,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   registerBuildRequests(context, {
     store: buildRequests, extensionUri: context.extensionUri,
     connections: () => workspace.connections.filter((c) => c.kind !== 'projectFile').map((c) => c.name),
-    mcp: () => ({ running: mcpController.state.status === 'running', writes: !!mcpController.writeHost && mcpController.writeHost.mode() !== 'off' })
+    mcp: () => ({ running: mcpController.state.status === 'running', writes: !!mcpController.writeHost && mcpController.writeHost.mode() !== 'off', url: mcpController.state.url })
   });
-  setManualHistoryObserver((connection, key, write) => {
+  setManualHistoryObserver(async (connection, key, write) => {
     if ([8,9,42,43,44,46,47,48,58].includes(key.type)) return reviewService.captureManual(connection, 'peoplecode', { type: key.type, parts: [...key.parts] }, write);
-    if (key.type === DefinitionType.HtmlDefinition) return reviewService.captureManual(connection, 'html', key.parts[0], write);
-    if (key.type === DefinitionType.StyleSheet) return reviewService.captureManual(connection, 'stylesheet', key.parts[0], write);
-    if (key.type === DefinitionType.SqlDefinition) return reviewService.captureManual(connection, 'sql', key.parts[0], write);
+    if ([DefinitionType.SqlDefinition,DefinitionType.HtmlDefinition,DefinitionType.StyleSheet].includes(key.type)) {
+      const kind=key.type===DefinitionType.SqlDefinition?'sql':key.type===DefinitionType.HtmlDefinition?'html':'stylesheet';
+      let adapter:string=kind;
+      try { const p=await workspace.require(connection);if(p instanceof DatabaseProvider && p.platform==='oracle' && (await p.readEnvironment()).toolsRelease==='8.62') {
+        await p.readTextDefinitionForReview(kind,key.parts[0]);adapter=kind+'-definition';
+      }} catch { /* A manual save still proceeds through its legacy history scope. */ }
+      return reviewService.captureManual(connection,adapter,key.parts[0],write);
+    }
     if (key.type === DefinitionType.Query) return reviewService.captureManual(connection, 'query', [key.parts[0], key.parts[1] ?? ''], write);
     if (key.type === DefinitionType.ProcessDefinition) return reviewService.captureManual(connection, 'process', [...key.parts], write);
     if (key.type === DefinitionType.Page) return reviewService.captureManual(connection, 'page', key.parts[0], write);
@@ -514,12 +378,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     })),
     vscode.commands.registerCommand('psft.changeReview.objectHistory', (node?: unknown) => withError('Object history', async () => {
       const target = await resolveDefinitionForCompare(workspace, node, 'Object History');
-      const scope = target && definitionReviewTarget(target.key);
-      if (!target || !scope) return;
+      const scopes = target ? definitionReviewTargets(target.key) : [];
+      if (!target || !scopes.length) return;
       const sets = await reviewService.store.list();
       for (const set of sets) {
         if (set.environment.connection !== target.connectionId) continue;
-        const object = set.objects.find(c => c.adapter === scope.adapter && canonical(c.key) === canonical(scope.key));
+        const object = set.objects.find(c => scopes.some(scope => c.adapter === scope.adapter && canonical(c.key) === canonical(scope.key)));
         if (object) { await reviewWorkspace!.show(set.id, 'all', object.id); return; }
       }
       void vscode.window.showInformationMessage(`No retained Change Review history for ${displayName(target.key)} on this connection.`);
@@ -580,6 +444,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   registerPeopleCodeDefinition(context, workspace);
   registerPeopleCodeReferences(context, workspace);
   registerPeopleCodeSignatureHelp(context);
+  registerPeopleCodeInlineCalls(context);
 
   const connections = new ConnectionsView(workspace);
   const browser = new BrowserView(workspace);
@@ -593,9 +458,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   registerToolsViews(context);
   registerCustomizationStrategy(context, workspace);
   registerIntelligenceCommands(context);
-  installCustomizationGuard(context, workspace);
+  const writeApprovals = new WriteApprovalWorkspace();
+  context.subscriptions.push(writeApprovals);
+  installCustomizationGuard(context, workspace, writeApprovals);
 
-  const refreshAll = () => { connections.refresh(); browser.refresh(); projects.refresh(); };
+  const refreshAll = () => { connections.refresh(); browser.refresh(); projects.refresh(); ApplicationPackagePanel.refreshAll(); };
 
   // MCP writes (mcp/writeTools.ts): the setting, the user's approval, and the editors' state.
   mcpController.writeHost = {
@@ -604,7 +471,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       const c = vscode.workspace.getConfiguration('peoplesoft.projects');
       return { menus: c.get('includeMenus', true), portalRegistry: c.get('includePortalRegistry', true), security: c.get('includeSecurity', true) };
     },
-    confirm: async ({ title, detail }) => (await vscode.window.showWarningMessage(title, { modal: true, detail }, 'Allow')) === 'Allow',
+    confirm: async ({ title, detail, signal }) => (await writeApprovals.prompt({ title, detail, choices: ['Allow'] }, signal ?? new AbortController().signal)) === 'Allow',
     hasUnsavedEditor: (connectionId, key) => {
       if (key.type === DefinitionType.Query) return QueryDesignerPanel.hasUnsaved(connectionId, key.parts[0], key.parts[1]);
       if (key.type === DefinitionType.ProcessDefinition && ProcessEditorProvider.hasUnsaved(connectionId, key)) return true;
@@ -712,15 +579,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           return;
         }
         const doc = editor.document;
-        const { handle, key } = parseUri(doc.uri);
-        const provider = await workspace.requireByHandle(handle);
-        // The connection's PeopleTools release picks the compiler profile; a project export has none, so the newest is used.
-        const release = (await provider.readEnvironment?.())?.toolsRelease;
-        const text = doc.getText();
-        const ownerFields = await ownerFieldsFor(handle, key);
-        const v = validatePeopleCode(text, key, release ?? '8.62', ownerFields?.length ? { ownerFields } : {});
-        await showValidation(doc, handle, text, doc.version, v);
-        v.problems = [...editorProblems(v).problems, ...(await referenceProblems(handle, v))];
+        const { key } = parseUri(doc.uri);
+        await workspace.requireByHandle(parseUri(doc.uri).handle);
+        const result = await peopleCodeValidation.validateDocument(doc);
+        if (!result) return;
+        const { validation: v, release } = result;
         const where = `${v.profile}${release ? '' : ', no PeopleTools release known for this source'}`;
         if (v.problems.some((p) => p.severity !== 'info')) vscode.window.showWarningMessage(`${displayName(key)} does not compile with PeopleSoft Studio's compiler (${where}): see Problems.`);
         else vscode.window.showInformationMessage(`${displayName(key)} compiles with PeopleSoft Studio's compiler (${where}).`);
@@ -971,15 +834,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         }, null, 2);
         await vscode.window.showTextDocument(await vscode.workspace.openTextDocument({ content, language: 'json' }), { preview: false });
         if (plan.blockers.length) return;
-        if (await vscode.window.showInformationMessage(`Apply migration ${pkg.project} to ${target.displayName}?`, { modal: true }, 'Apply Migration') !== 'Apply Migration') return;
-        const receipt = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Importing ${pkg.project}` },
-          () => applyMigrationImport(pkg, plan, backend));
-        const receiptFile = await vscode.workspace.openTextDocument({ language: 'json',
-          content: JSON.stringify({ project: pkg.project, target: target.displayName, packageChecksum: pkg.checksum, previewHash: migrationHash(plan), ...receipt }, null, 2) });
-        await vscode.window.showTextDocument(receiptFile, { preview: false });
-        projects.refresh();
-        if (receipt.error) vscode.window.showErrorMessage(`Migration stopped after ${receipt.completed.length} verified definitions: ${receipt.error}`);
-        else { await projects.openProject(target.id, pkg.project); vscode.window.showInformationMessage(`Imported ${pkg.project}: ${receipt.completed.length} definitions saved and verified.`); }
+        const proposal = await stageMigrationImport(reviewService, target.id, pkg, plan, backend, target);
+        if (!proposal) { vscode.window.showInformationMessage('The target already matches this migration package.'); return; }
+        await reviewService.validate(proposal.id);
+        await reviewWorkspace!.show(proposal.id);
+        vscode.window.showInformationMessage(`Migration staged for ${target.displayName}: review and approve the exact target changes in Change Review.`);
       });
     }),
 
@@ -1202,6 +1061,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           }
 
           const provider = await workspace.require(connectionId);
+          if (key.type === DefinitionType.ApplicationPackage) {
+            await showApplicationPackage(workspace, provider, key);
+            return;
+          }
           if (key.type === DefinitionType.Query && provider instanceof DatabaseProvider) {
             await showQueryDesigner(workspace, provider, key);
             return;
@@ -1310,6 +1173,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         await viewComponentPeopleCode(provider, await provider.readComponentDefinition(t.key));
       });
     }),
+    ...(['insertSubpackage', 'insertClass'] as const).map(action => vscode.commands.registerCommand(`psft.package.${action}`, (target?: unknown) =>
+      withError('Application Package', async () => {
+        const selected = await resolveDefinitionForCompare(workspace, target, 'Application Package');
+        if (!selected || selected.key.type !== DefinitionType.ApplicationPackage) return;
+        const provider = await workspace.require(selected.connectionId);
+        if (!(provider instanceof DatabaseProvider)) throw new Error('Project exports are read-only.');
+        if (action === 'insertClass') {
+          const { root, path } = packageAddress(selected.key);
+          await newClass(workspace, provider, [root, ...path].join(':'));
+        } else {
+          const { root } = packageAddress(selected.key);
+          const doc = await provider.readApplicationPackage(root);
+          if (!doc) throw new Error(`Application Package ${root} was not found.`);
+          await insertSubpackage(workspace, provider, selected.key, doc.version!);
+        }
+      }))),
+
     vscode.commands.registerCommand('psft.openDefinitionDialog', () => {
       if (workspace.activeProviders.every((p) => !p.isConnected)) {
         vscode.window.showWarningMessage(
@@ -2041,7 +1921,7 @@ async function newDefinition(workspace: Workspace): Promise<void> {
     { label: '$(window) Component', description: 'a search record and its first page; created, then opened', create: DefinitionType.Component },
     { label: '$(layout) Page', description: 'opens empty (Fluid Page off); the first save creates it, once it has a control', create: DefinitionType.Page },
     { label: '$(layout-panel) Page Fluid', description: 'from a Layout Page you choose (Fluid Page on); created, then opened', create: DefinitionType.Page, fluid: true },
-    { label: '$(package) Application Package', description: 'created empty; then add classes', create: DefinitionType.ApplicationPackage },
+    { label: '$(package) Application Package', description: 'opens its tree; insert subpackages and classes', create: DefinitionType.ApplicationPackage },
     { label: '$(symbol-class) Application Class', description: 'in a package or subpackage; opens its declaration, the first save creates it', create: DefinitionType.ApplicationClassPeopleCode },
     { label: '$(code) HTML Definition', description: 'opens empty; the first save creates it', create: DefinitionType.HtmlDefinition },
     { label: '$(symbol-color) Style Sheet', description: 'freeform; opens empty, the first save creates it', create: DefinitionType.StyleSheet },
@@ -2145,8 +2025,48 @@ async function newPackage(workspace: Workspace): Promise<void> {
     return;
   }
   void vscode.commands.executeCommand('psft.refresh');
-  const add = await vscode.window.showInformationMessage(`Created Application Package ${name} on ${provider.displayName}.`, 'Add a Class');
-  if (add) await newClass(workspace, provider, name);
+  await vscode.commands.executeCommand('psft.openDefinition', provider.id, packageKey(name));
+  vscode.window.showInformationMessage(`Created Application Package ${name}. Insert subpackages and classes in its tree.`);
+}
+
+function packageWritable(workspace: Workspace, provider: DefinitionProvider, root: string): provider is DatabaseProvider {
+  return provider instanceof DatabaseProvider && provider.isConnected && workspace.isWritable(provider.id) &&
+    Boolean(workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim()) && !writeScopeRefusal(root);
+}
+
+async function showApplicationPackage(workspace: Workspace, provider: DefinitionProvider, key: DefinitionKey): Promise<void> {
+  const { root } = packageAddress(key);
+  if (!provider.readApplicationPackage) throw new Error('Application Package browsing is unavailable on this connection.');
+  await ApplicationPackagePanel.show({
+    connection: provider,
+    load: async () => (await workspace.require(provider.id)).readApplicationPackage?.(root),
+    writable: () => packageWritable(workspace, workspace.getProvider(provider.id) ?? provider, root),
+    insertPackage: async (parent, version) => {
+      const current = await workspace.require(provider.id);
+      if (!(current instanceof DatabaseProvider)) throw new Error('Project exports are read-only.');
+      await insertSubpackage(workspace, current, parent, version);
+    },
+    insertClass: async parent => {
+      const current = await workspace.require(provider.id);
+      if (!(current instanceof DatabaseProvider)) throw new Error('Project exports are read-only.');
+      const { root, path } = packageAddress(parent);
+      await newClass(workspace, current, [root, ...path].join(':'));
+    },
+    openClass: async classKey => { await vscode.commands.executeCommand('psft.openDefinition', provider.id, classKey); }
+  }, root);
+}
+
+async function insertSubpackage(workspace: Workspace, provider: DatabaseProvider, parent: DefinitionKey, openedVersion: number): Promise<void> {
+  const { root, path } = packageAddress(parent);
+  if (!packageWritable(workspace, provider, root)) throw new Error('Use a Writable connection with an Operator ID and a package in the write scope.');
+  if (path.length >= 2) throw new Error('Packages support at most two subpackage levels.');
+  const name = (await vscode.window.showInputBox({ title: `Insert Subpackage in ${[root, ...path].join(':')}`, prompt: 'Subpackage name',
+    validateInput: v => /^[A-Za-z][A-Za-z0-9_]{0,29}$/.test(v.trim()) ? undefined : 'A letter, then letters, digits or _; at most 30 characters.' }))?.trim();
+  if (!name) return;
+  if (!packageWritable(workspace, provider, root)) throw new Error('This package is no longer writable.');
+  await provider.createSubpackage({ root, path: [...path, name], openedVersion,
+    operatorId: workspace.configFor(provider.id)!.peoplesoftOperatorId!.trim() });
+  await vscode.commands.executeCommand('psft.refresh');
 }
 
 /**
@@ -2158,7 +2078,7 @@ async function newClass(workspace: Workspace, chosen?: DatabaseProvider, package
   const provider = chosen ?? await pickWritableConnection(workspace, 'New Application Class');
   if (!provider) return;
   // ROOT, ROOT:SUB or ROOT:SUB:SUB2 -- subpackages that do not exist yet are created with the class (c05).
-  const path = (await vscode.window.showInputBox({
+  const path = packageRoot ?? (await vscode.window.showInputBox({
     title: `New Application Class on ${provider.displayName}`, value: packageRoot ?? writeNamePrefix(),
     prompt: 'Package: ROOT, ROOT:SUB or ROOT:SUB:SUB2 (new subpackages are created with the class)',
     validateInput: (v) => {
@@ -2173,6 +2093,7 @@ async function newClass(workspace: Workspace, chosen?: DatabaseProvider, package
   if (!path) return;
   const [rootName, ...subs] = path.split(':');
   const root = rootName.toUpperCase();
+  if (!packageWritable(workspace, provider, root)) throw new Error('Use a Writable connection with an Operator ID and a package in the write scope.');
   if (!(await provider.packageExists(root))) {
     vscode.window.showWarningMessage(`There is no Application Package ${root}. Create it first (New Definition > Application Package).`);
     return;
@@ -2184,13 +2105,14 @@ async function newClass(workspace: Workspace, chosen?: DatabaseProvider, package
   if (!className) return;
   const key = makeKey(DefinitionType.ApplicationClassPeopleCode, root, ...subs, className, 'OnExecute');
   const qualified = [root, ...subs, className].join(':');
-  if (await provider.hasPeopleCode(key)) {
+  const exists = await provider.hasPeopleCode(key);
+  if (exists) {
     vscode.window.showWarningMessage(`${qualified} already exists; opening it.`);
   } else {
     PeopleSoftFileSystem.newClasses.add(toUri(provider.id, key).toString());
   }
   await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(toUri(provider.id, key)), { preview: false });
-  vscode.window.showInformationMessage(`${qualified} is new: write its members, then save to create it.`);
+  if (!exists) vscode.window.showInformationMessage(`${qualified} is new: write its members, then save to create it.`);
 }
 
 /**

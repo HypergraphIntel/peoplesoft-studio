@@ -42,7 +42,7 @@ export const MIN_PROJECT_ITEM_SLOTS = 4;
 
 /** The definition types that can be inserted into a project. */
 export const INSERTABLE_TYPES: ReadonlySet<DefinitionType> = new Set([
-  DefinitionType.Record, DefinitionType.Field, DefinitionType.Page, DefinitionType.Menu,
+  DefinitionType.Record, DefinitionType.Field, DefinitionType.Page, DefinitionType.Menu, DefinitionType.Query,
   DefinitionType.Component, DefinitionType.RecordPeopleCode, DefinitionType.AppEngineProgram, DefinitionType.AppEngineSection, DefinitionType.AppEnginePeopleCode,
   DefinitionType.HtmlDefinition, DefinitionType.SqlDefinition, DefinitionType.ApplicationPackage,
   DefinitionType.ApplicationClassPeopleCode, DefinitionType.StyleSheet, DefinitionType.MessageChannel, DefinitionType.UrlDefinition,
@@ -66,6 +66,11 @@ function name(key: DefinitionKey): string {
 }
 
 const LAYOUTS: Readonly<Partial<Record<DefinitionType, (key: DefinitionKey) => ProjectItem>>> = {
+  // HRDMO: all 310 matched Query members use IDs 30/25; 309 have the ordinary insertion defaults (Oct 20 native evidence).
+  [DefinitionType.Query]: key => {
+    if (key.parts.length > 2 || (key.parts[1]??'').length > 30) throw new ProjectSaveRefusedError('A Query project key is name and optional private owner.');
+    return {objectType:10,objectIds:[30,25],objectValues:[name(key),(key.parts[1]??'').trim()||' ']};
+  },
   // HRDMO project URL members: OBJECTTYPE 56 / OBJECTID 103 (docs/URLS_NODES.md).
   [DefinitionType.UrlDefinition]: single(56, 103),
   [DefinitionType.Record]: single(0, 1),
@@ -192,7 +197,7 @@ export function projectItemFor(key: DefinitionKey): ProjectItem {
     throw new ProjectSaveRefusedError(`${typeLabel(key.type)} cannot be inserted into a project yet.`);
   }
   const item = layout(key);
-  if (item.objectValues.some((v) => v.trim() === '')) {
+  if (item.objectValues.some((v,i) => v.trim() === '' && !(key.type===DefinitionType.Query && i===1 && v===' '))) {
     throw new ProjectSaveRefusedError(`${displayName(key)} has a blank key part.`);
   }
   return item;

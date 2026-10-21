@@ -64,7 +64,7 @@ async function readCounters(c: Connection, forUpdate: boolean): Promise<Counters
   return { pdm: get(v, 'PDM'), xtm: get(v, 'XTM'), sys: get(v, 'SYS'), lockPdm: get(l, 'PDM'), lockXtm: get(l, 'XTM') };
 }
 
-function checkItem(item: TranslateItem): void {
+export function checkTranslateItem(item: TranslateItem): void {
   if (!/^\S{1,4}$/.test(item.value)) throw new TranslateSaveRefusedError('A translate value is 1 to 4 characters.');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(item.effectiveDate)) throw new TranslateSaveRefusedError('The effective date is YYYY-MM-DD.');
   if (item.status !== 'A' && item.status !== 'I') throw new TranslateSaveRefusedError('The status is A (active) or I (inactive).');
@@ -78,7 +78,7 @@ export async function saveTranslate(c: Connection, field: string, change: Transl
     if (operatorError) throw new TranslateSaveRefusedError(operatorError);
     const scope = writeScopeRefusal(field);
     if (scope) throw new TranslateSaveRefusedError(scope);
-    if (change.kind !== 'delete') checkItem(change.item);
+    if (change.kind !== 'delete') checkTranslateItem(change.item);
     const [{ N: fieldExists }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSDBFIELD WHERE FIELDNAME = :f`, { f: field });
     if (Number(fieldExists) === 0) throw new TranslateSaveRefusedError(`There is no field named ${field}.`);
 

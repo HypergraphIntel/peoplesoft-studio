@@ -2,11 +2,13 @@ import type { ObjectDiffProvider } from './semanticDiff.js';
 import { randomUUID } from 'node:crypto';
 import { ReviewStore } from './store.js';
 import { buildObjectTimeline, type ObjectTimeline } from './timeline.js';
-import { approvalHash, planHash, canonical, createSet, differences, hash, now, ordered, transition, type Change, type ChangeSet, type Environment, type Json, type Snapshot } from './model.js';
+import { approvalHash, planHash, reviewStateToken, reviewEligibleIds, canonical, createSet, differences, hash, now, ordered, transition, type Change, type ChangeSet, type Environment, type Json, type Snapshot } from './model.js';
 export interface ProposedDependency { id: string; adapter: string; key: Json; after: Json }
 export interface ReviewValidationContext { dependencies: readonly ProposedDependency[]; phase: 'proposal' | 'live' }
 export interface ReviewAdapter {
     id: string;
+    /** Aliased adapters may preserve different histories for one physical definition. */
+    scope?(key: Json): string;
     read(environment: Environment, key: Json): Promise<Snapshot>;
     validate(environment: Environment, key: Json, before: Json, after: Json, context?: ReviewValidationContext): Promise<string[]>;
     authorize(environment: Environment, key: Json, operation: Change['operation']): Promise<void>;
@@ -52,12 +54,21 @@ export class ReviewService {
             throw new Error('Target environment changed. Restage against the verified target.');
     }
     private async checkPrerequisites(set: ChangeSet): Promise<void> {
+        const scopes = new Set<string>();
+        for (const c of [...set.objects,...(set.continuation?.prerequisites??[])]) {
+            const scope=this.adapter(c.adapter).scope?.(c.key);
+            if(scope&&scopes.has(scope))throw new Error('This native definition is already reviewed through another object or prerequisite scope.');
+            if(scope)scopes.add(scope);
+        }
+        await this.checkReversalSources(set);
         const continuation = set.continuation;
         if (!continuation) return;
         const source = await this.store.get(continuation.changeSetId);
         const parents = new Map([[source.id, source]]);
         if (source.status !== 'PARTIALLY_APPLIED' || source.revision !== continuation.sourceRevision || canonical(source.environment) !== canonical(set.environment))
             throw new Error('Continuation source changed; remaining work must be reviewed against its original environment and revision.');
+        if (source.reverses !== set.reverses || source.reverses && canonical(await this.reversalSourceBindings(source)) !== canonical(set.reversalSources))
+            throw new Error('Continuation reversal lineage changed; the complete original undo must be retained.');
         const expected = [...(source.continuation?.prerequisites ?? []), ...source.objects.filter(c => c.application === 'VERIFIED').map(c => ({
             changeSetId: source.id, objectId: c.id, adapter: c.adapter, key: c.key, snapshot: c.verified ?? '', token: c.verifiedToken ?? ''
         }))];
@@ -83,6 +94,65 @@ export class ReviewService {
             if (hash(live.value) !== p.snapshot || live.token !== p.token)
                 throw new Error('Verified prerequisite changed in the database; continuation blocked.');
         }
+    }
+    private async checkReversalSources(set: ChangeSet): Promise<void> {
+        if (!set.reversalSources) return;
+        // A resumed inverse owns only untouched writers. Its already verified inverse
+        // steps remain pinned prerequisites, and together must cover the whole undo.
+        const proposals = [...set.objects];
+        for (const p of set.continuation?.prerequisites ?? []) {
+            const parent = await this.store.get(p.changeSetId), c = parent.objects.find(c => c.id === p.objectId);
+            if (!c || parent.reverses !== set.reverses || c.application !== 'VERIFIED' || c.verified !== p.snapshot || c.verifiedToken !== p.token || c.adapter !== p.adapter || canonical(c.key) !== canonical(p.key))
+                throw new Error('Completed reversal prerequisite history changed.');
+            proposals.push(c);
+        }
+        if (!set.reversalSources.some(s => s.changeSetId === set.reverses) || proposals.length !== set.reversalSources.reduce((n,s) => n + s.objects.length, 0)
+            || new Set(proposals.map(c => hash([c.adapter,c.key]))).size !== proposals.length) throw new Error('Combined reversal object coverage changed.');
+        for (const source of set.reversalSources) {
+            const parent = await this.store.get(source.changeSetId);
+            const markedByThis = parent.status === 'REVERTED' && parent.journal.some(e => e.action === 'REVERSED_BY_VERIFIED_CHANGE_SET' && e.detail === set.id);
+            if ((!['APPLIED', 'PARTIALLY_APPLIED'].includes(parent.status) && !markedByThis) || parent.revision !== source.revision || canonical(parent.environment) !== canonical(set.environment)) throw new Error('Combined reversal source revision changed.');
+            const verified = parent.objects.filter(c => c.application === 'VERIFIED');
+            if (canonical(verified.map(c => c.id).sort()) !== canonical(source.objects.map(c => c.objectId).sort())) throw new Error('Combined reversal source coverage changed.');
+            for (const object of source.objects) {
+                const c = verified.find(c => c.id === object.objectId);
+                if (!c || c.verified !== object.snapshot || c.verifiedToken !== object.token) throw new Error('Combined reversal source checkpoint changed.');
+                const proposal = proposals.find(o => o.adapter === c.adapter && canonical(o.key) === canonical(c.key));
+                if (!proposal || proposal.before !== object.snapshot || proposal.baselineToken !== object.token || proposal.after !== c.before) throw new Error('Combined reversal proposal no longer matches its source checkpoint.');
+            }
+        }
+    }
+    private async reversalSourceBindings(set: ChangeSet): Promise<NonNullable<ChangeSet['reversalSources']>> {
+        if (set.reversalSources) return structuredClone(set.reversalSources);
+        // Retain compatibility with already persisted schema-1 inverse proposals.
+        // Their complete coverage is checked against the source, not inferred from
+        // whichever steps happened to complete before interruption.
+        if (!set.reverses) throw new Error('Reversal source is required.');
+        const source = await this.store.get(set.reverses);
+        return [{ changeSetId: source.id, revision: source.revision, objects: source.objects.filter(c => c.application === 'VERIFIED').map(c => {
+            if (!c.verified || c.verifiedToken === undefined) throw new Error('Reversal source lacks a verified checkpoint.');
+            return { objectId:c.id,snapshot:c.verified,token:c.verifiedToken };
+        }) }];
+    }
+    private async reversalObjects(original: ChangeSet): Promise<{ source: ChangeSet; object: Change }[]> {
+        const result: { source: ChangeSet; object: Change }[] = [];
+        if (original.continuation) {
+            await this.checkPrerequisites(original);
+            for (const prerequisite of original.continuation.prerequisites) {
+                const source = await this.store.get(prerequisite.changeSetId), object = source.objects.find(c => c.id === prerequisite.objectId);
+                if (!object || object.application !== 'VERIFIED') throw new Error('Combined reversal prerequisite is no longer verified.');
+                result.push({ source, object });
+            }
+        }
+        result.push(...original.objects.filter(c => c.application === 'VERIFIED').map(object => ({ source: original, object })));
+        const identities = result.map(r => hash([r.object.adapter, r.object.key]));
+        if (new Set(identities).size !== identities.length) throw new Error('Combined reversal contains overlapping object scopes.');
+        for (const source of new Map(result.map(r => [r.source.id, r.source])).values()) {
+            for (const c of source.objects.filter(c => c.review === 'APPROVED')) {
+                if (!identities.includes(hash([c.adapter, c.key]))) throw new Error('Continuation chain is incomplete; all approved work must be reconciled before combined reversal.');
+            }
+        }
+        return result;
     }
     private async save(set: ChangeSet): Promise<ChangeSet> { set.updated = now(); await this.store.put(set); this.host.changed(); return set; }
     async create(title: string, connection: string, session?: string, requestKey?: string, plan?: string): Promise<ChangeSet> {
@@ -173,6 +243,10 @@ export class ReviewService {
                 throw new Error('Object not found.');
             if (existing && (existing.adapter !== adapterId || hash(existing.key) !== hash(key)))
                 throw new Error('An object revision cannot change identity.');
+            const scope = adapter.scope?.(key);
+            if (scope && (set.objects.some(c => c !== existing && this.adapter(c.adapter).scope?.(c.key) === scope) ||
+                set.continuation?.prerequisites.some(p => this.adapter(p.adapter).scope?.(p.key) === scope)))
+                throw new Error('This native definition is already reviewed through another object or prerequisite scope. Revise the existing object instead.');
             const live = await adapter.read(set.environment, key);
             if (expectedBaselineToken !== undefined && live.token !== expectedBaselineToken)
                 throw new Error('Stale supplied baseline token.');
@@ -270,40 +344,58 @@ export class ReviewService {
             return this.save(set);
         });
     }
+    private checkReviewState(set: ChangeSet, expectedRevision?: number, expectedState?: string): void {
+        if (expectedRevision !== undefined && set.revision !== expectedRevision || expectedState !== undefined && reviewStateToken(set) !== expectedState)
+            throw new Error('Review page is stale; reopen the current revision.');
+    }
     /** Trusted UI only. No MCP tool exposes this method. */
-    async review(id: string, objectIds: string[], decision: 'APPROVED' | 'REJECTED', expectedRevision: number, destructive = false): Promise<ChangeSet> {
+    async review(id: string, objectIds: string[], decision: 'APPROVED' | 'REJECTED', expectedRevision: number, destructive = false, expectedState?: string): Promise<ChangeSet> {
+        return this.store.exclusive(async () => this.reviewLocked(await this.store.get(id), objectIds, decision, expectedRevision, destructive, expectedState));
+    }
+    private async reviewLocked(set: ChangeSet, objectIds: string[], decision: 'APPROVED' | 'REJECTED', expectedRevision: number, destructive: boolean, expectedState?: string): Promise<ChangeSet> {
+        this.checkReviewState(set, expectedRevision, expectedState);
+        if (!['READY_FOR_REVIEW', 'APPROVED'].includes(set.status))
+            throw new Error('Validate before review.');
+        if (!objectIds.length || objectIds.some(o => !set.objects.some(c => c.id === o)))
+            throw new Error('Invalid review selection.');
+        for (const c of set.objects.filter(c => objectIds.includes(c.id))) {
+            if (decision === 'APPROVED' && c.operation === 'DELETE' && !destructive)
+                throw new Error('Distinct destructive-operation approval is required.');
+            c.review = decision;
+            if (decision === 'APPROVED')
+                c.approvedHash = approvalHash(set, c);
+            else
+                delete c.approvedHash;
+        }
+        // Rejected dependencies revoke dependent approvals transitively.
+        let changed = true;
+        while (changed) {
+            changed = false;
+            for (const c of set.objects)
+                if (c.review === 'APPROVED' && c.dependencies.some(d => set.objects.find(x => x.id === d)?.review === 'REJECTED')) {
+                    c.review = 'REJECTED';
+                    delete c.approvedHash;
+                    changed = true;
+                }
+        }
+        ordered(set);
+        set.status = set.objects.some(c => c.review === 'APPROVED') ? 'APPROVED' : 'READY_FOR_REVIEW';
+        set.journal.push({ at: now(), action: decision, detail: objectIds.join(',') });
+        return this.save(set);
+    }
+    /** One trusted developer action. Durable approval and normal application share one store lock. */
+    async approveAndApply(id: string, objectIds: string[], expectedRevision: number, expectedState: string, destructive = false): Promise<ChangeSet> {
         return this.store.exclusive(async () => {
             const set = await this.store.get(id);
-            if (set.revision !== expectedRevision)
-                throw new Error('Review page is stale; reopen the current revision.');
-            if (!['READY_FOR_REVIEW', 'APPROVED'].includes(set.status))
-                throw new Error('Validate before review.');
-            if (!objectIds.length || objectIds.some(o => !set.objects.some(c => c.id === o)))
-                throw new Error('Invalid review selection.');
-            for (const c of set.objects.filter(c => objectIds.includes(c.id))) {
-                if (decision === 'APPROVED' && c.operation === 'DELETE' && !destructive)
-                    throw new Error('Distinct destructive-operation approval is required.');
-                c.review = decision;
-                if (decision === 'APPROVED')
-                    c.approvedHash = approvalHash(set, c);
-                else
-                    delete c.approvedHash;
-            }
-            // Rejected dependencies revoke dependent approvals transitively.
-            let changed = true;
-            while (changed) {
-                changed = false;
-                for (const c of set.objects)
-                    if (c.review === 'APPROVED' && c.dependencies.some(d => set.objects.find(x => x.id === d)?.review === 'REJECTED')) {
-                        c.review = 'REJECTED';
-                        delete c.approvedHash;
-                        changed = true;
-                    }
-            }
-            ordered(set);
-            set.status = set.objects.some(c => c.review === 'APPROVED') ? 'APPROVED' : 'READY_FOR_REVIEW';
-            set.journal.push({ at: now(), action: decision, detail: objectIds.join(',') });
-            return this.save(set);
+            if (typeof expectedState !== 'string' || !expectedState) throw new Error('A current rendered review is required.');
+            this.checkReviewState(set, expectedRevision, expectedState);
+            this.checkPlan(set);
+            const eligible = reviewEligibleIds(set);
+            if (!eligible.length || canonical(objectIds) !== canonical(eligible)) throw new Error('Approve and apply must name exactly the displayed eligible objects.');
+            const approved = await this.reviewLocked(set, objectIds, 'APPROVED', expectedRevision, destructive, expectedState);
+            approved.journal.push({ at: now(), action: 'APPROVE_AND_APPLY_REQUESTED', detail: expectedState });
+            await this.save(approved);
+            return this.applyLocked(approved);
         });
     }
     async cancel(id: string): Promise<void> {
@@ -322,93 +414,109 @@ export class ReviewService {
         });
     }
     /** Trusted UI apply; all preflight checks repeat under the store lock. */
-    async apply(id: string, stopAfterFirst = false): Promise<ChangeSet> {
+    async apply(id: string, stopAfterFirst = false, expectedRevision?: number, expectedState?: string): Promise<ChangeSet> {
         return this.store.exclusive(async () => {
             const set = await this.store.get(id);
-            if (set.status !== 'APPROVED')
-                throw new Error('An approved Change Set is required.');
-            const selected = ordered(set);
-            if (!selected.length)
-                throw new Error('Nothing approved.');
-            if (stopAfterFirst && set.reverses) throw new Error('Partial reversal application requires a combined recovery plan.');
-            const abort = new AbortController();
-            this.running.set(id, abort);
-            let writing = false;
-            try {
-                this.checkPlan(set);
+            this.checkReviewState(set, expectedRevision, expectedState);
+            return this.applyLocked(set, stopAfterFirst);
+        });
+    }
+    private async applyLocked(set: ChangeSet, stopAfterFirst = false): Promise<ChangeSet> {
+        if (set.status !== 'APPROVED')
+            throw new Error('An approved Change Set is required.');
+        const selected = ordered(set);
+        if (!selected.length)
+            throw new Error('Nothing approved.');
+        if (set.reverses && selected.length !== set.objects.length) throw new Error('Approve every object in this reversal before applying.');
+        const abort = new AbortController();
+        this.running.set(set.id, abort);
+        let writing = false;
+        try {
+            this.checkPlan(set);
+            await this.environment(set);
+            await this.checkPrerequisites(set);
+            const checkpoint: NonNullable<ChangeSet['checkpoint']> = { at: now(), objects: [] };
+            for (const c of selected) {
+                if (c.approvedHash !== approvalHash(set, c))
+                    throw new Error('Approval revision mismatch.');
+                const a = this.adapter(c.adapter), live = await a.read(set.environment, c.key);
+                if (hash(live.value) !== c.before || live.token !== c.baselineToken)
+                    throw new Error('Live drift before application: ' + c.id);
+                const errors = await a.validate(set.environment, c.key, live.value, await this.store.readBlob(c.after), await this.dependencyContext(set, c.dependencies));
+                if (errors.length)
+                    throw new Error(errors.join('\n'));
+                if (a.authorizationState && await a.authorizationState(set.environment, c.key) !== c.authorizationStamp)
+                    throw new Error('Ownership, operator or policy changed after review. Revalidate and review again.');
+                await a.authorize(set.environment, c.key, c.operation);
+                checkpoint.objects.push({ id: c.id, snapshot: await this.store.blob(live.value), token: live.token });
+            }
+            set.checkpoint = checkpoint;
+            transition(set, 'APPLYING');
+            writing = true;
+            await this.save(set);
+            const createdThisRun = new Set<string>();
+            for (const c of selected) {
+                abort.signal.throwIfAborted();
                 await this.environment(set);
                 await this.checkPrerequisites(set);
-                const checkpoint: NonNullable<ChangeSet['checkpoint']> = { at: now(), objects: [] };
-                for (const c of selected) {
-                    if (c.approvedHash !== approvalHash(set, c))
-                        throw new Error('Approval revision mismatch.');
-                    const a = this.adapter(c.adapter), live = await a.read(set.environment, c.key);
-                    if (hash(live.value) !== c.before || live.token !== c.baselineToken)
-                        throw new Error('Live drift before application: ' + c.id);
-                    const errors = await a.validate(set.environment, c.key, live.value, await this.store.readBlob(c.after), await this.dependencyContext(set, c.dependencies));
-                    if (errors.length)
-                        throw new Error(errors.join('\n'));
-                    if (a.authorizationState && await a.authorizationState(set.environment, c.key) !== c.authorizationStamp)
-                        throw new Error('Ownership, operator or policy changed after review. Revalidate and review again.');
-                    await a.authorize(set.environment, c.key, c.operation);
-                    checkpoint.objects.push({ id: c.id, snapshot: await this.store.blob(live.value), token: live.token });
-                }
-                set.checkpoint = checkpoint;
-                transition(set, 'APPLYING');
-                writing = true;
+                const a = this.adapter(c.adapter), live = await a.read(set.environment, c.key);
+                if (hash(live.value) !== c.before || live.token !== c.baselineToken)
+                    throw new Error('Concurrent change before writer: ' + c.id);
+                await this.verifyAppliedDependencies(set, c);
+                const errors = await a.validate(set.environment, c.key, live.value, await this.store.readBlob(c.after), { phase: 'live', dependencies: [] });
+                if (errors.length) throw new Error(errors.join('\n'));
+                await this.verifyAppliedDependencies(set, c);
+                await a.authorize(set.environment, c.key, c.operation);
+                c.application = 'APPLYING';
+                set.journal.push({ at: now(), action: 'WRITE_STARTED', object: c.id });
                 await this.save(set);
-                for (const c of selected) {
-                    abort.signal.throwIfAborted();
-                    await this.environment(set);
-                    await this.checkPrerequisites(set);
-                    const a = this.adapter(c.adapter), live = await a.read(set.environment, c.key);
-                    if (hash(live.value) !== c.before || live.token !== c.baselineToken)
-                        throw new Error('Concurrent change before writer: ' + c.id);
-                    await this.verifyAppliedDependencies(set, c);
-                    const errors = await a.validate(set.environment, c.key, live.value, await this.store.readBlob(c.after), { phase: 'live', dependencies: [] });
-                    if (errors.length) throw new Error(errors.join('\n'));
-                    await this.verifyAppliedDependencies(set, c);
-                    await a.authorize(set.environment, c.key, c.operation);
-                    c.application = 'APPLYING';
-                    set.journal.push({ at: now(), action: 'WRITE_STARTED', object: c.id });
-                    await this.save(set);
-                    if (a.authorizationState && await a.authorizationState(set.environment, c.key) !== c.authorizationStamp)
-                        throw new Error('Authorization context changed before the writer.');
-                    await a.write(set.environment, c.key, await this.store.readBlob(c.after), { ...live, ...(c.authorizationStamp ? { authorization: c.authorizationStamp } : {}) });
-                    const persisted = await a.read(set.environment, c.key);
-                    if (hash(persisted.value) !== c.after)
-                        throw new Error('Post-write verification differs from reviewed revision: ' + c.id);
-                    c.application = 'VERIFIED';
-                    c.verified = await this.store.blob(persisted.value);
-                    c.verifiedToken = persisted.token;
-                    set.journal.push({ at: now(), action: 'WRITE_VERIFIED', object: c.id });
-                    await this.save(set);
-                    if (stopAfterFirst && selected.length > 1) {
-                        await this.checkPrerequisites(set);
-                        transition(set, 'PARTIALLY_APPLIED');
-                        set.journal.push({ at: now(), action: 'PAUSED_BETWEEN_WRITERS', detail: 'Developer requested one verified object; untouched approved work needs a fresh remaining-work proposal.' });
-                        return await this.save(set);
+                let stamp = c.authorizationStamp;
+                if (a.authorizationState) {
+                    const current = await a.authorizationState(set.environment, c.key);
+                    if (current !== stamp) {
+                        // A creation judged by its owner (Record PeopleCode under a new record) changes ownership evidence once
+                        // a dependency this run created exists. That follows from the approved set itself; the live gate passed above.
+                        const ownerCreatedHere = c.operation === 'CREATE' && c.dependencies.some(id => createdThisRun.has(id));
+                        if (!ownerCreatedHere) throw new Error('Authorization context changed before the writer.');
+                        set.journal.push({ at: now(), action: 'AUTHORIZATION_REFRESHED', object: c.id, detail: 'Ownership evidence changed because a definition created earlier in this application now exists.' });
+                        stamp = current;
                     }
                 }
-                await this.checkPrerequisites(set);
-                for (const c of selected) await this.verifyAppliedDependencies(set, c);
-                transition(set, 'APPLIED');
+                await a.write(set.environment, c.key, await this.store.readBlob(c.after), { ...live, ...(stamp ? { authorization: stamp } : {}) });
+                const persisted = await a.read(set.environment, c.key);
+                if (hash(persisted.value) !== c.after)
+                    throw new Error('Post-write verification differs from reviewed revision: ' + c.id);
+                c.application = 'VERIFIED';
+                c.verified = await this.store.blob(persisted.value);
+                c.verifiedToken = persisted.token;
+                if (c.operation === 'CREATE') createdThisRun.add(c.id);
+                set.journal.push({ at: now(), action: 'WRITE_VERIFIED', object: c.id });
                 await this.save(set);
-                await this.markReversed(set);
-                return set;
+                if (stopAfterFirst && selected.length > 1) {
+                    await this.checkPrerequisites(set);
+                    transition(set, 'PARTIALLY_APPLIED');
+                    set.journal.push({ at: now(), action: 'PAUSED_BETWEEN_WRITERS', detail: 'Developer requested one verified object; untouched approved work needs a fresh remaining-work proposal.' });
+                    return await this.save(set);
+                }
             }
-            catch (error) {
-                for (const c of set.objects)
-                    if (c.application === 'APPLYING')
-                        c.application = 'UNCERTAIN';
-                set.status = set.objects.some(c => c.application === 'VERIFIED' || c.application === 'UNCERTAIN') ? 'PARTIALLY_APPLIED' : writing ? 'FAILED' : 'CONFLICTED';
-                set.journal.push({ at: now(), action: 'APPLICATION_STOPPED', detail: error instanceof Error ? error.message : String(error) });
-                return await this.save(set);
-            }
-            finally {
-                this.running.delete(id);
-            }
-        });
+            await this.checkPrerequisites(set);
+            for (const c of selected) await this.verifyAppliedDependencies(set, c);
+            transition(set, 'APPLIED');
+            await this.save(set);
+            await this.markReversed(set);
+            return set;
+        }
+        catch (error) {
+            for (const c of set.objects)
+                if (c.application === 'APPLYING')
+                    c.application = 'UNCERTAIN';
+            set.status = set.objects.some(c => c.application === 'VERIFIED' || c.application === 'UNCERTAIN') ? 'PARTIALLY_APPLIED' : writing ? 'FAILED' : 'CONFLICTED';
+            set.journal.push({ at: now(), action: 'APPLICATION_STOPPED', detail: error instanceof Error ? error.message : String(error) });
+            return await this.save(set);
+        }
+        finally {
+            this.running.delete(set.id);
+        }
     }
     /** Manual Save is already a trusted developer action; observe, do not fabricate MCP approval. */
     /**
@@ -514,19 +622,26 @@ export class ReviewService {
     private async markReversed(set: ChangeSet): Promise<void> {
         if (!set.reverses || set.status !== 'APPLIED')
             return;
-        const original = await this.store.get(set.reverses);
-        if (original.status === 'APPLIED') {
-            transition(original, 'REVERTED');
-            original.journal.push({ at: now(), action: 'REVERSED_BY_VERIFIED_CHANGE_SET', detail: set.id });
-            await this.save(original);
+        if (!set.objects.length || set.objects.some(c => c.application !== 'VERIFIED')) throw new Error('Reversal history requires every proposed inverse to be verified.');
+        const ids = set.reversalSources?.map(s => s.changeSetId) ?? [set.reverses];
+        await this.checkPrerequisites(set);
+        for (const id of ids) {
+            const original = await this.store.get(id);
+            if (['APPLIED', 'PARTIALLY_APPLIED'].includes(original.status)) {
+                transition(original, 'REVERTED');
+                original.journal.push({ at: now(), action: 'REVERSED_BY_VERIFIED_CHANGE_SET', detail: set.id });
+                await this.save(original);
+            }
         }
     }
+
     async redo(id: string): Promise<ChangeSet> {
         const set = await this.store.get(id);
         if (set.reverses && set.status === 'APPLIED')
             return this.reverse(set.id, true);
         if (set.status === 'REVERTED') {
-            const inverse = (await this.store.list()).find(s => s.reverses === id && s.status === 'APPLIED');
+            const inverse = (await this.store.list()).find(s => s.status === 'APPLIED' && canonical(s.environment) === canonical(set.environment) &&
+                (s.reverses === id || s.reversalSources?.some(source => source.changeSetId === id && source.revision === set.revision)));
             if (inverse)
                 return this.reverse(inverse.id, true);
         }
@@ -551,14 +666,14 @@ export class ReviewService {
                     c.verified = await this.store.blob(live.value);
                     c.verifiedToken = live.token;
                 }
-                else if (c.application !== 'VERIFIED' && c.operation === 'UPDATE' && c.before !== hash(null) && c.baselineToken !== 'absent' && hash(live.value) === c.before && live.token === c.baselineToken) {
-                    // A writer may have rolled back after entering its write phase.
-                    // Both the complete before-image and original token must match;
-                    // this only enables a fresh reviewed continuation, never replay.
+                else if (c.application !== 'VERIFIED' && hash(live.value) === c.before && live.token === c.baselineToken) {
+                    // A crash/refusal may precede commit. Exact before-image AND token
+                    // (including a complete absent scope) permit a new reviewed
+                    // continuation. No uncertain write is replayed.
                     c.application = 'PENDING';
                     delete c.verified;
                     delete c.verifiedToken;
-                    c.warnings = ['Live snapshot and token match the original baseline. No reviewed update is persisted; a freshly approved continuation is required.'];
+                    c.warnings = ['Live snapshot and token match the original baseline. No reviewed write is persisted; a freshly approved continuation is required.'];
                     set.journal.push({ at: now(), action: 'BASELINE_CONFIRMED', object: c.id });
                 }
                 else {
@@ -567,7 +682,7 @@ export class ReviewService {
                 }
             }
             const selected = set.objects.filter(c => c.review === 'APPROVED');
-            set.status = selected.length && selected.every(c => c.application === 'VERIFIED') ? 'APPLIED' : 'PARTIALLY_APPLIED';
+            set.status = selected.length && selected.every(c => c.application === 'VERIFIED') && (!set.reverses || set.objects.every(c => c.application === 'VERIFIED')) ? 'APPLIED' : 'PARTIALLY_APPLIED';
             set.journal.push({ at: now(), action: 'RECONCILED_WITH_LIVE_STATE' });
             await this.save(set);
             await this.markReversed(set);
@@ -580,12 +695,12 @@ export class ReviewService {
     }> {
         if (set.status !== 'APPLIED')
             return { supported: false, reason: 'Only verified applied revisions can be reversed.' };
-        if (set.continuation)
-            return { supported: false, reason: 'Reversing continued work needs a combined recovery plan; it is not supported yet.' };
-        for (const c of set.objects.filter(c => c.application === 'VERIFIED'))
+        let applied: { source: ChangeSet; object: Change }[];
+        try { applied = await this.reversalObjects(set); }
+        catch (error) { return { supported: false, reason: error instanceof Error ? error.message : String(error) }; }
+        for (const { object: c } of applied) {
             if (await this.store.readBlob(c.before) === null && !this.canDelete(c.adapter, c.key))
                 return { supported: false, reason: 'Reversing creation requires a calibrated deletion adapter (' + c.adapter + ').' };
-        for (const c of set.objects.filter(c => c.application === 'VERIFIED')) {
             const refusal = await this.reversalRefusal(c);
             if (refusal) return { supported: false, reason: refusal };
         }
@@ -596,14 +711,23 @@ export class ReviewService {
             const original = await this.store.get(id);
             if (original.status !== 'APPLIED')
                 throw new Error('Only a verified applied Change Set can be reversed.');
-            if (original.continuation)
-                throw new Error('Reversing continued work needs a combined recovery plan; it is not supported yet.');
             await this.environment(original);
             const proposal = createSet(redo ? 'Redo ' + original.title.replace(/^Revert /, '') : 'Revert ' + original.title, original.environment, 'reversal');
             proposal.reverses = id;
-            const applied = original.objects.filter(c => c.application === 'VERIFIED');
+            const entries = await this.reversalObjects(original), applied = entries.map(e => e.object);
             const ids = new Map(applied.map(c => [c.id, randomUUID()]));
-            for (const c of applied) {
+            if (original.continuation) {
+                proposal.schema = 3;
+                const sources = [...new Map(entries.map(e => [e.source.id, e.source])).values()];
+                proposal.reversalSources = sources.map(source => ({ changeSetId: source.id, revision: source.revision,
+                    objects: entries.filter(e => e.source.id === source.id).map(e => ({ objectId: e.object.id, snapshot: e.object.verified!, token: e.object.verifiedToken! })) }));
+            }
+            const forwardDependencies = (entry: typeof entries[number]) => {
+                const keys = entry.object.dependencies.map(id => entry.source.objects.find(c => c.id === id)).filter((c): c is Change => !!c).map(c => hash([c.adapter, c.key]));
+                for (const p of entry.source.continuation?.prerequisites ?? []) keys.push(hash([p.adapter, p.key]));
+                return keys;
+            };
+            for (const { object: c } of entries) {
                 const a = this.adapter(c.adapter), live = await a.read(original.environment, c.key);
                 if (hash(live.value) !== c.verified || live.token !== c.verifiedToken)
                     throw new Error('Live state changed since application; reversal blocked.');
@@ -612,11 +736,12 @@ export class ReviewService {
                     throw new Error('Reversal needs an unsupported deletion. No partial reverse proposal created.');
                 const refusal = await this.reversalRefusal(c);
                 if (refusal) throw new Error(refusal + ' No partial reverse proposal created.');
-                const dependencies = applied.filter(x => x.dependencies.includes(c.id)).map(x => ids.get(x.id)!);
+                const dependencies = entries.filter(e => forwardDependencies(e).includes(hash([c.adapter, c.key]))).map(e => ids.get(e.object.id)!);
                 proposal.objects.push({ id: ids.get(c.id)!, adapter: c.adapter, key: c.key, operation: value === null ? 'DELETE' : live.value === null ? 'CREATE' : 'UPDATE', before: await this.store.blob(live.value), after: await this.store.blob(value), baselineToken: live.token, dependencies,
                     revision: 1, review: 'PENDING', validation: [], warnings: [], application: 'PENDING' });
             }
             ordered(proposal, false);
+            await this.checkReversalSources(proposal);
             proposal.journal.push({ at: now(), action: redo ? 'REDO_PROPOSED' : 'REVERSAL_PROPOSED', detail: id });
             return this.save(proposal);
         });
@@ -624,8 +749,10 @@ export class ReviewService {
     remainingSupport(set: ChangeSet): { supported: boolean; reason: string } {
         if (set.status !== 'PARTIALLY_APPLIED')
             return { supported: false, reason: 'Only a reconciled partial application can prepare remaining work.' };
-        if (set.origin === 'manual' || set.reverses)
-            return { supported: false, reason: 'Manual saves and partial reversals require a separate recovery plan.' };
+        if (set.origin === 'manual')
+            return { supported: false, reason: 'Manual saves require a separate recovery plan.' };
+        if (set.reverses && set.objects.some(c => c.review !== 'APPROVED'))
+            return { supported: false, reason: 'A reversal continuation must retain approval for the complete interrupted undo.' };
         if (set.objects.some(c => ['APPLYING', 'UNCERTAIN'].includes(c.application) || c.resultKnown === false))
             return { supported: false, reason: 'Reconcile uncertain outcomes first. No writer will be retried based on an unknown result.' };
         if (!set.objects.some(c => c.review === 'APPROVED' && c.application === 'PENDING'))
@@ -653,6 +780,12 @@ export class ReviewService {
                 objects: remaining.map(c => ({ sourceObjectId: c.id, objectId: ids.get(c.id)! })),
                 prerequisites: structuredClone(original.continuation?.prerequisites ?? [])
             };
+            if (original.reverses) {
+                proposal.schema = 4;
+                proposal.origin = 'reversal';
+                proposal.reverses = original.reverses;
+                proposal.reversalSources = await this.reversalSourceBindings(original);
+            }
             if (original.plan) proposal.plan = { text: original.plan.text, revision: 1, review: 'PENDING' };
             for (const c of verified) {
                 if (!c.verified || c.verifiedToken === undefined) throw new Error('Verified prerequisite lacks an authoritative snapshot/token.');

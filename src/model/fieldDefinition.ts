@@ -1,4 +1,5 @@
 import { FieldType } from './record.js';
+import type { TranslateValue } from './recordLayout.js';
 
 /*
  * A field definition as App Designer's Field dialog shows it: type and
@@ -27,11 +28,22 @@ export interface FieldDefinition {
   notUsed?: boolean;
   /** PSDBFIELD.AUXFLAGMASK, shown as stored: which bit is which is not established. */
   auxFlagMask?: number;
+  /** PSDBFIELD.FORMATLENGTH (Character formatted length; 0 = none). */
+  formatLength?: number;
+  /** PSDBFIELD.IMAGE_FMT (Image fields). */
+  imageFormat?: number;
+  /** PSDBFIELD.IMEMODE and KBLAYOUT, as stored. */
+  imeMode?: number;
+  keyboardLayout?: number;
+  /** PSDBFIELD.OBJECTOWNERID, unpadded; '' when blank. */
+  ownerId?: string;
   version?: number;
   lastUpdated?: string;
   lastUpdatedBy?: string;
   /** PSDBFIELD.DESCRLONG: the field's Description. */
   description?: string;
+  /** Base PSXLATITEM values, ordered by value then effective date; a migration package carries them when present. */
+  translates?: TranslateValue[];
 }
 
 /**

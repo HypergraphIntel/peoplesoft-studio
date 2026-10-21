@@ -43,7 +43,11 @@ function canonical(value: unknown): string {
 }
 
 /** A model comparison is a review aid, not App Designer's native compare. */
-async function comparable(provider: DefinitionProvider, key: DefinitionKey): Promise<string | undefined> {
+async function comparable(provider: DefinitionProvider, key: DefinitionKey, sqlMetadata = false): Promise<string | undefined> {
+  if (sqlMetadata && key.type === DefinitionType.SqlDefinition) {
+    const sql = await provider.readSqlForMigration!(key);
+    return sql ? canonical(sql.data) : undefined;
+  }
   if (key.type === DefinitionType.Record) {
     const { version: _version, key: _key, ...record } = await provider.readRecord(key);
     return canonical(record);
@@ -75,11 +79,13 @@ export async function compareProjectItems(items: readonly DefinitionSummary[], h
   for (const [i, item] of items.entries()) {
     const key = item.key;
     const label = displayName(key);
+    const sqlMetadata = key.type === DefinitionType.SqlDefinition && (key.parts[1] ?? '0') === '0'
+      && !!here.readSqlForMigration && !!other.readSqlForMigration;
     onItem?.(i + 1, items.length);
     if (!canCompare(here, key)) { out.push({ key, label, outcome: 'notCompared', detail: 'no comparable representation' }); continue; }
     let mine: string;
     try {
-      const source = await comparable(here, key);
+      const source = await comparable(here, key, sqlMetadata);
       if (source === undefined) throw new Error('definition not found');
       mine = source;
     } catch (error) {
@@ -89,7 +95,7 @@ export async function compareProjectItems(items: readonly DefinitionSummary[], h
     if (!canCompare(other, key)) { out.push({ key, label, outcome: 'notCompared', detail: 'the other side has no comparable representation' }); continue; }
     let theirs: string | undefined;
     try {
-      theirs = await comparable(other, key);
+      theirs = await comparable(other, key, sqlMetadata);
       if (theirs === undefined) throw new Error('definition payload not available');
     } catch (error) {
       let missing = false;
@@ -99,7 +105,7 @@ export async function compareProjectItems(items: readonly DefinitionSummary[], h
         continue;
       }
     }
-    const detail = key.type === DefinitionType.Record || key.type === DefinitionType.Field
+    const detail = sqlMetadata ? 'Compared complete supported standalone SQL text, description, comments and owner; local stamps excluded.' : key.type === DefinitionType.Record || key.type === DefinitionType.Field
       ? 'Compared modeled metadata only; version and audit stamps excluded.' : undefined;
     if (theirs === undefined) out.push({ key, label, outcome: 'missing' });
     else if (normalizeForCompare(mine) === normalizeForCompare(theirs)) out.push({ key, label, outcome: 'same', detail });

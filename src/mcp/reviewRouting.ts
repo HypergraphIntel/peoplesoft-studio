@@ -1,5 +1,6 @@
 import { requireProvider } from './tools.js';
 import { DatabaseProvider } from '../providers/database.js';
+import { prepareHtmlText } from '../providers/htmlWriter.js';
 import { makeKey, DefinitionType } from '../model/definitions.js';
 import type { Workspace } from '../workspace.js';
 import { prepareQueryReview } from './queryTools.js';
@@ -31,14 +32,14 @@ export function routeReviewedMutations(server: {
             return register(name, config, callback);
         const schema = config.inputSchema as z.ZodObject;
         const next = { ...config, description: String(config.description) + (name === 'psft_create_record' || name === 'psft_ae_create' || name === 'psft_create_project'
-                ? ' On Oracle with Change Review, new Derived/Work records (existing fields, no subrecords), App Engine programs, and new projects with explicit bounded membership stage exact native rollback previews. Declare dependsOn for proposed Record/SQL/AE prerequisites in the same Change Set. No persistence before developer approval/application; no creation undo. Other Record types retain legacy confirmation outside a Change Set.'
+                ? ' On Oracle with Change Review, new Derived/Work records (existing fields, no subrecords), App Engine programs, and new projects with explicit bounded membership stage exact native rollback previews. Declare dependsOn for proposed Record/SQL/AE prerequisites in the same Change Set. No persistence before developer approval/application. Record/AE creation supports bounded reviewed deletion/recreation; project creation undo remains unsupported. Other Record types retain legacy confirmation outside a Change Set.'
                 : name === 'psft_ib_save'
                 ? ' With Change Review on Oracle, existing service/operation edits stage fixed noncredential preservation snapshots when they stay inside the bounded contract: description/comments; service owner, namespace, application and app server group; operation header except owning service, routing type, REST method, alias and message binding; existing versions, parameters (not message binding), handlers (not type/event) and application class rows; and adding an ApplicationClass REQUESTHDLR/OnRequest handler (whose reversal is refused). Child removal and other edits keep legacy confirmation and cannot be attached to a Change Set. No IB creation/deletion adapter is implied.'
                 : name === 'psft_edit_record' || name === 'psft_ae_edit'
                 ? ' With Change Review on Oracle, only existing-definition description/comments edits stage full preservation snapshots for developer approval/application; Record SQL Table/Derived Work only. A structural operation is not staged: it saves through the legacy per-write confirmation, outside creation review. Proposed dependency validation is limited to new definitions with explicit dependencies. Explicit dryRun retains its documented preview path.'
                 : name === 'psft_edit_page'
                 ? ' With Change Review on Oracle, only existing-control move/resize, label/use and description/comments changes stage proposals. Inserting or deleting a control, and saveInvalid, are not staged: they save through the legacy per-write confirmation. Explicit dryRun keeps the rollback preview path. No Page creation/deletion adapter is implied.'
-                : ' With Change Review enabled on Oracle, supported text, PeopleCode, Process and Query mutations stage a durable proposal and return REVIEW_REQUIRED; they do not persist until the developer applies in VS Code. HTML and freeform style sheets use exact text/description snapshots. A new Application Class is not staged: it saves through the legacy per-write confirmation.') + ' Supply changeSetId to group operations. Unsupported platforms retain legacy gates.',
+                : ' With Change Review enabled on Oracle, supported text, PeopleCode, Process and Query mutations stage a durable proposal and return REVIEW_REQUIRED; they do not persist until the developer applies in VS Code. On Oracle 8.62, portable SQL/HTML/freeform saves use complete metadata checkpoints with guarded creation inverse/redo. Older or nonportable existing edits retain their legacy history scope. A new Application Class is not staged: it saves through the legacy per-write confirmation.') + ' Supply changeSetId to group operations. Unsupported platforms retain legacy gates.',
             inputSchema: schema.extend({ changeSetId: z.string().uuid().optional(), dependsOn: z.array(z.string().uuid()).default([]) }) };
         return register(name, next, async (args, ...rest) => {
             if (args.dryRun === true)
@@ -128,6 +129,32 @@ export function routeReviewedMutations(server: {
             if (name === 'psft_save_peoplecode') {
                 const staged = await service.stage(setId, 'peoplecode', { type: Number(args.type), parts: args.parts as string[] }, { text: String(args.source) }, args.dependsOn as string[]);
                 return jsonResult({ status: 'REVIEW_REQUIRED', changeSetId: staged.id, revision: staged.revision, persisted: false, command: 'psft.changeReview.open' });
+            }
+            if (name === 'psft_save_text_definition') {
+                const p=await requireProvider(workspace,connection);
+                if(p instanceof DatabaseProvider && (await p.readEnvironment()).toolsRelease==='8.62') {
+                    const kind=args.type===30?'sql':args.type===51?'html':'stylesheet',key=String(args.name).trim().toUpperCase();
+                    const prior=supplied?.objects.find(c=>[kind,kind+'-definition','migration-'+kind].includes(c.adapter)&&
+                        (c.key===key||c.key&&typeof c.key==='object'&&!Array.isArray(c.key)&&Array.isArray(c.key.parts)&&c.key.parts[0]===key));
+                    if(!prior||prior.adapter!==kind){
+                        const native=makeKey(Number(args.type),key,...(kind==='sql'?['0']:kind==='html'?['4']:[]));
+                        const legacy=kind==='sql'?await p.readSqlForEdit(native):await p.readReviewContent(native);
+                        let full;
+                        if(!legacy||prior)full=await p.readTextDefinitionForReview(kind,key);
+                        else {try{full=await p.readTextDefinitionForReview(kind,key);}catch{/* Existing nonportable updates retain their legacy history contract. */}}
+                        if(full){
+                            // A text-only revision must keep metadata already proposed in
+                            // this set, rather than silently resetting it to the database.
+                            const proposed=prior?await service.store.readBlob(prior.after):null;
+                            const old=proposed&&typeof proposed==='object'&&!Array.isArray(proposed)?proposed:full.value;
+                            const after={...(old??(kind==='sql'?{name:key,description:'',definition:'',ownerId:''}:{name:key,description:''})),
+                                text:kind==='sql'?prepareSqlText(String(args.text)):prepareHtmlText(String(args.text)),
+                                description:kind==='sql'?old?.description??'':typeof args.description==='string'?args.description:old?.description??''};
+                            const staged=await service.stage(setId,prior?.adapter??kind+'-definition',prior?.key??key,after,args.dependsOn as string[],undefined,full.token);
+                            return jsonResult({status:'REVIEW_REQUIRED',changeSetId:staged.id,revision:staged.revision,persisted:false,command:'psft.changeReview.open'});
+                        }
+                    }
+                }
             }
             if (name === 'psft_save_text_definition' && args.type !== 30) {
                 const p = await requireProvider(workspace, connection);

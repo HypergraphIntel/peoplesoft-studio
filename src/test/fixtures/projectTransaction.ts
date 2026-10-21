@@ -5,7 +5,8 @@ import { PROJECT_ITEM_DEFAULTS } from '../../model/projectItems.js';
 /** Transactional SQL fixture, not a native runtime. Unknown statements fail. */
 export function projectTransaction() {
     type Row = Record<string, unknown>;
-    const initial: Record<string, Row[]> = { PSPROJECTDEFN: [], PSPROJECTITEM: [], PSVERSION: [{ OBJECTTYPENAME: 'PJM', VERSION: 20 }, { OBJECTTYPENAME: 'SYS', VERSION: 30 }], PSLOCK: [{ OBJECTTYPENAME: 'PJM', VERSION: 40 }] };
+    // PSLOCK PJM equals PSVERSION PJM, as natively (the 8.62 reversal writer checks it).
+    const initial: Record<string, Row[]> = { PSPROJECTDEFN: [], PSPROJECTITEM: [], PSPROJECTDEL: [], PSVERSION: [{ OBJECTTYPENAME: 'PJM', VERSION: 20 }, { OBJECTTYPENAME: 'SYS', VERSION: 30 }], PSLOCK: [{ OBJECTTYPENAME: 'PJM', VERSION: 20 }] };
     const columns: Record<string, string[]> = {
         PSPROJECTDEFN: ['PROJECTNAME', 'VERSION', 'LASTUPDDTTM', 'LASTUPDOPRID', ...Object.keys(NEW_PROJECT_VALUES)],
         PSPROJECTITEM: ['PROJECTNAME', 'OBJECTTYPE', ...[1, 2, 3, 4].flatMap(n => ['OBJECTID' + n, 'OBJECTVALUE' + n]), ...Object.keys(PROJECT_ITEM_DEFAULTS)]
@@ -21,14 +22,18 @@ export function projectTransaction() {
         let rows: Row[] = [], rowsAffected: number | undefined;
         if (text === 'SET TRANSACTION READ ONLY') rows = [];
         else if (text.includes('FROM PSOPRDEFN')) rows = [{ N: 1 }];
+        else if (text === 'SELECT TOOLSREL FROM PSSTATUS') rows = [{ TOOLSREL: '8.62' }];
+        // The reversal writer's catalog scan for project-keyed tables: only the three it owns exist here.
+        else if (text.includes('FROM ALL_TABLES')) rows = ['PSPROJECTDEFN', 'PSPROJECTDEL', 'PSPROJECTITEM'].map(TABLE_NAME => ({ TABLE_NAME }));
+        else if (text.startsWith('SELECT COUNT(*)') && text.includes('TGTOPRID')) rows = [{ N: 0 }];
         else if (text.includes('FROM DUAL')) rows = text.includes('COUNT(*)') ? [{ N: state.PSPROJECTDEFN.length + state.PSPROJECTITEM.length }] : [{ TS: '2026-10-18T12:00:00.123456' }];
         else if (text.startsWith('SELECT ')) {
             const table = text.match(/FROM (\w+)/)?.[1];
             if (table === 'PSRECDEFN' || table === 'PSSQLDEFN' || table?.startsWith('PSAE') || table === 'PSPCMPROG') rows = [{ N: definitionsExist ? 1 : 0 }];
             else if (table === 'PSVERSION') rows = state.PSVERSION.map(r => ({ T: r.OBJECTTYPENAME, V: r.VERSION }));
-            else if (table === 'PSLOCK') rows = state.PSLOCK.map(r => ({ V: r.VERSION }));
-            else if (table === 'PSPROJECTDEFN' || table === 'PSPROJECTITEM') {
-                rows = structuredClone(state[table]).filter(r => r.PROJECTNAME === b.p);
+            else if (table === 'PSLOCK') rows = state.PSLOCK.map(r => ({ T: r.OBJECTTYPENAME, V: r.VERSION }));
+            else if (table === 'PSPROJECTDEFN' || table === 'PSPROJECTITEM' || table === 'PSPROJECTDEL') {
+                rows = structuredClone(state[table]).filter(r => r.PROJECTNAME === (b.p ?? b.n));
                 if (table === 'PSPROJECTDEFN' && text.includes(' AS TS')) rows = rows.map(r => ({ ...r, TS: r.LASTUPDDTTM, OPRID: r.LASTUPDOPRID }));
                 if (table === 'PSPROJECTITEM' && 't' in b) rows = rows.filter(r => r.OBJECTTYPE === b.t && [1, 2, 3, 4].every(n => r['OBJECTVALUE' + n] === b['v' + n]));
                 if (text.includes('COUNT(*)')) rows = [{ N: rows.length }];
@@ -38,10 +43,16 @@ export function projectTransaction() {
             const cols = match[2].split(',').map(v => v.trim());
             state[match[1]].push(Object.fromEntries(cols.map((col, i) => [col, col === 'LASTUPDDTTM' ? b.ts : b[col] ?? b['b' + i] ?? null])));
             rowsAffected = 1;
+        } else if (text.startsWith('DELETE FROM ')) {
+            const table = text.split(' ')[2], before = state[table].length;
+            state[table] = state[table].filter(r => r.PROJECTNAME !== b.n);
+            rowsAffected = before - state[table].length;
         } else if (text.startsWith('UPDATE ')) {
             const table = text.split(' ')[1];
-            const target = table === 'PSPROJECTDEFN' ? state[table].filter(r => r.PROJECTNAME === b.p) : state[table].filter(r => r.OBJECTTYPENAME === text.match(/OBJECTTYPENAME = '([^']+)'/)?.[1]);
-            for (const r of target) { r.VERSION = b.v; if (table === 'PSPROJECTDEFN') { r.LASTUPDDTTM = b.ts; r.LASTUPDOPRID = b.op; } }
+            // The reversal writer advances counters in place: VERSION=VERSION+1 for OBJECTTYPENAME IN (...) / ='PJM'.
+            const types = text.match(/OBJECTTYPENAME (?:= '([^']+)'|IN \(([^)]+)\))/), named = types?.[1] ? [types[1]] : (types?.[2] ?? '').split(',').map(t => t.trim().replace(/'/g, ''));
+            const target = table === 'PSPROJECTDEFN' ? state[table].filter(r => r.PROJECTNAME === b.p) : state[table].filter(r => named.includes(String(r.OBJECTTYPENAME)));
+            for (const r of target) { r.VERSION = text.includes('VERSION=VERSION+1') ? Number(r.VERSION) + 1 : b.v; if (table === 'PSPROJECTDEFN') { r.LASTUPDDTTM = b.ts; r.LASTUPDOPRID = b.op; } }
             rowsAffected = target.length;
         } else throw new Error('Unexpected project fixture SQL: ' + text);
         return { rows: rows as T[], ...(rowsAffected === undefined ? {} : { rowsAffected }) };

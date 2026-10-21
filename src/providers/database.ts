@@ -1,5 +1,9 @@
+import { readQueryMigration } from './queryWriter.js';
+import { readMenuMigration } from './menuMigration.js';
+import { readContentMigration } from './contentMigration.js';
 import { compileForSave as compileReviewedSource, compileTargetFor as reviewedCompileTarget, prepareSourceForSave as normalizeReviewedSource } from '../peoplecode/writeback/savePlan.js';
 import { observeManualHistory } from '../changeReview/manualHistory.js';
+import { readTextDefinitionState, writeTextDefinition, type TextDefinitionKind, type TextDefinitionWriteRequest } from './textDefinitionWriter.js';
 import { saveOAuth, type OAuthSaveRequest } from './securityWriter.js';
 import { listSecurity, readSecurity, securityChoices } from './securityReader.js';
 import type { SecurityKind } from '../model/security.js';
@@ -27,17 +31,28 @@ import type { DefinitionReference } from './provider.js';
 import { createProject as createProjectRow, createProjectWithItems, saveProject, verifyProjectSave, type ProjectSaveRequest, type ProjectSaveResult } from './projectWriter.js';
 import { deleteRecord, saveRecord, verifyRecordSave, type RecordSaveRequest, type RecordSaveResult } from './recordWriter.js';
 import { readProjectCreationSnapshot } from './projectSnapshot.js';
+import {readQueryReversalState,writeQueryReversal,readProjectReversalState,writeProjectReversal,type QueryReversalRequest,type ProjectReversalRequest} from './queryProjectReversal.js';
 import { hash as reviewHash } from '../changeReview/model.js';
 import { readStructuredSnapshot, readStructuredForCreation, type StructuredFamily, type StructuredRead } from './structuredSnapshot.js';
 import { ddlPlatformFor, tableName, viewMetaSqlNeeds, type DdlModel, type ViewMetaContext, type ViewRecordInfo } from '../model/recordDdl.js';
 import type { DbTableFacts } from '../model/recordAlter.js';
 import { maskSql, prepareReadOnlyQuery } from '../sql/readOnlyQuery.js';
 import { saveTranslate as saveTranslateRows, type TranslateChange } from './translateWriter.js';
-import { createField as createFieldRows, saveField as saveFieldRows, type FieldCreateRequest, type FieldSaveRequest } from './fieldWriter.js';
+import { createField as createFieldRows, saveField as saveFieldRows, deleteField as deleteFieldRows, type FieldCreateRequest, type FieldSaveRequest } from './fieldWriter.js';
 import { createPackage as createPackageRow } from './packageWriter.js';
+import { definitionExists as definitionExistsIn } from './projectWriter.js';
+import { noteReviewedCreation } from '../changeReview/authorization.js';
+import { projectItemFor } from '../model/projectItems.js';
+import type { UserIndexRows } from './recordWriter.js';
+import { readComponentForMigration as readComponentMigration, createComponentFromMigration as createComponentMigration, deleteComponentForMigration as deleteComponentMigration, type ComponentMigrationData } from './componentMigration.js';
+import { readPageForMigration as readPageMigration, createPageFromMigration as createPageMigration, deletePageForMigration as deletePageMigration, type PageMigrationData, type ProposedDeletions } from './pageMigration.js';
+import { createSubpackage as createSubpackageRow, savePackageProperties as savePackagePropertyRows, deletePackage as deletePackageRows, deleteClass as deleteClassRows, type SubpackageCreateRequest, type PackagePropertiesRequest } from './packageWriter.js';
+import { readApplicationPackage } from './packageReader.js';
+import { packageAddress } from '../model/appPackages.js';
 import { saveStyleSheet as saveStyleSheetRows, verifyStyleSheetSave, type StyleSheetSaveRequest, type StyleSheetSaveResult } from './styleSheetWriter.js';
 import { saveHtmlDefinition as saveHtmlRows, verifyHtmlSave, type HtmlSaveRequest, type HtmlSaveResult } from './htmlWriter.js';
 import { saveSqlDefinition as saveSqlDefinitionRows, verifySqlSave, type SqlSaveRequest, type SqlSaveResult } from './sqlWriter.js';
+import { readSqlMigration, type SqlMigrationRead } from './sqlSnapshot.js';
 import { bindMarkerCount, selectList, type SqlCatalog, type FieldType as SqlFieldType } from '../model/sqlTypeCheck.js';
 import type { RelatedLookup } from '../model/projectClosure.js';
 import {
@@ -736,7 +751,7 @@ export class DatabaseProvider implements DefinitionProvider {
    * connection after COMMIT.
    */
   async saveProject(request: ProjectSaveRequest): Promise<ProjectSaveResult> {
-    const result = await this.withConnection((c) => saveProject(c, request));
+    const result = await this.withConnection((c) => saveProject(c, request, undefined, this.types));
     await this.withConnection((c) => verifyProjectSave(c, request, result));
     return result;
   }
@@ -789,11 +804,11 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   /** Consistent full-scope absence/readback for bounded creation review. */
-  async readStructuredCreationForReview(family: StructuredFamily, name: string) {
+  async readStructuredCreationForReview(family: StructuredFamily, name: string, allowDeleted = false) {
     if (this.platform !== 'oracle') throw new ProviderError('Creation review snapshots require Oracle.');
     return this.withConnection(async c => {
       await c.execute('SET TRANSACTION READ ONLY');
-      try { return await readStructuredForCreation(c, this.types, family, name); }
+      try { return await readStructuredForCreation(c, this.types, family, name, allowDeleted); }
       finally { await c.rollback(); }
     });
   }
@@ -802,10 +817,12 @@ export class DatabaseProvider implements DefinitionProvider {
    * Deletes a record definition as App Designer does (recordWriter.ts
    * deleteRecord, case r40), then checks on another connection that it is gone.
    */
-  async deleteRecord(request: { recname: string; openedVersion: number; operatorId: string }): Promise<{ version: number }> {
-    await this.guard(makeKey(DefinitionType.Record, request.recname), 'delete');
-    const result = await this.withConnection((c) => deleteRecord(c, request));
-    await this.withConnection(async (c) => {
+  async deleteRecord(request: { recname: string; openedVersion: number; operatorId: string; expectedSnapshotToken?: string; dryRun?: boolean; proposedAeDeletions?: readonly string[];
+    proposedProjectDeletions?: readonly string[]; proposedPeopleCodeDeletions?: readonly (readonly [string, string])[];
+    proposedPageDeletions?: readonly string[]; proposedComponentDeletions?: readonly string[] }): Promise<{ version: number }> {
+    if (!request.dryRun) await this.guard(makeKey(DefinitionType.Record, request.recname), 'delete');
+    const result = await this.withConnection((c) => deleteRecord(c, request, this.types));
+    if (!request.dryRun) await this.withConnection(async (c) => {
       const r = await c.execute<{ N: number }>(
         `SELECT (SELECT COUNT(*) FROM PSRECDEFN WHERE RECNAME = :r) AS N FROM DUAL`, { r: request.recname });
       if (Number(r.rows?.[0]?.N) !== 0) throw new ProviderError(`${request.recname} is still defined after the delete.`);
@@ -835,9 +852,95 @@ export class DatabaseProvider implements DefinitionProvider {
     });
   }
 
+  /** Complete supported standalone SQL scope for portable migration and stale-preview checks. */
+  async readSqlForMigration(key: DefinitionKey): Promise<SqlMigrationRead | undefined> {
+    if (this.platform !== 'oracle') throw new ProviderError('Standalone SQL migration is calibrated for Oracle only.');
+    if (key.type !== DefinitionType.SqlDefinition || key.parts.length > 2 || (key.parts[1] ?? '0') !== '0') {
+      throw new ProviderError('Only standalone SQLTYPE 0 definitions can be migrated.');
+    }
+    return this.withConnection(c => readSqlMigration(c, this.types, key.parts[0]));
+  }
+
+  /** Complete bounded text scope; legacy text-only history adapters remain unchanged. */
+  async readTextDefinitionForReview(kind: TextDefinitionKind, name: string, allowDeleted = false) {
+    if (this.platform !== 'oracle' || (await this.readEnvironment()).toolsRelease !== '8.62') throw new ProviderError('Text-definition reversal is calibrated for Oracle PeopleTools 8.62.');
+    return this.withConnection(async c => { await c.execute('SET TRANSACTION READ ONLY'); try { return await readTextDefinitionState(c, this.types, kind, name, allowDeleted); } finally { await c.rollback(); } });
+  }
+
+  async writeTextDefinitionForReview(request: TextDefinitionWriteRequest) {
+    if (this.platform !== 'oracle' || (await this.readEnvironment()).toolsRelease !== '8.62') throw new ProviderError('Text-definition reversal is calibrated for Oracle PeopleTools 8.62.');
+    const type=request.kind==='sql'?DefinitionType.SqlDefinition:request.kind==='html'?DefinitionType.HtmlDefinition:DefinitionType.StyleSheet;
+    if (!request.dryRun) await this.guard(makeKey(type, request.name, ...(request.kind==='sql'?['0']:request.kind==='html'?['4']:[])), request.after===null?'delete':'save');
+    const result=await this.withConnection(c=>writeTextDefinition(c,this.types,request));
+    if (!request.dryRun) {
+      const persisted=await this.readTextDefinitionForReview(request.kind,request.name,true);
+      if(persisted.token!==result.after.token) throw new ProviderError('Text definition changed during independent post-commit readback.');
+    }
+    return result;
+  }
+
   /** Creates an empty Application Package as App Designer's first save does (packageWriter.ts). */
   async createPackage(request: { name: string; operatorId: string }): Promise<{ version: number; lastupddttm: string }> {
-    return this.withConnection((c) => createPackageRow(c, request));
+    const result = await this.withConnection((c) => createPackageRow(c, request));
+    noteReviewedCreation(this.id, makeKey(DefinitionType.ApplicationPackage, request.name));
+    return result;
+  }
+
+  async readApplicationPackage(root: string) {
+    return this.withConnection(c => readApplicationPackage(c, root));
+  }
+
+  /**
+   * Package structure for migration: subpackage paths (root excluded) and class paths, both 'A:B' and sorted.
+   * Description, owner, comments and references have no writer yet, so non-blank values refuse.
+   */
+  async readPackageForMigration(root: string): Promise<{ data: { name: string; packages: string[]; description?: string; comments?: string; ownerId?: string }; classes: string[]; token: string; version: number } | undefined> {
+    return this.withConnection(async c => {
+      await c.execute('SET TRANSACTION READ ONLY');
+      try {
+        const packages = (await c.execute<{ ID: string; Q: string; L: number; V: number; D: string; O: string; R: string; DL: number; T: string | null }>(
+          `SELECT PACKAGEID AS ID, QUALIFYPATH AS Q, PACKAGELEVEL AS L, VERSION AS V, DESCR AS D, OBJECTOWNERID AS O, PACKAGEREF AS R,
+                  CASE WHEN DESCRLONG IS NULL THEN 0 WHEN DBMS_LOB.GETLENGTH(DESCRLONG) > 4000 THEN 2 ELSE 1 END AS DL,
+                  DBMS_LOB.SUBSTR(DESCRLONG, 4000, 1) AS T FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :r`, { r: root })).rows ?? [];
+        const head = packages.find(p => p.Q.trim() === '.' && p.ID.trim() === root);
+        if (!head) return undefined;
+        const classes = (await c.execute<{ ID: string; Q: string; D: string; R: string }>(
+          `SELECT APPCLASSID AS ID, QUALIFYPATH AS Q, DESCR AS D, APPCLASSREF AS R FROM PSAPPCLASSDEFN WHERE PACKAGEROOT = :r`, { r: root })).rows ?? [];
+        // Package Properties belong to the root (pk01); subpackage/class metadata has no calibrated writer.
+        if (packages.some(p => p !== head && (p.D.trim() || p.O.trim() || Number(p.DL))) || packages.some(p => p.R.trim()) || classes.some(k => k.D.trim() || k.R.trim()))
+          throw new ProviderError(root + ': subpackage or class descriptions, owners, comments and package references are not migrated yet.');
+        if (Number(head.DL) > 1) throw new ProviderError(root + ': package comments over 4,000 characters are not migrated yet.');
+        if (packages.some(p => Number(p.L) > 2)) throw new ProviderError(root + ': packages deeper than two subpackages are not migrated.');
+        const path = (q: string, id: string) => [...q.trim().split(':').filter(s => s && s !== '.'), id].join(':');
+        const order = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
+        const subs = packages.filter(p => p !== head).map(p => path(p.Q, p.ID.trim())).sort(order);
+        // A class's QUALIFYPATH is its full subpackage path (':' at the root).
+        const names = classes.map(k => [...k.Q.trim().split(':').filter(Boolean), k.ID.trim()].join(':')).sort(order);
+        // Creating a class moves every package row's VERSION (c06), so the token is the structure, not VERSION:
+        // a dependent class save must not look like a change to its verified package.
+        const meta = { description: head.D.trimEnd(), comments: head.T ?? '', ownerId: head.O.trim() };
+        const stated = Object.fromEntries(Object.entries(meta).filter(([, v]) => v));
+        return { data: { name: root, packages: subs, ...stated }, classes: names, token: 'structure:' + reviewHash({ root, subs, ...meta }), version: Number(head.V) };
+      } finally { await c.rollback(); }
+    });
+  }
+
+  async savePackageProperties(request: PackagePropertiesRequest) {
+    if (!request.dryRun) await this.guard(makeKey(DefinitionType.ApplicationPackage, request.root), 'save');
+    return this.withConnection(c => savePackagePropertyRows(c, request));
+  }
+
+  async createSubpackage(request: SubpackageCreateRequest) {
+    if (this.platform !== 'oracle') throw new ProviderError('Subpackage creation is calibrated for Oracle only.');
+    await this.guard(makeKey(DefinitionType.ApplicationPackage, request.root), 'save');
+    const result = await this.withConnection(c => createSubpackageRow(c, request));
+    if (!request.dryRun) {
+      const doc = await this.readApplicationPackage(request.root);
+      let node = doc?.tree;
+      for (const segment of request.path) node = node?.children.find(n => n.kind === 'package' && n.name === segment);
+      if (!node || doc?.version !== result.version) throw new ProviderError('The subpackage save committed, but independent readback changed. Refresh the package before continuing.');
+    }
+    return result;
   }
 
   /** Whether a package name is taken (as a root or a subpackage ID). */
@@ -846,11 +949,11 @@ export class DatabaseProvider implements DefinitionProvider {
       `SELECT COUNT(*) AS N FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :n OR PACKAGEID = :n`, { n: name })).rows?.[0]?.N ?? 0) > 0);
   }
 
-  async readProjectCreationForReview(project: string) {
+  async readProjectCreationForReview(project: string, allowDeleted = false) {
     if (this.platform !== 'oracle') throw new ProviderError('Project creation review requires Oracle.');
     return this.withConnection(async c => {
       await c.execute('SET TRANSACTION READ ONLY');
-      try { return await readProjectCreationSnapshot(c, this.types, project); }
+      try { return (await this.readEnvironment()).toolsRelease==='8.62' ? await readProjectReversalState(c,this.types,project,allowDeleted) : {...await readProjectCreationSnapshot(c,this.types,project),deleted:false}; }
       finally { await c.rollback(); }
     });
   }
@@ -860,7 +963,7 @@ export class DatabaseProvider implements DefinitionProvider {
     if (this.platform !== 'oracle') throw new ProviderError('Project creation review requires Oracle.');
     const output = await this.withConnection(async c => {
       try {
-        const before = await readProjectCreationSnapshot(c, this.types, request.project);
+        const before = (await this.readEnvironment()).toolsRelease==='8.62' ? await readProjectReversalState(c,this.types,request.project) : await readProjectCreationSnapshot(c, this.types, request.project);
         if (before.value !== null || before.token !== request.expectedSnapshotToken) throw new ProviderError('Project creation baseline changed.');
         let after: Awaited<ReturnType<typeof readProjectCreationSnapshot>> | undefined;
         const result = await createProjectWithItems(c, request, async () => {
@@ -875,6 +978,26 @@ export class DatabaseProvider implements DefinitionProvider {
       if (live.hash !== reviewHash(output.after.value) || live.token !== output.after.token) throw new ProviderError('Committed project readback differs from reviewed metadata.');
     }
     return output;
+  }
+
+  async readQueryForReview(name:string,owner='',allowDeleted=false) {
+    if(this.platform!=='oracle'||(await this.readEnvironment()).toolsRelease!=='8.62')throw new ProviderError('Query reversal requires Oracle PeopleTools 8.62.');
+    return this.withConnection(async c=>{await c.execute('SET TRANSACTION READ ONLY');try{return await readQueryReversalState(c,this.types,name,owner,allowDeleted);}finally{await c.rollback();}});
+  }
+  async writeQueryForReview(request:QueryReversalRequest) {
+    if(this.platform!=='oracle'||(await this.readEnvironment()).toolsRelease!=='8.62')throw new ProviderError('Query reversal requires Oracle PeopleTools 8.62.');
+    // Like Record/AE creation, (re)creating an absent Query keeps the creation-only path; existing ones are guarded.
+    if(!request.dryRun&&(request.after===null||(await this.readQueryForReview(request.name,request.owner,true)).value!==null))await this.guard(makeKey(DefinitionType.Query,request.name,request.owner),request.after===null?'delete':'save');
+    const result=await this.withConnection(c=>writeQueryReversal(c,this.types,request));
+    if(!request.dryRun&&(await this.readQueryForReview(request.name,request.owner,true)).token!==result.after.token)throw new ProviderError('Query changed during independent post-commit readback.');
+    return result;
+  }
+  async writeProjectForReview(request:ProjectReversalRequest) {
+    if(this.platform!=='oracle'||(await this.readEnvironment()).toolsRelease!=='8.62')throw new ProviderError('Project reversal requires Oracle PeopleTools 8.62.');
+    if(!request.dryRun&&(request.items===null||(await this.readProjectCreationForReview(request.name,true)).value!==null))await this.guard(makeKey(DefinitionType.Project,request.name),request.items===null?'delete':'save');
+    const result=await this.withConnection(c=>writeProjectReversal(c,this.types,request));
+    if(!request.dryRun&&(await this.readProjectCreationForReview(request.name,true)).token!==result.after.token)throw new ProviderError('Project changed during independent post-commit readback.');
+    return result;
   }
 
   /** Creates an empty project as App Designer's first save does (projectWriter.ts createProject). */
@@ -1107,8 +1230,8 @@ export class DatabaseProvider implements DefinitionProvider {
   async saveSqlDefinition(request: SqlSaveRequest): Promise<SqlSaveResult> {
     if (request.openedVersion !== undefined) await this.guard(makeKey(DefinitionType.SqlDefinition, request.sqlId, '0'), 'save');
     return observeManualHistory(this.id, makeKey(DefinitionType.SqlDefinition, request.sqlId, '0'), async () => {
-    const result = await this.withConnection((c) => saveSqlDefinitionRows(c, request));
-    await this.withConnection((c) => verifySqlSave(c, request, result));
+    const result = await this.withConnection((c) => saveSqlDefinitionRows(c, request, this.types));
+    await this.withConnection((c) => verifySqlSave(c, request, result, this.types));
     return result;
     });
   }
@@ -1408,6 +1531,28 @@ export class DatabaseProvider implements DefinitionProvider {
     });
   }
 
+  async readQueryForMigration(key: DefinitionKey) {
+    if (key.type !== DefinitionType.Query) throw new ProviderError('Expected Query migration key.');
+    if (this.platform !== 'oracle') throw new ProviderError('Query migration is calibrated for Oracle.');
+    return this.withConnection(async c => {
+      await c.execute('SET TRANSACTION READ ONLY');
+      try { return await readQueryMigration(c, this.types, key.parts[0], key.parts[1] ?? ''); }
+      finally { await c.rollback(); }
+    });
+  }
+
+  async readRecordPeopleCodeForMigration(name: string): Promise<DefinitionKey[]> { return this.relatedLookup().recordPeopleCode(name); }
+
+  async readMenuForMigration(name:string) {
+    if(this.platform!=='oracle')throw new ProviderError('Menu migration is calibrated for Oracle.');
+    return this.withConnection(async c=>{await c.execute('SET TRANSACTION READ ONLY');try{return await readMenuMigration(c,this.types,name);}finally{await c.rollback();}});
+  }
+
+  async readContentForMigration(key: DefinitionKey) {
+    if (![DefinitionType.HtmlDefinition, DefinitionType.StyleSheet].includes(key.type)) throw new ProviderError('Expected HTML or freeform stylesheet.');
+    return this.withConnection(c => readContentMigration(c, key.parts[0], key.type === DefinitionType.HtmlDefinition ? 'html' : 'stylesheet'));
+  }
+
   /** Editable text plus its native description, for exact scoped review snapshots. */
   async readReviewContent(key: DefinitionKey): Promise<{ text: string; description: string; version: number } | undefined> {
     if (![DefinitionType.HtmlDefinition, DefinitionType.StyleSheet].includes(key.type)) throw new ProviderError('Expected HTML or freeform style sheet.');
@@ -1445,12 +1590,14 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   /** Use the existing compiler and the stored native key; never decode a fake baseline. */
-  async validateReviewedPeopleCode(key: DefinitionKey, source: string): Promise<void> {
+  /** `newClass`: a class the save will create (its package travels with it), keyed as planClassCreate keys it. */
+  async validateReviewedPeopleCode(key: DefinitionKey, source: string, newClass = false): Promise<void> {
     const parts = pcmProgKeyParts(key);
     const stored = await this.withConnection(c => readStoredProgram(c, this.types, parts, false));
-    if (!stored && key.type === DefinitionType.ApplicationClassPeopleCode) throw new ProviderError('New Application Class review needs package/class metadata snapshots; only existing class source is supported.');
+    if (!stored && key.type === DefinitionType.ApplicationClassPeopleCode && !newClass) throw new ProviderError('New Application Class review needs package/class metadata snapshots; only existing class source is supported.');
     if (!source.trim()) return;
-    const ids = stored?.key.objectIds ?? PEOPLECODE_OBJECTIDS[key.type];
+    const classIds = () => { const ids = [104, ...parts.slice(1, -2).map((_, i) => 105 + i), 107, 12]; return [...ids, ...Array(7 - ids.length).fill(0)]; };
+    const ids = stored?.key.objectIds ?? (key.type === DefinitionType.ApplicationClassPeopleCode ? classIds() : PEOPLECODE_OBJECTIDS[key.type]);
     if (!ids) throw new ProviderError('PeopleCode key shape is not calibrated for review.');
     const release = await this.databaseRelease();
     compileReviewedSource(normalizeReviewedSource(source), reviewedCompileTarget({ objectIds: ids, objectValues: stored?.key.objectValues ?? parts }), release.toolsRelease);
@@ -1604,8 +1751,10 @@ export class DatabaseProvider implements DefinitionProvider {
       const d = await c.execute<{
         FIELDTYPE: number; LENGTH: number; DECIMALPOS: number; FORMAT: number; FORMATFAMILY: string; DISPFMTNAME: string;
         DEFCNTRYYR: number; FLDNOTUSED: number; AUXFLAGMASK: number; VERSION: number; TS: string; OPRID: string; DL: string | null
+        FORMATLENGTH: number; IMAGE_FMT: number; IMEMODE: number; KBLAYOUT: number; OBJECTOWNERID: string
       }>(
         `SELECT FIELDTYPE, LENGTH, DECIMALPOS, FORMAT, FORMATFAMILY, DISPFMTNAME, DEFCNTRYYR, FLDNOTUSED, AUXFLAGMASK,
+                FORMATLENGTH, IMAGE_FMT, IMEMODE, KBLAYOUT, OBJECTOWNERID,
                 VERSION, TO_CHAR(LASTUPDDTTM, 'YYYY-MM-DD HH24:MI:SS') AS TS, LASTUPDOPRID AS OPRID, DBMS_LOB.SUBSTR(DESCRLONG, 4000, 1) AS DL
            FROM PSDBFIELD WHERE FIELDNAME = :n`, { n: name });
       const row = d.rows?.[0];
@@ -1628,6 +1777,11 @@ export class DatabaseProvider implements DefinitionProvider {
         defaultCenturyYear: Number(row.DEFCNTRYYR),
         notUsed: Number(row.FLDNOTUSED) !== 0,
         auxFlagMask: Number(row.AUXFLAGMASK),
+        formatLength: Number(row.FORMATLENGTH),
+        imageFormat: Number(row.IMAGE_FMT),
+        imeMode: Number(row.IMEMODE),
+        keyboardLayout: Number(row.KBLAYOUT),
+        ownerId: t(row.OBJECTOWNERID),
         version: Number(row.VERSION),
         lastUpdated: t(row.TS),
         lastUpdatedBy: t(row.OPRID),
@@ -2528,10 +2682,11 @@ export class DatabaseProvider implements DefinitionProvider {
     return request.dryRun ? write() : observeManualHistory(this.id, key, write);
   }
 
-  async deleteAppEngineProgram(name: string, token: string, operatorId: string): Promise<void> {
-    await this.guard(makeKey(DefinitionType.AppEngineProgram, name), 'delete');
+  async deleteAppEngineProgram(name: string, token: string, operatorId: string, expectedSnapshotToken?: string, dryRun = false, proposedProjectDeletions: readonly string[] = []): Promise<void> {
+    if (!dryRun) await this.guard(makeKey(DefinitionType.AppEngineProgram, name), 'delete');
     const types = this.types;
-    await this.withConnection((c) => deleteAppEngine(c, types, name, token, operatorId));
+    await this.withConnection((c) => deleteAppEngine(c, types, name, token, operatorId, expectedSnapshotToken, dryRun, proposedProjectDeletions));
+    if (dryRun) return;
     const after = await this.withConnection((c) => readStoredAppEngine(c, types, name, false));
     if (after?.exists) throw new ProviderError(`After COMMIT ${name} still exists.`);
   }
@@ -2567,10 +2722,11 @@ export class DatabaseProvider implements DefinitionProvider {
     return result;
   }
 
-  async deleteMenuDefinition(name: string, token: string, operatorId: string): Promise<void> {
-    await this.guard(makeKey(DefinitionType.Menu, name), 'delete');
+  async deleteMenuDefinition(name: string, token: string, operatorId: string, dryRun = false): Promise<void> {
+    if (!dryRun) await this.guard(makeKey(DefinitionType.Menu, name), 'delete');
     const types = this.types;
-    await this.withConnection((c) => deleteMenu(c, types, name, token, operatorId));
+    await this.withConnection((c) => deleteMenu(c, types, name, token, operatorId, dryRun));
+    if (dryRun) return;
     const after = await this.withConnection((c) => readStoredMenu(c, types, name, false));
     if (after.exists) throw new ProviderError(`After COMMIT ${name} still exists.`);
   }
@@ -2867,6 +3023,7 @@ export class DatabaseProvider implements DefinitionProvider {
     return witnessedCreation(await this.creationScope(),key,{version:e.version,operator:e.operator,updated:e.updated});
   }
   private async noteCreation(key:DefinitionKey,stamp:DefinitionStamp,previous?:CreationReceipt):Promise<void> {
+    noteReviewedCreation(this.id,key);
     try { await recordCreation(await this.creationScope(),key,stamp,previous); }
     catch(e){console.error('PeopleSoft Studio: creation receipt could not be stored:',e instanceof Error?e.message:String(e));}
   }
@@ -3551,6 +3708,106 @@ export class DatabaseProvider implements DefinitionProvider {
     });
   }
 
+  async readPageForMigration(name: string) {
+    return this.withConnection(async c => { await c.execute('SET TRANSACTION READ ONLY'); try { return await readPageMigration(c, this.types, name); } finally { await c.rollback(); } });
+  }
+  async createPageFromMigration(request: { data: PageMigrationData; operatorId: string; dryRun?: boolean; expectedToken?: string }) {
+    if (!request.dryRun) await this.guard(makeKey(DefinitionType.Page, request.data.name), 'save');
+    const result = await this.withConnection(c => createPageMigration(c, this.types, request));
+    if (!request.dryRun && (await this.readPageForMigration(request.data.name))?.token === undefined) throw new ProviderError('Created page is missing on independent readback.');
+    return result;
+  }
+
+  async readComponentForMigration(name: string, market: string) {
+    return this.withConnection(async c => { await c.execute('SET TRANSACTION READ ONLY'); try { return await readComponentMigration(c, this.types, name, market); } finally { await c.rollback(); } });
+  }
+  async createComponentFromMigration(request: { data: ComponentMigrationData; operatorId: string; dryRun?: boolean; expectedToken?: string }) {
+    if (!request.dryRun) await this.guard(makeKey(DefinitionType.Component, request.data.name, request.data.market), 'save');
+    const result = await this.withConnection(c => createComponentMigration(c, this.types, request));
+    if (!request.dryRun && !await this.readComponentForMigration(request.data.name, request.data.market)) throw new ProviderError('Created component is missing on independent readback.');
+    return result;
+  }
+
+  /** A record's user-defined indexes (INDEXTYPE 4) as rows without RECNAME, by INDEXID; custom index DDL refuses. */
+  async readRecordIndexesForMigration(recname: string): Promise<UserIndexRows[]> {
+    return this.withConnection(async c => {
+      await c.execute('SET TRANSACTION READ ONLY');
+      try {
+        const opts = { outFormat: this.types.OUT_FORMAT_OBJECT };
+        const strip = (r: Record<string, unknown>) => Object.fromEntries(Object.entries(r).filter(([k]) => k !== 'RECNAME')) as UserIndexRows['index'];
+        const indexes = (await c.execute<Record<string, unknown>>(`SELECT * FROM PSINDEXDEFN WHERE RECNAME = :r AND INDEXTYPE = 4 ORDER BY INDEXID`, { r: recname }, opts)).rows ?? [];
+        const keys = (await c.execute<Record<string, unknown>>(`SELECT * FROM PSKEYDEFN WHERE RECNAME = :r ORDER BY INDEXID, KEYPOSN`, { r: recname }, opts)).rows ?? [];
+        const ddl = (await c.execute<{ N: number }>(`SELECT COUNT(*) AS N FROM PSIDXDDLPARM WHERE RECNAME = :r AND INDEXID IN (SELECT INDEXID FROM PSINDEXDEFN WHERE RECNAME = :r AND INDEXTYPE = 4)`, { r: recname })).rows ?? [];
+        if (Number(ddl[0]?.N) || indexes.some(i => Number(i.DDLCOUNT))) throw new ProviderError(recname + ': user-defined indexes with custom DDL are not migrated yet.');
+        return indexes.map(i => ({ index: strip(i), keys: keys.filter(k => String(k.INDEXID) === String(i.INDEXID)).map(strip) }));
+      } finally { await c.rollback(); }
+    });
+  }
+
+  async deletePageFromMigration(request: { name: string; operatorId: string; expectedToken: string; dryRun?: boolean; proposed?: ProposedDeletions }) {
+    if (!request.dryRun) await this.guard(makeKey(DefinitionType.Page, request.name), 'delete');
+    await this.withConnection(c => deletePageMigration(c, this.types, request));
+    if (!request.dryRun && await this.readPageForMigration(request.name)) throw new ProviderError(`${request.name} still exists after the delete.`);
+  }
+  async deleteComponentFromMigration(request: { name: string; market: string; operatorId: string; expectedToken: string; dryRun?: boolean; proposed?: ProposedDeletions }) {
+    if (!request.dryRun) await this.guard(makeKey(DefinitionType.Component, request.name, request.market), 'delete');
+    await this.withConnection(c => deleteComponentMigration(c, this.types, request));
+    if (!request.dryRun && await this.readComponentForMigration(request.name, request.market)) throw new ProviderError(`${request.name}.${request.market} still exists after the delete.`);
+  }
+  async deleteFieldDefinition(request: Parameters<typeof deleteFieldRows>[1]) {
+    if (!request.dryRun) await this.guard(makeKey(DefinitionType.Field, request.name), 'delete');
+    await this.withConnection(c => deleteFieldRows(c, request));
+    if (!request.dryRun && await this.readField(makeKey(DefinitionType.Field, request.name))) throw new ProviderError(`${request.name} still exists after the delete.`);
+  }
+  async deletePackageDefinition(request: Parameters<typeof deletePackageRows>[1]) {
+    if (!request.dryRun) await this.guard(makeKey(DefinitionType.ApplicationPackage, request.root), 'delete');
+    await this.withConnection(c => deletePackageRows(c, request));
+    if (!request.dryRun && await this.readPackageForMigration(request.root)) throw new ProviderError(`${request.root} still exists after the delete.`);
+  }
+  async deleteApplicationClass(request: Parameters<typeof deleteClassRows>[1]) {
+    if (!request.dryRun) await this.guard(makeKey(DefinitionType.ApplicationClassPeopleCode, request.root, ...request.path, request.className), 'delete');
+    await this.withConnection(c => deleteClassRows(c, request));
+  }
+
+  /** The projects whose membership lists this definition (its native project-item key). */
+  async projectsListing(key: DefinitionKey): Promise<string[]> {
+    const item = projectItemFor(key), values = item.objectValues.map(v => v.trim() ? v : ' ');
+    return this.withConnection(async c => ((await c.execute<{ P: string }>(`SELECT DISTINCT PROJECTNAME AS P FROM PSPROJECTITEM WHERE OBJECTTYPE = :t AND ${values.map((_, i) => `OBJECTVALUE${i + 1} = :v${i}`).join(' AND ')}`,
+      { t: item.objectType, ...Object.fromEntries(values.map((v, i) => ['v' + i, v])) })).rows ?? []).map(r => String(r.P).trim()));
+  }
+
+  /** Permission-list items (PSAUTHITEM) that grant a menu. */
+  async menuGrantCount(menu: string): Promise<number> {
+    return this.withConnection(async c => Number((await c.execute<{ N: number }>(`SELECT COUNT(*) AS N FROM PSAUTHITEM WHERE MENUNAME = :m`, { m: menu })).rows?.[0]?.N ?? 0));
+  }
+
+  /** Whether a definition exists here, by the same checks a project membership uses. */
+  async definitionExists(key: DefinitionKey): Promise<boolean> {
+    return this.withConnection(c => definitionExistsIn(c, key));
+  }
+
+  async fieldFormatExists(family: string, displayName: string): Promise<boolean> {
+    return this.withConnection(async (c) => ((await c.execute(`SELECT 1 FROM PSFMTITEM WHERE FORMATFAMILY = :m AND DISPFMTNAME = :d`, { m: family, d: displayName })).rows ?? []).length > 0);
+  }
+
+  /** Complete migration scope: base translate values and the PSXLATDEFN version; translations and orphan rows refuse. */
+  async readTranslatesForMigration(fieldName: string): Promise<{ items: TranslateValue[]; version: number | undefined }> {
+    return this.withConnection(async (c) => {
+      await c.execute('SET TRANSACTION READ ONLY');
+      try {
+        const defn = (await c.execute<{ V: number }>(`SELECT VERSION AS V FROM PSXLATDEFN WHERE FIELDNAME = :f`, { f: fieldName })).rows ?? [];
+        const r = await c.execute<{ V: string; D: string; S: string; L: string; SH: string }>(
+          `SELECT FIELDVALUE AS V, TO_CHAR(EFFDT, 'YYYY-MM-DD') AS D, EFF_STATUS AS S, XLATLONGNAME AS L, XLATSHORTNAME AS SH
+             FROM PSXLATITEM WHERE FIELDNAME = :f ORDER BY FIELDVALUE, EFFDT`, { f: fieldName });
+        const lang = (await c.execute<{ N: number }>(`SELECT COUNT(*) AS N FROM PSXLATITEMLANG WHERE FIELDNAME = :f`, { f: fieldName })).rows ?? [];
+        if (Number(lang[0]?.N) > 0) throw new ProviderError(fieldName + ': translated translate values require a language migration scope.');
+        const items = (r.rows ?? []).map((x) => ({ value: (x.V ?? '').trim(), effectiveDate: x.D, status: (x.S ?? '').trim(), longName: (x.L ?? '').trim(), shortName: (x.SH ?? '').trim() }));
+        if ((items.length > 0) !== (defn.length === 1)) throw new ProviderError(fieldName + ': translate values and their PSXLATDEFN header disagree.');
+        return { items, version: defn.length ? Number(defn[0].V) : undefined };
+      } finally { await c.rollback(); }
+    });
+  }
+
   async readRecord(key: DefinitionKey): Promise<RecordDefinition> {
     const recname = key.parts[0];
     return this.withConnection(async (c) => {
@@ -3611,6 +3868,13 @@ export class DatabaseProvider implements DefinitionProvider {
 
   async listChildren(key: DefinitionKey): Promise<DefinitionSummary[]> {
     switch (key.type) {
+      case DefinitionType.ApplicationPackage: {
+        const { root, path } = packageAddress(key);
+        const document = await this.readApplicationPackage(root);
+        let node = document?.tree;
+        for (const segment of path) node = node?.children.find(n => n.kind === 'package' && n.name === segment);
+        return node?.children.flatMap(n => n.key ? [{ key: n.key, label: n.name }] : []) ?? [];
+      }
       case DefinitionType.Record: {
         const record = await this.readRecord(key);
         // Each field carries its record, so it can expand to its PeopleCode.

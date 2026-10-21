@@ -32,11 +32,11 @@ export async function readStructuredSnapshot(c: DbConnection, types: DbTypes, fa
 }
 
 /** Creation binds the entire vacant scope; orphan rows and old deletion markers are refused. */
-export async function readStructuredForCreation(c: DbConnection, types: DbTypes, family: StructuredFamily, name: string): Promise<StructuredCreationRead> {
-    return readScope(c, types, family, name, true);
+export async function readStructuredForCreation(c: DbConnection, types: DbTypes, family: StructuredFamily, name: string, allowDeleted = false): Promise<StructuredCreationRead> {
+    return readScope(c, types, family, name, true, allowDeleted);
 }
 
-async function readScope(c: DbConnection, types: DbTypes, family: StructuredFamily, name: string, creation: boolean): Promise<StructuredCreationRead> {
+async function readScope(c: DbConnection, types: DbTypes, family: StructuredFamily, name: string, creation: boolean, allowDeleted = false): Promise<StructuredCreationRead> {
     if (!(family === 'record' ? /^[A-Z][A-Z0-9_]{0,14}$/ : /^[A-Z][A-Z0-9_]{0,11}$/).test(name)) throw new Error('Invalid structured definition name.');
     const tableNames = family === 'record' ? RECORD_REVIEW_TABLES : AE_REVIEW_TABLES, tables: Record<string, NativeRow[]> = {}, raw: Record<string, NativeRow[]> = {};
     let version: number | undefined;
@@ -67,11 +67,15 @@ async function readScope(c: DbConnection, types: DbTypes, family: StructuredFami
         }
     }
     if (creation && family === 'record') {
-        const markers = (await c.execute<{ N: number }>('SELECT COUNT(*) AS N FROM PSRECDEL WHERE RECNAME = :n', { n: name }, { outFormat: types.OUT_FORMAT_OBJECT })).rows;
-        if (!markers || markers.length !== 1 || Number(markers[0].N) !== 0) throw new Error('Record creation review requires a name without deletion markers.');
+        const markers = (await c.execute<NativeRow>('SELECT RECNAME, VERSION FROM PSRECDEL WHERE RECNAME = :n', { n: name }, { outFormat: types.OUT_FORMAT_OBJECT })).rows;
+        if (!markers || markers.length && (!allowDeleted || version !== undefined || markers.length !== 1 || markers[0].RECNAME !== name || !Number.isSafeInteger(markers[0].VERSION))) throw new Error('Record creation review refuses deletion markers unless exactly one is explicitly reviewed in an otherwise vacant scope.');
+        // Preserve every previously recorded empty-scope token; add only an actual tombstone.
+        if (markers.length) raw.PSRECDEL = markers;
     }
     if (creation && version === undefined) {
-        if (Object.values(raw).some(rows => rows.length)) throw new Error('Creation review refuses an orphaned native definition scope.');
+        const markerTables = new Set(['PSRECDEL', 'PSAEAPPLDEL', 'PSAESECTDEL', 'PSSQLDEL', 'PSPCMPROGDEL']);
+        if (Object.entries(raw).some(([table, rows]) => rows.length && (!allowDeleted || !markerTables.has(table)))) throw new Error('Creation review refuses an orphaned native definition scope.');
+        if (allowDeleted && family === 'ae' && Object.values(raw).some(rows => rows.length) && raw.PSAEAPPLDEL.length !== 1) throw new Error('AE recreation requires exactly one native program deletion marker.');
         return { value: null, version: 0, hash: hash(null), token: hash(raw) };
     }
     const value: StructuredSnapshot = { scope: family === 'record' ? 'record-header/1' : 'ae-header/1', tables };

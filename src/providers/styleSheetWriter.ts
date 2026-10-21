@@ -1,3 +1,4 @@
+import { readContentMigration } from './contentMigration.js';
 import type { DbConnection as Connection } from '../db/connection.js';
 import { writeScopeRefusal } from './writeScope.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
@@ -44,6 +45,8 @@ export interface StyleSheetSaveRequest {
   /** A new description (PSSTYLSHEETDEFN.DESCR, at most 30; PSCONTDEFN's stays blank): saved with the text (s03). */
   description?: string;
   operatorId: string;
+  /** Complete migration snapshot, checked after native row locks. */
+  expectedSnapshotToken?: string;
 }
 
 export interface StyleSheetSaveResult {
@@ -70,7 +73,7 @@ async function readCounters(c: Connection, forUpdate: boolean): Promise<Counters
 }
 
 /** `blobType` is the driver's BLOB bind type (oracledb.BLOB). */
-export async function saveStyleSheet(c: Connection, blobType: unknown, request: StyleSheetSaveRequest): Promise<StyleSheetSaveResult> {
+export async function saveStyleSheet(c: Connection, blobType: unknown, request: StyleSheetSaveRequest, deferCommit = false): Promise<StyleSheetSaveResult> {
   const name = request.name;
   try {
     const operatorError = validateOperatorId(request.operatorId);
@@ -90,7 +93,8 @@ export async function saveStyleSheet(c: Connection, blobType: unknown, request: 
       `SELECT VERSION, CONTTYPE, ALTCONTNUM FROM PSCONTDEFN WHERE CONTNAME = :n FOR UPDATE`, { n: name });
     const [{ N: others }] = await select<{ N: number }>(c,
       `SELECT (SELECT COUNT(*) FROM PSSTYLECLASS WHERE STYLESHEETNAME = :n) + (SELECT COUNT(*) FROM PSCONTDEFNLANG WHERE CONTNAME = :n)
-            + (SELECT COUNT(*) FROM PSCONTENTLANG WHERE CONTNAME = :n) + (SELECT COUNT(*) FROM PSSTYLSHEETDEL WHERE STYLESHEETNAME = :n) AS N FROM DUAL`,
+            + (SELECT COUNT(*) FROM PSCONTENTLANG WHERE CONTNAME = :n) + (SELECT COUNT(*) FROM PSSTYLSHEETDEL WHERE STYLESHEETNAME = :n)
+            + (SELECT COUNT(*) FROM PSCONTDEL WHERE CONTNAME = :n) AS N FROM DUAL`,
       { n: name });
     if (create) {
       if (sheets.length > 0) throw new StyleSheetSaveRefusedError(`A style sheet named ${name} already exists.`);
@@ -113,6 +117,11 @@ export async function saveStyleSheet(c: Connection, blobType: unknown, request: 
     }
     if (!(await operatorExists(c, request.operatorId))) {
       throw new StyleSheetSaveRefusedError(`PeopleSoft operator ${request.operatorId} does not exist in this database (PSOPRDEFN).`);
+    }
+
+    if (request.expectedSnapshotToken !== undefined) {
+      const live = await readContentMigration(c, name, 'stylesheet', true);
+      if ((live?.token ?? 'absent') !== request.expectedSnapshotToken) throw new Error(name + ': complete content snapshot changed after review.');
     }
 
     const counters = await readCounters(c, true);
@@ -158,7 +167,7 @@ export async function saveStyleSheet(c: Connection, blobType: unknown, request: 
     if (now.ssm !== next.ssm || now.sys !== next.sys || now.lockSsm !== next.lockSsm || now.crm !== counters.crm) {
       throw new StyleSheetSaveRefusedError(`counters ${JSON.stringify(now)}, ${JSON.stringify(next)} expected; rolled back.`);
     }
-    await c.commit();
+    if (!deferCommit) await c.commit();
     return result;
   } catch (error) {
     await c.rollback().catch(() => { /* the original error matters more */ });

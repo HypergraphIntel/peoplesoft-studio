@@ -6,7 +6,7 @@ test('verified creation survives renewal but does not classify replaced definiti
  const rows=new Map<string,CreationReceipt>();
  setCreationStore({find:async(scope,key)=>rows.get(creationKey(scope,key)),put:async r=>{rows.set(creationKey(r.scope,r.key),r);}});
  try{
-  const key={type:2,parts:['OU_NEW']},stamp={version:2,operator:'JARED',updated:'2026-10-14 12:00:00.123456'};
+  const key={type:2,parts:['ZZ_NEW']},stamp={version:2,operator:'JARED',updated:'2026-10-14 12:00:00.123456'};
   await recordCreation('HRDMO',key,stamp);
   const receipt=await witnessedCreation('HRDMO',key,stamp);assert(receipt);
   const classification=classifyOwnership({exists:true,operator:'JARED',studioCreation:{createdAt:receipt.createdAt}});

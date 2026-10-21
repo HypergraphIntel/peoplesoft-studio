@@ -36,7 +36,36 @@ export interface PackageItem {
   key: DefinitionKey;
 }
 
-export function buildPackageTree(items: readonly PackageItem[]): PackageNode[] {
+export interface ApplicationPackageDocument {
+  root: string;
+  tree: PackageNode;
+  /** Native root version; required when adding a subpackage to this snapshot. */
+  version?: number;
+}
+
+/** Search uses [root]; project membership uses [id, root, parent path]. */
+export function packageAddress(key: DefinitionKey): { root: string; path: string[] } {
+  if (key.type !== DefinitionType.ApplicationPackage || !key.parts[0]) throw new Error('Select an Application Package.');
+  if (key.parts.length === 1) return { root: key.parts[0], path: [] };
+  const [id, root, parent = '.'] = key.parts;
+  if (!root) throw new Error('The package root is missing.');
+  return { root, path: parent === '.' ? [] : [...splitPath(parent), id] };
+}
+
+export function packageKey(root: string, path: readonly string[] = []): DefinitionKey {
+  return { type: DefinitionType.ApplicationPackage, parts: path.length
+    ? [path.at(-1)!, root, path.length === 1 ? ':' : path.slice(0, -1).join(':')]
+    : [root, root, '.'] };
+}
+
+/** Give inferred parents usable keys too, retaining the exported class keys. */
+export function packageDocument(items: readonly PackageItem[], root: string, version?: number): ApplicationPackageDocument | undefined {
+  const tree = buildPackageTree(items, true).find(n => n.name.toUpperCase() === root.toUpperCase());
+  if (!tree) return undefined;
+  return { root: tree.name, tree, version };
+}
+
+export function buildPackageTree(items: readonly PackageItem[], includeInferredKeys = false): PackageNode[] {
   const roots = new Map<string, PackageNode>();
 
   const rootNode = (name: string): PackageNode => {
@@ -65,11 +94,11 @@ export function buildPackageTree(items: readonly PackageItem[]): PackageNode[] {
     const parts = item.key.parts;
 
     if (item.key.type === DefinitionType.ApplicationPackage) {
-      const [id, root, qualify] = [parts[0] ?? '', parts[1] ?? '', parts[2] ?? ''];
+      const [id, root, qualify] = [parts[0] ?? '', parts[1] ?? parts[0] ?? '', parts[2] ?? '.'];
       if (!root) continue;
       const node = rootNode(root);
       // "." marks the root package itself; the id just repeats the root name.
-      if (qualify === '.' || id.toUpperCase() === root.toUpperCase()) {
+      if (qualify === '.') {
         node.key = item.key;
       } else {
         descend(node, splitPath(qualify).concat(id)).key = item.key;
@@ -78,6 +107,12 @@ export function buildPackageTree(items: readonly PackageItem[]): PackageNode[] {
     }
 
     if (item.key.type === DefinitionType.ApplicationClassPeopleCode) {
+      if (parts.at(-1) === 'OnExecute') {
+        const [root, ...path] = parts.slice(0, -1);
+        const name = path.pop();
+        if (root && name) childNode(descend(rootNode(root), path), name, 'class').key = item.key;
+        continue;
+      }
       const [root, qualify, classId] = [parts[0] ?? '', parts[1] ?? '', parts[2] ?? ''];
       if (!root) continue;
       const node = rootNode(root);
@@ -91,7 +126,17 @@ export function buildPackageTree(items: readonly PackageItem[]): PackageNode[] {
   }
 
   const sorted = [...roots.values()];
-  for (const root of sorted) sortNode(root);
+  for (const root of sorted) {
+    sortNode(root);
+    if (includeInferredKeys) {
+      const visit = (node: PackageNode, path: string[]): void => {
+        if (node.kind !== 'package') return;
+        node.key ??= packageKey(root.name, path);
+        for (const child of node.children) visit(child, [...path, child.name]);
+      };
+      visit(root, []);
+    }
+  }
   return sorted.sort(byName);
 }
 

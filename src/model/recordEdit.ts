@@ -550,6 +550,8 @@ export interface RecordSavePlan {
   viewSql?: string;
   /** An SQL Table's alternate search key indexes, '0', '1', ... (r55). */
   altIndexes: { row: Row; keys: Row[] }[];
+  /** User-defined indexes 'A'-'Z' a new record is created with (ix01); counted in indexCount. */
+  userIndexes?: { row: Row; keys: Row[] }[];
   /** The view's SQL rows are deleted: a view became an SQL Table (r57). */
   dropViewSql?: boolean;
 }
@@ -562,7 +564,9 @@ const str = (v: unknown) => String(v ?? '').trim();
  * alternate search keys, no index but the key index `_`.
  */
 export function editRefusal(stored: StoredRecord): string | undefined {
-  if (stored.recordType !== RecordType.Table && stored.recordType !== RecordType.DerivedWork && !isViewType(stored.recordType)) {
+  // A SubRecord is only ever planned for creation (sb01); saving an existing one would re-expand its parents.
+  const newSubrecord = stored.recordType === RecordType.Subrecord && stored.version === 0 && stored.fields.length === 0;
+  if (stored.recordType !== RecordType.Table && stored.recordType !== RecordType.DerivedWork && !isViewType(stored.recordType) && !newSubrecord) {
     return 'Only SQL Table, SQL View, Dynamic View and Derived/Work records can be edited yet.';
   }
   if (isViewType(stored.recordType) && (Number(stored.defn?.AUXFLAGMASK ?? 0) & RecordFlag.MaterializedView) !== 0) {

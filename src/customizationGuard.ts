@@ -1,4 +1,4 @@
-import { isReviewedWrite, reviewedPolicyIdentity } from './changeReview/authorization.js';
+import { isReviewedWrite, createdInReviewedWrite, reviewedPolicyIdentity } from './changeReview/authorization.js';
 import {creationKey,setCreationStore,type CreationReceipt} from './providers/creationProvenance.js';
 import * as vscode from 'vscode';
 import { gunzipSync, gzipSync } from 'node:zlib';
@@ -9,6 +9,7 @@ import { BaselineIndex, setBaselineResolver, type BaselineFile, type DatabaseRel
 import { awaitWriteApproval, setPolicyReader, setWriteGuard, type GuardedWrite } from './providers/writeGuard.js';
 import { readCustomizationPolicy } from './views/customizationView.js';
 import type { Workspace } from './workspace.js';
+import type { WriteApprovalWorkspace } from './editors/writeApprovals.js';
 
 /*
  * The delivered-object policy in VS Code (docs/CUSTOMIZATION.md): the guard
@@ -21,7 +22,7 @@ import type { Workspace } from './workspace.js';
 
 const VERBS = { save: 'Save', delete: 'Delete', rename: 'Rename' } as const;
 
-export function installCustomizationGuard(context: vscode.ExtensionContext, workspace: Workspace): void {
+export function installCustomizationGuard(context: vscode.ExtensionContext, workspace: Workspace, approvals?: WriteApprovalWorkspace): void {
   const storage = context.globalStorageUri;
   const baselines = vscode.Uri.joinPath(storage, 'baselines');
   const auditFile = vscode.Uri.joinPath(storage, 'customization-audit.jsonl');
@@ -110,7 +111,10 @@ export function installCustomizationGuard(context: vscode.ExtensionContext, work
     const agent = origin === 'agent';
     const policyName = agent ? 'agentDeliveredObjectPolicy' : 'deliveredObjectPolicy';
     const decision = decideWrite(classification, agent ? policy.agentDeliveredObjectPolicy : policy.deliveredObjectPolicy, exists);
-    if (isReviewedWrite(provider.id, key) && !isReviewedWrite(provider.id, key, reviewedPolicyIdentity(policy, classification, exists))) throw new Error('Ownership or policy changed after Change Review; revalidate and review again.');
+    // A definition this reviewed write created a moment ago (then saves further) changed its own ownership evidence;
+    // the approval covered its creation, so that is not a change after review. Refusal by policy still applies.
+    const createdHere = createdInReviewedWrite(provider.id, key);
+    if (isReviewedWrite(provider.id, key) && !createdHere && !isReviewedWrite(provider.id, key, reviewedPolicyIdentity(policy, classification, exists))) throw new Error('Ownership or policy changed after Change Review; revalidate and review again.');
     if (decision.action === 'allow') return;
     const name = displayName(key);
     const record = (outcome: string) => audit({
@@ -123,13 +127,15 @@ export function installCustomizationGuard(context: vscode.ExtensionContext, work
     }
     if (decision.action === 'audit') { await record('allowed with audit'); return; }
     if (isReviewedWrite(provider.id, key, reviewedPolicyIdentity(policy, classification, exists))) { await record('approved exact Change Review revision'); return; }
+    if (createdHere) { await record('approved exact Change Review revision (created by this write)'); return; }
     // A person's session approval does not cover an agent's writes, nor the other way round.
     const session = `${origin}\u0000${provider.id}\u0000${key.type}\u0000${key.parts.join('.')}`;
     if (sessionApprovals.has(session)) { await record('approved for the session'); return; }
-    const answer = await awaitWriteApproval(vscode.window.showWarningMessage(
-      `${agent ? 'An AI agent wants to ' + action : VERBS[action]} ${name}${agent ? ' through the MCP' : ''}. ${decision.reason}`,
-      { modal: true, detail: `${OWNERSHIP_LABELS[classification.ownership]} (${classification.confidence.toLowerCase()} confidence) on ${provider.displayName}:\n- ${classification.evidence.join('\n- ')}\n\nThis is the delivered-object approval (peoplesoft.customization.${policyName}); it covers this ${action} only, or this definition for the rest of the session${agent ? ' (agent writes only)' : ''}.` },
-      'Approve', 'Approve for This Session'), 'Delivered-object approval');
+    const title = `${agent ? 'An AI agent wants to ' + action : VERBS[action]} ${name}${agent ? ' through the MCP' : ''}. ${decision.reason}`;
+    const detail = `${OWNERSHIP_LABELS[classification.ownership]} (${classification.confidence.toLowerCase()} confidence) on ${provider.displayName}:\n- ${classification.evidence.join('\n- ')}\n\nThis is the delivered-object approval (peoplesoft.customization.${policyName}); it covers this ${action} only, or this definition for the rest of the session${agent ? ' (agent writes only)' : ''}.`;
+    const answer = await awaitWriteApproval(signal => agent && approvals
+      ? approvals.prompt({ title, detail, choices: ['Approve', 'Approve for This Session'] }, signal)
+      : vscode.window.showWarningMessage(title, { modal: true, detail }, 'Approve', 'Approve for This Session'), 'Delivered-object approval');
     if (!answer) {
       await record('declined');
       throw new Error(`${VERBS[action]} of ${name} not approved: nothing was written.`);

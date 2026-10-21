@@ -46,7 +46,7 @@ export interface Continuation {
     prerequisites: { changeSetId: string; objectId: string; adapter: string; key: Json; snapshot: string; token: string }[];
 }
 export interface ChangeSet {
-    schema: 1 | 2;
+    schema: 1 | 2 | 3 | 4;
     id: string;
     title: string;
     description: string;
@@ -68,6 +68,8 @@ export interface ChangeSet {
         }[];
     };
     reverses?: string;
+    /** Immutable forward lineage; schema 4 also binds a continuation of an interrupted reversal. */
+    reversalSources?: { changeSetId: string; revision: number; objects: { objectId: string; snapshot: string; token: string }[] }[];
     continuation?: Continuation;
     requestKey?: string;
     requestHash?: string;
@@ -90,6 +92,21 @@ export function canonical(value: unknown): string {
     throw new Error('Snapshots require plain JSON without undefined, special objects or nonfinite numbers.');
 }
 export const hash = (value: unknown): string => createHash('sha256').update(canonical(value)).digest('hex');
+/** Binds a trusted UI action to the exact rendered durable state, including same-revision reviews/validation. */
+export const reviewStateToken = (set: ChangeSet): string => hash(JSON.parse(JSON.stringify(set)));
+/** Never implicitly revive a rejected object or approve dependents of an excluded prerequisite. */
+export function reviewEligibleIds(set: ChangeSet): string[] {
+    const ids = new Set(set.objects.map(c => c.id));
+    const blocked = new Set(set.objects.filter(c => c.review === 'REJECTED' || c.application !== 'PENDING').map(c => c.id));
+    let changed = true;
+    while (changed) {
+        changed = false;
+        for (const c of set.objects) if (!blocked.has(c.id) && c.dependencies.some(id => !ids.has(id) || blocked.has(id))) {
+            blocked.add(c.id); changed = true;
+        }
+    }
+    return set.objects.filter(c => !blocked.has(c.id)).map(c => c.id);
+}
 export const now = (): string => new Date().toISOString();
 export function privacy(value: Json): void {
     const visit = (v: Json): void => {
@@ -116,7 +133,7 @@ const transitions: Record<Status, Status[]> = {
     DRAFT: ['VALIDATING', 'CANCELLED', 'REJECTED'], VALIDATING: ['READY_FOR_REVIEW', 'CONFLICTED', 'FAILED'],
     READY_FOR_REVIEW: ['DRAFT', 'VALIDATING', 'APPROVED', 'REJECTED', 'CANCELLED'], APPROVED: ['DRAFT', 'VALIDATING', 'APPLYING', 'CANCELLED', 'REJECTED'],
     APPLYING: ['APPLIED', 'FAILED', 'PARTIALLY_APPLIED', 'CONFLICTED'], APPLIED: ['REVERTED'],
-    REJECTED: [], CANCELLED: [], CONFLICTED: ['DRAFT', 'VALIDATING', 'CANCELLED'], FAILED: ['DRAFT', 'VALIDATING'], PARTIALLY_APPLIED: [], REVERTED: []
+    REJECTED: [], CANCELLED: [], CONFLICTED: ['DRAFT', 'VALIDATING', 'CANCELLED'], FAILED: ['DRAFT', 'VALIDATING'], PARTIALLY_APPLIED: ['REVERTED'], REVERTED: []
 };
 export function transition(set: ChangeSet, next: Status): void {
     if (!transitions[set.status]?.includes(next))
@@ -129,7 +146,8 @@ export function planHash(set: ChangeSet): string { return hash({ environment: se
 export function approvalHash(set: ChangeSet, change: Change): string {
     return hash({ environment: set.environment, revision: set.revision, object: change.id, adapter: change.adapter, key: change.key,
         before: change.before, after: change.after, token: change.baselineToken, dependencies: change.dependencies, operation: change.operation, objectRevision: change.revision, authorization: change.authorizationStamp ?? null,
-        ...(set.continuation ? { continuation: set.continuation } : {}) });
+        ...(set.continuation ? { continuation: set.continuation } : {}),
+        ...(set.reversalSources ? { reversalSources: set.reversalSources } : {}) });
 }
 export function ordered(set: ChangeSet, approvedOnly = true): Change[] {
     const selected = set.objects.filter(c => !approvedOnly || c.review === 'APPROVED');

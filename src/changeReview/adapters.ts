@@ -1,3 +1,6 @@
+import { databaseMigrationTarget, readMigrationAsset } from '../providers/migrationTarget.js';
+import { assetRequirements, type MigrationAsset } from '../migrationPackage.js';
+import { migrationAdapter, migrationReviewKey, reviewedMigrationAsset, migrationJson, readMigrationProject } from './migration.js';
 import type { Snapshot } from './model.js';
 import { prepareSourceForSave } from '../peoplecode/writeback/savePlan.js';
 import { pcmProgKeyParts } from '../model/peopleCodeKeys.js';
@@ -14,7 +17,7 @@ import { writeScopeRefusal } from '../providers/writeScope.js';
 import { prepareSqlText, SQL_TEXT_ROW_LIMIT } from '../providers/sqlWriter.js';
 import { processEdit, processToken, validateProcessEdit, type ProcessEdit } from '../model/processEdit.js';
 import { hash, type Environment, type Json } from './model.js';
-import type { ReviewAdapter } from './service.js';
+import type { ReviewAdapter, ReviewValidationContext } from './service.js';
 import { withReviewedWrite, reviewedPolicyIdentity } from './authorization.js';
 import type { McpWriteHost } from '../mcp/writeTools.js';
 import { requireProvider } from '../mcp/tools.js';
@@ -27,6 +30,7 @@ import { ibStructuralChange, ibStructuralInput, ibStructuralReversalRefusal } fr
 import { creationKey, creationRecordEdit, creationAeDocument, proposedAeReferences, proposedProjectMembers } from './structuredCreation.js';
 import { projectReviewName, projectCreationItems } from '../providers/projectSnapshot.js';
 import type { IbReviewKind } from '../providers/ibSnapshot.js';
+import { textDefinitionData, type TextDefinitionKind } from '../providers/textDefinitionWriter.js';
 export function databaseReviewAdapters(workspace: Workspace, host: () => McpWriteHost | undefined) {
     async function provider(environment: Environment): Promise<DatabaseProvider> {
         const p = await workspace.require(environment.connection);
@@ -135,7 +139,7 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
             }
         };
     };
-    const sql: ReviewAdapter = { id: 'sql', authorizationState: (e, key) => authorizationState(e, sqlKey(key)), warnings: (e, key) => warnings(e, sqlKey(key)), normalize: value => value && typeof value === 'object' && !Array.isArray(value) && typeof value.text === 'string' ? { ...value, text: prepareSqlText(value.text) } : value,
+    const sql: ReviewAdapter = { id: 'sql', scope:key=>'text:sql:'+sqlKey(key).parts[0], authorizationState: (e, key) => authorizationState(e, sqlKey(key)), warnings: (e, key) => warnings(e, sqlKey(key)), normalize: value => value && typeof value === 'object' && !Array.isArray(value) && typeof value.text === 'string' ? { ...value, text: prepareSqlText(value.text) } : value,
         read: async (e, key) => {
             const p = await provider(e), k = sqlKey(key), read = await p.readSqlForEdit(k);
             if (!read && await p.sqlIdTaken(k.parts[0]))
@@ -165,7 +169,7 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
                 throw new Error('Invalid text definition name.');
             return makeKey(type, key, ...(type === DefinitionType.HtmlDefinition ? ['4'] : []));
         };
-        return { id, authorizationState: (e, key) => authorizationState(e, keyOf(key)), warnings: (e, key) => warnings(e, keyOf(key)), normalize: value => value && typeof value === 'object' && !Array.isArray(value) && typeof value.text === 'string' ? { ...value, text: prepareHtmlText(value.text), ...(typeof value.description === 'string' ? { description: value.description.trimEnd() } : {}) } : value,
+        return { id, scope:key=>'text:content:'+keyOf(key).parts[0], authorizationState: (e, key) => authorizationState(e, keyOf(key)), warnings: (e, key) => warnings(e, keyOf(key)), normalize: value => value && typeof value === 'object' && !Array.isArray(value) && typeof value.text === 'string' ? { ...value, text: prepareHtmlText(value.text), ...(typeof value.description === 'string' ? { description: value.description.trimEnd() } : {}) } : value,
             read: async (e, key) => { const p = await provider(e), read = await p.readReviewContent(keyOf(key)); return { value: read ? { text: read.text, description: read.description } : null, token: read ? String(read.version) : 'absent' }; },
             validate: async (_e, key, _before, after) => {
                 keyOf(key);
@@ -182,6 +186,34 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
                 const request = { name: k.parts[0], text: after.text, description: after.description, operatorId: operator, ...(baseline.token === 'absent' ? {} : { openedVersion: Number(baseline.token) }) };
                 await withReviewedWrite(p.id, k, () => runAsAgent(() => type === DefinitionType.HtmlDefinition ? p.saveHtmlDefinition(request) : p.saveStyleSheet(request)), policyIdentity);
                 host()!.saved(p.id, k);
+            }
+        };
+    };
+    const textDefinition = (kind:TextDefinitionKind):ReviewAdapter => {
+        const keyOf=(key:Json)=>{if(typeof key!=='string'||!/^[A-Z][A-Z0-9_]{0,29}$/.test(key))throw Error('Invalid complete text-definition key.');return makeKey(kind==='sql'?DefinitionType.SqlDefinition:kind==='html'?DefinitionType.HtmlDefinition:DefinitionType.StyleSheet,key,...(kind==='sql'?['0']:kind==='html'?['4']:[]));};
+        return {id:kind+'-definition',canDelete:true,scope:key=>'text:'+(kind==='sql'?'sql':'content')+':'+keyOf(key).parts[0],
+            authorizationState:(e,key)=>authorizationState(e,keyOf(key)),
+            warnings:async(e,key)=>[...await warnings(e,keyOf(key)),'Complete bounded SQL/HTML/freeform checkpoint, native tombstones and locked token. Project, metadata and stored-source mentions can block deletion, including comments; dynamic references remain unknown. Reviewed recreation clears only its bound native markers. Oracle PeopleTools 8.62 only.'],
+            normalize:value=>value&&typeof value==='object'&&!Array.isArray(value)&&typeof value.text==='string'?{...value,text:kind==='sql'?prepareSqlText(value.text):prepareHtmlText(value.text)}:value,
+            read:async(e,key)=>{const live=await(await provider(e)).readTextDefinitionForReview(kind,keyOf(key).parts[0],true);return {value:live.value as unknown as Json,token:live.token};},
+            authorize:async(e,key)=>{await authorize(e,keyOf(key));},
+            validate:async(e,key,before,after,context)=>{try{
+                const k=keyOf(key),{p,operator}=await authorize(e,k),live=await p.readTextDefinitionForReview(kind,k.parts[0],true);
+                if(hash(live.value)!==hash(before))return ['Complete text baseline changed before validation.'];
+                const data=after===null?null:textDefinitionData(kind,k.parts[0],after);
+                const dependencies=context?.phase==='proposal'?context.dependencies:[];
+                await p.writeTextDefinitionForReview({kind,name:k.parts[0],after:data,operatorId:operator,expectedSnapshotToken:live.token,expectedAfterHash:hash(after),allowDeletedBaseline:true,dryRun:true,
+                    proposedProjectDeletions:dependencies.filter(d=>['project-create','migration-project'].includes(d.adapter)&&d.after===null&&typeof d.key==='string').map(d=>d.key as string),
+                    proposedAeDeletions:dependencies.filter(d=>d.adapter==='ae-create'&&d.after===null&&typeof d.key==='string').map(d=>d.key as string),
+                    proposedTextDeletions:dependencies.flatMap(d=>{const family=d.adapter.replace(/-definition$/,'').replace(/^migration-/,'');if(d.after!==null||!['sql','html','stylesheet'].includes(family)||!(/-definition$/.test(d.adapter)||d.adapter.startsWith('migration-')))return [];return [{kind:family as TextDefinitionKind,name:typeof d.key==='string'?d.key:migrationReviewKey(d.key).parts[0]}];})});
+                return [];
+            }catch(error){return [error instanceof Error?error.message:String(error)];}},
+            write:async(e,key,after,baseline)=>{
+                const k=keyOf(key),{p,operator,policyIdentity}=await authorizeReviewed(e,k,baseline),live=await p.readTextDefinitionForReview(kind,k.parts[0],true);
+                if(live.token!==baseline.token||hash(live.value)!==hash(baseline.value))throw Error('Complete text baseline changed before writer.');
+                const data=after===null?null:textDefinitionData(kind,k.parts[0],after);
+                await withReviewedWrite(p.id,k,()=>runAsAgent(()=>p.writeTextDefinitionForReview({kind,name:k.parts[0],after:data,operatorId:operator,expectedSnapshotToken:baseline.token,expectedAfterHash:hash(after),allowDeletedBaseline:true})),policyIdentity);
+                host()!.saved(p.id,k);
             }
         };
     };
@@ -262,7 +294,7 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
     const queryKey = (key: Json) => {
         if (!Array.isArray(key) || key.length !== 2 || key.some(x => typeof x !== 'string'))
             throw new Error('Query key is [name, owner].');
-        return makeKey(DefinitionType.Query, ...key as string[]);
+        return makeKey(DefinitionType.Query, ...(key as string[]).map(p=>p.trim()));
     };
     async function queryAccess(e: Environment, key: Json) {
         const p = await provider(e), k = queryKey(key), operator = workspace.configFor(p.id)?.peoplesoftOperatorId?.trim();
@@ -272,29 +304,38 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
             throw new Error('Only public or own private Queries can be reviewed.');
         return { p, k, operator };
     }
-    const query: ReviewAdapter = { id: 'query', authorizationState: (e, key) => authorizationState(e, queryKey(key)), warnings: (e, key) => warnings(e, queryKey(key)), diff: queryDiff,
-        read: async (e, key) => { const { p, k } = await queryAccess(e, key), read = await p.readQueryDocument(k.parts[0], k.parts[1] ?? ''); return { value: read ? querySnapshot(read.view) : null, token: read?.token ?? 'absent' }; },
-        validate: async (e, key, _before, after) => {
+    const query: ReviewAdapter = { id: 'query', canDelete:true,scope:key=>'query:'+JSON.stringify(queryKey(key).parts),
+        authorizationState: (e, key) => authorizationState(e, queryKey(key)),
+        warnings:async(e,key)=>[...await warnings(e,queryKey(key)),'Oracle 8.62 supports bounded Query creation deletion/redo with full native tokens, owner-specific tombstones and actual rollback preview. Known references/source mentions can block deletion; dynamic references remain unknown. Other releases retain existing create/update gates.'],diff: queryDiff,
+        read: async (e, key) => { const { p, k } = await queryAccess(e, key);
+            if((await p.readEnvironment()).toolsRelease==='8.62'){const state=await p.readQueryForReview(k.parts[0],k.parts[1]??'',true);return {value:state.value,token:state.token};}
+            const read = await p.readQueryDocument(k.parts[0], k.parts[1] ?? ''); return { value: read ? querySnapshot(read.view) : null, token: read?.token ?? 'absent' }; },
+        validate: async (e, key, before, after,context) => {
             try {
-                const { p, k, operator } = await queryAccess(e, key), view = queryView(after);
-                if (String(view.query.QRYNAME).trim() !== k.parts[0] || String(view.query.OPRID).trim() !== (k.parts[1] ?? '').trim())
-                    return ['Query key cannot change inside a snapshot.'];
-                await p.prepareQuery(view, operator);
-                return [];
-            }
-            catch (error) {
-                return [error instanceof Error ? error.message : String(error)];
-            }
+                const { p, k, operator } = await queryAccess(e, key);
+                if((await p.readEnvironment()).toolsRelease==='8.62'){
+                    const live=await p.readQueryForReview(k.parts[0],k.parts[1]??'',true);
+                    if(hash(live.value)!==hash(before))return ['Complete Query baseline changed.'];
+                    await p.writeQueryForReview({name:k.parts[0],owner:k.parts[1]??'',after,operatorId:operator,expectedSnapshotToken:live.token,expectedAfterHash:hash(after),allowDeletedBaseline:true,dryRun:true,
+                        proposedProjectDeletions:context?.phase==='proposal'?context.dependencies.filter(d=>['project-create','migration-project'].includes(d.adapter)&&d.after===null&&typeof d.key==='string').map(d=>d.key as string):[]});return [];
+                }
+                if(after===null)return ['Query deletion is calibrated only for Oracle PeopleTools 8.62.'];
+                const view = queryView(after);
+                if (String(view.query.QRYNAME).trim() !== k.parts[0] || String(view.query.OPRID).trim() !== (k.parts[1] ?? '').trim())return ['Query key cannot change inside a snapshot.'];
+                await p.prepareQuery(view, operator);return [];
+            }catch (error) {return [error instanceof Error ? error.message : String(error)];}
         },
         authorize: async (e, key) => { await queryAccess(e, key); await authorize(e, queryKey(key)); },
         write: async (e, key, after, baseline) => {
-            const k = queryKey(key), { p, operator, policyIdentity } = await authorizeReviewed(e, k, baseline);
-            await queryAccess(e, key);
-            const proposed = queryView(after), read = await p.readQueryDocument(k.parts[0], k.parts[1] ?? '');
-            if (read)
-                proposed.query = { ...read.view.query, ...proposed.query };
-            await withReviewedWrite(p.id, k, () => runAsAgent(() => p.saveQueryDocument({ view: proposed, openedToken: baseline.token, operatorId: operator })), policyIdentity);
-            host()!.saved(p.id, k);
+            const k = queryKey(key), { p, operator, policyIdentity } = await authorizeReviewed(e, k, baseline);await queryAccess(e, key);
+            if((await p.readEnvironment()).toolsRelease==='8.62'){
+                const live=await p.readQueryForReview(k.parts[0],k.parts[1]??'',true);if(live.token!==baseline.token||hash(live.value)!==hash(baseline.value))throw Error('Complete Query baseline changed before writer.');
+                await withReviewedWrite(p.id,k,()=>runAsAgent(()=>p.writeQueryForReview({name:k.parts[0],owner:k.parts[1]??'',after,operatorId:operator,expectedSnapshotToken:baseline.token,expectedAfterHash:hash(after),allowDeletedBaseline:true})),policyIdentity);
+            }else{
+                if(after===null)throw Error('Query deletion is calibrated only for Oracle PeopleTools 8.62.');
+                const proposed = queryView(after), read = await p.readQueryDocument(k.parts[0], k.parts[1] ?? '');if (read)proposed.query = { ...read.view.query, ...proposed.query };
+                await withReviewedWrite(p.id, k, () => runAsAgent(() => p.saveQueryDocument({ view: proposed, openedToken: baseline.token, operatorId: operator })), policyIdentity);
+            }host()!.saved(p.id, k);
         }
     };
     const ibHeader = (kind: IbReviewKind): ReviewAdapter => {
@@ -336,44 +377,62 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
     };
     const structuredCreation = (family: StructuredFamily): ReviewAdapter => {
         const keyOf = (key: Json) => makeKey(family === 'record' ? DefinitionType.Record : DefinitionType.AppEngineProgram, creationKey(family, key));
-        return { id: family + '-create',
+        return { id: family + '-create', canDelete: true,
             authorizationState: (e, key) => authorizationState(e, keyOf(key)),
-            warnings: async (e, key) => [...await warnings(e, keyOf(key)), 'New definition only; orphan scopes and deletion markers are refused. Creation undo is unsupported. Native execution is a separate step.'],
+            warnings: async (e, key) => [...await warnings(e, keyOf(key)), 'Typed creation and reviewed deletion/recreation only. Full native scope and tombstones are fingerprinted. Known project, state/temp record, static-call and Process references can block deletion; dynamic references still require developer assessment. Native execution is separate.'],
             read: async (e, key) => {
-                const live = await (await provider(e)).readStructuredCreationForReview(family, keyOf(key).parts[0]);
+                const live = await (await provider(e)).readStructuredCreationForReview(family, keyOf(key).parts[0], true);
                 return { value: live.value as unknown as Json, token: live.token };
             },
             authorize: async (e, key) => { await authorize(e, keyOf(key)); },
             validate: async (e, key, before, after, context) => {
                 try {
-                    if (before !== null || after === null) return ['Creation adapter requires a new, vacant definition scope.'];
-                    const k = keyOf(key), { p, operator } = await authorize(e, k), live = await p.readStructuredCreationForReview(family, k.parts[0]);
+                    if (after === null) {
+                        if (before === null) return ['Cannot delete an absent definition.'];
+                        const k = keyOf(key), { p, operator } = await authorize(e, k), live = await p.readStructuredCreationForReview(family, k.parts[0], true);
+                        if (hash(live.value) !== hash(before)) return ['Deletion baseline changed.'];
+                        if (family === 'record') { creationRecordEdit(before, k.parts[0]); await p.deleteRecord({ recname: k.parts[0], openedVersion: live.version, operatorId: operator, expectedSnapshotToken: live.token, dryRun: true, proposedAeDeletions: context?.phase === 'proposal' ? context.dependencies.filter(d => d.adapter === 'ae-create' && d.after === null && typeof d.key === 'string').map(d => d.key as string) : [] }); }
+                        else { creationAeDocument(before, k.parts[0]); const ae = await p.readAppEngineDocument(k.parts[0]); if (!ae) return ['AE no longer exists.']; await p.deleteAppEngineProgram(k.parts[0], ae.token, operator, live.token, true); }
+                        return [];
+                    }
+                    if (before !== null) return ['Creation requires an absent definition; structural UPDATE is unsupported.'];
+                    const k = keyOf(key), { p, operator } = await authorize(e, k), live = await p.readStructuredCreationForReview(family, k.parts[0], true);
                     if (live.value !== null) return ['Definition is no longer absent.'];
                     let result;
                     if (family === 'record') result = await p.saveRecord({ edit: creationRecordEdit(after, k.parts[0]), operatorId: operator,
-                        dryRun: true, captureSnapshots: true, expectedSnapshotToken: live.token, expectedAfterHash: hash(after) });
+                        dryRun: true, captureSnapshots: true, allowDeletedBaseline: true, expectedSnapshotToken: live.token, expectedAfterHash: hash(after) });
                     else {
                         const doc = creationAeDocument(after, k.parts[0]);
                         const errors = (await deepValidate(p, doc, proposedAeReferences(p.appEngineReferenceLookup(), context))).filter(d => d.severity === 'error');
                         if (errors.length) return errors.map(d => d.path + ': ' + d.message);
                         result = await p.saveAppEngineDocument({ doc, openedToken: 'absent', operatorId: operator,
-                            dryRun: true, captureSnapshots: true, expectedSnapshotToken: live.token, expectedAfterHash: hash(after) });
+                            dryRun: true, captureSnapshots: true, allowDeletedBaseline: true, expectedSnapshotToken: live.token, expectedAfterHash: hash(after) });
                     }
                     return result.creationPreview?.before.value === null && result.creationPreview.after.hash === hash(after) ? [] : ['Native creation preview differs from review.'];
                 } catch (error) { return [error instanceof Error ? error.message : String(error)]; }
             },
             write: async (e, key, after, baseline) => {
-                if (baseline.value !== null || after === null) throw new Error('Creation requires an absent definition.');
+                if (after === null) {
+                    if (baseline.value === null) throw new Error('Cannot delete an absent definition.');
+                    const k = keyOf(key), { p, operator, policyIdentity } = await authorizeReviewed(e, k, baseline), live = await p.readStructuredCreationForReview(family, k.parts[0], true);
+                    if (live.token !== baseline.token || hash(live.value) !== hash(baseline.value)) throw new Error('Deletion baseline changed.');
+                    await withReviewedWrite(p.id, k, () => runAsAgent(async () => {
+                        if (family === 'record') { creationRecordEdit(baseline.value, k.parts[0]); await p.deleteRecord({ recname:k.parts[0], openedVersion:live.version, operatorId:operator, expectedSnapshotToken:live.token }); }
+                        else { creationAeDocument(baseline.value, k.parts[0]); const ae = await p.readAppEngineDocument(k.parts[0]); if (!ae) throw new Error('AE no longer exists.'); await p.deleteAppEngineProgram(k.parts[0],ae.token,operator,live.token); }
+                    }), policyIdentity);
+                    host()!.saved(p.id, k); return;
+                }
+                if (baseline.value !== null) throw new Error('Creation requires an absent definition.');
                 const k = keyOf(key), { p, operator, policyIdentity } = await authorizeReviewed(e, k, baseline);
                 await withReviewedWrite(p.id, k, () => runAsAgent(async () => {
                     if (family === 'record') await p.saveRecord({ edit: creationRecordEdit(after, k.parts[0]), operatorId: operator,
-                        expectedSnapshotToken: baseline.token, expectedAfterHash: hash(after) });
+                        allowDeletedBaseline: true, expectedSnapshotToken: baseline.token, expectedAfterHash: hash(after) });
                     else {
                         const doc = creationAeDocument(after, k.parts[0]);
                         const errors = (await deepValidate(p, doc)).filter(d => d.severity === 'error');
                         if (errors.length) throw new Error(errors.map(d => d.path + ': ' + d.message).join('\n'));
                         await p.saveAppEngineDocument({ doc, openedToken: 'absent', operatorId: operator,
-                            expectedSnapshotToken: baseline.token, expectedAfterHash: hash(after) });
+                            allowDeletedBaseline: true, expectedSnapshotToken: baseline.token, expectedAfterHash: hash(after) });
                     }
                 }), policyIdentity);
                 host()!.saved(p.id, k);
@@ -381,38 +440,215 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
         };
     };
     const projectCreateKey = (key: Json) => makeKey(DefinitionType.Project, projectReviewName(key));
-    const projectCreate: ReviewAdapter = { id: 'project-create',
+    const projectCreate: ReviewAdapter = { id: 'project-create',canDelete:true,scope:key=>'project:'+projectReviewName(key),
         authorizationState: (e, key) => authorizationState(e, projectCreateKey(key)),
-        warnings: async (e, key) => [...await warnings(e, projectCreateKey(key)), 'New project with explicit Record, Field, SQL and AE membership only. Target credentials are excluded; no credential freshness or creation undo is certified.'],
-        read: async (e, key) => {
-            const live = await (await provider(e)).readProjectCreationForReview(projectCreateKey(key).parts[0]);
-            return { value: live.value, token: live.token };
-        },
+        warnings: async (e, key) => [...await warnings(e, projectCreateKey(key)), 'Calibrated creation/default metadata and typed membership only. Oracle 8.62 creation inverse removes the project header/members, preserving definitions, and redo clears its bound PJM marker. Ancillary references, nondefault metadata or target credentials block deletion.'],
+        read: async (e, key) => {const live = await (await provider(e)).readProjectCreationForReview(projectCreateKey(key).parts[0],true);return { value: live.value, token: live.token };},
         authorize: async (e, key) => { await authorize(e, projectCreateKey(key)); },
         validate: async (e, key, before, after, context) => {
             try {
-                if (before !== null || after === null) return ['Project creation requires a vacant scope.'];
-                const k = projectCreateKey(key), { p, operator } = await authorize(e, k), live = await p.readProjectCreationForReview(k.parts[0]);
-                const items = projectCreationItems(after, k.parts[0]);
-                const preview = await p.createProjectForReview({ project: k.parts[0], operatorId: operator, items, dryRun: true,
-                    proposed: proposedProjectMembers(context), expectedSnapshotToken: live.token, expectedAfterHash: hash(after) });
-                return preview.before.value === null && preview.after.hash === hash(after) ? [] : ['Project preview differs from review.'];
+                if(before!==null&&after!==null)return ['This adapter creates/deletes projects; membership removal is not calibrated.'];
+                const k = projectCreateKey(key), { p, operator } = await authorize(e, k), live = await p.readProjectCreationForReview(k.parts[0],true);
+                if(hash(live.value)!==hash(before))return ['Complete project baseline changed.'];
+                const items=after===null?null:projectCreationItems(after,k.parts[0]);
+                await p.writeProjectForReview({name:k.parts[0],operatorId:operator,items,mode:'full',dryRun:true,allowDeletedBaseline:true,
+                    proposed:proposedProjectMembers(context),expectedSnapshotToken:live.token,expectedAfterHash:hash(after)});return [];
             } catch (error) { return [error instanceof Error ? error.message : String(error)]; }
         },
         write: async (e, key, after, baseline) => {
-            if (baseline.value !== null || after === null) throw new Error('Project creation requires an absent definition.');
-            const k = projectCreateKey(key), { p, operator, policyIdentity } = await authorizeReviewed(e, k, baseline);
-            const items = projectCreationItems(after, k.parts[0]);
-            await withReviewedWrite(p.id, k, () => runAsAgent(() => p.createProjectForReview({ project: k.parts[0], operatorId: operator, items,
-                expectedSnapshotToken: baseline.token, expectedAfterHash: hash(after) })), policyIdentity);
+            if(baseline.value!==null&&after!==null)throw Error('Project creation requires an absent definition.');
+            const k = projectCreateKey(key), { p, operator, policyIdentity } = await authorizeReviewed(e, k, baseline),items=after===null?null:projectCreationItems(after,k.parts[0]);
+            await withReviewedWrite(p.id,k,()=>runAsAgent(()=>p.writeProjectForReview({name:k.parts[0],operatorId:operator,items,mode:'full',allowDeletedBaseline:true,expectedSnapshotToken:baseline.token,expectedAfterHash:hash(after)})),policyIdentity);host()!.saved(p.id,k);
+        }
+    };
+    async function migrationCodeAccess(e:Environment, asset:MigrationAsset, before:Json) {
+        if(asset.kind!=='menu')return;
+        const p=await provider(e);
+        const previous=before===null?undefined:reviewedMigrationAsset('menu',migrationJson(asset.key),before);
+        const docs=[asset.data,...(previous?.kind==='menu'?[previous.data]:[])];
+        for(const doc of docs)for(const bar of doc.bars)for(const item of bar.items)if(item.peopleCode) {
+            const key=makeKey(DefinitionType.MenuPeopleCode,asset.data.name,bar.name,item.name,'ItemSelected');
+            if(!workspace.isPeopleCodeWritable(p.id,key)||workspace.configFor(p.id)?.peoplecodeSaveMode==='save-only')throw Error('Compile and save PeopleCode access is required for menu ItemSelected programs.');
+            if(host()?.hasUnsavedEditor(p.id,key))throw Error('An ItemSelected PeopleCode editor has unsaved changes.');
+        }
+    }
+    const migration = (kind: MigrationAsset['kind']): ReviewAdapter => {
+        if (kind==='sql'||kind==='html'||kind==='stylesheet') {
+            const base=textDefinition(kind);
+            const mapped=(key:Json)=>{const k=migrationReviewKey(key),type=kind==='sql'?30:kind==='html'?51:50;
+                if(k.type!==type||k.parts.length!==(kind==='stylesheet'?1:2)||(kind==='sql'&&k.parts[1]!=='0')||(kind==='html'&&k.parts[1]!=='4'))throw Error('Invalid complete text migration identity.');return k.parts[0];};
+            return {...base,id:migrationAdapter(kind),scope:key=>base.scope!(mapped(key)),
+                read:(e,key)=>base.read(e,mapped(key)),authorize:(e,key,op)=>base.authorize(e,mapped(key),op),
+                authorizationState:(e,key)=>base.authorizationState!(e,mapped(key)),warnings:(e,key)=>base.warnings!(e,mapped(key)),
+                validate:(e,key,before,after,context)=>base.validate(e,mapped(key),before,after,context),
+                write:(e,key,after,before)=>base.write(e,mapped(key),after,before)};
+        }
+        if(kind==='query'){
+            const mapped=(key:Json)=>{const k=migrationReviewKey(key);if(k.type!==DefinitionType.Query||k.parts.length>2)throw Error('Invalid Query migration key.');return [k.parts[0],k.parts[1]??''];};
+            const value=(key:Json,payload:Json)=>payload===null?null:(reviewedMigrationAsset('query',key,payload).data as {view:Json}).view;
+            return {...query,id:'migration-query',scope:key=>query.scope!(mapped(key)),
+                read:async(e,key)=>{const k=mapped(key),state=await query.read(e,k);return {value:state.value===null?null:{name:k[0],owner:k[1],view:state.value},token:state.token};},
+                authorize:(e,key,op)=>query.authorize(e,mapped(key),op),authorizationState:(e,key)=>query.authorizationState!(e,mapped(key)),warnings:(e,key)=>query.warnings!(e,mapped(key)),
+                diff:{id:'migration-query',compare:(before,after)=>queryDiff.compare(before&&typeof before==='object'&&!Array.isArray(before)?before.view??null:null,after&&typeof after==='object'&&!Array.isArray(after)?after.view??null:null)},
+                validate:(e,key,before,after,context)=>query.validate(e,mapped(key),value(key,before),value(key,after),context),
+                write:(e,key,after,before)=>query.write(e,mapped(key),value(key,after),{value:value(key,before.value),token:before.token})};
+        }
+        // Undoing a migration creation uses the calibrated deletion writers; fields, pages, components and packages have none yet.
+        const deletable = (key: Json) => ['record', 'ae', 'menu', 'peoplecode', 'field', 'page', 'component', 'package'].includes(kind) && !!migrationReviewKey(key);
+        async function migrationDelete(p: DatabaseProvider, k: DefinitionKey, operator: string, token: string, dryRun: boolean, context?: ReviewValidationContext) {
+            // A rollback preview may assume what the same inverse deletes first (projects before members, Record PeopleCode
+            // before its record); application runs each writer's real reference checks after those deletions.
+            const deleted = dryRun && context?.phase === 'proposal' ? context.dependencies.filter(d => d.after === null) : [];
+            const projects = deleted.filter(d => ['project-create', 'migration-project'].includes(d.adapter) && typeof d.key === 'string').map(d => d.key as string);
+            const codes = deleted.filter(d => d.adapter === 'migration-peoplecode').map(d => migrationReviewKey(d.key))
+                .filter(c => c.type === DefinitionType.RecordPeopleCode && c.parts[0] === k.parts[0]).map(c => [c.parts[1], c.parts[2]] as const);
+            const named = (adapter: string) => deleted.filter(d => d.adapter === adapter).map(d => migrationReviewKey(d.key));
+            const proposed = { projects, records: named('migration-record').map(r => r.parts[0]), pages: named('migration-page').map(r => r.parts[0]),
+                components: named('migration-component').map(r => [r.parts[0], r.parts[1]] as const), menus: named('migration-menu').map(r => r.parts[0]) };
+            const assumptions = dryRun && context?.phase === 'proposal' ? { proposed } : {};
+            const listedElsewhere = async () => (await p.projectsListing(k)).filter(n => !projects.includes(n));
+            if (kind === 'record') {
+                const snapshot = await p.readStructuredCreationForReview('record', k.parts[0], true);
+                await p.deleteRecord({ recname: k.parts[0], openedVersion: Number(token), operatorId: operator, expectedSnapshotToken: snapshot.token, dryRun,
+                    ...(projects.length ? { proposedProjectDeletions: projects } : {}), ...(codes.length ? { proposedPeopleCodeDeletions: codes } : {}),
+                    ...(proposed.pages.length ? { proposedPageDeletions: proposed.pages } : {}), ...(proposed.components.length ? { proposedComponentDeletions: proposed.components.map(([n]) => n) } : {}) });
+            } else if (kind === 'ae') {
+                const snapshot = await p.readStructuredCreationForReview('ae', k.parts[0], true);
+                await p.deleteAppEngineProgram(k.parts[0], token, operator, snapshot.token, dryRun, projects);
+            } else if (kind === 'menu') {
+                const live = await p.readMenuForMigration(k.parts[0]);
+                if (!live || live.token !== token) throw new Error('Menu changed before its deletion.');
+                // File > Delete also removes the menu's permission-list items; undoing a creation never takes grants with it.
+                if (await p.menuGrantCount(k.parts[0])) throw new Error('Permission lists grant this menu; removing those grants needs a wider review.');
+                if ((await listedElsewhere()).length) throw new Error('A project still lists this menu.');
+                await p.deleteMenuDefinition(k.parts[0], live.writerToken, operator, dryRun);
+            } else if (kind === 'field') {
+                await p.deleteFieldDefinition({ name: k.parts[0], openedVersion: Number(token.split(':')[0]), operatorId: operator, dryRun, ...assumptions });
+            } else if (kind === 'page') {
+                await p.deletePageFromMigration({ name: k.parts[0], operatorId: operator, expectedToken: token, dryRun, ...assumptions });
+            } else if (kind === 'component') {
+                await p.deleteComponentFromMigration({ name: k.parts[0], market: k.parts[1], operatorId: operator, expectedToken: token, dryRun, ...assumptions });
+            } else if (kind === 'package') {
+                const live = await p.readPackageForMigration(k.parts[0]);
+                if (!live || live.token !== token) throw new Error('Package changed before its deletion.');
+                await p.deletePackageDefinition({ root: k.parts[0], openedVersion: live.version, operatorId: operator, dryRun, ...(dryRun && projects.length ? { proposedProjectDeletions: projects } : {}) });
+            } else if (k.type === DefinitionType.ApplicationClassPeopleCode) {
+                // A class is deleted from its package as the package editor does (dl09); its package goes afterwards.
+                const parts = pcmProgKeyParts(k).slice(0, -1), live = await p.readPackageForMigration(parts[0]);
+                if (!live) throw new Error('The class\'s package no longer exists.');
+                if ((await listedElsewhere()).length) throw new Error('A project still lists this class.');
+                await p.deleteApplicationClass({ root: parts[0], path: parts.slice(1, -1), className: parts.at(-1)!, openedVersion: live.version, operatorId: operator, dryRun });
+            } else {
+                if ((await listedElsewhere()).length) throw new Error('A project still lists this PeopleCode.');
+                if (!dryRun) await p.savePeopleCode(k, { source: '', openedFingerprint: token, operatorId: operator });
+            }
+        }
+        return ({
+        id: migrationAdapter(kind),
+        canDelete: deletable,
+        authorizationState: (e, key) => authorizationState(e, migrationReviewKey(key)),
+        warnings: async (e, key) => [...await warnings(e, migrationReviewKey(key)), deletable(key)
+            ? 'Complete bounded migration payload. Writers commit independently. Undoing a creation deletes the definition through its calibrated deletion writer (rollback preview first); physical tables and application data are separate.'
+            : 'Complete bounded migration payload. Writers commit independently. Creation reversal requires calibrated deletion, which this definition type does not have yet; physical tables and application data are separate.'],
+        read: async (e, key) => {
+            const k=migrationReviewKey(key);
+            const read = await readMigrationAsset(await provider(e), k);
+            return { value: read ? migrationJson(read.data) : null, token: read?.token ?? 'absent' };
+        },
+        validate: async (e, key, _before, after, context) => {
+            try {
+                if (after === null) {
+                    if (!deletable(key) || _before === null) return ['This migration definition cannot be deleted here.'];
+                    const k = migrationReviewKey(key), { p, operator } = await authorize(e, k), live = await readMigrationAsset(p, k);
+                    if (!live || hash(migrationJson(live.data)) !== hash(_before)) return ['Deletion baseline changed.'];
+                    await migrationDelete(p, k, operator, live.token, true, context);
+                    return [];
+                }
+                const k = migrationReviewKey(key), { p, operator } = await authorize(e, k), asset = reviewedMigrationAsset(kind, key, after);
+                await migrationCodeAccess(e,asset,_before);
+                    const target = await databaseMigrationTarget(p, operator), live = await target.read(asset);
+                const proposed: MigrationAsset[] = [asset];
+                for (const d of context?.dependencies ?? []) if (d.adapter.startsWith('migration-') && d.adapter !== 'migration-project')
+                    proposed.push(reviewedMigrationAsset(d.adapter.slice(10) as MigrationAsset['kind'], d.key, d.after));
+                const errors = await target.validate?.(asset, live?.token ?? 'absent', proposed) ?? [];
+                for (const dependency of assetRequirements(asset)) {
+                    if (!proposed.some(a => hash(a.key) === hash(dependency)) && !await target.exists(dependency)) errors.push('Required definition missing: ' + dependency.parts.join('.'));
+                }
+                if (kind === 'peoplecode' && (!workspace.isPeopleCodeWritable(p.id, k) || workspace.configFor(p.id)?.peoplecodeSaveMode === 'save-only')) errors.push('Compile and save PeopleCode access is required.');
+                return errors;
+            } catch (error) { return [error instanceof Error ? error.message : String(error)]; }
+        },
+        authorize: async (e, key) => {
+            const k = migrationReviewKey(key), { p } = await authorize(e, k);
+            if (kind === 'peoplecode' && (!workspace.isPeopleCodeWritable(p.id, k) || workspace.configFor(p.id)?.peoplecodeSaveMode === 'save-only')) throw new Error('Compile and save PeopleCode access is required.');
+        },
+        write: async (e, key, after, baseline) => {
+            if (after === null) {
+                const k = migrationReviewKey(key), { p, operator, policyIdentity } = await authorizeReviewed(e, k, baseline);
+                if (!deletable(key) || baseline.value === null) throw new Error('This migration definition cannot be deleted here.');
+                const live = await readMigrationAsset(p, k);
+                if (!live || live.token !== baseline.token || hash(migrationJson(live.data)) !== hash(baseline.value)) throw new Error('Deletion baseline changed.');
+                await withReviewedWrite(p.id, k, () => runAsAgent(() => migrationDelete(p, k, operator, baseline.token, false)), policyIdentity);
+                host()!.saved(p.id, k); return;
+            }
+            const k = migrationReviewKey(key), { p, operator, policyIdentity } = await authorizeReviewed(e, k, baseline), asset = reviewedMigrationAsset(kind, key, after);
+            await migrationCodeAccess(e,asset,baseline.value);
+            const target = await databaseMigrationTarget(p, operator), live = await target.read(asset);
+            if ((live?.token ?? 'absent') !== baseline.token || hash(live ? migrationJson(live.data) : null) !== hash(baseline.value)) throw new Error('Migration baseline changed before writer.');
+            await withReviewedWrite(p.id, k, () => runAsAgent(() => target.write(asset, baseline.token)), policyIdentity);
+            host()!.saved(p.id, k);
+        }
+        });
+    };
+    const migrationProject: ReviewAdapter = {
+        id: 'migration-project',canDelete:true,scope:key=>'project:'+projectReviewName(key),reversalRefusal:()=> 'Removing membership from an existing project needs separate native calibration.', authorizationState: (e, key) => authorizationState(e, projectCreateKey(key)),
+        warnings: (e, key) => warnings(e, projectCreateKey(key)),
+        read: async (e, key) => readMigrationProject(await provider(e), projectReviewName(key),true),
+        validate: async (e, key, before, after,context) => {
+            try {
+                const name = projectReviewName(key);
+                if(before===null||after===null){
+                    const {p,operator}=await authorize(e,projectCreateKey(key)),live=await p.readProjectCreationForReview(name,true);
+                    const proposed=context?.phase==='proposal'?context.dependencies.filter(d=>d.adapter.startsWith('migration-')&&d.adapter!=='migration-project'&&d.after!==null).map(d=>migrationReviewKey(d.key)):[];
+                    await p.writeProjectForReview({name,operatorId:operator,items:after===null?null:migrationMembers(after,name),mode:'members',expectedSnapshotToken:live.token,expectedAfterHash:hash(after),dryRun:true,allowDeletedBaseline:true,proposed});return [];
+                }
+                migrationMembers(after, name);
+                const existing = before === null ? [] : migrationMembers(before, name);
+                const wanted = new Set(migrationMembers(after, name).map(k => hash(k)));
+                return existing.some(k => !wanted.has(hash(k))) ? ['Migration cannot remove existing project membership.'] : [];
+            } catch (error) { return [error instanceof Error ? error.message : String(error)]; }
+        },
+        authorize: async (e, key) => { await authorize(e, projectCreateKey(key)); },
+        write: async (e, key, after, baseline) => {
+            const k = projectCreateKey(key), { p, operator, policyIdentity } = await authorizeReviewed(e, k, baseline), live = await readMigrationProject(p, k.parts[0],true);
+            if (live.token !== baseline.token || hash(live.value) !== hash(baseline.value)) throw new Error('Project changed after review.');
+            if(after===null||baseline.value===null){
+                await withReviewedWrite(p.id,k,()=>runAsAgent(()=>p.writeProjectForReview({name:k.parts[0],items:after===null?null:migrationMembers(after,k.parts[0]),operatorId:operator,mode:'members',expectedSnapshotToken:baseline.token,expectedAfterHash:hash(after),allowDeletedBaseline:true})),policyIdentity);host()!.saved(p.id,k);return;
+            }
+            const wanted = migrationMembers(after, k.parts[0]);
+            await withReviewedWrite(p.id, k, () => runAsAgent(async () => {
+                if (baseline.value === null) {
+                    await p.createProjectForReview({ project: k.parts[0], operatorId: operator, items: wanted, expectedSnapshotToken: baseline.token });
+                } else {
+                    const existing = new Set(migrationMembers(baseline.value, k.parts[0]).map(v => hash(v)));
+                    await p.saveProject({ project: k.parts[0], operatorId: operator, openedVersion: await p.readProjectVersion(k.parts[0]),
+                        add: wanted.filter(v => !existing.has(hash(v))), expectedSnapshotToken: baseline.token });
+                }
+            }), policyIdentity);
             host()!.saved(p.id, k);
         }
     };
+    function migrationMembers(value: Json, name: string): DefinitionKey[] {
+        if (!value || Array.isArray(value) || typeof value !== 'object' || Object.keys(value).sort().join(',') !== 'members,name' || value.name !== name || !Array.isArray(value.members)) throw new Error('Invalid migration project payload.');
+        const members = value.members.map(migrationReviewKey);
+        if (new Set(members.map(v => hash(v))).size !== members.length) throw new Error('Duplicate migration members.');
+        return members;
+    }
     async function environment(connection: string): Promise<Environment> {
         const p = await requireProvider(workspace, connection);
         if (!(p instanceof DatabaseProvider) || !p.isConnected)
             throw new Error('A connected database is required.');
         return { connection: p.id, label: p.displayName, identity: await p.changeReviewIdentity() };
     }
-    return { adapters: [sql, content('html', DefinitionType.HtmlDefinition), content('stylesheet', DefinitionType.StyleSheet), process, query, peoplecode, page, structuredHeader('record'), structuredHeader('ae'), structuredCreation('record'), structuredCreation('ae'), projectCreate, ibHeader('service'), ibHeader('operation')], environment, adapterHash: hash };
+    return { adapters: [textDefinition('sql'), textDefinition('html'), textDefinition('stylesheet'), migrationProject, ...(['field', 'record', 'sql', 'html', 'stylesheet', 'ae', 'peoplecode', 'query','menu','package','page','component'] as const).map(migration), sql, content('html', DefinitionType.HtmlDefinition), content('stylesheet', DefinitionType.StyleSheet), process, query, peoplecode, page, structuredHeader('record'), structuredHeader('ae'), structuredCreation('record'), structuredCreation('ae'), projectCreate, ibHeader('service'), ibHeader('operation')], environment, adapterHash: hash };
 }

@@ -5,11 +5,12 @@ import { parseUri } from '../util/uri.js';
 import type { Workspace } from '../workspace.js';
 import type { DefinitionProvider } from '../providers/provider.js';
 import { parseApplicationClassSource } from './applicationClassProgram.js';
-import { classCandidates, classMembers, declaredTypeOf, headerExtends, headerMembers, isBuiltInType, type MemberCompletion } from './memberCompletion.js';
+import { classCandidates, classDeclarationSource, classMembers, declaredTypeOf, headerExtends, headerMembers, isBuiltInType, type MemberCompletion } from './memberCompletion.js';
 import { BUILTIN_FUNCTION_NAMES } from './builtinFunctions.js';
 import { DEFINITION_KEYWORDS } from './validate.js';
 import { DatabaseProvider } from '../providers/database.js';
-import { gated } from './languageFeatures.js';
+import { gated, languageFeaturesOn } from './languageFeatures.js';
+import { INLINE_CALL_SNIPPETS } from './inlineCalls.js';
 
 const KEYWORDS: string[] = [
   'If', 'Then', 'Else', 'End-If',
@@ -395,7 +396,7 @@ function linePrefix(document: vscode.TextDocument, position: vscode.Position): s
 
 /** Receiver before a trailing dot, e.g. "&rs." or "%Request." or "GetLevel0()." */
 function receiverBeforeDot(prefix: string): string | undefined {
-  const m = prefix.match(/([%&A-Za-z0-9_\)\]]+)\s*\.\s*$/);
+  const m = prefix.match(/([%&A-Za-z0-9_\)\]]+)\s*\.\s*[A-Za-z0-9_&]*$/);
   return m?.[1];
 }
 
@@ -421,7 +422,7 @@ type ClassRead = { parts: string[]; source: string; program: ParsedClass } | nul
  */
 const CLASS_TTL_MS = 5 * 60_000;
 const MISS_TTL_MS = 30_000;
-const classCache = new Map<string, { at: number; read: Promise<ClassRead> }>();
+const classCache = new Map<string, { at: number; provider: DefinitionProvider; read: Promise<ClassRead> }>();
 
 /** An application class open in an editor on this connection: its current text, saved or not, wins over the database. */
 function openClassText(handle: string, parts: string[]): string | undefined {
@@ -439,7 +440,7 @@ function openClassText(handle: string, parts: string[]): string | undefined {
 
 function parsedClass(parts: string[], source: string): ClassRead {
   let program: ParsedClass;
-  try { program = parseApplicationClassSource(source); } catch { program = undefined; }
+  try { program = parseApplicationClassSource(classDeclarationSource(source)); } catch { program = undefined; }
   return program || /\bclass\s/i.test(source) ? { parts, source, program } : null;
 }
 
@@ -448,10 +449,13 @@ function readClass(provider: DefinitionProvider, handle: string, parts: string[]
   if (open !== undefined) return Promise.resolve(parsedClass(parts, open));
   const id = `${handle}|${parts.join(':').toLowerCase()}`;
   const cached = classCache.get(id);
-  if (cached && Date.now() - cached.at < CLASS_TTL_MS) return cached.read;
-  const entry = { at: Date.now(), read: Promise.resolve<ClassRead>(null) };
+  if (cached?.provider === provider && Date.now() - cached.at < CLASS_TTL_MS) return cached.read;
+  const entry = { at: Date.now(), provider, read: Promise.resolve<ClassRead>(null) };
   entry.read = provider.readText({ type: DefinitionType.ApplicationClassPeopleCode, parts })
-    .then((source) => parsedClass(parts, source), () => null)
+    .then((source) => parsedClass(parts, source), () => {
+      if (classCache.get(id) === entry) classCache.delete(id);
+      return null;
+    })
     .then((found) => {
       // A miss may only mean the connection was not ready: keep it 30 seconds, not five minutes.
       if (!found) entry.at = Date.now() - CLASS_TTL_MS + MISS_TTL_MS;
@@ -490,19 +494,19 @@ async function chainMembers(provider: DefinitionProvider, handle: string, candid
 /** The class being edited (parsed, or read from its header lines when Studio's parser does not model it) and its base class. */
 function currentClass(text: string): { program: ParsedClass; base?: string } {
   let program: ParsedClass;
-  try { program = parseApplicationClassSource(text); } catch { program = undefined; }
+  try { program = parseApplicationClassSource(classDeclarationSource(text)); } catch { program = undefined; }
   const base = program ? program.extendsType : headerExtends(text);
   return { program, ...(base && !isBuiltInType(base) ? { base } : {}) };
 }
 
 /** Reads an application class's `extends` chain ahead of `%This.` (on open), so completion finds it cached. */
 export function prefetchClassChain(document: vscode.TextDocument, workspace: Workspace): void {
-  if (document.languageId !== 'psft-peoplecode' || document.uri.scheme !== 'psft') return;
+  if (!languageFeaturesOn() || document.languageId !== 'psft-peoplecode' || document.uri.scheme !== 'psft') return;
   let handle: string;
   try { handle = parseUri(document.uri).handle; } catch { return; }
   const provider = workspace.getProviderByHandle(handle);
   const own = ownPackageOf(document);
-  if (!provider || own === undefined) return;
+  if (!provider?.isConnected || own === undefined) return;
   const text = document.getText();
   const { base } = currentClass(text);
   if (base) void chainMembers(provider, handle, classCandidates(base, text, own), ['public', 'protected'], true);
@@ -510,6 +514,13 @@ export function prefetchClassChain(document: vscode.TextDocument, workspace: Wor
 
 /** How long completion waits for classes still being read before showing what it has. */
 const CHAIN_WAIT_MS = 250;
+
+/** A slow database must not hold the suggestion list open indefinitely. */
+async function completionRead<T>(read: Promise<T>): Promise<T | undefined> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try { return await Promise.race([read, new Promise<undefined>((resolve) => { timer = setTimeout(() => resolve(undefined), CHAIN_WAIT_MS); })]); }
+  finally { clearTimeout(timer); }
+}
 
 /**
  * Members of an application class, as completion items: after `&obj.` the
@@ -558,14 +569,14 @@ async function completeClassMembers(document: vscode.TextDocument, workspace: Wo
   if (!provider || !handle) return items;
 
   const chain = chainMembers(provider, handle, start.candidates, start.visibilities, inside);
-  const ready = await Promise.race([chain, new Promise<undefined>((r) => setTimeout(() => r(undefined), CHAIN_WAIT_MS))]);
+  const ready = await completionRead(chain);
   if (!ready) return new vscode.CompletionList(items, true); // the rest join as more is typed
   for (const c of ready) add(c.members, start.inherited, c.from);
   return items;
 }
 
 /** A record's fields (subrecords expanded) from the document's connection, kept a minute; empty when it has none or is not a record. */
-const recordFieldCache = new Map<string, { at: number; fields: Promise<string[]> }>();
+const recordFieldCache = new Map<string, { at: number; provider: DefinitionProvider; fields: Promise<string[]> }>();
 function recordFieldsFor(document: vscode.TextDocument, workspace: Workspace, record: string): Promise<string[]> {
   let handle: string;
   try { handle = parseUri(document.uri).handle; } catch { return Promise.resolve([]); }
@@ -573,29 +584,41 @@ function recordFieldsFor(document: vscode.TextDocument, workspace: Workspace, re
   if (!(provider instanceof DatabaseProvider)) return Promise.resolve([]);
   const id = `${handle}|${record.toUpperCase()}`;
   const cached = recordFieldCache.get(id);
-  if (cached && Date.now() - cached.at < 60_000) return cached.fields;
-  const fields = provider.expandedFieldNames(record.toUpperCase()).catch(() => [] as string[]);
-  recordFieldCache.set(id, { at: Date.now(), fields });
+  if (cached?.provider === provider && Date.now() - cached.at < 60_000) return cached.fields;
+  const entry = { at: Date.now(), provider, fields: Promise.resolve<string[]>([]) };
+  const fields = provider.expandedFieldNames(record.toUpperCase()).catch(() => {
+    if (recordFieldCache.get(id) === entry) recordFieldCache.delete(id);
+    return [] as string[];
+  });
+  entry.fields = fields;
+  recordFieldCache.set(id, entry);
   return fields;
 }
 
 /** The definitions of `type` whose name starts with `partial`, as completion items, from the document's connection. */
+const definitionNameCache = new Map<string, { at: number; provider: DefinitionProvider; read: Promise<vscode.CompletionItem[]> }>();
 async function completeDefinitionNames(document: vscode.TextDocument, workspace: Workspace,
   type: import('../model/definitions.js').DefinitionType, partial: string): Promise<vscode.CompletionItem[]> {
   let handle: string;
   try { handle = parseUri(document.uri).handle; } catch { return []; }
   const provider = workspace.getProviderByHandle(handle);
   if (!provider) return [];
-  let summaries;
-  try { summaries = await provider.search({ type, namePattern: partial ? `${partial}%` : '%', limit: 100 }); }
-  catch { return []; }
-  return summaries.map((s) => {
+  const id = `${handle}|${type}|${partial.toUpperCase()}`;
+  const cached = definitionNameCache.get(id);
+  if (cached?.provider === provider && Date.now() - cached.at < 30_000) return cached.read;
+  const entry = { at: Date.now(), provider, read: Promise.resolve<vscode.CompletionItem[]>([]) };
+  entry.read = provider.search({ type, namePattern: partial ? `${partial}%` : '%', limit: 100 }).then((summaries) => summaries.map((s) => {
     const name = s.key.parts[0];
     const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Reference);
     item.detail = s.description ?? displayName(s.key);
     item.sortText = `0_${name}`;
     return item;
+  }), () => {
+    if (definitionNameCache.get(id) === entry) definitionNameCache.delete(id);
+    return [];
   });
+  definitionNameCache.set(id, entry);
+  return entry.read;
 }
 
 export function registerPeopleCodeCompletion(context: vscode.ExtensionContext, workspace: Workspace): void {
@@ -608,12 +631,12 @@ export function registerPeopleCodeCompletion(context: vscode.ExtensionContext, w
       const defRef = definitionReferencePrefix(prefix);
       const defType = defRef ? definitionKeywordType(defRef.keyword) : undefined;
       if (defRef && defType !== undefined && document.uri.scheme === 'psft') {
-        const names = await completeDefinitionNames(document, workspace, defType, defRef.partial);
-        return new vscode.CompletionList(names, true); // incomplete: re-query as more of the name is typed
+        const names = await completionRead(completeDefinitionNames(document, workspace, defType, defRef.partial));
+        return new vscode.CompletionList(names ?? [], true); // incomplete: re-query as more of the name is typed
       }
 
       const afterDot =
-        completionContext.triggerCharacter === '.' || /\.\s*$/.test(prefix);
+        completionContext.triggerCharacter === '.' || /\.\s*[A-Za-z0-9_&]*$/.test(prefix);
 
       if (afterDot) {
         const receiver = receiverBeforeDot(prefix) ?? '';
@@ -624,14 +647,14 @@ export function registerPeopleCodeCompletion(context: vscode.ExtensionContext, w
         if (lowerReceiver === '%this' || lowerReceiver === '%super') {
           return document.uri.scheme === 'psft' || lowerReceiver === '%this' ? completeClassMembers(document, workspace, receiver) : [];
         }
-        if (receiver.startsWith('&') && document.uri.scheme === 'psft') {
-          const members = await completeClassMembers(document, workspace, receiver);
-          if (Array.isArray(members) ? members.length : members.items.length || members.isIncomplete) return members;
+        if (receiver.startsWith('&') && document.uri.scheme === 'psft' && declaredTypeOf(document.getText(), receiver)) {
+          return completeClassMembers(document, workspace, receiver);
         }
 
         // `RECORD.`: that record's fields, from the connection (a name that is no record falls through).
         if (/^[A-Za-z][A-Za-z0-9_#$@]*$/.test(receiver) && !DEFINITION_KEYWORDS.has(receiver.toUpperCase()) && document.uri.scheme === 'psft') {
-          const fields = await recordFieldsFor(document, workspace, receiver);
+          const fields = await completionRead(recordFieldsFor(document, workspace, receiver));
+          if (!fields) return new vscode.CompletionList([], true);
           if (fields.length) {
             return fields.map((f) => {
               const item = new vscode.CompletionItem(f, vscode.CompletionItemKind.Field);
@@ -676,6 +699,8 @@ export function registerPeopleCodeCompletion(context: vscode.ExtensionContext, w
         if (documented.has(name.toLowerCase())) continue;
         const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Function);
         item.detail = 'PeopleTools built-in function';
+        const call=INLINE_CALL_SNIPPETS[name.toLowerCase()];
+        if(call)item.insertText=new vscode.SnippetString(call);
         item.sortText = `2_${name}`;
         items.push(item);
       }
@@ -716,11 +741,13 @@ export function registerPeopleCodeCompletion(context: vscode.ExtensionContext, w
     vscode.workspace.onDidOpenTextDocument((d) => prefetchClassChain(d, workspace)),
     vscode.window.onDidChangeActiveTextEditor((e) => { if (e) prefetchClassChain(e.document, workspace); }),
     vscode.workspace.onDidChangeTextDocument((e) => {
+      if (e.document.uri.scheme !== 'psft' || ownPackageOf(e.document) === undefined) return;
       const id = e.document.uri.toString();
       clearTimeout(pending.get(id));
       pending.set(id, setTimeout(() => { pending.delete(id); prefetchClassChain(e.document, workspace); }, 750));
     }),
     vscode.workspace.onDidSaveTextDocument((d) => {
+      if (d.uri.scheme === 'psft') { recordFieldCache.clear(); definitionNameCache.clear(); }
       // A class saved here changes what the database holds: forget its cached read.
       try {
         const { handle, key } = parseUri(d.uri);
@@ -728,13 +755,32 @@ export function registerPeopleCodeCompletion(context: vscode.ExtensionContext, w
           classCache.delete(`${handle}|${key.parts.filter((p) => p !== 'OnExecute').join(':').toLowerCase()}`);
         }
       } catch { /* not a definition document */ }
-    })
+    }),
+    vscode.workspace.onDidCloseTextDocument((d) => { const id = d.uri.toString(); clearTimeout(pending.get(id)); pending.delete(id); }),
+    workspace.onDidChange(() => {
+      classCache.clear(); recordFieldCache.clear(); definitionNameCache.clear();
+      for (const d of vscode.workspace.textDocuments) prefetchClassChain(d, workspace);
+    }),
+    { dispose: () => { for (const timer of pending.values()) clearTimeout(timer); pending.clear(); classCache.clear(); recordFieldCache.clear(); definitionNameCache.clear(); } }
   );
 
   context.subscriptions.push(
     vscode.languages.registerCompletionItemProvider(
       { language: 'psft-peoplecode' },
-      gated(provider),
+      gated({
+        async provideCompletionItems(document, position, token, completionContext) {
+          const version = document.version;
+          let handle: string | undefined;
+          try { handle = parseUri(document.uri).handle; } catch { /* local source */ }
+          const connection = handle ? workspace.getProviderByHandle(handle) : undefined;
+          if (token.isCancellationRequested) return [];
+          const result = await provider.provideCompletionItems!(document, position, token, completionContext);
+          if (token.isCancellationRequested || document.isClosed || document.version !== version || !languageFeaturesOn()
+            || (connection && !connection.isConnected)
+            || (handle && workspace.getProviderByHandle(handle) !== connection)) return [];
+          return result;
+        }
+      } satisfies vscode.CompletionItemProvider),
       '.',
       '&',
       '%'
