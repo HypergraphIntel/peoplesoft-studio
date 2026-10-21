@@ -9,7 +9,7 @@ HTML, style sheets, projects, packages, pages). Core authoring tools are in
 modules. Authoring tools register only when VS Code provides the write host
 (the setting, review/approval integration, and the editors' state).
 
-## 0.9.1 candidate: staged review paths
+## Current staged review paths (0.9.6 release / 0.9.7 development)
 
 On Oracle with Change Review enabled, supported SQL, HTML/freeform style sheet,
 PeopleCode, Query and Process mutations stage durable proposals. Page edits are
@@ -19,9 +19,19 @@ edits are existing-program description/comments only. Other operations on these
 staged Page/Record/AE edit tools are refused. Creation/copy/rename/delete tools
 outside the migrated paths retain their existing legacy gates.
 
+Dedicated adapters also stage new Derived/Work records, AE programs and projects
+with declared proposal dependencies. Record/AE creation has bounded reviewed
+deletion/recreation; project creation undo remains unsupported. Existing IB
+services/operations stage description/comments and bounded structure, including
+the calibrated OnRequest handler addition. Out-of-contract IB changes retain
+legacy confirmation; reversing an added handler is refused.
+
 `REVIEW_REQUIRED` means **no committed PeopleSoft change**. Open **PeopleSoft →
-Change Review → Open Review**, inspect the proposal, then approve and apply in
-that workspace. Agents can prepare proposals and read status; no MCP approval
+Change Review → Open Review**, inspect the objects and differences, then choose
+**Approve and apply**. Approach approval stays separate when a plan is present;
+**Approve only** and individual object approval remain available. The combined
+action binds the displayed eligible objects and exact rendered review state,
+retaining all application gates. Agents can prepare proposals and read status; no MCP approval
 or application tool exists. Approval binds the exact revision, target, native
 baseline and policy. Drift or a changed proposal requires validation and fresh
 approval. The `allow` setting does not bypass staged revision approval.
@@ -31,8 +41,41 @@ roll back; public AE preview remains plan-only. The native writer supports more
 operations than the initial review adapters. The legacy-operation descriptions
 below must not be read as broader staged capability. See
 [adapter coverage](change-review/COVERAGE.md),
-[header scope](change-review/STRUCTURED_HEADERS.md) and
-[0.9.1 readiness](RELEASE_0_9_1.md) for evidence and open acceptance checks.
+[header scope](change-review/STRUCTURED_HEADERS.md),
+[creation scope](change-review/STRUCTURED_CREATION.md) and
+[IB structural scope](change-review/IB_STRUCTURE.md) for current evidence and
+open acceptance checks. [0.9.1 readiness](RELEASE_0_9_1.md) retains the
+historical release gates.
+
+## Complete text checkpoints (Oracle 8.62 development)
+
+Portable normal text saves now select `sql-definition`, `html-definition` or
+`stylesheet-definition`. SQL retains text, description, full comments and owner;
+HTML/freeform stylesheets retain text and description, with all remaining native
+properties checked against the calibrated defaults. Native fingerprints bind
+headers, full CLOBs/chunks, orphan/translation checks and tombstones. Reviewed
+creation inverse and freshly approved redo use typed native deletion/recreation,
+known-reference refusal, rollback validation and exact readback. Legacy partial
+histories remain readable with their original reversal limits. Physical aliases
+cannot be mixed in one proposal/continuation. See
+[text recovery scope and evidence](change-review/TEXT_DELETION.md).
+
+## Live write confirmations (0.9.7 development)
+
+Legacy per-write and agent delivered-object approvals now appear in **PeopleSoft:
+AI Write Approvals**, also available from the shield status-bar item and MCP
+settings menu. Each card shows the exact target/change and its own pending or
+final outcome. Closing the page leaves requests pending. A request expires after
+60 seconds or when the client cancels; its buttons disappear, late decisions
+cannot authorize it, and retrying the original tool creates a new request.
+Approving a request still leaves every native writer/ownership/concurrency gate
+in place; the tool result determines whether a save actually succeeded.
+This does not replace revision-bound Change Review approval.
+
+Installed acceptance covers the real deadline, an expired card without Allow,
+fresh retry/Decline, Allow reaching the native writer's existing-definition
+refusal, and unchanged full native Process readback. See
+[priority evidence](PRIORITY_TASKS.md).
 
 ## Additional authoring tools in 0.8.9
 

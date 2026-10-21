@@ -69,6 +69,35 @@ Plan the revision relationships and indexing early. Deliver the timeline with
 history capabilities once durable, verified history is available; do not show
 mock entries as real application history.
 
+## 3. Primary Approve and apply action
+
+Agreed October 20, 2026: the developer selected **Make Approve and apply
+primary**, keeping approach approval separate and **Approve only** available.
+
+For a validated proposal, the primary action approves and applies exactly the
+displayed eligible object set. Rejected objects and their dependency-blocked
+dependents stay excluded. The page retains every object, its review state,
+dependencies, before/after snapshots and semantic differences. The eligible
+count and excluded count are shown beside the action. Individual object
+approval/rejection and approval without application remain available. Already
+approved proposals retain their normal apply action.
+
+Approval and application share one exclusive store lock. The click binds the
+set revision, the complete rendered durable review state and explicit eligible
+object IDs, so validation/review changes within the same set revision also make
+an old page stale. Persist the ordinary per-object approval hashes and an
+`APPROVE_AND_APPLY_REQUESTED` journal entry, then use the existing application
+preflight, checkpoint, guarded writers and readback. No approval, policy,
+destructive-operation or native concurrency gate is removed. There is no MCP
+approval/apply tool, automatic application after approach approval or inherited
+permission for a later revision, reversal or redo.
+
+This combines developer gestures, not writer transactions. Existing partial,
+uncertain, cancellation and recovery semantics remain. A process stopping after
+durable approval does not cause automatic application on restart.
+
+Implementation and evidence: [Approve and apply](APPROVE_AND_APPLY.md).
+
 ## Future extension points
 
 The intended outcome is a controlled development environment with an

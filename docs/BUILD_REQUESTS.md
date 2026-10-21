@@ -75,18 +75,28 @@ Text beyond 60,000 characters per attachment (150,000 in all) is read with
 `peoplesoft.buildRequests.agent`: `claude` (default), `codex` or `clipboard`.
 The agent must have the PeopleSoft Studio MCP server configured
 (*PeopleSoft: Configure AI Client*), and the server must be running.
+CLI handoffs pin this window's MCP URL for that session, preserving client
+auth/model settings without changing global MCP configuration. Literal arguments
+replace reconstructed shell command text. Both installed Build buttons, real CLI
+sessions, reviewed creation and new native exact-output runs passed the bounded
+[installed build handoff trial](build-requests/BUILD_HANDOFF.md). The original
+window stayed open; a separate window was used for testing.
 
-## Not yet
+## Verified scope and remaining work
 
-- Native build-phase terminal handoff and representative production acceptance. Developer-run
-  DOCX intake and Claude analysis handoff have been observed alongside the
-  controlled lab's native approvals and database save/readback.
-  The [controlled lab acceptance tracker](build-requests/NATIVE_ACCEPTANCE.md)
-  distinguishes fixture results from installed UI, developer approval and
-  database save/readback evidence.
+Both installed clients completed the synthetic build-phase trial on October 20:
+Codex instance **607265**, Claude **607266**, Success, exact 123-byte UTF-8/no-BOM
+CSV. Each built five definitions with the existing approval/write gates.
+Native DOCX intake and Claude analysis were verified separately; seeded trial
+attachments/specs do not substitute for intake or analysis acceptance.
 
-The 0.9.6 development [synthetic AE/file acceptance](build-requests/AE_FILE_WORKFLOW.md)
-now passes coherent Record/SQL/AE/project review and native execution: instance
-607175 completed Success/Posted and produced the exact expected 123-byte
-UTF-8/no-BOM CSV. A reviewed correction fixed native App Designer's WriteLine
-2,60 error. This bounded lab result is separate from production-interface coverage.
+Report delivery remains open: both new runs show **Not Posted**, with HTTP 900
+transfer errors. HRDMO DISTSTATUS 4 is Unable to Post, not Posted. The older
+607175 trial also proves successful execution and exact CSV, without posting
+acceptance. See [handoff evidence and follow-ups](build-requests/BUILD_HANDOFF.md).
+Representative production interfaces and native Windows handoff remain open.
+
+Deferred objects can be reported as `PENDING` through MCP. This keeps them
+unfinished and retains progress history; `SKIPPED` means intentionally omitted,
+not waiting for a prerequisite or approval. Installed HTTP acceptance is in
+[the priority tracker](PRIORITY_TASKS.md).

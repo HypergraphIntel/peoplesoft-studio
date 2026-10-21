@@ -130,7 +130,7 @@ input/token readback passed (VERSION 30, operator JARED). The native request
 page listed it and Process Scheduler invoked PSAESRV on HCMDMO. AE metadata
 loading initially failed 108,502. Native App Designer subsequently exposed a
 WriteLine result-value error (2,60); the reviewed PeopleCode correction validates
-and instance 607175 completed Success/Posted with the exact expected CSV and
+and instance 607175 completed Success (report posting not verified) with the exact expected CSV and
 summary. Run control is restored to Once and temporary tracing is cleared.
 This bounded native execution does not establish general PIA counter equivalence.
 See [the AE/file acceptance tracker](build-requests/AE_FILE_WORKFLOW.md).

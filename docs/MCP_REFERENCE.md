@@ -66,7 +66,7 @@ replacement associations; omitted stored associations are removed.
 
 Operations are the designer's `select`, `heading`, `order`, `constant`,
 `prompt`, `clearCriteria` and `properties` operations. Authoring is calibrated
-for Oracle PeopleTools 8.62.09: one SQL Table record without subrecords,
+for Oracle PeopleTools 8.62.09 and 8.61.15: one SQL Table record without subrecords,
 direct character fields, and at most one ungrouped equal-to constant/prompt
 criterion. Joins, unions, aggregates, row-security SQL and other unsupported
 shapes remain refused. There is no Query rename/delete tool.
@@ -80,8 +80,13 @@ editors block MCP saves.
 
 ## Remaining gaps
 
-Data Mover Scripts and Data Migration Workbench remain planned. Project
-migration has review/export/preview but no MCP apply tool. Configuration-first
+Data Mover script templates are available through **New Data Mover Script**;
+Studio does not execute them. Data Migration Workbench remains planned. Project
+migration has UI import/apply and MCP review/export/preview, but no MCP apply
+tool; packages support fields, basic records, bounded Oracle standalone SQL
+and AE. SQL preview includes target text/properties, and UI import checks the
+native target identity and full SQL row fingerprint before saving and verifying
+complete readback. See [migration scope and evidence](PROJECT_MIGRATION.md). Configuration-first
 is a preference; customization plans, the registry and upgrade-impact analysis
 remain previews. Configurable Search and AE plug-in discovery remain UNKNOWN.
 Generic definition read support does not imply create/edit or migration
@@ -116,14 +121,19 @@ existing HRDMO saved connection; no credentials are read into the script.
 Results and retained fixture names are recorded in
 `tools/lab/results/mcp-workflow-live-e2e.json`.
 
-## Change Review — 0.9.1 candidate
+## Change Review — 0.9.6 release / 0.9.7 development
 
 The development server can expose durable Change Set tools. On supported
 Oracle paths, SQL/HTML/freeform style sheet, Query, Process and PeopleCode
 mutations and bounded Page/Record/AE edits stage proposals and return
 `REVIEW_REQUIRED`, not immediate saves.
 Open **PeopleSoft sidebar → Change Review → Open Review** for developer
-approval/application and poll the Change Set status. Other paths retain legacy
+review and the primary **Approve and apply** action, then poll the Change Set
+status. Approach approval stays separate, with approval-only and per-object
+review retained. The combined action preserves revision/rendered-state binding,
+all native application checks and explicit destructive approval; it is not an
+MCP endpoint. See [design and verification](change-review/APPROVE_AND_APPLY.md).
+Other paths retain legacy
 gates. Existing immediate-save lab scripts need adaptation for staged paths.
 `psft_get_object_timeline` reads a selected object's retained baseline, verified
 revisions and other proposals. Optional `checkLive` compares the actual content
@@ -147,21 +157,29 @@ native description apply/inverse is verified, and a corrected Static Text / Edit
 Box control trial passed apply/inverse and Windows Designer inspection. The older
 invalid static-text flag trial was restored and remains explicitly uncertified. See [Page adapter scope](change-review/PAGE_ADAPTER.md).
 Record/AE description/comments edits now stage preservation snapshots on Oracle.
-Other operations are refused on those staged edit paths; create/copy/rename/delete
-retain their legacy routes. Record public dryRun is an actual rollback preview;
+Other operations are refused on those staged edit paths. New Derived/Work record,
+AE and project creation also stage through dedicated adapters with declared
+proposal dependencies and exact rollback-preview checks; creation undo remains
+unsupported. Other create/copy/rename/delete paths retain legacy gates.
+Record public dryRun is an actual rollback preview;
 AE public dryRun remains plan-only. One native Record/AE description apply and
 checkpoint inverse is independently verified over the full preservation scopes.
 See [structured header scope](change-review/STRUCTURED_HEADERS.md).
-`psft_ib_save` now stages existing service/operation description/comments edits
-on Oracle with Change Review. It accepts the full `psft_ib_get.input`, its
-`expectedToken`, and optional `changeSetId`/`dependsOn`. Structural edits retain
-legacy confirmation and are refused if attached to a Change Set. The `ib-service`
+`psft_ib_save` stages existing service/operation description/comments and bounded
+structural edits on Oracle with Change Review. It accepts the full
+`psft_ib_get.input`, its `expectedToken`, and optional `changeSetId`/`dependsOn`.
+Out-of-contract edits retain legacy confirmation and are refused if attached to
+a Change Set. The `ib-service`
 and `ib-operation` adapters use fixed noncredential checkpoints and exact native
 rollback previews; inverse changes go through the same typed writer. Native
 rollback tests passed for standard and REST provider/consumer shapes; installed
 standard HRDMO review/apply/inverse acceptance passed with full scoped readback,
-checkpoints and restored original states. REST reviewed application remains
-separate. See [IB header scope](change-review/IB_HEADERS.md).
+checkpoints and restored original states. Native structural application also
+passed for a standard operation (typed inverse restored its original) and a
+REST provider OnRequest handler addition (reversal refused). 8.61 structural
+acceptance and REST consumer structural application remain open. See
+[IB header scope](change-review/IB_HEADERS.md) and
+[IB structural scope](change-review/IB_STRUCTURE.md).
 The trusted UI can apply one object and pause after verified readback. Remaining
 work still needs fresh continuation approval; one native header pause and
 continuation/restoration is verified. No MCP apply/approve tool is exposed.
@@ -170,3 +188,12 @@ and [progress](change-review/PROGRESS.md). One installed developer-approved
 Query description update has independent snapshot/token/checkpoint evidence;
 its checkpoint reversal and redo are also verified, including live timeline match
 after reload. Broader reviewed-path and native fault acceptance remain pending. 0.9.0's earlier live evidence does not establish the new workflow.
+
+Complete Oracle 8.62 text adapters use a name-string key. `sql-definition`
+requires `{name,text,description,definition,ownerId}`; `html-definition` and
+`stylesheet-definition` require `{name,text,description}`. `after: null`
+proposes guarded deletion. These full checkpoints support creation inverse and
+fresh redo; legacy partial adapters retain their existing history contracts.
+Normal `psft_save_text_definition` selects the complete adapter for supported
+portable definitions. It still returns REVIEW_REQUIRED, with no agent approval
+or apply endpoint. See [text checkpoints and native evidence](change-review/TEXT_DELETION.md).

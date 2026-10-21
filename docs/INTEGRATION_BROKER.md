@@ -29,6 +29,23 @@ Keys are `[name]` for messages, services, operations and nodes;
 `[name,YYYY-MM-DD effective date]` for routings. Document Builder is object type
 92, not Document Layout. Routings are object type 83 and include history.
 
+## Change Review
+
+On Oracle with Change Review enabled, `psft_ib_save` stages existing
+service/operation description/comments and bounded structural edits, including
+service owner/namespace, supported operation/version/parameter/handler edits
+and the calibrated OnRequest handler addition. The approved after-image must
+match the shared writer's rollback preview exactly. Creation and out-of-contract
+changes retain legacy confirmation; explicit Change Set grouping is refused
+for unsupported edits. Editor saves use their existing save flow.
+
+Native HRDMO acceptance includes standard header and structural apply/inverse
+cycles and a REST provider handler addition. Added-handler reversal is refused
+because child deletion is not calibrated. 8.61 structural acceptance and REST
+consumer structural application remain open. See [header scope](change-review/IB_HEADERS.md),
+[structural scope](change-review/IB_STRUCTURE.md) and
+[adapter coverage](change-review/COVERAGE.md).
+
 ## Write behavior and current boundaries
 
 Writes use the connection's Writable setting, Operator ID, customization guard

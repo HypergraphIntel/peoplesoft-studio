@@ -1,11 +1,23 @@
 # Build Requests: installed acceptance
 
-Status: bounded HRDMO metadata build complete. Installed developer spec approval,
+Status as of October 20, 2026: bounded HRDMO metadata build complete. Installed developer spec approval,
 SQL Change Review application and all four artifacts' save/readback are verified.
 The lab request reports BUILT with no remaining build objects. Subsequent
 developer trials verify native request/attachment intake and Claude analysis
 handoff, supported by persisted handoff records and MCP analysis results.
-Build-phase terminal handoff and runtime execution remain unverified.
+The later installed build-phase trial is now verified for both clients. The separate later
+[synthetic AE/file trial](AE_FILE_WORKFLOW.md#native-syntax-correction-and-completed-csv-acceptance--october-19)
+completed native Process Scheduler instance 607175 Success (report posting not verified) with the
+exact expected 123-byte UTF-8/no-BOM CSV. That result belongs to request
+`br-60e7196e2b0a`; it does not establish runtime execution of the earlier
+`ZZ_BR_ACC` metadata trial below or representative production acceptance.
+
+The October 20 [installed build handoff trial](BUILD_HANDOFF.md) verified actual
+Codex/Claude Build-button launches, approved-spec reads, reviewed creation and
+new native exact-output runs **607265 / 607266**. Both are Success / Not Posted:
+HTTP 900 report transfer remains open. HRDMO DISTSTATUS 4 means Unable to Post;
+this corrects the earlier claim that 607175 was Posted. Actual CSV generation
+and exact content are independently verified for all three runs.
 
 Request: `br-5a4e9d2c6ffd`, **Build Request native acceptance - read-only batch**.
 Spec revision 1 was proposed through the live MCP and approved by the developer
@@ -41,7 +53,11 @@ Only the developer performs both approval steps. Runtime scheduler execution
 is outside this metadata save/readback trial and must be reported separately.
 Retain the lab definitions for inspection until cleanup is authorized.
 
-## Evidence so far
+## Historical 0.9.5 metadata and analysis-handoff evidence
+
+Versions, bundle hashes and pending actions below describe this trial's
+checkpoints, not the current installed runtime. The released baseline is now
+0.9.6 and development is 0.9.7.
 
 - Source baseline `15c6fd0`; its GitHub CI passed 2,009 tests and 42 MCP/editor
   checks before this acceptance work.
@@ -131,10 +147,10 @@ Retain the lab definitions for inspection until cleanup is authorized.
   not invalidate the successful intake/analysis-handoff acceptance. No native
   build-phase terminal handoff or runtime execution is inferred from this.
 
-## Remaining gates
+## Metadata-trial gate results and remaining acceptance
 
-1. Complete: installed MCP handshake is 0.9.5 and its bundle matches the tested
-   candidate.
+1. Complete for this trial: the installed MCP handshake reported 0.9.5 and its
+   bundle matched the tested candidate at acceptance.
 2. Complete for analysis: developer-reported native creation, DOCX attachment
    intake and Claude Analyze handoff corroborated by two persisted request
    handoffs, extracted text and MCP-generated specs/questions. The original
@@ -148,5 +164,8 @@ Retain the lab definitions for inspection until cleanup is authorized.
    unverified.
 6. Complete: all artifacts, SQL and project membership independently read back;
    native tokens/checkpoint and final BUILT request progress recorded above.
-7. Inspect the installed progress/review UI; record runtime and cleanup scope
-   separately. Refresh this tracker with actual results, not inferred success.
+7. Remaining: finish this trial's installed progress/review UI inspection,
+   native build-phase terminal handoff and representative production acceptance.
+   Runtime success for the separate synthetic AE/file trial is
+   recorded above; it does not close those gaps. This metadata trial's program
+   was not executed and its lab definitions were retained, as recorded above.

@@ -41,7 +41,7 @@ complete test specification; retain business approval and every writer gate.
 | Fixture coverage: stale/absent gates, dependency drift, no premature writes, partial recovery | Full verify: 2,030 passed / 1 skipped; 52 production HTTP/UI checks previously passed on Node 20 and 26 |
 | Installed request/spec/build handoff and native approvals | Reload verified all 14 adapters; br-60e7196e2b0a spec revision 1 approved; Change Set revision 5 approved/applied by developer |
 | Native metadata apply/readback and project closure | Original creation plus reviewed PeopleCode correction independently verified; five project members, zero missing dependencies |
-| Native execution and exact expected-output comparison | Passed: HCMDMO instance 607175 Success/Posted; 123-byte UTF-8/no-BOM CSV exactly matches expected; Once restored, tracing off |
+| Native execution and exact expected-output comparison | Passed: HCMDMO instance 607175 Success (report posting not verified); 123-byte UTF-8/no-BOM CSV exactly matches expected; Once restored, tracing off |
 
 ## Runtime reconnaissance
 
@@ -222,8 +222,9 @@ other definitions remain BUILT/verified; no approval or checkpoint was altered.
 Manual diagnostic instance **607105** reproduced No Success / 108,502 before
 MAIN could emit a selective trace. Its stdout is retained at
 `/tmp/psft-ae-607105.stdout`; actual shared output contains only stdout.
-A later request has distribution status Posted; the first request's HTTP 900
-posting failure is separate from the repeatable PeopleCode-load failure.
+A later request was previously described as Posted without adequate status-label
+verification; do not rely on that claim. HTTP transfer and PeopleCode loading
+are separate failures. See the October 20 correction in BUILD_HANDOFF.md.
 Do not treat an exit/return code of 0, or 607104's skipped Success, as CSV
 acceptance. Actual execution, expected summary and exact file are required.
 
@@ -437,7 +438,7 @@ The developer then confirmed the corrected code validates in native App Designer
 The original approved attachment and creation history are retained unchanged.
 
 Native Process Scheduler **607175**, HCMDMO / JARED / ZZ_RF_ACC_01, ran at
-14:54:09–10 CDT and completed **Success** (RUNSTATUS 9), **Posted** (DISTSTATUS 4).
+14:54:09–10 CDT and completed **Success** (RUNSTATUS 9), **Not Posted** (DISTSTATUS 4; HRDMO labels this Unable to Post).
 Stdout says `ZZ_RF_EXPORT: accepted=3 rejected=1 total=30.75 (0,0)` and that the
 program ended normally. Actual output in
 `/mnt/nginx_shared/reports/HCMDMO/AE_ZZ_RF_EXPORT_607175/ZZ_RF_EXPORT.csv`

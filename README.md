@@ -154,9 +154,14 @@ verified previews, guarded Query saves and readback. See
 [Customization](docs/CUSTOMIZATION.md) and [Security](docs/SECURITY.md).
 
 Integration Broker, administration and Portal Registry authoring remain
-available. Studio migration packages cover supported fields, basic records and
-App Engine with dependency review, target preview and verified save receipts;
-MCP exposes review/export/preview, with apply in the UI. See
+available. Current development migration packages cover fields (every stored
+property and translate values), records with SubRecords and SQL Table user
+indexes, standalone SQL, HTML, freeform style sheets, stored PeopleCode, bounded
+PS Query, scoped menus, App Engine, Application Packages with classes, pages and
+components. Target preview stages changes and project membership into durable
+Change Review for developer approval and verified application, and every
+migrated type can be undone and redone from history.
+MCP exposes export and preview; the UI opens the persistent review. See
 [Project migration](docs/PROJECT_MIGRATION.md) for scope and limits.
 
 ### Definition types (App Designer's Open Definition)
@@ -168,10 +173,10 @@ reproducing App Designer's saves; **Read-only** = viewer, from the database;
 
 | Definition type | Status | Notes |
 |-----------------|--------|-------|
-| Application Package | Yes | Browse; create packages and classes; Application Class PeopleCode reads and saves; properties read-only |
+| Application Package | Yes | [Package tree workspace](docs/APPLICATION_PACKAGES.md): open/create roots, insert empty subpackages and classes, open and save class PeopleCode; package properties read-only |
 | Field | Yes | Editor: length, labels and description; create. MCP additionally sets Character format to Uppercase or Mixed Case |
 | HTML | Yes | Read, create and save — see [docs/HTML_SAVE.md](docs/HTML_SAVE.md) |
-| Project | Yes | Browse, open XML exports, create and add supported members, including AE sections and AE PeopleCode. Studio migration packages support fields, basic records and App Engine; unsupported adapters are reported |
+| Project | Yes | Browse, open XML exports, create and add supported members, including AE sections and AE PeopleCode. Studio migration packages support fields (every stored property and translate values), records with SubRecords and SQL Table user indexes, standalone SQL, HTML, freeform style sheets, stored PeopleCode, bounded PS Query, scoped menus, App Engine, Application Packages with classes, pages and components; target comparison, stale-target guards, verified readback and reviewed undo/redo apply |
 | Record | Yes | Editor (Field / Use / Edits); editable; create; translate values; delete — see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md) |
 | SQL | Yes | Read, create and save |
 | Style Sheet | Yes | Freeform: read as CSS, create and save — see [docs/STYLESHEET_SAVE.md](docs/STYLESHEET_SAVE.md). Classic / sub: a read-only class list |
@@ -225,7 +230,7 @@ reproducing App Designer's saves; **Read-only** = viewer, from the database;
 | **Customization: ownership and the delivered-object policy** | Experimental | Delivered / Delivered modified / Partner / Custom / Unknown, with evidence from save stamps, projects, naming prefixes, delivered baselines and verified Studio creation receipts. Policies (block / requireApproval / allowWithAudit) apply to guarded definition saves, renames and deletes. User default: allow with audit; agent default: require approval for delivered, partner or Unknown definitions. New verified custom definitions retain their receipts across supported edits. MCP approval waits expire after 60 seconds or cancellation — see [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md) |
 | **Event Mapping** editor | Experimental | Configuration Tools > Customization > Event Mapping, or a component's content reference in the Customization Strategy view: the Configure Event Mapping page's configurations -- component, page, record and field level rows, their services, sequence and enabled flag -- and a new related content service with its application class, saved as PeopleTools' own page saves them, on Writable connections — see [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md) |
 | **File Layouts** | Experimental | File Layout Designer: create, edit, save, Save As, rename and delete; segments, fields, record insert and properties, saved as App Designer saves them — see [docs/FILE_LAYOUTS.md](docs/FILE_LAYOUTS.md) |
-| **Integration Broker** | Experimental | Messages, Document Builder, services, service operations, nodes and routings: search, inspect, validate, create, preview and save through editors or MCP on PeopleTools 8.62.09 (on 8.61.15: nonrowset messages, standard services and operations, flat string documents); unsupported structures require PIA — see [docs/INTEGRATION_BROKER.md](docs/INTEGRATION_BROKER.md) |
+| **Integration Broker** | Experimental | Messages, Document Builder, services, service operations, nodes and routings: search, inspect, validate, create, preview and save through editors or MCP on PeopleTools 8.62.09 (on 8.61.15: nonrowset messages, standard/REST services and operations, external nodes, manual routings and flat string documents); supported OnRequest handler creation is calibrated on both releases; unsupported structures require PIA — see [docs/INTEGRATION_BROKER.md](docs/INTEGRATION_BROKER.md) |
 | **Menus** | Experimental | The Menu Designer — see [docs/MENUS.md](docs/MENUS.md) |
 | **Message Catalog**, **HCM Text Catalog**, **URL Definitions** | Experimental | Search, create and edit through Configuration Tools > Administration or MCP; typed schemas, catalog reference, Text Catalog configuration/language choices, concurrency and write gates — see [docs/ADMINISTRATION.md](docs/ADMINISTRATION.md) |
 | **Message Channels** | Experimental | App Designer's Message Channel window — see [docs/MESSAGE_CHANNELS.md](docs/MESSAGE_CHANNELS.md) |
@@ -245,14 +250,14 @@ reproducing App Designer's saves; **Read-only** = viewer, from the database;
 
 ## What does **not** work yet
 
-- Migration adapters for the remaining definition families (Studio packages currently cover fields, basic records and App Engine)
+- Migration of the explicitly refused shapes (alternate search keys, custom index DDL, translations, subpackage/class metadata, nested or SQL Table subrecords, updates to indexed records), of definition families outside those listed in [Project migration](docs/PROJECT_MIGRATION.md), and between database platforms
 - Editing record shapes and settings no App Designer save has been captured for (see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md))
 - Register Menu Item (portal registration) and menu translations
 - Component Interfaces: Test Component Interface, Java / C templates, CI references
 - Running App Engine programs (the designer and the MCP read, write and validate definitions; they never run them)
 - In the component editor: Default Search Action, the search-page link message numbers, the Custom style lists; component edits through the MCP
 - Build: Alter and Create Indexes/Views on SQL Server and DB2, views using rarer meta-SQL (%DatePart, %Join, %DateAdd ...), column type changes and the other uncaptured Alter cases listed in docs/RECORD_SAVE.md; migration of definition families outside the supported Studio package adapters
-- A full language server: compile diagnostics as you type come from Studio's compiler, with field references, functions and definition references (Record.X, Page.X, SQL.X ...) checked against the environment, F12 resolves supported definition references, application class paths and declared functions, and completion covers keywords, built-ins and the file's own names.
+- A full language server: compile diagnostics as you type come from Studio's compiler, with field references, functions and definition references (Record.X, Page.X, SQL.X ...) checked against the environment, F12 resolves supported definition references, application class paths and declared functions, and completion covers keywords, the known built-in function catalog, the file's own names, connected record fields and application-class own/inherited members. Broader language tooling remains open.
 - Full PS Query parity: joins, unions, subqueries, grouped/effective-date criteria, expression columns, numeric/date fields, aggregates, translate SQL, DISTINCT and row-security SQL are not yet editable/executable. Query rename, delete, Excel export and printing are also planned.
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the longer path.
@@ -323,7 +328,8 @@ compile the program in Application Designer as well (see the Disclaimer). See
 ## Editor features (PeopleCode)
 
 - **Go to Definition** — F12 / Ctrl-click resolves qualified application class paths, supported `Record.NAME` / `Page.NAME` and other definition references, and functions declared against Record PeopleCode. The target must exist in the connected environment.
-- **Completion** — keywords, common built-ins, system variables, locals in the file, `Function` / `method` names
+- **Completion** — keywords, the known built-in function catalog, system variables, locals and function/method names; connected record fields after `RECORD.`, and application-class own/inherited members after `%This.` / `%Super.` and explicitly typed object variables (0.9.7 development).
+- **Responsiveness and stale results** (0.9.7 development) — completion reads class declarations and bounds slow database reads; live and explicit validation run on background workers and discard obsolete work after edits, settings/connection changes or closure. See [editor acceptance](docs/PEOPLECODE_EDITOR.md) for real VS Code/HRDMO checks and remaining scope.
 - **Hover** — short docs for keywords, built-ins, `%` system variables
 - **Outline** — class / method / function / property symbols
 - **Snippets** — `if`, `for`, `try`, `locs`, `msgbox`, `sqlexec`, …
@@ -331,7 +337,7 @@ compile the program in Application Designer as well (see the Disclaimer). See
 - **Find References** — where an identifier (a whole word) or any text occurs in every PeopleCode program of the connection, from the word at the cursor; on a database one search of the stored source, so every program is covered. Pick an occurrence to open it at that line
 - **Compare Project** (Projects view) — text and modeled record/field metadata compared with another connection. Read failures remain errors; missing definitions require a successful absence check. Differences open as snapshots side by side.
 - **Administration tools** — Message Catalog, HCM Text Catalog and URL Definitions have searchable editors with create/edit, concurrency checks and readback verification. See [Administration](docs/ADMINISTRATION.md).
-- **Export Migration Package... / Import Migration Package...** — versioned Studio JSON packages, target preview, guarded writers, readback verification and a migration receipt. Fields, basic records and App Engine are supported.
+- **Export Migration Package... / Import Migration Package...** — versioned Studio JSON packages, target preview, guarded writers, readback verification and a migration receipt. Supported: fields (every stored property and translate values), records with SubRecords and SQL Table user indexes, standalone SQL, HTML, freeform style sheets, stored PeopleCode, bounded PS Query, scoped menus, App Engine, Application Packages with classes, pages and components.
 - **Review Project Migration...** (Projects view or command palette) — a saveable report of members, optional target comparison, explicit dependencies, and unresolved coverage. On Writable database connections, select dependencies to include through the existing project writer. Export/import uses Studio migration packages without Application Designer. See [Project migration](docs/PROJECT_MIGRATION.md).
 - **Compare With Environment** — a definition side by side with the same one in another connection (a database or a project export), in VS Code's diff editor. The other side is read once, without making that connection the active one
 
@@ -405,8 +411,9 @@ inputs, operation limits, rollback previews and validation.
 ### Change Review development initiative
 
 The 0.9.1 workflow adds durable Change Sets, persistent semantic review,
-checkpoint/history and reviewed reversal for bounded MCP paths. It does not yet
-cover every object type. Track
+checkpoint/history and reviewed reversal for bounded MCP paths, with crash and
+lost-reply reconciliation, continuation undo/redo and creation reversal. It does
+not yet cover every object type. Track
 verified implementation and remaining native acceptance in
 [Change Review progress](docs/change-review/PROGRESS.md).
 
@@ -415,3 +422,9 @@ and history. Object actions live on right-click menus; project migration actions
 live on the selected project. View headers keep at most two frequent actions,
 with secondary operations in their overflow menus. Approval and application
 remain inside the review workspace. See [navigation and action placement](docs/NAVIGATION.md).
+
+**Approve and apply** is the primary action for validated proposals. Approach
+approval remains separate; approval-only and per-object review remain
+available. The combined action binds the displayed revision and eligible
+objects, retaining checkpoints, native write guards and verified readback.
+See [design and verification](docs/change-review/APPROVE_AND_APPLY.md).

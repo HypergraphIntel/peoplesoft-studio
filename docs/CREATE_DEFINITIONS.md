@@ -123,5 +123,6 @@ App Designer capture has shown one yet.
 *New Definition...* (Projects and Definition Browser): Field asks for the
 type, name, length (and decimals) and label and creates it at once;
 Project creates the empty project and opens it in Projects; Application
-Package creates the package and offers to add a class; Application Class
+Package creates the package and opens its [tree workspace](APPLICATION_PACKAGES.md),
+with Insert Subpackage, Insert Class and Open PeopleCode; Application Class
 opens the class's declaration, and the first save creates it.

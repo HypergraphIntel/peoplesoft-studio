@@ -1,4 +1,10 @@
+# Historical wishlist
 
+These original ideas include capabilities that have since been implemented,
+such as Recent Projects, Data Mover templates and bounded PS Query authoring.
+This list is retained as input, not a current inventory of missing features.
+Use the [roadmap](ROADMAP.md), [readiness gates](RELEASE_1_0_READINESS.md) and
+[README capability tables](../README.md#what-works-now) for current status.
 
 - When opening an object from a project and the object no longer exists render a better display than the error message its currently issuing, ask to remove from project (Yes / No).
 

@@ -50,6 +50,7 @@ PeopleCode key). Each layout used is one HRDMO's delivered project items use:
 | Menu | 6 | 3 | MENUNAME |
 | Component | 7 | 10, 39 | PNLGRPNAME, MARKET |
 | Record PeopleCode | 8 | 1, 2, 12 | RECNAME, FIELDNAME, event |
+| Query | 10 | 30, 25 | QRYNAME, OPRID (one blank for public) |
 | SQL definition | 30 | 65, 81 | SQLID, SQLTYPE (0) |
 | App Engine program | 33 | 66 | AE_APPLID |
 | Message channel | 36 | 61 | CHNLNAME (App Designer's Insert into Project [chn16], docs/MESSAGE_CHANNELS.md) |
@@ -100,3 +101,5 @@ on HRDMO: a save presenting version 41 against version 44 was refused).
 | Create a project | Needs a case: new project, insert one definition, save |
 
 A change without a case is refused before anything is read for writing.
+
+October 20 Query membership refresh: all 310 HRDMO project members matching a native Query use OBJECTIDs 30/25 and empty remaining slots. Of these, 309 have the ordinary insertion status defaults above; one has COPYDONE 1. The new typed membership writer uses the ordinary defaults, preserves the public blank-owner key and checks existence against PSQRYDEFN. This is delivered-row evidence plus Studio native writer/readback acceptance; no new Windows App Designer insertion trial is claimed. [Native layout evidence](../tools/lab/results/query-project-layout-2026-10-20.json).

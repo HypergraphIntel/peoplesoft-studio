@@ -5,8 +5,9 @@ These contracts describe the current bounded implementation, not released
 
 ## Durable records and snapshot storage
 
-`src/changeReview/model.ts` defines schema 1 ordinary Change Sets and schema 2
-continuation Change Sets, with objects, checkpoints and journal entries. Store
+`src/changeReview/model.ts` defines schema 1 ordinary Change Sets, schema 2
+ordinary continuations, schema 3 combined reversals, and schema 4 continuations
+of interrupted reversals, with objects, checkpoints and journal entries. Store
 records under extension global storage at
 `change-review/sets/<uuid>.json`; immutable snapshots are content-addressed
 JSON in `change-review/blobs/<sha256>.json`. Canonical object keys are sorted;
@@ -19,9 +20,10 @@ Files use private permissions, fsync and atomic replacement. An exclusive lock
 serializes application across windows/processes. Only an established dead PID's
 lock is reclaimed, under a separate recovery lock; live/unknown owners fail
 closed. Crash-leftover recovery locks need manual investigation. Schema versions
-other than 1/2 are refused. Continuation metadata requires schema 2, so older
-builds reject these records instead of treating external prerequisites as
-optional. Existing schema-1 approval hashes remain unchanged. No destructive
+other than 1/2/3/4 are refused. Ordinary continuation metadata requires schema 2;
+combined reversal lineage requires schema 3; an inverse continuation requires
+both contracts under schema 4. Older builds reject these records instead of
+treating prerequisites or source coverage as optional. Existing schema-1 approval hashes remain unchanged. No destructive
 migration or pruning is performed; downgrades cannot read continuation records.
 This local file store is not a shared service or a tested Windows durability
 implementation. Retention, indexed large-history performance and synchronization
@@ -68,6 +70,16 @@ approve a newer revision. Approval of dependencies is required for the selected
 subset; rejected dependencies revoke dependent approvals transitively.
 Deletion requires an additional destructive-operation checkbox. Unsupported
 inverse controls are disabled, with the missing capability explained.
+
+The primary **Approve and apply** action combines concrete object approval and
+application under one exclusive store lock. It binds the displayed eligible
+object IDs, set revision and complete rendered durable state; same-revision
+review/validation changes invalidate the old page too. It persists normal
+per-object approval hashes and a combined-action journal entry before entering
+the unchanged application preflight/checkpoint/writer path. Rejected objects
+and their transitive dependent objects remain excluded. Separate approach
+approval, approval without application, individual object review and explicit
+destructive approval remain. See [design and verification](APPROVE_AND_APPLY.md).
 
 Apply repeats target, drift, validation, writability, scope, dirty-editor,
 operator and ownership-policy checks. A block policy remains a block. Reviewed
@@ -118,8 +130,7 @@ partial outcome is retained, linked from the page, and never relabelled APPLIED
 because a separate proposal succeeded. The review page shows both directions
 of the follow-up link and all pinned prerequisites.
 
-Partial reversals/manual-save failures and reversing an applied continuation
-require combined recovery semantics and remain unsupported. Unknown outcomes,
+Applied continuations can now prepare one combined inverse across the confirmed source checkpoints. Schema 3 binds every source revision, object hash and native token to the new approval; inverse dependencies run in reverse order. Every inverse object must be approved before application. Only fully verified application marks the source records REVERTED, and reconciliation can finish interrupted history publication without replay. Redo is another fresh reviewed proposal. Interrupted inverse application can prepare a fresh schema-4 continuation after reconciliation. The complete forward-source lineage is retained; confirmed inverse steps become checked prerequisites and are never replayed. All remaining inverse objects require fresh approval. Repeated interruptions retain all earlier checkpoints, and only completion of the whole inverse marks its forward histories REVERTED. Unknown manual-save failures remain unsupported. Unknown outcomes,
 changed prerequisites or changed untouched objects require explicit inspection
 and restaging; this feature does not guess whether a failed writer was safe to
 retry, restore database rows, or claim atomicity across native writers.
@@ -131,8 +142,12 @@ The trusted UI can deliberately apply one object and pause. It still preflights
 all approved objects, records verified readback, then stops before the next
 writer with PARTIALLY_APPLIED and PAUSED_BETWEEN_WRITERS journal entries. It is
 not a failed/uncertain result. Remaining work requires a fresh continuation and
-approval; partial reversal application is refused. No MCP approval/apply option
-or agent-callable pacing bypass is exposed.
+approval. Undo can also pause at this verified boundary after every inverse
+object has been approved; it resumes through the same fresh continuation path. No MCP approval/apply option
+or agent-callable pacing bypass is exposed. An identical page refresh preserves
+the current DOM, including explicit deletion consent; changed rendered review
+state rebuilds the form. Redo can start from any source history bound into the
+verified combined inverse.
 
 ## History and reversal
 
@@ -188,12 +203,15 @@ snapshots/native text diffs. Query comparisons match native row identities while
 ignoring incidental row order. Page controls use positive persisted PNLFLDID
 rather than FIELDNUM; unresolved temporary identities are AMBIGUOUS. Record
 fields use names/order; AE specs use section+variant, step names and action
-types. Record/AE providers currently have model tests rather than staging.
+types. Record/AE header edits and bounded creation now use staged native
+preservation/creation adapters; general structural edits remain outside scope.
 The Page adapter now stages a bounded existing-control subset using full native
 scoped snapshots and exact rollback-preview equivalence; see
 [PAGE_ADAPTER.md](PAGE_ADAPTER.md) for the eleven-table scope, limits, locked
 content/version guard and typed inverse/manual-history behavior. Page staging
-is fixture verified, not installed/native or visual-designer certification.
+has fixture and bounded installed/native acceptance, including corrected Static
+Text / Edit Box apply/inverse and Windows Designer inspection. Broader controls
+and operations remain outside that acceptance; see [COVERAGE.md](COVERAGE.md).
 
 ## MCP protocol
 
@@ -219,7 +237,9 @@ is fixture verified, not installed/native or visual-designer certification.
 
 Legacy-compatible tool names migrated in this build: `psft_save_text_definition`,
 `psft_save_peoplecode`, `psft_process_save`, `psft_query_create`,
-`psft_query_save`, `psft_query_copy`, and bounded `psft_edit_page` operations. Optional changeSetId/dependsOn groups
+`psft_query_save`, `psft_query_copy`, bounded `psft_edit_page`, Record/AE header
+edits, new Derived/Work/AE/project creation and bounded service/operation
+`psft_ib_save` operations. Optional changeSetId/dependsOn groups
 requests. They return REVIEW_REQUIRED and persisted=false instead of pretending
 an immediate save. Existing dryRun requests keep their existing preview path.
 Identical staged retries do not invalidate approval; duplicate apply is refused.
@@ -231,3 +251,17 @@ See [STRUCTURED_HEADERS.md](STRUCTURED_HEADERS.md) for their six/twenty-table
 preservation scopes, exact writer rollback equivalence, full locked native token
 checks, typed inverse and excluded structural/dependency operations. Snapshots
 are preservation evidence, never a general raw-row replay format.
+
+New Derived/Work records, AE programs and projects use dedicated creation
+adapters with declared proposed dependencies and exact native rollback-preview
+checks. Record/AE creation reversal is now calibrated; project creation reversal remains unsupported. See
+[STRUCTURED_CREATION.md](STRUCTURED_CREATION.md). IB services/operations use
+fixed noncredential checkpoints for headers and bounded structural edits,
+with typed inverse for supported existing-row edits; handler-addition reversal
+is refused. See [IB_STRUCTURE.md](IB_STRUCTURE.md).
+
+## Native recovery acceptance — October 20
+
+Controlled HRDMO child processes were actually killed with SIGKILL after a committed HTML writer but before ReviewService recorded its response, and before the writer committed. The first reconciled to APPLIED from exact native readback; the second retained the exact native baseline and required fresh continuation approval. Native cache counters and complete content tokens did not move during reconciliation. This verifies the tested Linux/Oracle boundaries, not every crash location or Windows durability.
+
+Derived/Work Record and AE creation adapters now support calibrated deletion/recreation. A complete locked snapshot token is required for reviewed deletion, known references can block it, and deletion previews roll back. Record deletion previews may account only for explicitly staged AE deletions; committed writes always recheck actual native references. Tombstones are part of the vacant-scope token; recreation uses the existing calibrated writers and must exactly reproduce the retained semantic checkpoint before commit. Empty-scope and existing-definition tokens remain compatible with prior recorded histories. Complete Oracle 8.62 SQL/HTML/freeform stylesheet adapters now also support typed deletion/recreation and full metadata checkpoints; legacy partial histories retain their original reversal limits. Query and project deletion remain unsupported. See [TEXT_DELETION.md](TEXT_DELETION.md).

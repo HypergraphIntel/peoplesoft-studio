@@ -1,6 +1,133 @@
 # Change Review, transactions and history — progress
 
-## Current development — 0.9.6 (0.9.5 release baseline)
+## Current state — 0.9.7 development (0.9.6 released)
+
+Reconciled October 20, 2026 against the source and recorded native acceptance.
+The 0.9.6 release includes fourteen bounded Oracle adapters: SQL, HTML,
+freeform style sheets, event/application-class PeopleCode, Process, Query,
+Page, Record/AE headers, new Derived/Work records, new AE programs, new
+projects, and IB services/operations. The two IB adapters cover both headers
+and the bounded structure in [IB_STRUCTURE.md](IB_STRUCTURE.md).
+
+Native acceptance now includes text/PeopleCode apply/inverse/redo trials,
+Query structural and criteria/order edits, Page controls/redo, Record/AE
+headers and deliberate pause/continuation, four-object creation, standard IB
+header/structural cycles and a REST provider handler addition. The synthetic
+AE/file request also completed native runtime instance 607175 with exact CSV
+output. These are bounded trials, not certification of every adapter operation.
+See [COVERAGE.md](COVERAGE.md) and the [AE/file workflow](../build-requests/AE_FILE_WORKFLOW.md).
+
+Remaining work includes 8.61 and REST consumer structural acceptance, broader
+adapters/structural edits, deletion for Query/projects, broader installed recovery acceptance, and broader production/Windows Build Request acceptance. Added IB handler reversal is explicitly refused.
+
+October 20 installed build handoff acceptance passed for both Codex and Claude:
+each request produced one four-object APPLIED/VERIFIED creation set, followed
+by a separately confirmed Process Definition and a native exact-CSV run
+(607265 / 607266). Report delivery subsequently passed after the targeted agent recycle and exact transfer-location gzip exclusion; both original runs are Posted with usable native View Log/Trace and exact CSV downloads. This
+also corrects earlier claims that DISTSTATUS 4 meant Posted; native HRDMO
+labels it Unable to Post. See [actual session/runtime evidence](../build-requests/BUILD_HANDOFF.md).
+
+October 20: the developer selected **Approve and apply** as the primary action,
+keeping approach approval separate and **Approve only** available. Implemented
+one-lock approval/application with exact rendered-state and revision checks,
+explicit eligible object IDs, rejected/dependency-blocked exclusions and the
+existing checkpoint, guarded writer, precommit and readback path. Individual
+object review, destructive approval, partial recovery and cancellation remain.
+No MCP approval/apply tool or automatic approach-to-application path was added.
+See [implementation and verification](APPROVE_AND_APPLY.md). Agent batching and
+any future approach approval covering an inverse/redo remain separate proposals.
+
+Local verification: 2,095 tests passed / one skipped, compile/bundle and
+108-command activation smoke, 17 editor fixture checks and 56 production
+HTTP/UI workflow checks. The actual rendered combined-action click script is
+exercised, and the production page preview was visually inspected. These are
+fixture-backed approval/application checks; no new live PeopleSoft application
+was performed for this UI change.
+
+## October 20 recovery development
+
+Combined continuation inverse/redo is implemented with schema-3 source lineage, checkpoint/live-state checks, reverse dependency ordering and fresh approval. Partial inverse approval cannot write or relabel an original fully reverted. Record/AE creation adapters now use calibrated delete/recreate writers with complete native tokens and tombstones. Actual HRDMO trials passed a deliberate Record-only pause, freshly reviewed AE continuation, combined AE-then-Record deletion, and redo restoring both full native checkpoints including compiled PeopleCode. Separately, actual SIGKILL before/after a native HTML commit recovered without replay; native counters/tokens stayed stable during reconciliation and uncommitted work needed fresh approval. All disposable artifacts were cleaned up.
+
+Evidence: [Record/AE inverse and redo](../../tools/lab/results/recovery-native-2026-10-20.json), [real crash/lost response](../../tools/lab/results/recovery-crash-native-2026-10-20.json). Those standalone native trials used trusted service test approval. Separate [installed/native acceptance](../../tools/lab/results/priority-installed-native-2026-10-20.json) now passes actual rendered approval-only/pause, fresh continuation approval, schema-3 combined destructive inverse and fresh redo through the unmodified packaged extension. Native full Record/AE checkpoints including compiled PeopleCode match after restoration, both source histories become REVERTED only after inverse verification, and all temporary rows were cleaned up. The test used a separate real VS Code window with private history, preserving the original running window. Broader deletion remains explicitly unsupported. Interrupted inverse continuation is implemented and separately verified below. The review page exposes source revisions for combined inverses. Migration now has separate full portable-payload adapters and reviewed target membership; see [migration scope and evidence](../PROJECT_MIGRATION.md).
+
+## October 20 interrupted inverse continuation
+
+Schema 4 retains both complete forward-source lineage and continuation
+prerequisites. A reconciled failed undo or a deliberate verified pause can
+prepare only untouched inverse steps. Approval is fresh and covers every
+remaining inverse. Confirmed deletions are checked without replay, repeated
+interruptions retain earlier checkpoints, and forward history becomes REVERTED
+only after the complete undo is verified. Redo restores all confirmed inverse
+steps across the chain. Completed follow-ups, including multiple interruptions,
+move the retained partial records out of Pending without rewriting them.
+
+All six [native Record/AE checks](../../tools/lab/results/recovery-inverse-continuation-2026-10-20.json)
+pass with cleanup. The test injects a lost reply after actual AE deletion commit,
+reconciles without another deletion, applies a freshly approved Record-only
+inverse continuation, and redoes both exact native checkpoints. This is separate
+from the existing actual HTML SIGKILL evidence. Three service regression tests
+cover repeated failures, legacy inverse records, lineage/schema/coverage
+tampering, prerequisite drift, and interrupted history publication. Local full
+verification: 2,136 pass / one skipped, activation smoke, 18 editor checks and
+9 package checks. Production HTTP/UI workflow checks: 61 pass. Identical review refreshes keep
+the existing form; changed review state rebuilds it and clears deletion consent.
+Redo can be prepared from any original source history covered by the combined
+verified inverse, including the original partial application.
+
+Separate installed/native acceptance now passes all six checks through the
+unmodified packaged bundle, including the rendered remaining-work action,
+exact-state checkbox retention, fresh destructive approval, full native
+readback and redo from the original source history. All temporary definitions
+were removed, full scoped absence verified, and the private window closed.
+The original window was never reloaded.
+[Installed results](../../tools/lab/results/inverse-continuation-installed-2026-10-20.json),
+[verified inverse](../../tools/lab/results/recovery-installed-inverse-resumed-2026-10-20.png),
+[redo](../../tools/lab/results/recovery-installed-redo-resumed-2026-10-20.png).
+Candidate SHA: `e468c0a3fef05120bd2ad839996dea19651a345f0703877d60fb34500b32859d`.
+
+## October 20 SQL/content creation reversal calibration
+
+Six actual Windows App Designer cases now establish deletion and recreation
+for standalone SQL, HTML and freeform stylesheets, with complete owned-scope
+cleanup. Stylesheet deletion advances CRM and SSM and writes two markers; its
+recreation clears both markers while only SSM advances. SQL and HTML recreation
+also clear their matching tombstones. Typed deletion/recreation writers and complete Oracle 8.62 text checkpoints
+are now implemented. Normal reviewed saves, portable manual history and text
+migration share the complete paths while preserving legacy partial histories.
+Full native marker/token/counter checks, known-reference refusal and rollback
+previews precede application. Physical-scope aliases cannot coexist in a set or
+its prerequisites. The native service trial covers long Unicode metadata,
+unchanged-version drift, lost-reply reconciliation without replay, fresh
+remaining undo approval and full redo.
+[Current protocol, scope and evidence](TEXT_DELETION.md).
+
+Current acceptance: 20 native provider/service checks and six installed HRDMO
+UI checks, with full metadata readback and complete owned-scope cleanup. The
+native trial additionally verifies concurrent SQL/stylesheet saves across shared
+counters. Installed controls verify actual approval-only/pause, fresh remaining
+approval, destructive consent, interrupted inverse continuation and redo from
+the original source history. Local gates pass 2,149 tests / one skipped, smoke,
+18 editor and 9 package checks; production HTTP/UI checks pass all 63 cases.
+[Exact text scope and evidence](TEXT_DELETION.md). Query/project creation
+deletion and the remaining migration families are still open.
+
+## October 20 Query/project deletion calibration
+
+Six actual native cases now cover project deletion/empty recreation and public
+and JARED-private Query deletion/native Save As recreation. Captures include
+all seven populated Query table families, owner-specific QDM tombstones,
+project membership preservation/removal boundaries, PJM/QDM/SYS counters and
+marker clearing. The snapshot tool includes all native base-table Query/project
+keys while excluding project target-account columns and unrelated row values.
+All owned fixtures and markers are removed and the original native view restored.
+Production typed deletion and reviewed creation reversal remain open for these
+families. [Native protocol and implementation gates](QUERY_PROJECT_DELETION.md).
+
+## Recorded 0.9.6 development checkpoints
+
+The following checkpoints retain their original versions, test counts and
+then-pending actions. Later entries and the current summary supersede those
+statuses; they do not describe a newly inspected live session.
 
 Latest (October 19, after AE/file acceptance): bounded **IB structural review**
 is implemented on the existing `ib-service`/`ib-operation` adapters. The
@@ -79,7 +206,7 @@ original records BASELINE_CONFIRMED; continuation
 independent full-input/token readback. Native App Designer then exposed invalid
 Boolean uses of File.WriteLine (2,60). Reviewed correction
 `af6dd54e-b44c-4c48-b1b0-0dd3e8f045bb` revision 2 is APPLIED/VERIFIED;
-native validation passes. HCMDMO instance 607175 completed Success/Posted and
+native validation passes. HCMDMO instance 607175 completed Success (report posting not verified) and
 its 123-byte UTF-8/no-BOM CSV exactly matches expected output and summary.
 Build Request is BUILT with no remaining objects. Run control is restored to
 Once, all temporary tracing is cleared, project closure reports zero missing.
@@ -316,7 +443,7 @@ scope; the illustrative timeline is not repository or database history.
 - `git diff --check` passed. This development work has not been committed,
   tagged, pushed or published as a new release.
 
-## Next task: final UI candidate reload and 0.9.1 handoff
+## Historical next task: final UI candidate reload and 0.9.1 handoff
 
 Bounded native closeout has passed. Query history survives 0.9.1 reload with
 three matching verified revisions. Corrected Page controls passed native
@@ -345,15 +472,19 @@ calibration rules have been changed.
 
 ## Milestone tracker
 
+Current as of October 20, 2026. Native acceptance is bounded by
+[COVERAGE.md](COVERAGE.md); historical candidate checkpoints above and below
+retain their original status.
+
 | Milestone | Status | Required completion evidence |
 |---|---|---|
 | 1. Architecture and inventory | Documented; baseline verified | Source inventory, current/target architecture, contracts, affected files, UX plan, risks and baseline tests recorded; adapter-specific native research remains explicit |
 | 2. Change Set foundation | Implemented; fixture verified | Durable schema-1/2 store, snapshots, lifecycle, plans, approval hashes, dependency ordering, reviewed continuation and retry identity; future migrations/retention/shared storage remain open |
-| 3. Change Review interface | Initial slice and object timeline implemented | Persistent page, status indicator, before/after/native diffs, approvals, report/history, retained object baseline/revisions, explicit live checks and supported reversal; installed timeline acceptance and native Page/AE visual comparison remain open |
-| 4. MCP integration | Partial by explicit adapter | Text/PeopleCode, Process, Query and bounded Page/Record/AE edits route to staging on Oracle; nine adapter families; other tools/platforms retain legacy gates |
-| 5. Safe application | Core implemented; native acceptance pending | Preflight, authorization drift, checkpoints, journal, verified readback, cancellation and reconciliation tested with fixtures; reviewed remaining-work proposals are fixture verified; no global atomicity or automatic replay |
-| 6. History and reversal | Partial by adapter | Supported manual saves, immutable snapshots, revision comparison, reviewed inverse/redo and drift blocks; unsupported CREATE inverses disabled; one native Query update/revert/redo verified, broader native acceptance pending |
-| 7. Full object coverage | Not complete | Page and Record/AE header adapters have full-scope fixture evidence; corrected Page control and Record/AE native acceptance remain pending; remaining families need COVERAGE.md evidence |
+| 3. Change Review interface | Implemented; bounded installed acceptance | Persistent review/history, semantic/native diffs, object timelines, baseline comparisons and explicit live checks; native Query, Page and PeopleCode timelines/redo verified; comprehensive visual/manual-path acceptance remains open |
+| 4. MCP integration | Partial by explicit adapter | Fourteen Oracle adapters cover text/PeopleCode, Process, Query, bounded Page/Record/AE edits, new Derived/Work/AE/project creation and IB headers/structure; other tools/platforms retain legacy gates |
+| 5. Safe application | Core implemented; bounded native acceptance | Native verified application, deliberate pause/continuation and exact-baseline reconciliation with fresh continuation approval; real crash/lost-response recovery remains open; no global atomicity or automatic replay |
+| 6. History and reversal | Partial by adapter | Native typed inverse/redo and drift refusal demonstrated on documented Query, Page and PeopleCode paths, plus Record/AE and standard IB inverse cycles; creation and continuation reversal remain unsupported; broader native acceptance pending |
+| 7. Full object coverage | Not complete | Corrected Page controls, Record/AE headers, bounded new-definition creation and IB structure have recorded native acceptance; remaining operations/families and platform/release trials need COVERAGE.md evidence |
 
 The proposal's 12 phases provide detailed requirements; its seven milestones
 above define incremental delivery. Lifecycle states and conceptual MCP tool

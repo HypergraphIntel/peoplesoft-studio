@@ -207,13 +207,13 @@ Example:
 Change Set #1042 — Employee Details Enhancement
 
 Modified:
-- OU_EMPLOYEE_DTL — Page
-- OU_EMPLOYEE_REC — Record
-- OU_EMPLOYEE_CMP — Component
+- ZZ_EMPLOYEE_DTL — Page
+- ZZ_EMPLOYEE_REC — Record
+- ZZ_EMPLOYEE_CMP — Component
 
 Created:
-- OU_EMP_AUDIT — Record
-- OU_EMP_UTIL — Application Class
+- ZZ_EMP_AUDIT — Record
+- ZZ_EMP_UTIL — Application Class
 
 Each entry should include:
 

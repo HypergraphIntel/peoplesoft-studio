@@ -25,25 +25,64 @@ and a PeopleCode Editor settings section, bounded IB structural review, and
 completes the synthetic requirements-to-running-AE/file workflow. See
 [release notes](releases/0.9.6.md).
 
-Immediate priority: installed Build Requests acceptance, from attached
-requirements through a configured agent, questions, exact spec approval,
-dependency-ordered creation, Change Review and independent native readback.
-The bounded HRDMO metadata build now passes native approval, SQL Change Review
-application and all-artifact readback. Separate developer trials verify native
-DOCX intake and Claude analysis handoff; build-phase terminal handoff remains
-unverified. Track the
-controlled lab run in [Build Requests acceptance](build-requests/NATIVE_ACCEPTANCE.md).
+Build Requests have passed bounded HRDMO metadata creation, native approvals,
+Change Review and independent readback. Native DOCX intake and Claude analysis
+handoff were verified separately. On October 20, the actual installed **Build**
+buttons launched both configured Codex and Claude clients in a separate window;
+both read approved specs, staged reviewed creation, and completed native runs
+**607265 / 607266** with exact expected CSVs. The user's original window stayed
+open. See [installed build handoff acceptance](build-requests/BUILD_HANDOFF.md).
 
-Integration Broker Change Review now has a first development slice: existing
-service/operation description/comments edits, with exact native rollback
-previews and fixture apply/inverse/history. One installed developer-approved
-HRDMO standard service/operation apply/inverse cycle now passes full scoped
-readback/checkpoint verification, with both original states restored. Structural
-review adapters are next; structural edits and creation still use legacy per-write
-confirmation; their native calibration is not review/history certification.
-Subsequent work includes broader structural review adapters, reviewed migration
-apply and Data Migration Workbench. Component editing and Data Mover script
-templates already exist. Full PS Query parity and browser SAML SSO remain open.
+Report delivery is fixed: an idle-agent recycle cleared a stale port 80
+connection and the HTTPS transfer location now disables gzip, so XML
+acknowledgements parse. Both runs are Posted to Web (5), and native View
+Log/Trace opens both stdout files and downloads both exact CSVs. Earlier
+607175 posting claims stay corrected: that run executed and produced its exact
+CSV, but was not posted. Write-confirmation timeouts now end in explicit
+expired, cancelled, declined or approved outcomes, and a late click never
+writes. Build Request progress accepts PENDING for deferred work and keeps
+history. All three passed installed checks. Representative production-interface
+and Windows handoff acceptance remain open. See [priority tasks](PRIORITY_TASKS.md),
+[native intake and metadata](build-requests/NATIVE_ACCEPTANCE.md) and
+[AE/file runtime history](build-requests/AE_FILE_WORKFLOW.md).
+
+Integration Broker Change Review covers existing service/operation headers and
+bounded structural edits. Native HRDMO acceptance includes a standard header
+apply/inverse cycle, a standard operation structural apply/inverse cycle, and a
+REST provider OnRequest handler addition. Reversal of an added handler is
+refused because child deletion is not calibrated. Broader structural changes,
+creation/deletion, 8.61 structural acceptance and REST consumer structural
+application remain open; out-of-contract writes retain legacy confirmation.
+See [IB structural scope and evidence](change-review/IB_STRUCTURE.md).
+
+Application Packages now have a dedicated tree workspace for opening/creating
+roots, inserting empty subpackages and classes, and opening class PeopleCode.
+The installed VSIX journey and native HRDMO saves pass; see
+[package workflow and acceptance](APPLICATION_PACKAGES.md).
+
+0.9.7 source adds definition-reference checks and broader PeopleCode completion:
+record fields, the known built-in function catalog, and application-class own
+and inherited members including `%This.` / `%Super.`. See [unreleased
+notes](releases/next.md). **Editor validation and polish acceptance is complete**:
+13 checks against the unmodified installed VSIX on VS Code/HRDMO verify record
+fields, class members, rendered suggestion popups, large programs, connection
+changes and stale diagnostics without database saves. The completed task and
+its requirement-by-requirement evidence are in [editor acceptance](PEOPLECODE_EDITOR.md).
+It is no longer an outstanding roadmap item.
+
+Project migration packages now cover fields (every stored property and translate
+values), records with SubRecords and SQL Table user indexes, standalone SQL,
+HTML, freeform style sheets, standalone and associated PeopleCode, App Engine,
+Query, Menu, Application Packages with classes, pages and components. Import
+goes through durable Change Review, and every migrated type can be undone and
+redone. Native HRDMO trials, App Designer captures for each new writer and
+App Designer checks of migration-made definitions pass; see
+[migration scope and evidence](PROJECT_MIGRATION.md). Explicit refusals remain
+(alternate search keys, custom index DDL, translations, subpackage/class
+metadata, nested or SQL Table subrecords, updates to indexed records), as do
+cross-database migration and Data Migration Workbench. Component editing and
+Data Mover script templates already exist. Full PS Query parity and browser
+SAML SSO remain open.
 
 See the [README capability tables](../README.md#what-works-now),
 [MCP reference](MCP_REFERENCE.md), and [changelog](../CHANGELOG.md) for current
@@ -52,32 +91,42 @@ not a current capability inventory.
 
 ## Major workflow initiative: Change Review and history
 
-A proposed redesign replaces repeated MCP object-approval dialogs with durable
-Change Sets, a persistent VS Code review workspace, approved application,
-semantic differences and durable history/undo/redo. Eleven adapter families are
-implemented within their documented bounds, with native Query, Page and
-Record/AE and standard IB header acceptance recorded; broader operations and adapters remain
-open. Resume from
+A partially implemented redesign replaces repeated MCP object-approval dialogs
+with durable Change Sets, a persistent VS Code review workspace, approved application,
+semantic differences and durable history/undo/redo. Fourteen Oracle adapters are
+implemented within their documented bounds, including new Derived/Work, AE and
+project creation and bounded IB structure. Native acceptance includes Query,
+Page, Record/AE, text/PeopleCode and IB trials, crash and lost-reply
+reconciliation, continuation undo/redo, creation reversal and undo/redo of every
+migrated type. IB creation/deletion and broader operations remain open. Resume from
 [the progress tracker](change-review/PROGRESS.md); the
 [full user proposal](change-review/PROPOSAL.md) defines scope and acceptance.
 This is a separate architecture initiative beyond the 0.9.0 release.
 
-**Planned: fewer approval round trips.** In the October 19 native acceptance
-sessions, every agent Change Set cost the developer three separate actions
-(approve the approach, approve the objects, apply), and each inverse or redo
-was another set. The developer asked for this to be on the roadmap. Candidate
-changes, none decided or built:
+**Fewer approval round trips: combined action implemented.** On October 20 the
+developer selected **Approve and apply** as the primary action, with approach
+approval separate and **Approve only** retained under More actions. One click
+approves the exact displayed eligible object set and runs normal application
+under one store lock. Revision/rendered-state checks, per-object review,
+approval hashes, destructive approval, native precommit guards, checkpoints and
+verified readback remain. Rejected objects and blocked dependents stay excluded.
+See [design and verification](change-review/APPROVE_AND_APPLY.md).
 
-- A combined **Approve and apply** action for a validated set whose approach
-  is already approved, keeping the same approval hash, precommit after-image
-  guard and per-object review visible on the page. This changes the safety
-  model, so it needs an explicit design decision first.
+Remaining proposals:
+
 - Agent-side batching: one Change Set per coherent trial or task instead of one
   per object, and one inverse covering it.
 - Optionally, an approach approval that also covers the inverse/redo the plan
-  already names, so a planned reversal does not need its own plan review.
+  already names, so a planned reversal does not need its own plan review. This
+  has not been agreed or implemented; reversals and redo still require fresh review.
 
-## Done
+## Historical research and implementation log
+
+The entries below retain the state and next steps recorded at each checkpoint.
+Their old "Done", "Next" and pending statements do not override the current
+summary above, the readiness gates or the linked capability/acceptance trackers.
+
+### Initial completed work
 
 - Provider abstraction with declared capabilities
 - Oracle backend: projects, project items, search, record read, PeopleCode read,
@@ -104,7 +153,7 @@ changes, none decided or built:
   typecheck, unit tests and an activation smoke test
 - Language ids namespaced so `jatz.peoplesoft-tools` can stay installed
 
-## Next: make reads trustworthy
+### Historical next step: make reads trustworthy
 
 1. **Calibrate the PeopleCode decoder.** Run `decoder: "raw"` against real
    programs, extend `OPCODES` one confirmed construct at a time, and verify each
@@ -2524,11 +2573,13 @@ Application Classes: class, method, property, visibility, extends, implements, g
    create/alter scripts matching App Designer's build output.
 6. **PeopleCode encoder** — only once the decoder round-trips completely.
 
-## Then: language intelligence
+## Historical language intelligence plan
 
 7. Language server: diagnostics, go-to-definition across record PeopleCode and
    application classes, completion for record fields and class members, and
-   references.
+   references. These editor paths are implemented; installed validation/polish
+   acceptance for the new completion and diagnostics features is complete in
+   0.9.7 development. See [the completed acceptance task](PEOPLECODE_EDITOR.md).
 8. Compile against the environment so errors match what PeopleTools reports.
 
 ## Then: the remaining definition types
