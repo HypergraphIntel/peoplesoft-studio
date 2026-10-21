@@ -1,0 +1,176 @@
+{
+ "kind": "component",
+ "name": "ZZ_PCODE_LAB_DCMN",
+ "beforeScn": "39362812560038",
+ "tables": {
+  "PSPNLGRPDEFN": {
+   "before": [
+    {
+     "PNLGRPNAME": "ZZ_PCODE_LAB_DCMN",
+     "MARKET": "GBL",
+     "VERSION": 436,
+     "ACTIONS": 14,
+     "DESCR": "Dependent/Beneficiary",
+     "ADDSRCHRECNAME": "PERS_SRCH_GBL",
+     "SEARCHRECNAME": "PERS_SRCH_GBL",
+     "SEARCHPNLNAME": "EMPLOYMENT_DTA1",
+     "LOADLOC": 0,
+     "SAVELOC": 0,
+     "DISABLESAVE": 0,
+     "OBJECTOWNERID": "HBN",
+     "LASTUPDDTTM": "2026-10-21T11:52:43.982Z",
+     "LASTUPDOPRID": "JARED",
+     "PRIMARYACTION": 1,
+     "DFLTACTION": 1,
+     "DFLTSRCHTYPE": 1,
+     "DEFERPROC": 0,
+     "EXPENTRYPROC": 0,
+     "REQSECURESSL": 0,
+     "INCLNAVIGATION": 1,
+     "FORCESEARCH": 0,
+     "ALLOWACTMODESEL": 1,
+     "PNLNAVFLAGS": 3,
+     "TBARBTNS": 127971,
+     "SHOWTBAR": 1,
+     "ADDLINKMSGSET": 124,
+     "ADDLINKMSGNUM": 62,
+     "SRCHLINKMSGSET": 124,
+     "SRCHLINKMSGNUM": 63,
+     "SRCHTEXTMSGSET": 124,
+     "SRCHTEXTMSGNUM": 50,
+     "WSRPCOMPLIANT": 0,
+     "FLUIDMODE": 0,
+     "LAYOUTMODE": 0,
+     "INCFOOTER": 0,
+     "INCSIDE": 0,
+     "INCHEADER": 0,
+     "INCSEARCH": 0,
+     "SMALLFFOPT": 0,
+     "COMP_TYPE": 0,
+     "PNLGRPUSE": 1,
+     "DESCRLONG": "Dependent/Beneficiary"
+    }
+   ],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSPNLGROUP": {
+   "before": [
+    {
+     "PNLGRPNAME": "ZZ_PCODE_LAB_DCMN",
+     "MARKET": "GBL",
+     "PNLNAME": "DEPEND_BENEF1",
+     "SUBITEMNUM": 1,
+     "ITEMNAME": "DEPENDENT/BENEFICIARY_1",
+     "ITEMLABEL": "&Name",
+     "FOLDERTABLABEL": " ",
+     "HIDDEN": 0
+    },
+    {
+     "PNLGRPNAME": "ZZ_PCODE_LAB_DCMN",
+     "MARKET": "GBL",
+     "PNLNAME": "DEPEND_BENEF2",
+     "SUBITEMNUM": 3,
+     "ITEMNAME": "DEPENDENT/BENEFICIARY_2",
+     "ITEMLABEL": "Personal &Profile",
+     "FOLDERTABLABEL": " ",
+     "HIDDEN": 0
+    },
+    {
+     "PNLGRPNAME": "ZZ_PCODE_LAB_DCMN",
+     "MARKET": "GBL",
+     "PNLNAME": "DEPEND_BENEF_ADDR",
+     "SUBITEMNUM": 2,
+     "ITEMNAME": "DEPEND_BENEF_ADDR",
+     "ITEMLABEL": "&Address",
+     "FOLDERTABLABEL": " ",
+     "HIDDEN": 0
+    }
+   ],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSPNLGRPDEFNEXT": {
+   "before": [
+    {
+     "PNLGRPNAME": "ZZ_PCODE_LAB_DCMN",
+     "MARKET": "GBL",
+     "PTCTXSEARCHRECNAME": " ",
+     "PTSF_SRCCAT_NAME": "HC_BEN_DEPBEN_DATA",
+     "PTSF_SRCH_CRITERIA": " ",
+     "PTKEYWDSRCHMSGSET": 0,
+     "PTKEYWDSRCHMSGNUM": 0,
+     "PTRTSRCHLINKMSGSET": 0,
+     "PTRTSRCHLINKMSGNUM": 0,
+     "PTPG_PGRIDNAME": " ",
+     "PTPG_VIEWNAME": " ",
+     "PTENABLENOTIFY": 0,
+     "PTS_ENABLECONFSRCH": 0
+    }
+   ],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSPNLGRPSCRIPTS": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSPNLGDEFNLANG": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSPNLGROUPLANG": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSPNLGRPDEL": {
+   "before": [],
+   "after": [
+    {
+     "PNLGRPNAME": "ZZ_PCODE_LAB_DCMN",
+     "MARKET": "GBL",
+     "VERSION": 437
+    }
+   ],
+   "unchanged": 0
+  },
+  "PSMENUITEM": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSAUTHITEM": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSPCMPROG": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSPCMTXT": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSPCMNAME": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSPCMPROGDEL": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSPROJECTITEM": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  }
+ }
+}

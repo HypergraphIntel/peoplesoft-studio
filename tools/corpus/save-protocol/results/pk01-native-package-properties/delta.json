@@ -1,0 +1,314 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "pk01-native-package-properties",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "nonLabRowsOmitted": true,
+ "markers": {
+  "before": {
+   "scn": "39362810949527",
+   "timestamp": "2026-10-20T17:58:18.570340000-05:00"
+  },
+  "after": {
+   "scn": "39362810951741",
+   "timestamp": "2026-10-20T17:59:38.493836000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-20T17:58:18.570340000-05:00",
+    "to": "2026-10-20T17:59:38.493836000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "APM": {
+    "before": 121,
+    "after": 122,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 4611,
+    "after": 4612,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "APM": {
+    "before": 121,
+    "after": 122,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSPACKAGEDEFN": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   },
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "otherTablesChanged": {},
+  "unreadableTables": [],
+  "outsideWatch": {
+   "PSAPMSGDSPSTAT": {
+    "beforeCount": 3,
+    "afterCount": 3,
+    "touched": true
+   },
+   "PSAPMSGPUBCLOCK": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSAPMSGPUBLOCK": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSAPMSGSUBCLOCK": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSIBNWLOCK": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSIBNWSTATUS": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSIBOALOCK": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSIBOAUTH": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSPACKAGEDEFN": {
+    "beforeCount": 4261,
+    "afterCount": 4261,
+    "touched": true
+   },
+   "PSSERVERSTAT": {
+    "beforeCount": 3,
+    "afterCount": 3,
+    "touched": true
+   }
+  },
+  "incomplete": []
+ },
+ "watch": {
+  "PSPACKAGEDEFN": {
+   "columns": [
+    {
+     "name": "PACKAGEID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PACKAGEROOT",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "QUALIFYPATH",
+     "type": "VARCHAR2",
+     "length": 508,
+     "nullable": false
+    },
+    {
+     "name": "PACKAGELEVEL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PACKAGEREF",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "PACKAGEID": "SUB",
+      "PACKAGEROOT": "ZZ_PCODE_LAB_PK",
+      "QUALIFYPATH": ":"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "121",
+       "after": "122"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-20T17:57:56.841451000",
+       "after": "2026-10-20T17:59:34.372289000"
+      }
+     }
+    },
+    {
+     "key": {
+      "PACKAGEID": "ZZ_PCODE_LAB_PK",
+      "PACKAGEROOT": "ZZ_PCODE_LAB_PK",
+      "QUALIFYPATH": "."
+     },
+     "changes": {
+      "DESCR": {
+       "before": " ",
+       "after": "Capture package"
+      },
+      "VERSION": {
+       "before": "121",
+       "after": "122"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-20T17:57:56.841451000",
+       "after": "2026-10-20T17:59:34.372288000"
+      },
+      "OBJECTOWNERID": {
+       "before": " ",
+       "after": "PPTD"
+      },
+      "DESCRLONG": {
+       "before": null,
+       "after": "Capture comments"
+      }
+     }
+    }
+   ]
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "APM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "121",
+       "after": "122"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "4611",
+       "after": "4612"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "APM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "121",
+       "after": "122"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {}
+}

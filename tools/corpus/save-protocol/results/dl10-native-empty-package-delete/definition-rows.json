@@ -1,0 +1,81 @@
+{
+ "kind": "package",
+ "name": "ZZ_PCODE_LAB_DPKE",
+ "beforeScn": "39362812563009",
+ "tables": {
+  "PSPACKAGEDEFN": {
+   "before": [
+    {
+     "PACKAGEID": "UI",
+     "PACKAGEROOT": "ZZ_PCODE_LAB_DPKE",
+     "QUALIFYPATH": ":",
+     "PACKAGELEVEL": 1,
+     "PACKAGEREF": " ",
+     "DESCR": " ",
+     "VERSION": 176,
+     "LASTUPDDTTM": "2026-10-21T11:52:44.569Z",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "DESCRLONG": null
+    },
+    {
+     "PACKAGEID": "ZZ_PCODE_LAB_DPKE",
+     "PACKAGEROOT": "ZZ_PCODE_LAB_DPKE",
+     "QUALIFYPATH": ".",
+     "PACKAGELEVEL": 0,
+     "PACKAGEREF": " ",
+     "DESCR": " ",
+     "VERSION": 176,
+     "LASTUPDDTTM": "2026-10-21T11:52:44.569Z",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "DESCRLONG": null
+    }
+   ],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSAPPCLASSDEFN": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSPACKAGEDEL": {
+   "before": [],
+   "after": [
+    {
+     "PACKAGEID": "ZZ_PCODE_LAB_DPKE",
+     "PACKAGEROOT": "ZZ_PCODE_LAB_DPKE",
+     "QUALIFYPATH": ".",
+     "VERSION": 181
+    }
+   ],
+   "unchanged": 0
+  },
+  "PSPCMPROG": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSPCMTXT": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSPCMNAME": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSPCMPROGDEL": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSPROJECTITEM": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  }
+ }
+}

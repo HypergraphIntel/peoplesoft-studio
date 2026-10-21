@@ -1,0 +1,111 @@
+{
+ "kind": "field",
+ "name": "ZZ_PCODE_LAB_DF",
+ "beforeScn": "39362812545473",
+ "tables": {
+  "PSDBFIELD": {
+   "before": [
+    {
+     "FIELDNAME": "ZZ_PCODE_LAB_DF",
+     "VERSION": 419,
+     "FIELDTYPE": 0,
+     "LENGTH": 2,
+     "DECIMALPOS": 0,
+     "FORMAT": 0,
+     "FORMATLENGTH": 0,
+     "IMAGE_FMT": 0,
+     "FORMATFAMILY": " ",
+     "DISPFMTNAME": " ",
+     "DEFCNTRYYR": 50,
+     "IMEMODE": 0,
+     "KBLAYOUT": 0,
+     "OBJECTOWNERID": " ",
+     "LASTUPDDTTM": "2026-10-20T23:31:29.249Z",
+     "LASTUPDOPRID": "JARED",
+     "FLDNOTUSED": 0,
+     "AUXFLAGMASK": 0,
+     "DESCRLONG": null
+    }
+   ],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSDBFLDLABL": {
+   "before": [
+    {
+     "FIELDNAME": "ZZ_PCODE_LAB_DF",
+     "LABEL_ID": "ZZ_PCODE_LAB_DF",
+     "LONGNAME": "Deletion field",
+     "SHORTNAME": "Del",
+     "DEFAULT_LABEL": 1
+    },
+    {
+     "FIELDNAME": "ZZ_PCODE_LAB_DF",
+     "LABEL_ID": "ZZ_PCODE_LAB_DF2",
+     "LONGNAME": "Second label",
+     "SHORTNAME": "Two",
+     "DEFAULT_LABEL": 0
+    }
+   ],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSDBFIELDLANG": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSDBFLDLABLLANG": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSXLATITEM": {
+   "before": [
+    {
+     "FIELDNAME": "ZZ_PCODE_LAB_DF",
+     "FIELDVALUE": "A",
+     "EFFDT": "1900-01-01T06:00:00.000Z",
+     "EFF_STATUS": "A",
+     "XLATLONGNAME": "Active",
+     "XLATSHORTNAME": "Act",
+     "LASTUPDDTTM": "2026-10-20T23:31:29.339Z",
+     "LASTUPDOPRID": "JARED",
+     "SYNCID": 63649
+    }
+   ],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSXLATITEMLANG": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSXLATDEFN": {
+   "before": [
+    {
+     "FIELDNAME": "ZZ_PCODE_LAB_DF",
+     "VERSION": 95
+    }
+   ],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSXLATDEFNDEL": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSRECFIELD": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSPROJECTITEM": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  }
+ }
+}

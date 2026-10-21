@@ -35,6 +35,10 @@
  *   npx tsx tools/corpus/save-protocol/snapshot.ts before --case 01-create
  *   npx tsx tools/corpus/save-protocol/snapshot.ts after  --case 01-create
  *
+ * --omit-nonlab-rows retains scoped watch rows and global table/count observations,
+ * but never reads or retains unrelated swept row values (including authentication
+ * maintenance). It does not certify unknown nonlab side effects.
+ *
  * A save made before "before" ran can still be bracketed while undo covers
  * it: `before --as-of 'YYYY-MM-DD HH24:MI:SS'` (or `--as-of scn:NNN`) reads the watch set and the
  * counts AS OF that time (flashback). `after --as-of` closes the window at a
@@ -287,6 +291,15 @@ const WATCH: Array<{ table: string; scratchColumn?: string }> = [
   { table: 'PSSQLTEXTDEFN', scratchColumn: 'SQLID' },
   { table: 'PSSQLHASH', scratchColumn: 'SQLID' },
   { table: 'PSSQLDEL', scratchColumn: 'SQLID' },
+  { table: 'PSSQLLANG', scratchColumn: 'SQLID' },
+  { table: 'PSCONTDEFN', scratchColumn: 'CONTNAME' },
+  { table: 'PSCONTENT', scratchColumn: 'CONTNAME' },
+  { table: 'PSCONTDEFNLANG', scratchColumn: 'CONTNAME' },
+  { table: 'PSCONTENTLANG', scratchColumn: 'CONTNAME' },
+  { table: 'PSCONTDEL', scratchColumn: 'CONTNAME' },
+  { table: 'PSSTYLSHEETDEFN', scratchColumn: 'STYLESHEETNAME' },
+  { table: 'PSSTYLSHEETDEL', scratchColumn: 'STYLESHEETNAME' },
+  { table: 'PSSTYLECLASS', scratchColumn: 'STYLESHEETNAME' },
   // Menu save capture (docs/MENUS.md): the scratch menu's rows.
   { table: 'PSMENUDEFN', scratchColumn: 'MENUNAME' },
   { table: 'PSMENUITEM', scratchColumn: 'MENUNAME' },
@@ -301,8 +314,20 @@ const WATCH: Array<{ table: string; scratchColumn?: string }> = [
 
 async function captureWatch(session: Session, asOfScn?: string): Promise<Snapshot['watch']> {
   const out: Snapshot['watch'] = {};
-  for (const w of WATCH) {
-    const columns = await columnsOf(session, w.table);
+  // Query/project deletion may touch ancillary tables beyond the writer's
+  // modeled scope. Capture every base-table row keyed by these lab identities,
+  // without retaining unrelated values from the global change survey.
+  const keyed = await session.select<{ TABLE_NAME: string; COLUMN_NAME: string }>(
+    `SELECT T.TABLE_NAME, C.COLUMN_NAME FROM ALL_TABLES T JOIN ALL_TAB_COLUMNS C
+       ON C.OWNER=T.OWNER AND C.TABLE_NAME=T.TABLE_NAME
+      WHERE T.OWNER=SYS_CONTEXT('USERENV','CURRENT_SCHEMA')
+        AND SUBSTR(T.TABLE_NAME,1,2)='PS' AND SUBSTR(T.TABLE_NAME,3,1)<>'_'
+        AND C.COLUMN_NAME IN ('QRYNAME','PROJECTNAME') ORDER BY T.TABLE_NAME,C.COLUMN_NAME`);
+  const extra = keyed.filter(row => !WATCH.some(w => w.table === row.TABLE_NAME)).map(row => ({ table: row.TABLE_NAME, scratchColumn: row.COLUMN_NAME }));
+  for (const w of [...WATCH, ...extra]) {
+    // Never retain a project's target login/account material, even in a lab
+    // capture. Those columns are outside the reviewed noncredential scope.
+    const columns = (await columnsOf(session, w.table)).filter(c => w.table !== 'PSPROJECTDEFN' || !['TGTOPRID','TGTOPRACCT'].includes(c.name));
     if (columns.length === 0) continue;
     if (w.scratchColumn && !columns.some((c) => c.name === w.scratchColumn)) {
       throw new Error(`${w.table} has no ${w.scratchColumn} column; the watch-set filter needs updating.`);
@@ -600,7 +625,7 @@ async function before(session: Session, name: string, scope: 'tools' | 'all', as
     `${watch.PSPCMPROG?.rows.length ?? 0} scratch PSPCMPROG rows. Save in App Designer, then run "after".`);
 }
 
-async function after(session: Session, name: string, asOf?: string): Promise<void> {
+async function after(session: Session, name: string, asOf?: string, omitNonLabRows = false): Promise<void> {
   const dir = caseDir(name);
   const beforeFile = path.join(dir, 'before.json');
   if (!existsSync(beforeFile)) throw new Error(`No ${beforeFile}; run "before" first.`);
@@ -639,8 +664,13 @@ async function after(session: Session, name: string, asOf?: string): Promise<voi
   const capturedWhole = new Set(WATCH.filter((w) => !w.scratchColumn).map((w) => w.table));
   const swept = [...new Set([...touched, ...countChanged])].filter((t) => !capturedWhole.has(t)).sort();
   const otherTables: Record<string, TableDelta> = {};
+  // Lab captures often overlap unrelated authentication/scheduler maintenance.
+  // Keep its table/count evidence without reading or retaining those row values.
+  const outsideWatch = omitNonLabRows ? Object.fromEntries(swept.map(table => [table, {
+    beforeCount: prior.counts[table], afterCount: counts[table], touched: touched.includes(table)
+  }])) : undefined;
   let i = 0;
-  for (const table of swept) {
+  for (const table of omitNonLabRows ? [] : swept) {
     progress('diffing', ++i, swept.length);
     try {
       const whole = !touched.includes(table);
@@ -668,6 +698,7 @@ async function after(session: Session, name: string, asOf?: string): Promise<voi
     database: session.database,
     peopleToolsRelease: session.release,
     scope: prior.scope,
+    ...(omitNonLabRows ? { nonLabRowsOmitted: true } : {}),
     markers: { before: prior.marker, after: mark },
     summary: {
       transitions: transitions(prior, snapshot, watchDelta, otherTables),
@@ -678,6 +709,7 @@ async function after(session: Session, name: string, asOf?: string): Promise<voi
       otherTablesChanged: Object.fromEntries(Object.entries(otherTables).map(([t, d]) =>
         [t, { inserted: d.inserted.length, deleted: d.deleted.length, updated: d.updated.length, ...(d.truncated ? { truncated: true } : {}), ...(d.note ? { note: d.note } : {}) }])),
       unreadableTables: tables.filter((t) => counts[t] === -1),
+      ...(outsideWatch ? { outsideWatch } : {}),
       /** Tables whose delta is not complete: a failed flashback diff, or rows over the cap. */
       incomplete: Object.entries(otherTables)
         .filter(([, d]) => d.truncated || d.note?.startsWith('diff failed'))
@@ -699,13 +731,13 @@ async function main(): Promise<void> {
   const phase = process.argv[2];
   const name = argument('case');
   if ((phase !== 'before' && phase !== 'after') || !name) {
-    throw new Error('Usage: snapshot.ts before|after --case NAME [--scope tools|all] [--as-of TIMESTAMP|scn:NNN] [--database HRDMO]');
+    throw new Error('Usage: snapshot.ts before|after --case NAME [--scope tools|all] [--as-of TIMESTAMP|scn:NNN] [--database HRDMO] [--omit-nonlab-rows]');
   }
   const scope = argument('scope') === 'all' ? 'all' : 'tools';
   const session = await open(argument('database') ?? 'HRDMO');
   try {
     if (phase === 'before') await before(session, name, scope, argument('as-of'));
-    else await after(session, name, argument('as-of'));
+    else await after(session, name, argument('as-of'), process.argv.includes('--omit-nonlab-rows'));
   } finally {
     await close(session);
   }

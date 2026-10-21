@@ -1,0 +1,386 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "pk02-native-subpackage-under-owned-root",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "nonLabRowsOmitted": true,
+ "markers": {
+  "before": {
+   "scn": "39362810952840",
+   "timestamp": "2026-10-20T18:00:15.964850000-05:00"
+  },
+  "after": {
+   "scn": "39362810954809",
+   "timestamp": "2026-10-20T18:01:00.412583000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-20T18:00:15.964850000-05:00",
+    "to": "2026-10-20T18:01:00.412583000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "APM": {
+    "before": 122,
+    "after": 123,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 4612,
+    "after": 4613,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "APM": {
+    "before": 122,
+    "after": 123,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSPACKAGEDEFN": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 2
+   },
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "otherTablesChanged": {},
+  "unreadableTables": [],
+  "outsideWatch": {
+   "PSACCESSLOG": {
+    "beforeCount": 3510708,
+    "afterCount": 3510709,
+    "touched": true
+   },
+   "PSAPMSGDSPSTAT": {
+    "beforeCount": 3,
+    "afterCount": 3,
+    "touched": true
+   },
+   "PSAPMSGPUBCLOCK": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSAPMSGPUBDATA": {
+    "beforeCount": 758,
+    "afterCount": 760,
+    "touched": true
+   },
+   "PSAPMSGPUBHDR": {
+    "beforeCount": 379,
+    "afterCount": 380,
+    "touched": true
+   },
+   "PSAPMSGPUBLOCK": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSAPMSGPUBSYNC": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSAPMSGSUBCLOCK": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSAPMSGSUBCON": {
+    "beforeCount": 368,
+    "afterCount": 369,
+    "touched": true
+   },
+   "PSAPMSGSUBCSYNC": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSIBPROFILEBRK": {
+    "beforeCount": 306,
+    "afterCount": 307,
+    "touched": true
+   },
+   "PSIBPROFILESUB": {
+    "beforeCount": 306,
+    "afterCount": 307,
+    "touched": true
+   },
+   "PSOPRDEFN": {
+    "beforeCount": 141,
+    "afterCount": 141,
+    "touched": true
+   },
+   "PSPACKAGEDEFN": {
+    "beforeCount": 4261,
+    "afterCount": 4262,
+    "touched": true
+   },
+   "PSPMCOLLINST": {
+    "beforeCount": 41,
+    "afterCount": 41,
+    "touched": true
+   },
+   "PSPRCSPARMS": {
+    "beforeCount": 461,
+    "afterCount": 461,
+    "touched": true
+   },
+   "PSPRCSQUE": {
+    "beforeCount": 461,
+    "afterCount": 461,
+    "touched": true
+   },
+   "PSPRCSRQST": {
+    "beforeCount": 461,
+    "afterCount": 461,
+    "touched": true
+   },
+   "PSPRCSRQSTSTRNG": {
+    "beforeCount": 459,
+    "afterCount": 459,
+    "touched": true
+   },
+   "PSPTLOGINAUDIT": {
+    "beforeCount": 557,
+    "afterCount": 557,
+    "touched": true
+   },
+   "PSRF_RATTR_TBL": {
+    "beforeCount": 28,
+    "afterCount": 29,
+    "touched": true
+   },
+   "PSRF_RAUTH_TBL": {
+    "beforeCount": 28,
+    "afterCount": 29,
+    "touched": true
+   },
+   "PSRF_RINFO_TBL": {
+    "beforeCount": 28,
+    "afterCount": 29,
+    "touched": true
+   },
+   "PSSERVERSTAT": {
+    "beforeCount": 3,
+    "afterCount": 3,
+    "touched": true
+   }
+  },
+  "incomplete": []
+ },
+ "watch": {
+  "PSPACKAGEDEFN": {
+   "columns": [
+    {
+     "name": "PACKAGEID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PACKAGEROOT",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "QUALIFYPATH",
+     "type": "VARCHAR2",
+     "length": 508,
+     "nullable": false
+    },
+    {
+     "name": "PACKAGELEVEL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PACKAGEREF",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "PACKAGEID": "SUB2",
+     "PACKAGEROOT": "ZZ_PCODE_LAB_PK",
+     "QUALIFYPATH": ":",
+     "PACKAGELEVEL": "1",
+     "PACKAGEREF": " ",
+     "DESCR": " ",
+     "VERSION": "123",
+     "LASTUPDDTTM": "2026-10-20T18:00:55.373286000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "PACKAGEID": "SUB",
+      "PACKAGEROOT": "ZZ_PCODE_LAB_PK",
+      "QUALIFYPATH": ":"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "122",
+       "after": "123"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-20T17:59:34.372289000",
+       "after": "2026-10-20T18:00:55.373283000"
+      }
+     }
+    },
+    {
+     "key": {
+      "PACKAGEID": "ZZ_PCODE_LAB_PK",
+      "PACKAGEROOT": "ZZ_PCODE_LAB_PK",
+      "QUALIFYPATH": "."
+     },
+     "changes": {
+      "VERSION": {
+       "before": "122",
+       "after": "123"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-20T17:59:34.372288000",
+       "after": "2026-10-20T18:00:55.373283000"
+      }
+     }
+    }
+   ]
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "APM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "122",
+       "after": "123"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "4612",
+       "after": "4613"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "APM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "122",
+       "after": "123"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {}
+}

@@ -1,0 +1,142 @@
+{
+ "recname": "ZZ_PCODE_LAB_IX",
+ "beforeScn": "39362810912852",
+ "tables": {
+  "PSRECDEFN": {
+   "before": [
+    {
+     "RECNAME": "ZZ_PCODE_LAB_IX",
+     "FIELDCOUNT": 4,
+     "INDEXCOUNT": 1,
+     "DDLCOUNT": 0,
+     "VERSION": 387,
+     "AUDITRECNAME": " ",
+     "RECUSE": 0,
+     "RECTYPE": 0,
+     "SETCNTRLFLD": " ",
+     "RELLANGRECNAME": " ",
+     "OPTDELRECNAME": " ",
+     "RECDESCR": "Index capture",
+     "PARENTRECNAME": " ",
+     "QRYSECRECNAME": " ",
+     "SQLTABLENAME": " ",
+     "BUILDSEQNO": 1,
+     "OPTTRIGFLAG": "N",
+     "OBJECTOWNERID": " ",
+     "LASTUPDDTTM": "2026-10-20T22:39:53.213Z",
+     "LASTUPDOPRID": "JARED",
+     "SYSTEMIDFIELDNAME": " ",
+     "TIMESTAMPFIELDNAME": " ",
+     "AUXFLAGMASK": 0,
+     "DESCRLONG": null
+    }
+   ],
+   "after": [
+    {
+     "RECNAME": "ZZ_PCODE_LAB_IX",
+     "FIELDCOUNT": 4,
+     "INDEXCOUNT": 2,
+     "DDLCOUNT": 0,
+     "VERSION": 388,
+     "AUDITRECNAME": " ",
+     "RECUSE": 0,
+     "RECTYPE": 0,
+     "SETCNTRLFLD": " ",
+     "RELLANGRECNAME": " ",
+     "OPTDELRECNAME": " ",
+     "RECDESCR": "Index capture",
+     "PARENTRECNAME": " ",
+     "QRYSECRECNAME": " ",
+     "SQLTABLENAME": " ",
+     "BUILDSEQNO": 1,
+     "OPTTRIGFLAG": "N",
+     "OBJECTOWNERID": " ",
+     "LASTUPDDTTM": "2026-10-20T22:42:08.653Z",
+     "LASTUPDOPRID": "JARED",
+     "SYSTEMIDFIELDNAME": " ",
+     "TIMESTAMPFIELDNAME": " ",
+     "AUXFLAGMASK": 0,
+     "DESCRLONG": null
+    }
+   ],
+   "unchanged": 0
+  },
+  "PSRECFIELD": {
+   "before": [],
+   "after": [],
+   "unchanged": 4
+  },
+  "PSRECFIELDDB": {
+   "before": [],
+   "after": [],
+   "unchanged": 4
+  },
+  "PSINDEXDEFN": {
+   "before": [],
+   "after": [
+    {
+     "RECNAME": "ZZ_PCODE_LAB_IX",
+     "INDEXID": "A",
+     "INDEXTYPE": 4,
+     "UNIQUEFLAG": 0,
+     "CLUSTERFLAG": 0,
+     "ACTIVEFLAG": 1,
+     "CUSTKEYORDER": 1,
+     "KEYCOUNT": 2,
+     "DDLCOUNT": 0,
+     "PLATFORM_SBS": 0,
+     "PLATFORM_DB2": 1,
+     "PLATFORM_ORA": 1,
+     "PLATFORM_INF": 0,
+     "PLATFORM_DBX": 0,
+     "PLATFORM_ALB": 0,
+     "PLATFORM_SYB": 0,
+     "PLATFORM_MSS": 1,
+     "PLATFORM_DB4": 0,
+     "IDXCOMMENTS": "Capture index"
+    }
+   ],
+   "unchanged": 1
+  },
+  "PSKEYDEFN": {
+   "before": [],
+   "after": [
+    {
+     "RECNAME": "ZZ_PCODE_LAB_IX",
+     "INDEXID": "A",
+     "KEYPOSN": 1,
+     "FIELDNAME": "DESCR",
+     "ASCDESC": 1
+    },
+    {
+     "RECNAME": "ZZ_PCODE_LAB_IX",
+     "INDEXID": "A",
+     "KEYPOSN": 2,
+     "FIELDNAME": "EFF_STATUS",
+     "ASCDESC": 1
+    }
+   ],
+   "unchanged": 2
+  },
+  "PSIDXDDLPARM": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSRECTBLSPC": {
+   "before": [],
+   "after": [],
+   "unchanged": 1
+  },
+  "PSRECDDLPARM": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSRECDEL": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  }
+ }
+}

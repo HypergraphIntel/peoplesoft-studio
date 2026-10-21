@@ -1,0 +1,125 @@
+{
+ "recname": "ZZ_PCODE_LAB_SB",
+ "beforeScn": "39362810925040",
+ "tables": {
+  "PSRECDEFN": {
+   "before": [],
+   "after": [
+    {
+     "RECNAME": "ZZ_PCODE_LAB_SB",
+     "FIELDCOUNT": 1,
+     "INDEXCOUNT": 0,
+     "DDLCOUNT": 0,
+     "VERSION": 392,
+     "AUDITRECNAME": " ",
+     "RECUSE": 0,
+     "RECTYPE": 3,
+     "SETCNTRLFLD": " ",
+     "RELLANGRECNAME": " ",
+     "OPTDELRECNAME": " ",
+     "RECDESCR": " ",
+     "PARENTRECNAME": " ",
+     "QRYSECRECNAME": " ",
+     "SQLTABLENAME": " ",
+     "BUILDSEQNO": 1,
+     "OPTTRIGFLAG": "N",
+     "OBJECTOWNERID": " ",
+     "LASTUPDDTTM": "2026-10-20T22:49:22.653Z",
+     "LASTUPDOPRID": "JARED",
+     "SYSTEMIDFIELDNAME": " ",
+     "TIMESTAMPFIELDNAME": " ",
+     "AUXFLAGMASK": 0,
+     "DESCRLONG": null
+    }
+   ],
+   "unchanged": 0
+  },
+  "PSRECFIELD": {
+   "before": [],
+   "after": [
+    {
+     "RECNAME": "ZZ_PCODE_LAB_SB",
+     "FIELDNAME": "DESCR",
+     "FIELDNUM": 1,
+     "DEFRECNAME": " ",
+     "DEFFIELDNAME": " ",
+     "CURCTLFIELDNAME": " ",
+     "EDITTABLE": " ",
+     "USEEDIT": 8388608,
+     "USEEDIT2": 0,
+     "SUBRECORD": "N",
+     "SUBRECVER": 0,
+     "SETCNTRLFLD": " ",
+     "DEFGUICONTROL": 99,
+     "LABEL_ID": " ",
+     "LASTUPDDTTM": "2026-10-20T22:49:22.653Z",
+     "LASTUPDOPRID": "JARED",
+     "TIMEZONEUSE": 0,
+     "TIMEZONEFIELDNAME": " ",
+     "RELTMDTFIELDNAME": " ",
+     "CURRCTLUSE": 0
+    }
+   ],
+   "unchanged": 0
+  },
+  "PSRECFIELDDB": {
+   "before": [],
+   "after": [
+    {
+     "RECNAME": "ZZ_PCODE_LAB_SB",
+     "FIELDNAME": "DESCR",
+     "RECNAME_PARENT": "ZZ_PCODE_LAB_SB",
+     "FIELDNUM": 1,
+     "DEFRECNAME": " ",
+     "DEFFIELDNAME": " ",
+     "CURCTLFIELDNAME": " ",
+     "EDITTABLE": " ",
+     "USEEDIT": 8388608,
+     "USEEDIT2": 0,
+     "SUBRECORD": "N",
+     "SUBRECVER": 0,
+     "SETCNTRLFLD": " ",
+     "DEFGUICONTROL": 99,
+     "LABEL_ID": " ",
+     "LASTUPDDTTM": "2026-10-20T22:49:22.653Z",
+     "LASTUPDOPRID": "JARED",
+     "TIMEZONEUSE": 0,
+     "TIMEZONEFIELDNAME": " ",
+     "RELTMDTFIELDNAME": " ",
+     "CURRCTLUSE": 0
+    }
+   ],
+   "unchanged": 0
+  },
+  "PSINDEXDEFN": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSKEYDEFN": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSIDXDDLPARM": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSRECTBLSPC": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSRECDDLPARM": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSRECDEL": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  }
+ }
+}

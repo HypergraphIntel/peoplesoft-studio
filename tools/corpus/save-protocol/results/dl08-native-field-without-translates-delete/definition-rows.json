@@ -1,0 +1,87 @@
+{
+ "kind": "field",
+ "name": "ZZ_PCODE_LAB_DFN",
+ "beforeScn": "39362812561490",
+ "tables": {
+  "PSDBFIELD": {
+   "before": [
+    {
+     "FIELDNAME": "ZZ_PCODE_LAB_DFN",
+     "VERSION": 421,
+     "FIELDTYPE": 0,
+     "LENGTH": 2,
+     "DECIMALPOS": 0,
+     "FORMAT": 0,
+     "FORMATLENGTH": 0,
+     "IMAGE_FMT": 0,
+     "FORMATFAMILY": " ",
+     "DISPFMTNAME": " ",
+     "DEFCNTRYYR": 50,
+     "IMEMODE": 0,
+     "KBLAYOUT": 0,
+     "OBJECTOWNERID": " ",
+     "LASTUPDDTTM": "2026-10-21T11:52:44.263Z",
+     "LASTUPDOPRID": "JARED",
+     "FLDNOTUSED": 0,
+     "AUXFLAGMASK": 0,
+     "DESCRLONG": null
+    }
+   ],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSDBFLDLABL": {
+   "before": [
+    {
+     "FIELDNAME": "ZZ_PCODE_LAB_DFN",
+     "LABEL_ID": "ZZ_PCODE_LAB_DFN",
+     "LONGNAME": "Plain field",
+     "SHORTNAME": "Plain",
+     "DEFAULT_LABEL": 1
+    }
+   ],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSDBFIELDLANG": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSDBFLDLABLLANG": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSXLATITEM": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSXLATITEMLANG": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSXLATDEFN": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSXLATDEFNDEL": {
+   "before": [],
+   "after": [],
+   "unchanged": 1
+  },
+  "PSRECFIELD": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  },
+  "PSPROJECTITEM": {
+   "before": [],
+   "after": [],
+   "unchanged": 0
+  }
+ }
+}

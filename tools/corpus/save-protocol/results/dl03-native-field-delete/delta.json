@@ -1,0 +1,236 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "dl03-native-field-delete",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "nonLabRowsOmitted": true,
+ "markers": {
+  "before": {
+   "scn": "39362812545473",
+   "timestamp": "2026-10-21T06:47:58.049571000-05:00"
+  },
+  "after": {
+   "scn": "39362812546754",
+   "timestamp": "2026-10-21T06:48:42.362219000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-21T06:47:58.049571000-05:00",
+    "to": "2026-10-21T06:48:42.362219000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "RDM": {
+    "before": 419,
+    "after": 420,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 4775,
+    "after": 4776,
+    "delta": 1
+   },
+   "XTM": {
+    "before": 95,
+    "after": 96,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "RDM": {
+    "before": 419,
+    "after": 420,
+    "delta": 1
+   },
+   "XTM": {
+    "before": 95,
+    "after": 96,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 3
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   }
+  },
+  "otherTablesChanged": {},
+  "unreadableTables": [],
+  "outsideWatch": {
+   "PSAPMSGDSPSTAT": {
+    "beforeCount": 3,
+    "afterCount": 3,
+    "touched": true
+   },
+   "PSAPMSGPUBCLOCK": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSAPMSGPUBLOCK": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSAPMSGSUBCLOCK": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSDBFIELD": {
+    "beforeCount": 90706,
+    "afterCount": 90705,
+    "touched": false
+   },
+   "PSDBFLDLABL": {
+    "beforeCount": 130424,
+    "afterCount": 130422,
+    "touched": false
+   },
+   "PSIBNWLOCK": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSIBNWSTATUS": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSIBOALOCK": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSIBOAUTH": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSSERVERSTAT": {
+    "beforeCount": 3,
+    "afterCount": 3,
+    "touched": true
+   },
+   "PSXLATDEFN": {
+    "beforeCount": 10783,
+    "afterCount": 10782,
+    "touched": false
+   },
+   "PSXLATITEM": {
+    "beforeCount": 49198,
+    "afterCount": 49197,
+    "touched": true
+   }
+  },
+  "incomplete": []
+ },
+ "watch": {
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "RDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "419",
+       "after": "420"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "4775",
+       "after": "4776"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "XTM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "95",
+       "after": "96"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "RDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "419",
+       "after": "420"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "XTM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "95",
+       "after": "96"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {}
+}

@@ -1,0 +1,214 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "ix01-native-user-index-add",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "nonLabRowsOmitted": true,
+ "markers": {
+  "before": {
+   "scn": "39362810912852",
+   "timestamp": "2026-10-20T17:40:23.707396000-05:00"
+  },
+  "after": {
+   "scn": "39362810916269",
+   "timestamp": "2026-10-20T17:42:21.773349000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-20T17:40:23.707396000-05:00",
+    "to": "2026-10-20T17:42:21.773349000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "RDM": {
+    "before": 387,
+    "after": 388,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 4542,
+    "after": 4543,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "RDM": {
+    "before": 387,
+    "after": 388,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "otherTablesChanged": {},
+  "unreadableTables": [],
+  "outsideWatch": {
+   "PSAPMSGDSPSTAT": {
+    "beforeCount": 3,
+    "afterCount": 3,
+    "touched": true
+   },
+   "PSAPMSGPUBCLOCK": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSAPMSGPUBLOCK": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSAPMSGSUBCLOCK": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSIBNWLOCK": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSIBNWSTATUS": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSIBOALOCK": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSIBOAUTH": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSINDEXDEFN": {
+    "beforeCount": 25947,
+    "afterCount": 25948,
+    "touched": true
+   },
+   "PSKEYDEFN": {
+    "beforeCount": 94339,
+    "afterCount": 94341,
+    "touched": true
+   },
+   "PSRECDEFN": {
+    "beforeCount": 52828,
+    "afterCount": 52828,
+    "touched": true
+   },
+   "PSRECFIELD": {
+    "beforeCount": 522296,
+    "afterCount": 522296,
+    "touched": true
+   },
+   "PSRECFIELDDB": {
+    "beforeCount": 599790,
+    "afterCount": 599790,
+    "touched": true
+   },
+   "PSRECTBLSPC": {
+    "beforeCount": 32912,
+    "afterCount": 32912,
+    "touched": true
+   },
+   "PSSERVERSTAT": {
+    "beforeCount": 3,
+    "afterCount": 3,
+    "touched": true
+   }
+  },
+  "incomplete": []
+ },
+ "watch": {
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "RDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "387",
+       "after": "388"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "4542",
+       "after": "4543"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "RDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "387",
+       "after": "388"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {}
+}
