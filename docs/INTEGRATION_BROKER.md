@@ -33,17 +33,31 @@ Keys are `[name]` for messages, services, operations and nodes;
 
 On Oracle with Change Review enabled, `psft_ib_save` stages existing
 service/operation description/comments and bounded structural edits, including
-service owner/namespace, supported operation/version/parameter/handler edits
-and the calibrated OnRequest handler addition. The approved after-image must
-match the shared writer's rollback preview exactly. Creation and out-of-contract
-changes retain legacy confirmation; explicit Change Set grouping is refused
-for unsupported edits. Editor saves use their existing save flow.
+service owner/namespace, supported operation/version/parameter/handler edits, existing REST URI template text
+with preserved variable dependencies, and the calibrated OnRequest handler
+addition/removal (removal/recreation on 8.62.09 only). The approved after-image must
+match the shared writer's rollback preview exactly. On 8.62.09, bounded standard
+service/operation creation stages complete lifecycle checkpoints;
+`psft_ib_definition_get` supplies their token and `psft_ib_delete` stages
+review-only deletion. Empty unrestricted services and single-version standard
+synchronous operations with request/response messages and optional paired
+OnRequest handler support typed inverse/redo. Owning-service resaves are explicitly
+authorized and overlapping parent scopes require separate sets. REST lifecycle,
+credentials and wider ancillary shapes refuse. Other creation/out-of-contract
+changes retain legacy confirmation outside explicit Change Sets. Editor saves
+use their existing save flow.
 
-Native HRDMO acceptance includes standard header and structural apply/inverse
-cycles and a REST provider handler addition. Added-handler reversal is refused
-because child deletion is not calibrated. 8.61 structural acceptance and REST
-consumer structural application remain open. See [header scope](change-review/IB_HEADERS.md),
-[structural scope](change-review/IB_STRUCTURE.md) and
+Native installed acceptance includes standard header/structural cycles, an
+8.61 existing-version description apply/inverse and the equivalent REST-consumer
+cycle on 8.62.09. Added-handler undo/redo now passes against the historical REST
+provider addition: calibrated paired deletion writes the native tombstone and
+fresh redo clears it. Complete standard service/operation deletion and typed
+recreation also pass in the installed review UI, including reconciliation of an
+interrupted postcommit readback without retrying a writer. All original content
+is restored; the temporary HCDEV fixtures are removed. These are bounded native
+trials, not runtime invocation or certification of every writable property.
+See [header scope](change-review/IB_HEADERS.md),
+[operation-specific rules and native evidence](change-review/IB_STRUCTURE.md) and
 [adapter coverage](change-review/COVERAGE.md).
 
 ## Write behavior and current boundaries
@@ -98,7 +112,7 @@ What PIA fills in that a caller does not give, and Studio now writes the same wa
   that name if you type it.
 
 Credential changes, local node identity changes, restricted services,
-OpenAPI/application services, operation moves, child deletion, other message
+OpenAPI/application services, operation moves, other child deletion, other message
 structures, and compound/relational/custom document structures require PIA.
 Document Layout dependencies also require PIA resynchronization. Generated
 routing selection is a separate PIA action; creating an operation does not

@@ -1,0 +1,106 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-1e47351c4fe11ccf3d820f96",
+  "fingerprint": "1e47351c4fe11ccf3d820f96ce323e2124f5e53796f9c92074096230f71d2d43",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "integration-broker",
+    "objectType": "Operation handler"
+  },
+  "assertion": {
+    "kind": "request-handler-deletion",
+    "facts": {
+      "markerTable": "PSOPRHDLRDEL",
+      "markerCounter": "OPRHM",
+      "operationCounterStep": 2,
+      "versionCounterStep": 1,
+      "handlerCounterStep": 1,
+      "systemCounterStep": 3
+    }
+  },
+  "title": "Native request handler deletion writes a handler tombstone",
+  "statement": "Removing one application-class request handler deletes its handler and implementation rows, writes a handler deletion marker at the allocated handler counter, and advances the operation, version, handler and system counters.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T16:37:46.432Z",
+      "method": "save-capture",
+      "experimentId": "ib01-native-handler-delete",
+      "runId": "ib-lifecycle-2026-10-21",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "One native page save removed one application-class request handler and its implementation, inserted one handler deletion marker, and advanced the operation counter twice, version and handler counters once, and system counter three times. Scoped definitions retained their message and service mappings.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSOPERATION",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSOPERATIONAC",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRHDLR",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRHDLRDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "OPRHM": 1,
+          "OPRM": 2,
+          "OPRVM": 1,
+          "SYS": 3
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ib01-native-handler-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/IB_STRUCTURE.md"
+        }
+      ],
+      "digest": "3f6c5236f80395beece04dedc099ee50926bbcb4b24e3746d317de83e51b9fa6"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-21T17:01:51.317Z",
+    "updatedAt": "2026-10-21T17:01:51.317Z",
+    "schemaVersion": 1
+  }
+}

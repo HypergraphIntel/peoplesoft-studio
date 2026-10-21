@@ -51,6 +51,7 @@ import oracledb from 'oracledb';
 
 import { PROTECTED_DATABASE_PATTERN } from '../../../src/peoplecode/corpus/controlledCompileRunner';
 import { predictSourceSignature } from '../../../src/peoplecode/sourceSignature';
+import { ibSecretColumn } from '../../../src/model/ibOperations';
 
 const FORMAT = 'save-protocol-snapshot/1';
 const SCRATCH_LIKE = `'ZZ\\_PCODE\\_LAB%' ESCAPE '\\'`;
@@ -322,18 +323,20 @@ async function captureWatch(session: Session, asOfScn?: string): Promise<Snapsho
        ON C.OWNER=T.OWNER AND C.TABLE_NAME=T.TABLE_NAME
       WHERE T.OWNER=SYS_CONTEXT('USERENV','CURRENT_SCHEMA')
         AND SUBSTR(T.TABLE_NAME,1,2)='PS' AND SUBSTR(T.TABLE_NAME,3,1)<>'_'
-        AND C.COLUMN_NAME IN ('QRYNAME','PROJECTNAME') ORDER BY T.TABLE_NAME,C.COLUMN_NAME`);
-  const extra = keyed.filter(row => !WATCH.some(w => w.table === row.TABLE_NAME)).map(row => ({ table: row.TABLE_NAME, scratchColumn: row.COLUMN_NAME }));
+        AND C.COLUMN_NAME IN ('QRYNAME','PROJECTNAME','IB_SERVICENAME','IB_OPERATIONNAME') ORDER BY T.TABLE_NAME,C.COLUMN_NAME`);
+  const extra = keyed.filter((row, i) => !WATCH.some(w => w.table === row.TABLE_NAME) && keyed.findIndex(r => r.TABLE_NAME === row.TABLE_NAME) === i).map(row => ({ table: row.TABLE_NAME, scratchColumn: row.COLUMN_NAME }));
   for (const w of [...WATCH, ...extra]) {
     // Never retain a project's target login/account material, even in a lab
     // capture. Those columns are outside the reviewed noncredential scope.
-    const columns = (await columnsOf(session, w.table)).filter(c => w.table !== 'PSPROJECTDEFN' || !['TGTOPRID','TGTOPRACCT'].includes(c.name));
+    const ib = keyed.some(r => r.TABLE_NAME === w.table && ['IB_SERVICENAME','IB_OPERATIONNAME'].includes(r.COLUMN_NAME));
+    const columns = (await columnsOf(session, w.table)).filter(c => (w.table !== 'PSPROJECTDEFN' || !['TGTOPRID','TGTOPRACCT'].includes(c.name)) && (!ib || !ibSecretColumn(c.name) && !['PROPVALUE','DATACHUNK','MESSAGEDATA'].includes(c.name)));
     if (columns.length === 0) continue;
     if (w.scratchColumn && !columns.some((c) => c.name === w.scratchColumn)) {
       throw new Error(`${w.table} has no ${w.scratchColumn} column; the watch-set filter needs updating.`);
     }
-    const filter = w.scratchColumn
-      ? `WHERE (t.${quote(w.scratchColumn)} LIKE ${SCRATCH_LIKE} OR t.${quote(w.scratchColumn)} LIKE ${SCRATCH_AE_LIKE})` : '';
+    const scratchColumns = w.scratchColumn ? [...new Set([w.scratchColumn, ...keyed.filter(r => r.TABLE_NAME === w.table).map(r => r.COLUMN_NAME)])] : [];
+    const filter = scratchColumns.length
+      ? `WHERE (${scratchColumns.map(column => `(t.${quote(column)} LIKE ${SCRATCH_LIKE} OR t.${quote(column)} LIKE ${SCRATCH_AE_LIKE})`).join(' OR ')})` : '';
     const key = await keyOf(session, w.table);
     out[w.table] = { columns, key, filter, rows: await readRows(session, w.table, columns, filter, asOfScn) };
   }

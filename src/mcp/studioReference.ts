@@ -17,6 +17,7 @@ export const CONFIGURATION_GUIDES: Record<string, { tools: string[]; limitation?
   'URL Definitions': { tools: ['psft_admin_reference', 'psft_admin_list', 'psft_admin_get', 'psft_admin_save'] },
   'Structure & Content': { tools: ['psft_portal_list', 'psft_portal_structure', 'psft_portal_get', 'psft_portal_create_folder', 'psft_portal_create_content_reference', 'psft_portal_edit'] },
   ...Object.fromEntries(['Message Definitions', 'Document Definitions', 'Service', 'Service Operation', 'Nodes', 'Routes'].map(label => [label, { tools: ['psft_ib_reference', 'psft_ib_list', 'psft_ib_get', 'psft_ib_new', 'psft_ib_validate', 'psft_ib_create', 'psft_ib_save'] }])),
+  ...Object.fromEntries(['Service','Service Operation'].map(label=>[label,{tools:['psft_ib_reference','psft_ib_list','psft_ib_get','psft_ib_definition_get','psft_ib_new','psft_ib_validate','psft_ib_create','psft_ib_save','psft_ib_delete']}])),
   OAuth: { tools: ['psft_security_reference', 'psft_security_list', 'psft_security_get', 'psft_oauth_save'], limitation: 'Configuration support does not test authentication. Secrets are excluded from reads.' },
   SAML: { tools: ['psft_security_reference', 'psft_security_list', 'psft_security_get'], limitation: 'Read only legacy inbound web service mapping; not browser SSO.' }
 };

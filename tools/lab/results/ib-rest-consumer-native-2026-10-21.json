@@ -1,0 +1,19 @@
+{
+  "at": "2026-10-21T18:07:22.226Z",
+  "scope": "Owned Oracle 8.62.09 REST consumer structure; production providers/adapters and private durable review with trusted service test approval; not installed UI",
+  "name": "ZZ_IB_API_5736828_E",
+  "history": "/tmp/psft-ib-rest-consumer-XKNMjk",
+  "checks": [
+    "Native REST consumer structural rollback restores full baseline token, mappings and routing",
+    "Reviewed REST consumer version structure stages without persistence and applies exact full scope",
+    "Fresh reviewed REST consumer inverse restores all scoped rows, URI mappings and routing",
+    "Fresh reviewed REST consumer redo reproduces its exact scoped result"
+  ],
+  "changeSets": {
+    "forward": "b1656756-92da-4c96-94dc-2d2f558ec118",
+    "inverse": "b6c7c7f8-05d1-44cd-8a85-e49fb99c9958",
+    "redo": "cb253d6b-2a0a-4584-862b-40cf907bd1e8"
+  },
+  "passed": true,
+  "originalRestored": true
+}

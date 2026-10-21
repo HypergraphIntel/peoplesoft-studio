@@ -145,6 +145,7 @@ import { listIb, readIb, validateIb } from './ibReader.js';
 import type { IbKind, IbDocument } from '../model/ibDocument.js';
 import { presentIbInput, saveIb, type IbSaveRequest } from './ibWriter.js';
 import { readIbSnapshot, type IbReviewKind } from './ibSnapshot.js';
+import { readIbLifecycle, previewIbLifecycleCreation, writeIbLifecycle, type IbLifecycleKey, type IbLifecycleRequest } from './ibLifecycle.js';
 import { ibDefinitionKey, IB_DEFINITION_TYPES, ibWriteInput } from '../model/ibOperations.js';
 import { newIbInput, type IbNewOptions } from '../model/ibNew.js';
 import { safeRows as ibSafeRows, rows as ibRows } from './ibReader.js';
@@ -1934,6 +1935,28 @@ export class DatabaseProvider implements DefinitionProvider {
   async readIbForReview(kind: IbReviewKind, name: string) {
     if (this.platform !== 'oracle') throw new ProviderError('IB review snapshots require Oracle.');
     return this.withConnection(c => readIbSnapshot(c, this.types, kind, name));
+  }
+
+  async readIbDefinitionForReview(key:IbLifecycleKey,allowDeleted=false){
+    if(this.platform!=='oracle')throw new ProviderError('IB definition lifecycle requires Oracle.');
+    return this.withConnection(async c=>{try{await c.execute('SET TRANSACTION READ ONLY');return await readIbLifecycle(c,this.types,key,allowDeleted);}finally{await c.rollback();}});
+  }
+
+  async previewIbDefinitionCreation(input:IbSaveRequest['input'],operatorId:string){
+    if(this.platform!=='oracle')throw new ProviderError('IB definition lifecycle requires Oracle.');
+    return this.withConnection(c=>previewIbLifecycleCreation(c,this.types,ibWriteInput.parse(input),operatorId));
+  }
+
+  async writeIbDefinitionForReview(request:IbLifecycleRequest){
+    if(this.platform!=='oracle')throw new ProviderError('IB definition lifecycle requires Oracle.');
+    const key=ibDefinitionKey(request.kind,[request.name]);
+    if(!request.dryRun){
+      await this.guard(key,'save');
+      if(request.service)await this.guard(ibDefinitionKey('service',[request.service]),'save');
+    }
+    const result=await this.withConnection(c=>writeIbLifecycle(c,this.types,request));
+    if(!request.dryRun){const after=await this.readIbDefinitionForReview(request,true);if(after.token!==result.after.token||after.hash!==result.after.hash)throw new ProviderError('After COMMIT the complete IB definition differs from its verified lifecycle result.');}
+    return result;
   }
 
   async saveIntegrationBroker(request: IbSaveRequest) {

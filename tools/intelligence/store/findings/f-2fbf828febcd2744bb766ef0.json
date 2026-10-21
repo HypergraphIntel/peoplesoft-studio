@@ -1,0 +1,84 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-2fbf828febcd2744bb766ef0",
+  "fingerprint": "2fbf828febcd2744bb766ef0f8f1534d99cccbbc7c606efe895f52377269d426",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "integration-broker",
+    "objectType": "Service definition"
+  },
+  "assertion": {
+    "kind": "empty-service-deletion",
+    "facts": {
+      "markerTable": "PSSERVICEDEL",
+      "markerCounter": "SRVM",
+      "serviceCounterStep": 1,
+      "systemCounterStep": 1
+    }
+  },
+  "title": "Native empty service deletion writes a service tombstone",
+  "statement": "Deleting an empty standard service removes its definition row and writes a service deletion marker at the new service counter.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T17:12:39.579Z",
+      "method": "save-capture",
+      "experimentId": "ib03-native-empty-service-delete",
+      "runId": "ib-lifecycle-2026-10-21",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "One native administration action removed an empty standard service, inserted one service deletion marker and advanced service and system counters once.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSSERVICE",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSERVICEDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SRVM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ib03-native-empty-service-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/IB_STRUCTURE.md"
+        }
+      ],
+      "digest": "01295bf43a2fd1c8b2e0e96701b3dc06cda3486eea999fbed280594679e0c29e"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-21T17:26:24.171Z",
+    "updatedAt": "2026-10-21T17:26:24.171Z",
+    "schemaVersion": 1
+  }
+}

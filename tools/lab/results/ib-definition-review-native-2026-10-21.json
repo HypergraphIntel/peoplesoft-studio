@@ -1,0 +1,30 @@
+{
+  "at": "2026-10-21T17:57:28.432Z",
+  "scope": "Owned Oracle 8.62.09 lifecycle; production providers/adapters and private durable review with trusted service test approval; not installed UI",
+  "history": "/tmp/psft-ib-definition-review-X7CwqI",
+  "checks": [
+    "operation reviewed CREATE verifies complete native checkpoint/markers/cache and parent",
+    "operation fresh reviewed inverse applies exact typed restoration/deletion",
+    "operation fresh reviewed redo verifies complete native result",
+    "service reviewed DELETE verifies complete native checkpoint/markers/cache and parent",
+    "service fresh reviewed inverse applies exact typed restoration/deletion",
+    "service fresh reviewed redo verifies complete native result",
+    "service original live checkpoint restored after redo deletion"
+  ],
+  "changeSets": [
+    {
+      "kind": "operation",
+      "forward": "01e7299e-7cb5-4131-b2ce-be6f55a7ceb0",
+      "inverse": "d3f83c52-2667-494a-9c8e-11d6b381eb6e",
+      "redo": "1088d978-4b78-47f3-a072-6d63c7c6a46c"
+    },
+    {
+      "kind": "service",
+      "forward": "82d2a124-43d8-456d-9296-23accf76bdfe",
+      "inverse": "925a0a73-7317-4ef5-81ca-f2ce16d9b30b",
+      "redo": "90459556-8a93-4e2d-9ccb-75286f37dc3a"
+    }
+  ],
+  "passed": true,
+  "originalsRestored": true
+}

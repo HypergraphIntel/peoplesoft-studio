@@ -1219,6 +1219,31 @@ test('aliased history scopes cannot stage the same native definition twice or re
  }finally{await f.close();}
 });
 
+test('composite lifecycle scope reserves the owning service against another definition or aliased edit',async()=>{
+    const f=await fixture();try{
+        const composite={...f.adapter,id:'composite',scopes:(key:Json)=>['operation:'+String(key),'service:OWNER']};
+        const parent={...f.adapter,id:'parent',scope:()=> 'service:OWNER'};
+        const service=new ReviewService(f.store,{environment:async()=>({connection:'oracle:LAB',identity:'database-schema-1',label:'LAB'}),changed(){}},[composite,parent]);
+        const s=await service.create('Composite native scope','oracle:LAB');await service.stage(s.id,'composite','A',{text:'A'});
+        await assert.rejects(service.stage(s.id,'composite','B',{text:'B'}),/already reviewed/);
+        await assert.rejects(service.stage(s.id,'parent','OWNER',{text:'changed'}),/already reviewed/);
+        assert.deepEqual(f.writes,[]);
+    }finally{await f.close();}
+});
+
+test('secondary reviewed authorization binds the exact parent policy and ends with the native write',async()=>{
+    const {withReviewedWrite,isReviewedWrite}=await import('../changeReview/authorization.js');
+    const operation={type:80,parts:['ZZ_OP']},parent={type:79,parts:['ZZ_PARENT']};
+    await withReviewedWrite('db',operation,async()=>{
+        assert.equal(isReviewedWrite('db',operation,'operation-policy'),true);
+        assert.equal(isReviewedWrite('db',parent,'parent-policy'),true);
+        assert.equal(isReviewedWrite('db',parent,'operation-policy'),false);
+        assert.equal(isReviewedWrite('other-db',parent,'parent-policy'),false);
+        assert.equal(isReviewedWrite('db',{...parent,parts:['OTHER']},'parent-policy'),false);
+    },'operation-policy',[{key:parent,policyIdentity:'parent-policy'}]);
+    assert.equal(isReviewedWrite('db',parent),false);
+});
+
 test('a creation judged by an owner created earlier in the same run refreshes its stamp; any other stamp change stops the writer', async () => {
     for (const scenario of ['owner-created-here', 'unrelated-change']) {
         const f = await fixture();

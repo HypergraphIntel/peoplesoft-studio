@@ -46,13 +46,17 @@ and Windows handoff acceptance remain open. See [priority tasks](PRIORITY_TASKS.
 [native intake and metadata](build-requests/NATIVE_ACCEPTANCE.md) and
 [AE/file runtime history](build-requests/AE_FILE_WORKFLOW.md).
 
-Integration Broker Change Review covers existing service/operation headers and
-bounded structural edits. Native HRDMO acceptance includes a standard header
-apply/inverse cycle, a standard operation structural apply/inverse cycle, and a
-REST provider OnRequest handler addition. Reversal of an added handler is
-refused because child deletion is not calibrated. Broader structural changes,
-creation/deletion, 8.61 structural acceptance and REST consumer structural
-application remain open; out-of-contract writes retain legacy confirmation.
+Integration Broker Change Review covers existing service/operation headers,
+bounded structural edits (including existing REST URI template text) and, on
+8.62.09, standard service/operation creation and deletion. Installed
+developer-approved acceptance (October 21) covers standard header and
+structural cycles, 8.61 and REST consumer version-description apply/inverse,
+undo/redo of the earlier REST provider handler addition through calibrated
+paired handler deletion, and complete empty-service/standard-operation
+deletion with typed recreation. Eight native PIA captures (`ib01`–`ib08`)
+define the tombstone and counter protocol. 8.61 child deletion, REST
+lifecycle, credentials, broader writable cells and other IB definition
+families remain open; out-of-contract writes retain legacy confirmation.
 See [IB structural scope and evidence](change-review/IB_STRUCTURE.md).
 
 Application Packages now have a dedicated tree workspace for opening/creating
@@ -98,8 +102,10 @@ semantic differences and durable history/undo/redo. Fourteen Oracle adapters are
 implemented within their documented bounds, including new Derived/Work, AE and
 project creation and bounded IB structure. Native acceptance includes Query,
 Page, Record/AE, text/PeopleCode and IB trials, crash and lost-reply
-reconciliation, continuation undo/redo, creation reversal and undo/redo of every
-migrated type. IB creation/deletion and broader operations remain open. Resume from
+reconciliation, continuation undo/redo, creation reversal, undo/redo of every
+migrated type, and bounded 8.62.09 IB service/operation creation/deletion and
+handler reversal. REST IB lifecycle, 8.61 IB child deletion and broader
+operations remain open. Resume from
 [the progress tracker](change-review/PROGRESS.md); the
 [full user proposal](change-review/PROPOSAL.md) defines scope and acceptance.
 This is a separate architecture initiative beyond the 0.9.0 release.

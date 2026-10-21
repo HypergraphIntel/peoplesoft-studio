@@ -1159,9 +1159,53 @@ try{
     await until(async()=>(await reviewService.store.get(shapedSet.id)).status==='REVERTED'&&!require('node:fs').existsSync(require('node:path').join(reviewService.store.root,'writer.lock')));
    }else{
     assert.ok(shaped.state().PSOPRHDLR.some((r:any)=>r.HANDLERNAME==='REQUESTHDLR'));
-    const noRevert=await reviewRpc('tools/call',{name:'psft_prepare_revert',arguments:{changeSetId:shapedSet.id}});assert.equal(noRevert.isError,true);assert.match(noRevert.content[0].text,/child deletion is not calibrated/);assert.equal(shaped.counts().commits,1);
+    let back=await reviewCall('psft_prepare_revert',{changeSetId:shapedSet.id});back=await reviewCall('psft_validate_change_set',{changeSetId:back.id});assert.equal(back.status,'READY_FOR_REVIEW',JSON.stringify(back.objects.map((c:any)=>c.validation)));
+    await reviewUi.show(back.id);ui._receive({action:'approve',id:back.id,revision:back.revision});await until(async()=>(await reviewService.store.get(back.id)).status==='APPROVED');
+    ui._receive({action:'apply',id:back.id,revision:back.revision});await until(async()=>['APPLIED','CONFLICTED','FAILED'].includes((await reviewService.store.get(back.id)).status));assert.equal((await reviewService.store.get(back.id)).status,'APPLIED');
+    assert.equal(shaped.counts().commits,2);assert.equal(shaped.state().PSOPRHDLRDEL.length,1);assert.equal(shaped.state().PSOPRHDLR.some((r:any)=>r.HANDLERNAME==='REQUESTHDLR'),false);
    }
-   check('IB '+kind+' bounded structure stages the writer preview, applies exactly through trusted UI and '+(kind==='service'?'reverses by typed inverse':'refuses reversing an added handler'));
+   check('IB '+kind+' bounded structure stages the writer preview, applies exactly through trusted UI and '+(kind==='service'?'reverses by typed inverse':'reverses an added handler with native deletion marker/counter rules'));
+ }
+ for(const release of ['8.61.15','8.62.09'])for(const restRole of ['consumer','provider']){
+   const native=ibTransaction('operation',true,{release,restRole});provider.withConnection=async(fn:any)=>fn(native.connection);
+   provider.guard=async(key:any)=>{assert.deepEqual(key,{type:80,parts:[native.name]});assert.equal(isReviewedWrite(provider.id,key),true);assert.equal(writeOrigin(),'agent');};
+   const baseline=await provider.readIbForReview('operation',native.name),live=await provider.readIntegrationBroker('operation',[native.name]),input=inputForIb(live);
+   input.sections.uriTemplates[0].IB_URI_TEMPLATE='v2/items/{item}';
+   const set=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:`REST ${restRole} ${release} URI review`});
+   const staged=await reviewCall('psft_ib_save',{connection:'FIXTURE',input,expectedToken:live.token,changeSetId:set.id});assert.equal(staged.persisted,false);assert.deepEqual(native.state(),native.initial);
+   const apply=async(id:string)=>{const ready=await reviewCall('psft_validate_change_set',{changeSetId:id});assert.equal(ready.status,'READY_FOR_REVIEW',JSON.stringify(ready.objects.map((c:any)=>c.validation)));
+     await reviewUi.show(id);const ui=vscode._panels.at(-1);ui._receive({action:'approve',id,revision:ready.revision});await until(async()=>(await reviewService.store.get(id)).status==='APPROVED');
+     ui._receive({action:'apply',id,revision:ready.revision});await until(async()=>['APPLIED','CONFLICTED','FAILED'].includes((await reviewService.store.get(id)).status));assert.equal((await reviewService.store.get(id)).status,'APPLIED');};
+   await apply(set.id);assert.equal(native.state().PSOPERATIONURI[0].IB_URI_TEMPLATE,'v2/items/{item}');
+   for(const t of ['PSOPRURIDATA','PSIBOPRROOT','PSIBRTNGDEFN','PSSERVICEOPR'])assert.deepEqual(native.state()[t],native.initial[t]);
+   const inverse=await reviewCall('psft_prepare_revert',{changeSetId:set.id});await apply(inverse.id);assert.equal((await provider.readIbForReview('operation',native.name)).hash,baseline.hash);
+   const timeline=await reviewCall('psft_get_object_timeline',{changeSetId:inverse.id,objectId:inverse.objects[0].id,checkLive:true});assert.equal(timeline.live.status,'MATCHES_RECORDED');
+   check(`IB ${release} REST ${restRole} URI review stages/applies/reverses through production HTTP and trusted UI, preserving mappings and routing`);
+ }
+ const lifecycleCaptures=JSON.parse(require('node:fs').readFileSync('src/test/fixtures/ib-native-8.62.09/definition-lifecycle.json','utf8'));
+ for(const kind of ['service','operation']){
+   const capture=lifecycleCaptures.find((c:any)=>c.kind===kind&&c.case.includes('recreate'));
+   const name=kind==='service'?'ZZ_PCODE_LAB_IBE':'ZZ_PCODE_LAB_IBO',owner=kind==='operation'?'ZZ_PCODE_LAB_IBS':undefined;
+   const rows=structuredClone(capture.before);for(const t of ['PSSERVICEDEL','PSOPERATIONDEL','PSOPRVERDFNDEL','PSOPRHDLRDEL'])if(rows[t])rows[t]=[];
+   const native=ibTransaction(kind,true,{name,schema:capture.schema,nativeRows:{...rows,PSPROJECTITEM:[],PSPCMTXT:[],PSSQLTEXTDEFN:[]}});
+   provider.withConnection=async(fn:any)=>fn(native.connection);
+   provider.guard=async(key:any)=>{assert.ok([[kind==='service'?79:80,name],...(owner?[[79,owner]]:[])].some(([t,n])=>key.type===t&&key.parts[0]===n));assert.equal(isReviewedWrite(provider.id,key),true);assert.equal(writeOrigin(),'agent');};
+   const target=ibTransaction(kind,true,{name,schema:capture.schema,nativeRows:capture.after});
+   const {readIbLifecycle,ibLifecycleInput}=require('./src/providers/ibLifecycle.ts'),identity={kind,name,...(owner?{service:owner}:{})};
+   const after=await readIbLifecycle(target.connection,provider.types,identity);
+   const input=ibLifecycleInput(after.value,identity),fresh=await reviewCall('psft_ib_definition_get',{connection:'FIXTURE',...identity});assert.equal(fresh.value,null);
+   const staged=await reviewCall('psft_ib_create',{connection:'FIXTURE',input});assert.equal(staged.persisted,false);assert.equal(native.counts().commits,0);
+   const apply=async(id:string)=>{const ready=await reviewCall('psft_validate_change_set',{changeSetId:id});assert.equal(ready.status,'READY_FOR_REVIEW',JSON.stringify(ready.objects.map((c:any)=>c.validation)));
+     await reviewUi.show(id);const ui=vscode._panels.at(-1);ui._receive({action:'approve',id,revision:ready.revision,destructive:ready.objects.some((c:any)=>c.operation==='DELETE')});await until(async()=>(await reviewService.store.get(id)).status==='APPROVED');
+     ui._receive({action:'apply',id,revision:ready.revision});await until(async()=>['APPLIED','CONFLICTED','FAILED'].includes((await reviewService.store.get(id)).status));assert.equal((await reviewService.store.get(id)).status,'APPLIED');};
+   await apply(staged.changeSetId);assert.equal((await provider.readIbDefinitionForReview(identity,true)).hash,after.hash);
+   const inverse=await reviewCall('psft_prepare_revert',{changeSetId:staged.changeSetId});await apply(inverse.id);assert.equal((await provider.readIbDefinitionForReview(identity,true)).value,null);
+   const redo=await reviewCall('psft_prepare_redo',{changeSetId:staged.changeSetId});await apply(redo.id);assert.equal((await provider.readIbDefinitionForReview(identity,true)).hash,after.hash);
+   const checkpoint=await reviewCall('psft_ib_definition_get',{connection:'FIXTURE',...identity});
+   const deletion=await reviewCall('psft_ib_delete',{connection:'FIXTURE',...identity,expectedToken:checkpoint.token});assert.equal(deletion.persisted,false);
+   await apply(deletion.changeSetId);assert.equal((await provider.readIbDefinitionForReview(identity,true)).value,null);
+   const restore=await reviewCall('psft_prepare_revert',{changeSetId:deletion.changeSetId});await apply(restore.id);assert.equal((await provider.readIbDefinitionForReview(identity,true)).hash,after.hash);
+   check('IB '+kind+' complete lifecycle stages creation/deletion through HTTP, requires destructive UI consent and applies typed inverse/redo with native markers and parent authorization');
  }
  provider.withConnection=oldStructuredConnection;provider.guard=oldStructuredGuard;provider.readEnvironment=oldEnvironment;delete provider.types;
  // Deliberate stop at one verified native writer boundary, with fresh continuation review.

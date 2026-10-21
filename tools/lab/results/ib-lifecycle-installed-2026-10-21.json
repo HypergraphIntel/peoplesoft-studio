@@ -1,0 +1,538 @@
+{
+  "at": "2026-10-21T18:20:45.998Z",
+  "scope": "Installed developer-approved HRDMO Oracle 8.62.09 IB lifecycle deletion/recreation and historical handler addition inverse/redo",
+  "candidate": {
+    "vsix": "/tmp/peoplesoft-studio-ib-review.vsix",
+    "sha256": "062c39f31a5d34f2a295f50ec9c6683095edef2d612aaef27d1eafd7650ac35b",
+    "bundleSha256": "40264d878f53e81fe26e13249748b1823e86fa65d8805fb110d5f9deee50c126",
+    "workerSha256": "2022a1104d48cd47f48806708a56dfdbd689e7dcf657e913277f287f885b2c01"
+  },
+  "lifecycleDelete": {
+    "checkpoint": {
+      "at": "2026-10-21T18:15:45.250Z",
+      "objects": [
+        {
+          "id": "096eaf23-00e6-4121-a008-94ab80c629f2",
+          "snapshot": "4bc5c39f822cba46e4dff6cfc8cd5318bde6b5f5eaf5154a52b8d7d72b597c69",
+          "token": "27f8f5f589c58ea3ec6c59913dcbb441248d74843f6067b0b48e3c391ea4e3ee"
+        },
+        {
+          "id": "779cf1f4-848a-490b-9cc7-79fd533718d6",
+          "snapshot": "f95d1e17de6452ebb3f2b0f2a8cc199f56a300c69182bf58b4c5cdf207100547",
+          "token": "055235f73d7cce16821b3c8ff7753218a1b8b5f842ddb1db96a62eca25e35b57"
+        }
+      ]
+    },
+    "created": "2026-10-21T18:13:29.528Z",
+    "description": "",
+    "environment": {
+      "connection": "oracle:HRDMO",
+      "identity": "9c585c10567fd0ba68800246978dba6ac89ce1f17c6baf3113490a052807bb85",
+      "label": "HRDMO"
+    },
+    "id": "b3cababd-9958-422e-8023-d4337c294f8f",
+    "journal": [
+      {
+        "action": "REVISED_APPROVALS_INVALIDATED",
+        "at": "2026-10-21T18:14:16.650Z"
+      },
+      {
+        "action": "REVISED_APPROVALS_INVALIDATED",
+        "at": "2026-10-21T18:14:17.260Z"
+      },
+      {
+        "action": "VALIDATING",
+        "at": "2026-10-21T18:14:17.302Z"
+      },
+      {
+        "action": "READY_FOR_REVIEW",
+        "at": "2026-10-21T18:14:28.731Z"
+      },
+      {
+        "action": "APPROVED",
+        "at": "2026-10-21T18:15:45.236Z",
+        "detail": "096eaf23-00e6-4121-a008-94ab80c629f2,779cf1f4-848a-490b-9cc7-79fd533718d6"
+      },
+      {
+        "action": "APPROVE_AND_APPLY_REQUESTED",
+        "at": "2026-10-21T18:15:45.241Z",
+        "detail": "da5afb6832e1ef06612b0876946f8b93d00d2f3df97a1316f534f6b13b2fdbf8"
+      },
+      {
+        "action": "APPLYING",
+        "at": "2026-10-21T18:15:57.067Z"
+      },
+      {
+        "action": "WRITE_STARTED",
+        "at": "2026-10-21T18:16:01.899Z",
+        "object": "096eaf23-00e6-4121-a008-94ab80c629f2"
+      },
+      {
+        "action": "WRITE_VERIFIED",
+        "at": "2026-10-21T18:16:06.725Z",
+        "object": "096eaf23-00e6-4121-a008-94ab80c629f2"
+      },
+      {
+        "action": "WRITE_STARTED",
+        "at": "2026-10-21T18:16:13.601Z",
+        "object": "779cf1f4-848a-490b-9cc7-79fd533718d6"
+      },
+      {
+        "action": "WRITE_VERIFIED",
+        "at": "2026-10-21T18:16:19.915Z",
+        "object": "779cf1f4-848a-490b-9cc7-79fd533718d6"
+      },
+      {
+        "action": "APPLIED",
+        "at": "2026-10-21T18:16:19.927Z"
+      },
+      {
+        "action": "REVERTED",
+        "at": "2026-10-21T18:18:56.005Z"
+      },
+      {
+        "action": "REVERSED_BY_VERIFIED_CHANGE_SET",
+        "at": "2026-10-21T18:18:56.005Z",
+        "detail": "4d0de13a-015d-48aa-b9c1-56ca63341d89"
+      }
+    ],
+    "objects": [
+      {
+        "adapter": "ib-service-definition",
+        "after": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+        "application": "VERIFIED",
+        "approvedHash": "9ca7da7747f8c18be985db1c2cdfc9663ae81a11584ef97d46c6614ca3c0b02e",
+        "authorizationStamp": "94e792754030443918c0c3566619c9f760b8b8d50214ce201954be83eaa74569",
+        "baselineToken": "27f8f5f589c58ea3ec6c59913dcbb441248d74843f6067b0b48e3c391ea4e3ee",
+        "before": "4bc5c39f822cba46e4dff6cfc8cd5318bde6b5f5eaf5154a52b8d7d72b597c69",
+        "dependencies": [],
+        "id": "096eaf23-00e6-4121-a008-94ab80c629f2",
+        "key": [
+          "ZZ_PCODE_LAB_IBE"
+        ],
+        "operation": "DELETE",
+        "review": "APPROVED",
+        "revision": 1,
+        "validation": [],
+        "verified": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+        "verifiedToken": "8b08257fc18eda81ee53fd9e455a4d5fa80d9f0f1671c88f121e37ace48644a5",
+        "warnings": [
+          "Ownership: UNKNOWN (LOW)",
+          "Agent delivered-object policy: requireApproval",
+          "Preferred strategy: configurationFirst; this is not permission to write.",
+          "Only explicitly staged dependencies are ordered; complete external dependency coverage is not established.",
+          "Oracle PeopleTools 8.62.09: typed CREATE/DELETE and reviewed inverse/redo for empty standard services, or single-version standard synchronous operations with request/response messages and an optional ApplicationClass OnRequest handler. Native table scope, deletion markers, references, parent service and cache movements are checked. REST lifecycle, credentials, translations, deployment/runtime rows, other handlers and wider shapes refuse. Owning service must already exist; its mapping and native resave are covered by this operation approval. Parent-overlapping changes require separate Change Sets. Dynamic references require developer assessment."
+        ]
+      },
+      {
+        "adapter": "ib-operation-definition",
+        "after": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+        "application": "VERIFIED",
+        "approvedHash": "06d5d58eac160e2450f8f138a1efb3a12b94affb58e35fd6bca1cd7ca463536b",
+        "authorizationStamp": "0a5b01544ab488b56674f4608518b80d23bcdeadeffc865d6e5a0846fb549b3d",
+        "baselineToken": "055235f73d7cce16821b3c8ff7753218a1b8b5f842ddb1db96a62eca25e35b57",
+        "before": "f95d1e17de6452ebb3f2b0f2a8cc199f56a300c69182bf58b4c5cdf207100547",
+        "dependencies": [],
+        "id": "779cf1f4-848a-490b-9cc7-79fd533718d6",
+        "key": [
+          "ZZ_PCODE_LAB_IBO",
+          "ZZ_PCODE_LAB_IBS"
+        ],
+        "operation": "DELETE",
+        "review": "APPROVED",
+        "revision": 1,
+        "validation": [],
+        "verified": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+        "verifiedToken": "5654f78301ea9179ebb295d983c9f32b4bb3d7013465300ab49eb9f839d20789",
+        "warnings": [
+          "Ownership: UNKNOWN (LOW)",
+          "Agent delivered-object policy: requireApproval",
+          "Preferred strategy: configurationFirst; this is not permission to write.",
+          "Only explicitly staged dependencies are ordered; complete external dependency coverage is not established.",
+          "Ownership: UNKNOWN (LOW)",
+          "Agent delivered-object policy: requireApproval",
+          "Preferred strategy: configurationFirst; this is not permission to write.",
+          "Only explicitly staged dependencies are ordered; complete external dependency coverage is not established.",
+          "Oracle PeopleTools 8.62.09: typed CREATE/DELETE and reviewed inverse/redo for empty standard services, or single-version standard synchronous operations with request/response messages and an optional ApplicationClass OnRequest handler. Native table scope, deletion markers, references, parent service and cache movements are checked. REST lifecycle, credentials, translations, deployment/runtime rows, other handlers and wider shapes refuse. Owning service must already exist; its mapping and native resave are covered by this operation approval. Parent-overlapping changes require separate Change Sets. Dynamic references require developer assessment."
+        ]
+      }
+    ],
+    "origin": "agent",
+    "revision": 3,
+    "schema": 1,
+    "status": "REVERTED",
+    "title": "IB lifecycle acceptance: owned empty service and operation deletion",
+    "updated": "2026-10-21T18:18:56.005Z"
+  },
+  "lifecycleRestore": {
+    "checkpoint": {
+      "at": "2026-10-21T18:17:54.462Z",
+      "objects": [
+        {
+          "id": "f5830ed3-9d1e-4128-bcce-278184c7213b",
+          "snapshot": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "token": "8b08257fc18eda81ee53fd9e455a4d5fa80d9f0f1671c88f121e37ace48644a5"
+        },
+        {
+          "id": "c058c75c-9c57-4a62-b852-2d660b112efb",
+          "snapshot": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "token": "5654f78301ea9179ebb295d983c9f32b4bb3d7013465300ab49eb9f839d20789"
+        }
+      ]
+    },
+    "created": "2026-10-21T18:16:44.843Z",
+    "description": "",
+    "environment": {
+      "connection": "oracle:HRDMO",
+      "identity": "9c585c10567fd0ba68800246978dba6ac89ce1f17c6baf3113490a052807bb85",
+      "label": "HRDMO"
+    },
+    "id": "4d0de13a-015d-48aa-b9c1-56ca63341d89",
+    "journal": [
+      {
+        "action": "REVERSAL_PROPOSED",
+        "at": "2026-10-21T18:16:45.236Z",
+        "detail": "b3cababd-9958-422e-8023-d4337c294f8f"
+      },
+      {
+        "action": "VALIDATING",
+        "at": "2026-10-21T18:16:46.820Z"
+      },
+      {
+        "action": "READY_FOR_REVIEW",
+        "at": "2026-10-21T18:16:52.296Z"
+      },
+      {
+        "action": "APPROVED",
+        "at": "2026-10-21T18:17:54.368Z",
+        "detail": "f5830ed3-9d1e-4128-bcce-278184c7213b,c058c75c-9c57-4a62-b852-2d660b112efb"
+      },
+      {
+        "action": "APPROVE_AND_APPLY_REQUESTED",
+        "at": "2026-10-21T18:17:54.374Z",
+        "detail": "7d9187b23def52af1fea56fcd4f2d32307d55e6bd2cb2025dcf3d33df1ac13a5"
+      },
+      {
+        "action": "APPLYING",
+        "at": "2026-10-21T18:18:00.650Z"
+      },
+      {
+        "action": "WRITE_STARTED",
+        "at": "2026-10-21T18:18:01.598Z",
+        "object": "f5830ed3-9d1e-4128-bcce-278184c7213b"
+      },
+      {
+        "action": "WRITE_VERIFIED",
+        "at": "2026-10-21T18:18:02.543Z",
+        "object": "f5830ed3-9d1e-4128-bcce-278184c7213b"
+      },
+      {
+        "action": "WRITE_STARTED",
+        "at": "2026-10-21T18:18:06.621Z",
+        "object": "c058c75c-9c57-4a62-b852-2d660b112efb"
+      },
+      {
+        "action": "APPLICATION_STOPPED",
+        "at": "2026-10-21T18:18:10.645Z",
+        "detail": "NJS-064: connection pool is closing"
+      },
+      {
+        "action": "RECONCILED_WITH_LIVE_STATE",
+        "at": "2026-10-21T18:18:55.993Z"
+      }
+    ],
+    "objects": [
+      {
+        "adapter": "ib-service-definition",
+        "after": "4bc5c39f822cba46e4dff6cfc8cd5318bde6b5f5eaf5154a52b8d7d72b597c69",
+        "application": "VERIFIED",
+        "approvedHash": "68cf4611d16029f5a43a46530fdffb23583ffcdabc9f4258ff2daed95d1ace85",
+        "authorizationStamp": "a657d4e88c5a43251341e6a7ee969e70bacef6f18bf50dd578e6ab767435240f",
+        "baselineToken": "8b08257fc18eda81ee53fd9e455a4d5fa80d9f0f1671c88f121e37ace48644a5",
+        "before": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+        "dependencies": [],
+        "id": "f5830ed3-9d1e-4128-bcce-278184c7213b",
+        "key": [
+          "ZZ_PCODE_LAB_IBE"
+        ],
+        "operation": "CREATE",
+        "review": "APPROVED",
+        "revision": 1,
+        "validation": [],
+        "verified": "4bc5c39f822cba46e4dff6cfc8cd5318bde6b5f5eaf5154a52b8d7d72b597c69",
+        "verifiedToken": "1c56bb7353c6fc11350f2789733fbba71a9cb9ddbf06a9982bdf4484e5a1973a",
+        "warnings": [
+          "Ownership: UNKNOWN (HIGH)",
+          "Agent delivered-object policy: requireApproval",
+          "Preferred strategy: configurationFirst; this is not permission to write.",
+          "Only explicitly staged dependencies are ordered; complete external dependency coverage is not established.",
+          "Oracle PeopleTools 8.62.09: typed CREATE/DELETE and reviewed inverse/redo for empty standard services, or single-version standard synchronous operations with request/response messages and an optional ApplicationClass OnRequest handler. Native table scope, deletion markers, references, parent service and cache movements are checked. REST lifecycle, credentials, translations, deployment/runtime rows, other handlers and wider shapes refuse. Owning service must already exist; its mapping and native resave are covered by this operation approval. Parent-overlapping changes require separate Change Sets. Dynamic references require developer assessment."
+        ]
+      },
+      {
+        "adapter": "ib-operation-definition",
+        "after": "f95d1e17de6452ebb3f2b0f2a8cc199f56a300c69182bf58b4c5cdf207100547",
+        "application": "VERIFIED",
+        "approvedHash": "69a8a8ebd8502dd96fae3c793a9bc387e23935951c9ae8ac0fc4d354f71533ec",
+        "authorizationStamp": "8576b10fa7041a973a5c6decdbcde8e7fde395b476978fbbb082d8bc5c56e746",
+        "baselineToken": "5654f78301ea9179ebb295d983c9f32b4bb3d7013465300ab49eb9f839d20789",
+        "before": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+        "dependencies": [],
+        "id": "c058c75c-9c57-4a62-b852-2d660b112efb",
+        "key": [
+          "ZZ_PCODE_LAB_IBO",
+          "ZZ_PCODE_LAB_IBS"
+        ],
+        "operation": "CREATE",
+        "review": "APPROVED",
+        "revision": 1,
+        "validation": [],
+        "verified": "f95d1e17de6452ebb3f2b0f2a8cc199f56a300c69182bf58b4c5cdf207100547",
+        "verifiedToken": "7ed123deed831e2c7f42bc927af2fda7f5d40418eb6c78c68e439fd36e5b64c2",
+        "warnings": [
+          "Ownership: UNKNOWN (HIGH)",
+          "Agent delivered-object policy: requireApproval",
+          "Preferred strategy: configurationFirst; this is not permission to write.",
+          "Only explicitly staged dependencies are ordered; complete external dependency coverage is not established.",
+          "Ownership: UNKNOWN (LOW)",
+          "Agent delivered-object policy: requireApproval",
+          "Preferred strategy: configurationFirst; this is not permission to write.",
+          "Only explicitly staged dependencies are ordered; complete external dependency coverage is not established.",
+          "Oracle PeopleTools 8.62.09: typed CREATE/DELETE and reviewed inverse/redo for empty standard services, or single-version standard synchronous operations with request/response messages and an optional ApplicationClass OnRequest handler. Native table scope, deletion markers, references, parent service and cache movements are checked. REST lifecycle, credentials, translations, deployment/runtime rows, other handlers and wider shapes refuse. Owning service must already exist; its mapping and native resave are covered by this operation approval. Parent-overlapping changes require separate Change Sets. Dynamic references require developer assessment."
+        ]
+      }
+    ],
+    "origin": "reversal",
+    "reverses": "b3cababd-9958-422e-8023-d4337c294f8f",
+    "revision": 1,
+    "schema": 1,
+    "status": "APPLIED",
+    "title": "Revert IB lifecycle acceptance: owned empty service and operation deletion",
+    "updated": "2026-10-21T18:18:55.993Z"
+  },
+  "handlerInverse": {
+    "checkpoint": {
+      "at": "2026-10-21T18:15:13.660Z",
+      "objects": [
+        {
+          "id": "e6f3b16f-3024-4584-a2e7-3d62c149bf42",
+          "snapshot": "30262b1f9e123dfc72013d16350ab5ae53af409dba09cbf925d7d276d3bebd2c",
+          "token": "c1bcedcd56cabc83df4a20c35ca49ccbe21cf55d214b177974a8ef2cfc81b00a"
+        }
+      ]
+    },
+    "created": "2026-10-21T18:13:19.201Z",
+    "description": "",
+    "environment": {
+      "connection": "oracle:HRDMO",
+      "identity": "9c585c10567fd0ba68800246978dba6ac89ce1f17c6baf3113490a052807bb85",
+      "label": "HRDMO"
+    },
+    "id": "f47931e1-b8ba-4d9d-a8e0-155115101933",
+    "journal": [
+      {
+        "action": "REVERSAL_PROPOSED",
+        "at": "2026-10-21T18:13:19.547Z",
+        "detail": "0cb5ff8b-512b-4350-9151-531b9a9a2686"
+      },
+      {
+        "action": "VALIDATING",
+        "at": "2026-10-21T18:14:28.789Z"
+      },
+      {
+        "action": "READY_FOR_REVIEW",
+        "at": "2026-10-21T18:14:31.006Z"
+      },
+      {
+        "action": "APPROVED",
+        "at": "2026-10-21T18:15:13.635Z",
+        "detail": "e6f3b16f-3024-4584-a2e7-3d62c149bf42"
+      },
+      {
+        "action": "APPROVE_AND_APPLY_REQUESTED",
+        "at": "2026-10-21T18:15:13.642Z",
+        "detail": "dfed316c8b7aabbf35c26507dc9a365a10669dcf78406fb699867943b768cf48"
+      },
+      {
+        "action": "APPLYING",
+        "at": "2026-10-21T18:15:15.639Z"
+      },
+      {
+        "action": "WRITE_STARTED",
+        "at": "2026-10-21T18:15:17.156Z",
+        "object": "e6f3b16f-3024-4584-a2e7-3d62c149bf42"
+      },
+      {
+        "action": "WRITE_VERIFIED",
+        "at": "2026-10-21T18:15:18.980Z",
+        "object": "e6f3b16f-3024-4584-a2e7-3d62c149bf42"
+      },
+      {
+        "action": "APPLIED",
+        "at": "2026-10-21T18:15:18.991Z"
+      },
+      {
+        "action": "REVERTED",
+        "at": "2026-10-21T18:17:51.807Z"
+      },
+      {
+        "action": "REVERSED_BY_VERIFIED_CHANGE_SET",
+        "at": "2026-10-21T18:17:51.807Z",
+        "detail": "5e1ce757-ccfa-4a21-903a-d0decdaa19e0"
+      }
+    ],
+    "objects": [
+      {
+        "adapter": "ib-operation",
+        "after": "92762da4cfef49fc85f69183d2daa3ff9abff59666464be43ab42d3b60a98fef",
+        "application": "VERIFIED",
+        "approvedHash": "7a7b1db68306f944fd4bb2adba0893a4d3064338237849d1a0f11248fa2b4bd3",
+        "authorizationStamp": "9cc553b5bd1c51dbbf04b8c0fdcd7931d659cb5cd719f523be84c98c799a0e95",
+        "baselineToken": "c1bcedcd56cabc83df4a20c35ca49ccbe21cf55d214b177974a8ef2cfc81b00a",
+        "before": "30262b1f9e123dfc72013d16350ab5ae53af409dba09cbf925d7d276d3bebd2c",
+        "dependencies": [],
+        "id": "e6f3b16f-3024-4584-a2e7-3d62c149bf42",
+        "key": "ZZ_IB_API_5736828_G",
+        "operation": "UPDATE",
+        "review": "APPROVED",
+        "revision": 1,
+        "validation": [],
+        "verified": "92762da4cfef49fc85f69183d2daa3ff9abff59666464be43ab42d3b60a98fef",
+        "verifiedToken": "a3a157b37631e1852e7701169dc8e1c94474e6dc76542abd46816e21248015a8",
+        "warnings": [
+          "Ownership: UNKNOWN (LOW)",
+          "Agent delivered-object policy: requireApproval",
+          "Preferred strategy: configurationFirst; this is not permission to write.",
+          "Only explicitly staged dependencies are ordered; complete external dependency coverage is not established.",
+          "Existing service/operation only: description/comments, plus the bounded structure contract (service owner/namespace/application; operation header except service, routing type, REST method, alias and message binding; existing versions, parameters, handlers and class implementations; existing REST URI template text with URI variable dependencies preserved; adding the calibrated ApplicationClass OnRequest handler). Fixed noncredential preservation scope; credentials are never selected or restored and credential freshness is not certified. No definition create/delete or raw row replay. Paired ApplicationClass REQUESTHDLR/RQST removal and tombstone-bound recreation are calibrated on 8.62.09 only; translated handlers, other implementations and routing handler references refuse deletion. Native reviewed apply/inverse verified on HRDMO (8.62) for the recorded standard header and structural trials, and a REST provider handler addition; 8.61 and REST consumer structural application are not certified."
+        ]
+      }
+    ],
+    "origin": "reversal",
+    "reverses": "0cb5ff8b-512b-4350-9151-531b9a9a2686",
+    "revision": 1,
+    "schema": 1,
+    "status": "REVERTED",
+    "title": "Revert IB structural acceptance: REST provider OnRequest handler addition",
+    "updated": "2026-10-21T18:17:51.807Z"
+  },
+  "handlerRedo": {
+    "checkpoint": {
+      "at": "2026-10-21T18:17:45.648Z",
+      "objects": [
+        {
+          "id": "f4de5fad-74c5-4431-9c23-2a7efccfafc9",
+          "snapshot": "92762da4cfef49fc85f69183d2daa3ff9abff59666464be43ab42d3b60a98fef",
+          "token": "a3a157b37631e1852e7701169dc8e1c94474e6dc76542abd46816e21248015a8"
+        }
+      ]
+    },
+    "created": "2026-10-21T18:16:44.534Z",
+    "description": "",
+    "environment": {
+      "connection": "oracle:HRDMO",
+      "identity": "9c585c10567fd0ba68800246978dba6ac89ce1f17c6baf3113490a052807bb85",
+      "label": "HRDMO"
+    },
+    "id": "5e1ce757-ccfa-4a21-903a-d0decdaa19e0",
+    "journal": [
+      {
+        "action": "REDO_PROPOSED",
+        "at": "2026-10-21T18:16:44.801Z",
+        "detail": "f47931e1-b8ba-4d9d-a8e0-155115101933"
+      },
+      {
+        "action": "VALIDATING",
+        "at": "2026-10-21T18:16:45.321Z"
+      },
+      {
+        "action": "READY_FOR_REVIEW",
+        "at": "2026-10-21T18:16:46.779Z"
+      },
+      {
+        "action": "APPROVED",
+        "at": "2026-10-21T18:17:45.627Z",
+        "detail": "f4de5fad-74c5-4431-9c23-2a7efccfafc9"
+      },
+      {
+        "action": "APPROVE_AND_APPLY_REQUESTED",
+        "at": "2026-10-21T18:17:45.631Z",
+        "detail": "ceafbe8431b4cea9c2c57c4dad5134974b23c2bc5739497ab3100d1a1fb3179c"
+      },
+      {
+        "action": "APPLYING",
+        "at": "2026-10-21T18:17:47.340Z"
+      },
+      {
+        "action": "WRITE_STARTED",
+        "at": "2026-10-21T18:17:49.204Z",
+        "object": "f4de5fad-74c5-4431-9c23-2a7efccfafc9"
+      },
+      {
+        "action": "WRITE_VERIFIED",
+        "at": "2026-10-21T18:17:51.788Z",
+        "object": "f4de5fad-74c5-4431-9c23-2a7efccfafc9"
+      },
+      {
+        "action": "APPLIED",
+        "at": "2026-10-21T18:17:51.800Z"
+      }
+    ],
+    "objects": [
+      {
+        "adapter": "ib-operation",
+        "after": "30262b1f9e123dfc72013d16350ab5ae53af409dba09cbf925d7d276d3bebd2c",
+        "application": "VERIFIED",
+        "approvedHash": "2a045aaac4b1e0b10442f4ba2fe6b09b37b962186b64a6c6209f118d364374d2",
+        "authorizationStamp": "b215fe63d4f72950414f21decf0e191dd036aef13240e3ede99600753d138c84",
+        "baselineToken": "a3a157b37631e1852e7701169dc8e1c94474e6dc76542abd46816e21248015a8",
+        "before": "92762da4cfef49fc85f69183d2daa3ff9abff59666464be43ab42d3b60a98fef",
+        "dependencies": [],
+        "id": "f4de5fad-74c5-4431-9c23-2a7efccfafc9",
+        "key": "ZZ_IB_API_5736828_G",
+        "operation": "UPDATE",
+        "review": "APPROVED",
+        "revision": 1,
+        "validation": [],
+        "verified": "30262b1f9e123dfc72013d16350ab5ae53af409dba09cbf925d7d276d3bebd2c",
+        "verifiedToken": "de3b367b6ca8e3b23c4a35280476aa84af1651c0790c34eac37bb64962cab945",
+        "warnings": [
+          "Ownership: UNKNOWN (LOW)",
+          "Agent delivered-object policy: requireApproval",
+          "Preferred strategy: configurationFirst; this is not permission to write.",
+          "Only explicitly staged dependencies are ordered; complete external dependency coverage is not established.",
+          "Existing service/operation only: description/comments, plus the bounded structure contract (service owner/namespace/application; operation header except service, routing type, REST method, alias and message binding; existing versions, parameters, handlers and class implementations; existing REST URI template text with URI variable dependencies preserved; adding the calibrated ApplicationClass OnRequest handler). Fixed noncredential preservation scope; credentials are never selected or restored and credential freshness is not certified. No definition create/delete or raw row replay. Paired ApplicationClass REQUESTHDLR/RQST removal and tombstone-bound recreation are calibrated on 8.62.09 only; translated handlers, other implementations and routing handler references refuse deletion. Native reviewed apply/inverse verified on HRDMO (8.62) for the recorded standard header and structural trials, and a REST provider handler addition; 8.61 and REST consumer structural application are not certified."
+        ]
+      }
+    ],
+    "origin": "reversal",
+    "reverses": "f47931e1-b8ba-4d9d-a8e0-155115101933",
+    "revision": 1,
+    "schema": 1,
+    "status": "APPLIED",
+    "title": "Redo IB structural acceptance: REST provider OnRequest handler addition",
+    "updated": "2026-10-21T18:17:51.800Z"
+  },
+  "restoredService": {
+    "status": "MATCHES_RECORDED",
+    "checkedAt": "2026-10-21T18:20:04.248Z",
+    "matched": "4d0de13a-015d-48aa-b9c1-56ca63341d89:f5830ed3-9d1e-4128-bcce-278184c7213b"
+  },
+  "restoredOperation": {
+    "status": "MATCHES_RECORDED",
+    "checkedAt": "2026-10-21T18:20:04.416Z",
+    "matched": "4d0de13a-015d-48aa-b9c1-56ca63341d89:c058c75c-9c57-4a62-b852-2d660b112efb"
+  },
+  "restoredHandler": {
+    "status": "MATCHES_RECORDED",
+    "checkedAt": "2026-10-21T18:20:04.978Z",
+    "matched": "5e1ce757-ccfa-4a21-903a-d0decdaa19e0:f4de5fad-74c5-4431-9c23-2a7efccfafc9"
+  },
+  "passed": true,
+  "originalsRestored": true,
+  "recovery": {
+    "cause": "Agent switched to HCDEV during HRDMO postcommit readback; Workspace.connect closes the previous provider pool.",
+    "error": "NJS-064: connection pool is closing",
+    "outcome": "Developer invoked Reconcile live state. Complete approved operation checkpoint matched; result recorded VERIFIED without retrying any writer."
+  }
+}

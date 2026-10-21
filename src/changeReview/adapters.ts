@@ -30,6 +30,7 @@ import { ibStructuralChange, ibStructuralInput, ibStructuralReversalRefusal } fr
 import { creationKey, creationRecordEdit, creationAeDocument, proposedAeReferences, proposedProjectMembers } from './structuredCreation.js';
 import { projectReviewName, projectCreationItems } from '../providers/projectSnapshot.js';
 import type { IbReviewKind } from '../providers/ibSnapshot.js';
+import { ibLifecycleIdentity, type IbLifecycleKey } from '../providers/ibLifecycle.js';
 import { textDefinitionData, type TextDefinitionKind } from '../providers/textDefinitionWriter.js';
 export function databaseReviewAdapters(workspace: Workspace, host: () => McpWriteHost | undefined) {
     async function provider(environment: Environment): Promise<DatabaseProvider> {
@@ -353,9 +354,9 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
             const input = header ? ibHeaderInput(before, after, kind, name, live) : ibStructuralInput(before, after, kind, name, live);
             return p.saveIntegrationBroker({ input, expectedToken: live.token, operatorId, expectedSnapshotToken: token, expectedAfterHash: hash(after), ...(preview ? { dryRun: true, captureSnapshots: true } : {}) });
         }
-        return { id: 'ib-' + kind, diff: ibHeaderDiff(kind), authorizationState: (e, key) => authorizationState(e, keyOf(key)),
+        return { id: 'ib-' + kind, scope:key=>'ib-'+kind+':'+keyOf(key).parts[0], diff: ibHeaderDiff(kind), authorizationState: (e, key) => authorizationState(e, keyOf(key)),
             reversalRefusal: (key, before, after) => { const name = keyOf(key).parts[0]; return headerOnly(name, before, after) ? undefined : ibStructuralReversalRefusal(before, after, kind, name); },
-            warnings: async (e, key) => [...await warnings(e, keyOf(key)), 'Existing service/operation only: description/comments, plus the bounded structure contract (service owner/namespace/application; operation header except service, routing type, REST method, alias and message binding; existing versions, parameters, handlers and class implementations; adding the calibrated ApplicationClass OnRequest handler). Fixed noncredential preservation scope; credentials are never selected or restored and credential freshness is not certified. No create/delete, child removal or raw row replay; an added handler cannot be reversed. Native reviewed apply/inverse verified on HRDMO (8.62) for the recorded standard header and structural trials, and a REST provider handler addition; 8.61 and REST consumer structural application are not certified.'],
+            warnings: async (e, key) => [...await warnings(e, keyOf(key)), 'Existing service/operation only: description/comments, plus the bounded structure contract (service owner/namespace/application; operation header except service, routing type, REST method, alias and message binding; existing versions, parameters, handlers and class implementations; existing REST URI template text with URI variable dependencies preserved; adding the calibrated ApplicationClass OnRequest handler). Fixed noncredential preservation scope; credentials are never selected or restored and credential freshness is not certified. No definition create/delete or raw row replay. Paired ApplicationClass REQUESTHDLR/RQST removal and tombstone-bound recreation are calibrated on 8.62.09 only; translated handlers, other implementations and routing handler references refuse deletion. Native reviewed apply/inverse verified on HRDMO (8.62) for the recorded standard header and structural trials, and a REST provider handler addition; 8.61 and REST consumer structural application are not certified.'],
             read: async (e, key) => { const p = await provider(e), live = await p.readIbForReview(kind, keyOf(key).parts[0]); return { value: live.value as unknown as Json, token: live.token }; },
             authorize: async (e, key) => { await authorize(e, keyOf(key)); },
             validate: async (e, key, before, after) => {
@@ -372,6 +373,37 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
                 if (live.token !== baseline.token || live.hash !== hash(baseline.value)) throw new Error('IB definition changed before approved application.');
                 await withReviewedWrite(p.id, k, () => runAsAgent(() => request(p, k.parts[0], baseline.value, after, operator, baseline.token, false)), policyIdentity);
                 host()!.saved(p.id, k);
+            }
+        };
+    };
+    const ibDefinition=(kind:IbReviewKind):ReviewAdapter=>{
+        const identity=(key:Json):IbLifecycleKey=>{
+            if(!Array.isArray(key)||key.length!==(kind==='service'?1:2)||key.some(k=>typeof k!=='string'))throw new Error('IB lifecycle key is [name] or [operation, owning service].');
+            const k:IbLifecycleKey={kind,name:key[0] as string,...(kind==='operation'?{service:key[1] as string}:{})};ibLifecycleIdentity(k);return k;
+        };
+        const keys=(key:Json)=>{const k=identity(key);return [ibDefinitionKey(kind,[k.name]),...(k.service?[ibDefinitionKey('service',[k.service])]:[])];};
+        const authState=async(e:Environment,key:Json)=>hash(await Promise.all(keys(key).map(k=>authorizationState(e,k))));
+        const gates=async(e:Environment,key:Json)=>Promise.all(keys(key).map(k=>authorize(e,k)));
+        return {id:'ib-'+kind+'-definition',canDelete:true,
+            scopes:key=>{const k=identity(key);return ['ib-'+kind+':'+k.name,...(k.service?['ib-service:'+k.service]:[])];},
+            authorizationState:authState,
+            warnings:async(e,key)=>[...(await Promise.all(keys(key).map(k=>warnings(e,k)))).flat(),
+                'Oracle PeopleTools 8.62.09: typed CREATE/DELETE and reviewed inverse/redo for empty standard services, or single-version standard synchronous operations with request/response messages and an optional ApplicationClass OnRequest handler. Native table scope, deletion markers, references, parent service and cache movements are checked. REST lifecycle, credentials, translations, deployment/runtime rows, other handlers and wider shapes refuse. Owning service must already exist; its mapping and native resave are covered by this operation approval. Parent-overlapping changes require separate Change Sets. Dynamic references require developer assessment.'],
+            read:async(e,key)=>{const s=await(await provider(e)).readIbDefinitionForReview(identity(key),true);return {value:s.value,token:s.token};},
+            authorize:async(e,key)=>{await gates(e,key);},
+            validate:async(e,key,before,after)=>{
+                try{const [{p,operator}]=await gates(e,key),k=identity(key),live=await p.readIbDefinitionForReview(k,true);
+                    if(live.hash!==hash(before))return ['Complete IB lifecycle baseline changed.'];
+                    if(before!==null&&after!==null)return ['Use the existing structural adapter for UPDATE.'];
+                    await p.writeIbDefinitionForReview({...k,after,operatorId:operator,expectedSnapshotToken:live.token,expectedAfterHash:hash(after),allowDeletedBaseline:true,dryRun:true});return [];
+                }catch(error){return [error instanceof Error?error.message:String(error)];}
+            },
+            write:async(e,key,after,baseline)=>{
+                const all=await gates(e,key),[{p,operator,policyIdentity}]=all,k=identity(key),physical=keys(key);
+                if(baseline.authorization&&await authState(e,key)!==baseline.authorization)throw new Error('IB lifecycle or parent authorization changed.');
+                const live=await p.readIbDefinitionForReview(k,true);if(live.token!==baseline.token||live.hash!==hash(baseline.value))throw new Error('Complete IB lifecycle baseline changed before application.');
+                await withReviewedWrite(p.id,physical[0],()=>runAsAgent(()=>p.writeIbDefinitionForReview({...k,after,operatorId:operator,expectedSnapshotToken:baseline.token,expectedAfterHash:hash(after),allowDeletedBaseline:true})),policyIdentity,physical.slice(1).map((key,i)=>({key,policyIdentity:all[i+1].policyIdentity})));
+                for(const key of physical)host()!.saved(p.id,key);
             }
         };
     };
@@ -650,5 +682,5 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
             throw new Error('A connected database is required.');
         return { connection: p.id, label: p.displayName, identity: await p.changeReviewIdentity() };
     }
-    return { adapters: [textDefinition('sql'), textDefinition('html'), textDefinition('stylesheet'), migrationProject, ...(['field', 'record', 'sql', 'html', 'stylesheet', 'ae', 'peoplecode', 'query','menu','package','page','component'] as const).map(migration), sql, content('html', DefinitionType.HtmlDefinition), content('stylesheet', DefinitionType.StyleSheet), process, query, peoplecode, page, structuredHeader('record'), structuredHeader('ae'), structuredCreation('record'), structuredCreation('ae'), projectCreate, ibHeader('service'), ibHeader('operation')], environment, adapterHash: hash };
+    return { adapters: [textDefinition('sql'), textDefinition('html'), textDefinition('stylesheet'), migrationProject, ...(['field', 'record', 'sql', 'html', 'stylesheet', 'ae', 'peoplecode', 'query','menu','package','page','component'] as const).map(migration), sql, content('html', DefinitionType.HtmlDefinition), content('stylesheet', DefinitionType.StyleSheet), process, query, peoplecode, page, structuredHeader('record'), structuredHeader('ae'), structuredCreation('record'), structuredCreation('ae'), projectCreate, ibHeader('service'), ibHeader('operation'),ibDefinition('service'),ibDefinition('operation')], environment, adapterHash: hash };
 }

@@ -1,0 +1,106 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-8c5e63719ce94c86599f2785",
+  "fingerprint": "8c5e63719ce94c86599f2785c14aff5c4bac2ede7439b321fb29a7580bd84ef6",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "integration-broker",
+    "objectType": "Operation handler"
+  },
+  "assertion": {
+    "kind": "request-handler-recreation",
+    "facts": {
+      "markerTable": "PSOPRHDLRDEL",
+      "clearsMatchingMarkers": true,
+      "operationCounterStep": 1,
+      "versionCounterStep": 1,
+      "handlerCounterStep": 1,
+      "systemCounterStep": 3
+    }
+  },
+  "title": "Native request handler recreation clears its tombstone",
+  "statement": "Recreating an application-class request handler clears its matching deletion marker and recreates its handler and implementation rows under fresh native counters.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T17:01:30.604Z",
+      "method": "save-capture",
+      "experimentId": "ib02-native-handler-recreate",
+      "runId": "ib-lifecycle-2026-10-21",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "One native page save recreated a request handler and application-class implementation, removed its matching deletion marker, and advanced the operation, version and handler counters once and system counter three times.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSOPERATION",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSOPERATIONAC",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRHDLR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRHDLRDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "OPRHM": 1,
+          "OPRM": 1,
+          "OPRVM": 1,
+          "SYS": 3
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ib02-native-handler-recreate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/IB_STRUCTURE.md"
+        }
+      ],
+      "digest": "8882703e35f12c0e3d23352da0332f494ff8fae2cf4aa80cdfb7592c4ad90809"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-21T17:11:12.734Z",
+    "updatedAt": "2026-10-21T17:11:12.734Z",
+    "schemaVersion": 1
+  }
+}

@@ -17,8 +17,13 @@ AE/file request also completed native runtime instance 607175 with exact CSV
 output. These are bounded trials, not certification of every adapter operation.
 See [COVERAGE.md](COVERAGE.md) and the [AE/file workflow](../build-requests/AE_FILE_WORKFLOW.md).
 
-Remaining work includes 8.61 and REST consumer structural acceptance, broader
-adapters/structural edits, deletion for Query/projects, broader installed recovery acceptance, and broader production/Windows Build Request acceptance. Added IB handler reversal is explicitly refused.
+October 21 development now adds calibrated 8.62.09 added-handler undo/redo and
+standard definition lifecycle review, with installed developer-approved trials.
+The 8.61 existing-version structural apply/inverse passed and its temporary
+fixtures are removed. REST consumer backend apply/inverse/redo and installed
+forward/inverse application pass with the original complete checkpoint restored.
+Broader adapters, Query/project deletion and production/Windows Build Request acceptance
+remain separate work.
 
 October 20 installed build handoff acceptance passed for both Codex and Claude:
 each request produced one four-object APPLIED/VERIFIED creation set, followed
@@ -43,6 +48,88 @@ HTTP/UI workflow checks. The actual rendered combined-action click script is
 exercised, and the production page preview was visually inspected. These are
 fixture-backed approval/application checks; no new live PeopleSoft application
 was performed for this UI change.
+
+## October 21 IB structural continuation (complete)
+
+Added reviewed editing of existing REST URI template text, with preservation of
+ordered URI variable dependencies, sequence/transaction/root identity, complete
+URI mapping/content/routing checkpoints, exact rollback after-images and typed
+inverse/redo. Eleven structural tests and two native-capture replay tests pass, including
+consumer/provider fixtures on 8.61.15 and 8.62.09. The expanded production
+HTTP/UI workflow suite passes all 69 checks. Fixture coverage remains separate
+from the exact native edits recorded below.
+
+HRDMO connectivity was restored and six existing header rollback previews passed
+(standard service/operation, provider/consumer service and operation). Created
+three isolated inactive/native calibration fixtures and captured the baseline.
+The developer explicitly approved their native PIA deletion/recreation batch.
+Native PIA handler deletion/recreation captures now establish the tombstone
+and counter protocol. The typed writer replays both captures exactly. Its
+five-check native provider/private-review addition/inverse/redo trial passes
+and restores the native checkpoint. Handler markers bind freshness tokens,
+and marker readback is checked before commit. Deletion is limited to the
+paired ApplicationClass REQUESTHDLR/RQST on 8.62.09; 8.61, translated handlers,
+other implementation rows and routing handler references are refused.
+Eight native PIA captures now include service and operation deletion/recreation,
+a repeated handler-present deletion, and a separately verified zero-handler
+operation deletion. The latter preserves existing handler history and moves
+OPRM +2, OPRVM +1, SRVM +1 and SYS +3. Discovery record
+`f-b47631699372535af0cbd1ee` records that observation.
+
+Implemented `ib-service-definition` and `ib-operation-definition` lifecycle
+adapters on exact Oracle 8.62.09: complete checkpoints/tombstones, typed creation/
+deletion, inverse/redo, dynamically discovered reference checks, credential presence
+refusal, exact cache/parent verification, rollback and postcommit token checks.
+Operation approval separately binds parent policy/dirty state and reserves both
+physical scopes. The parent must already exist; overlapping scopes need separate
+Change Sets. REST lifecycle and broader shapes remain refused. Bounded creation
+routes from `psft_ib_create`; `psft_ib_definition_get` exposes the complete token;
+`psft_ib_delete` stages review-only deletion with destructive review consent.
+
+Nine lifecycle tests include five native capture replays. All 69 production
+HTTP/UI fixture checks pass. Native provider/private-review lifecycle acceptance
+passes seven checks and restores both service and full original operation
+checkpoints; report `tools/lab/results/ib-definition-review-native-2026-10-21.json`.
+Private history `/tmp/psft-ib-definition-review-X7CwqI` records exact creation,
+deletion, inverse and redo results. This used trusted service test approval,
+not installed developer-UI approval. Handler private-review acceptance remains
+five checks. Full local verify passes (256 test files, 111-command smoke,
+18 editor checks and nine package checks), including the closing capability-
+description gate. All 69 HTTP/UI checks also pass after those reference edits.
+
+Installed candidate VSIX SHA-256
+`062c39f31a5d34f2a295f50ec9c6683095edef2d612aaef27d1eafd7650ac35b`
+was installed and developer-reloaded. The new lifecycle tools/adapters are live.
+Installed acceptance now verifies:
+
+- HCDEV 8.61 version-description structural apply/inverse, exact original
+  checkpoint restored; both approved temporary fixtures removed through native
+  PIA with installed MCP absence checks. Report `ib-861-installed-2026-10-21.json`.
+- The historical REST provider handler addition `0cb5ff8b…` now reverses through
+  `f47931e1…` and fresh redo `5e1ce757…` restores its exact original applied
+  checkpoint. Both VERIFIED with final live MATCHES_RECORDED.
+- Standard empty-service/complete-operation deletion `b3cababd…` and typed
+  recreation inverse `4d0de13a…`, all objects VERIFIED with live MATCHES_RECORDED.
+  An agent cross-connection read closed HRDMO during postcommit readback; the
+  operation was correctly marked UNCERTAIN. Developer Reconcile live state
+  matched the complete approved after-image and recovered VERIFIED without any
+  writer retry. Report `ib-lifecycle-installed-2026-10-21.json`.
+- REST consumer backend native rollback/apply/inverse/redo: four checks pass,
+  original restored (`ib-rest-consumer-native-2026-10-21.json`). Installed
+  version-description structural apply `192d4fa0-2793-4daf-afff-a9722780d15d`
+  and fresh inverse `51d362a2-6b34-4704-a3f3-8975433d7ace` are VERIFIED;
+  original source REVERTED, complete original checkpoint restored and live
+  MATCHES_RECORDED. Report `ib-rest-consumer-installed-2026-10-21.json`.
+
+Priority 1 bounded IB structural review is complete: operation-specific
+checkpoints/dependency/validation/inverse rules, 8.61 and REST consumer structural
+apply/inverse, standard definition CREATE/DELETE through review, and undo/redo of
+the originally refused added handler all have recorded installed evidence. No
+commit, tag, push or release publication was performed. Keep one database selected
+while an application is running (Workspace.connect disposes the prior provider).
+Broader writable cells, 8.61 child deletion, REST lifecycle and other IB definition
+families require their own calibration; these trials make no runtime invocation
+claim. See [scope and evidence](IB_STRUCTURE.md#installed-acceptance-october-21).
 
 ## October 20 recovery development
 

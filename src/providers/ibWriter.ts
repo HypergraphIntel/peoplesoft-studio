@@ -132,7 +132,8 @@ async function currentRows(c:DbConnection,types:DbTypes,table:IbTable,parent:Row
  if(lock)await rows(c,types,`SELECT ${table.keys.join(',')} FROM ${table.table} WHERE ${where.sql} FOR UPDATE`,where.binds);
  return table.keys.includes('PROPNAME') ? propertyRows(c,types,table.table,where.sql,where.binds,table.keys) : safeRows(c,types,table.table,where.sql,where.binds,table.keys.join(','));
 }
-async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,opened:IbDocument|undefined):Promise<{plan:IbPlan;proposed:IbDocument;validation:IbDiagnostic[]}> {
+const markerIdentity=(markers:Row[])=>JSON.stringify(markers.map(r=>[str(r.IB_OPERATIONNAME),str(r.HANDLERNAME),Number(r.VERSION)]).sort());
+async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,opened:IbDocument|undefined):Promise<{plan:IbPlan;proposed:IbDocument;validation:IbDiagnostic[];handlerMarkerCheck?:Row[]}> {
  const input=request.input,parentTable=IB_PARENTS[input.kind];
  if (input.kind==='operation'&&opened) {
   const current=inputForIb(opened);
@@ -162,7 +163,7 @@ async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,open
   }
  }
  const sections={...(opened?.sections??{})};
- const childWork:{name:string;table:IbTable;before:Row[];after:Row[];changed:boolean}[]=[];
+ const childWork:{name:string;table:IbTable;before:Row[];after:Row[];removed:Row[];changed:boolean}[]=[];
  for(const [name,proposed] of Object.entries(input.sections)){
   const table=IB_SECTIONS[input.kind][name];
   const before=await currentRows(c,types,table,parentKey,!request.dryRun);
@@ -181,9 +182,22 @@ async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,open
   }
   for(const row of before.filter(secretProperty))if(!ids.has(keyOf(table,row)))after.push(row);
   const removed=before.filter(r=>!after.some(n=>keyOf(table,n)===keyOf(table,r)));
-  if(removed.length)throw new Error(`${name}: deleting stored child definitions is not calibrated. Preserve the existing rows.`);
-  const changed=after.some(r=>{const old=before.find(b=>keyOf(table,b)===keyOf(table,r));return !old||Object.keys(r).some(k=>!IB_STAMPS.has(k)&&!same(old[k],r[k]));});
-  sections[name]=after;childWork.push({name,table,before,after,changed});
+  if(removed.length&&(input.kind!=='operation'||!['handlers','applicationClassHandlers'].includes(name)||removed.some(r=>str(r.HANDLERNAME)!=='REQUESTHDLR'||name==='handlers'&&(str(r.HANDLERID)!=='RQST'||str(r.HANDLERTYPE)!=='ApplicationClass'))))throw new Error(`${name}: deleting stored child definitions is not calibrated. Preserve the existing rows.`);
+  const changed=!!removed.length||after.some(r=>{const old=before.find(b=>keyOf(table,b)===keyOf(table,r));return !old||Object.keys(r).some(k=>!IB_STAMPS.has(k)&&!same(old[k],r[k]));});
+  sections[name]=after;childWork.push({name,table,before,after,removed,changed});
+ }
+ const removedHandlers=childWork.find(w=>w.name==='handlers')?.removed??[],removedClasses=childWork.find(w=>w.name==='applicationClassHandlers')?.removed??[];
+ const implementationChangedFor=(name:string)=>childWork.some(t=>t.name.endsWith('Handlers')&&t.after.some(r=>str(r.HANDLERNAME)===name&&(()=>{const old=t.before.find(b=>keyOf(t.table,b)===keyOf(t.table,r));return !old||Object.keys(r).some(k=>!IB_STAMPS.has(k)&&!same(old[k],r[k]));})()));
+ if(removedHandlers.length||removedClasses.length){
+  if(removedHandlers.length!==1||removedClasses.length!==1)throw new Error('OnRequest deletion requires its handler and application class implementation together.');
+  const [release]=await rows(c,types,'SELECT TOOLSREL,PTPATCHREL FROM PSSTATUS');
+  if(str(release?.TOOLSREL)!=='8.62'||Number(release?.PTPATCHREL)!==9)throw new Error('OnRequest handler deletion is calibrated only on PeopleTools 8.62.09.');
+  const markerColumns=await c.catalog.columns(c,'PSOPRHDLRDEL');
+  if(markerColumns.map(x=>x.name).sort().join()!=='HANDLERNAME,IB_OPERATIONNAME,VERSION')throw new Error('Unsupported IB handler deletion marker schema.');
+  if((await rows(c,types,'SELECT 1 AS N FROM PSOPRHDLRLANG WHERE IB_OPERATIONNAME=:n AND HANDLERNAME=:h',{n:input.key[0],h:'REQUESTHDLR'})).length)throw new Error('Translated handler deletion needs separate native calibration.');
+  if((opened?.sections.routings??[]).some(r=>['ONSNDHDLRNAME','ONRCVHDLRNAME','ONPREHDLRNAME','ONPOSTHDLRNAME'].some(k=>str(r[k])==='REQUESTHDLR')))throw new Error('A routing still references the handler.');
+  if(['applicationEngineHandlers','componentInterfaceHandlers','dataMoverHandlers'].some(section=>(opened?.sections[section]??[]).some(r=>str(r.HANDLERNAME)==='REQUESTHDLR')))throw new Error('Other handler implementations must be preserved.');
+  if((await rows(c,types,'SELECT 1 AS N FROM PSOPRHDLRDEL WHERE IB_OPERATIONNAME=:n AND HANDLERNAME=:h',{n:input.key[0],h:'REQUESTHDLR'})).length)throw new Error('An existing handler has a deletion marker; reconcile it before deletion.');
  }
  let service:Row|undefined;
  let mappingNew=false;
@@ -283,12 +297,15 @@ async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,open
   inc(parentTable.counter!);inc('SYS');
   if(input.kind==='node')inc('MSDM');
   if(input.kind==='operation'){
+   // PIA's ServiceHandlerDelete also resaves the operation without a SYS step.
+   // ib01-native-handler-delete: OPRM +2, OPRVM +1, OPRHM +1, SYS +3.
+   if(removedHandlers.length){inc('OPRM',removedHandlers.length);inc('OPRHM',removedHandlers.length);inc('SYS',removedHandlers.length);}
    inc('OPRVM',(sections.versions??[]).length);inc('SYS',(sections.versions??[]).length);
    if(mappingNew){inc('SRVM');inc('SYS');}
    if(generated){inc('RTDM');inc('SYS');}
    for(const h of sections.handlers??[]){
     const before=(opened?.sections.handlers??[]).find(b=>str(b.HANDLERNAME)===str(h.HANDLERNAME));
-    const implementationChanged=childWork.some(t=>t.name.endsWith('Handlers')&&t.changed&&t.after.some(r=>str(r.HANDLERNAME)===str(h.HANDLERNAME)));
+    const implementationChanged=implementationChangedFor(str(h.HANDLERNAME));
     if(!before||implementationChanged||Object.keys(h).some(k=>!IB_STAMPS.has(k)&&!same(before[k],h[k]))){inc('OPRHM');inc('SYS');}
    }
   }
@@ -307,13 +324,33 @@ async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,open
  if(input.kind==='node'&&!opened)put(plan,{table:'PSNODEDEFNLANG',keys:['MSGNODENAME','LANGUAGE_CD'],defaults:{}},undefined,{MSGNODENAME:input.key[0],LANGUAGE_CD:' ',DESCR:properties.DESCR??' ',DESCRLONG:properties.DESCRLONG??null},types);
  let versionSequence=(next.OPRVM??0)-(plan.increments.OPRVM??0),handlerSequence=(next.OPRHM??0)-(plan.increments.OPRHM??0);
  for(const t of childWork){
+  for(const before of t.removed){const where=predicate(t.table.keys,before);plan.statements.push({sql:`DELETE FROM ${t.table.table} WHERE ${where.sql}`,binds:where.binds,expect:1});}
   for(let after of t.after){const before=t.before.find(r=>keyOf(t.table,r)===keyOf(t.table,after));
    if(t.table.counter==='OPRVM')after={...after,...stamp,VERSION:++versionSequence};
    if(t.table.counter==='OPRHM'){
-    const dirty=!before||Object.keys(after).some(k=>!IB_STAMPS.has(k)&&!same(before[k],after[k]))||childWork.some(w=>w.name.endsWith('Handlers')&&w.changed&&w.after.some(r=>str(r.HANDLERNAME)===str(after.HANDLERNAME)));
+    const dirty=!before||Object.keys(after).some(k=>!IB_STAMPS.has(k)&&!same(before[k],after[k]))||implementationChangedFor(str(after.HANDLERNAME));
     if(dirty)after={...after,...stamp,VERSION:++handlerSequence};
    }
    put(plan,t.table,before,after,types);
+  }
+ }
+ let handlerMarkerCheck:Row[]|undefined;
+ if(removedHandlers.length){
+  handlerMarkerCheck=[...await rows(c,types,'SELECT IB_OPERATIONNAME,HANDLERNAME,VERSION FROM PSOPRHDLRDEL WHERE IB_OPERATIONNAME=:n',{n:input.key[0]}),{IB_OPERATIONNAME:input.key[0],HANDLERNAME:'REQUESTHDLR',VERSION:next.OPRHM}];
+  put(plan,{table:'PSOPRHDLRDEL',keys:['IB_OPERATIONNAME','HANDLERNAME','VERSION'],defaults:{}},undefined,{IB_OPERATIONNAME:input.key[0],HANDLERNAME:'REQUESTHDLR',VERSION:next.OPRHM},types);
+ }
+ // ib02-native-handler-recreate: native Save clears all matching tombstones.
+ if(input.kind==='operation')for(const h of sections.handlers??[])if(!(opened?.sections.handlers??[]).some(old=>str(old.HANDLERNAME)===str(h.HANDLERNAME))){
+  const cols=await c.catalog.columns(c,'PSOPRHDLRDEL');
+  if(cols.length){
+   if(cols.map(x=>x.name).sort().join()!=='HANDLERNAME,IB_OPERATIONNAME,VERSION')throw new Error('Unsupported IB handler deletion marker schema.');
+   const markers=await rows(c,types,'SELECT IB_OPERATIONNAME,HANDLERNAME,VERSION FROM PSOPRHDLRDEL WHERE IB_OPERATIONNAME=:n',{n:input.key[0]}),matching=markers.filter(r=>str(r.HANDLERNAME)===str(h.HANDLERNAME));
+   if(matching.length){
+    const [release]=await rows(c,types,'SELECT TOOLSREL,PTPATCHREL FROM PSSTATUS');
+    if(str(release?.TOOLSREL)!=='8.62'||Number(release?.PTPATCHREL)!==9)throw new Error('OnRequest handler recreation from a deletion marker is calibrated only on PeopleTools 8.62.09.');
+    handlerMarkerCheck=(handlerMarkerCheck??markers).filter(r=>str(r.HANDLERNAME)!==str(h.HANDLERNAME));
+    plan.statements.push({sql:'DELETE FROM PSOPRHDLRDEL WHERE IB_OPERATIONNAME=:n AND HANDLERNAME=:h',binds:{n:input.key[0],h:str(h.HANDLERNAME)},expect:matching.length});
+   }
   }
  }
  if(input.kind==='operation'&&generated){
@@ -370,10 +407,10 @@ async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,open
   const [config]=await safeRows(c,types,'PSIBSVCSETUP','1=1',{});
   put(plan,{table:'PSDOCSCMADFN',keys:parentTable.keys,defaults:{}},existing,{...parentKey,VERSION:next.DSCMA,PUBLISHER:request.operatorId,IB_TGTLOCATION:config?.IB_TGTLOCATION,...stamp,OBJECTOWNERID:properties.OBJECTOWNERID},types);
  }
- return {plan,proposed,validation};
+ return {plan,proposed,validation,handlerMarkerCheck};
 }
 
-export async function saveIb(c:DbConnection,types:DbTypes,request:IbSaveRequest):Promise<IbSaveResult> {
+export async function saveIb(c:DbConnection,types:DbTypes,request:IbSaveRequest,deferCommit=false):Promise<IbSaveResult> {
  const input=ibWriteInput.parse(request.input);validateIbInput(input);ibIdentity(input.kind,input.key);
  const scope=writeScopeRefusal(input.kind==='document'?input.key[0]:input.key[0]);if(scope)throw new Error(scope);
  if(!request.expectedToken)throw new Error('An expectedToken is required; use absent only to create.');
@@ -384,11 +421,14 @@ export async function saveIb(c:DbConnection,types:DbTypes,request:IbSaveRequest)
   const reviewing=!!(request.captureSnapshots||request.expectedSnapshotToken);
   if(reviewing&&(!['service','operation'].includes(input.kind)||request.expectedToken==='absent'))throw new Error('IB review requires an existing service or operation.');
   if(!request.dryRun){const table=IB_PARENTS[input.kind],key=Object.fromEntries(table.keys.map((k,i)=>[k,input.key[i]])),where=predicate(table.keys,key);await rows(c,types,`SELECT ${table.keys.join(',')} FROM ${table.table} WHERE ${where.sql} FOR UPDATE`,where.binds);}
+  // Operation creation/deletion changes the owning service's mapping and stamps.
+  // Lock that parent before cache counters, consistently with service writers.
+  if(!request.dryRun&&input.kind==='operation')await rows(c,types,'SELECT IB_SERVICENAME FROM PSSERVICE WHERE IB_SERVICENAME=:n FOR UPDATE',{n:str(input.properties.IB_SERVICENAME)});
   const opened=await readIb(c,types,input.kind,input.key);
   if(request.expectedToken!==(opened?.token??'absent'))throw new Error('Definition changed since it was read; read it again before saving.');
   const before=reviewing?await readIbSnapshot(c,types,input.kind as 'service'|'operation',input.key[0]):undefined;
   if(request.expectedSnapshotToken&&before!.token!==request.expectedSnapshotToken)throw new Error('IB preservation snapshot changed before writer.');
-  const {plan,proposed,validation}=await buildPlan(c,types,{...request,input},opened);
+  const {plan,proposed,validation,handlerMarkerCheck}=await buildPlan(c,types,{...request,input},opened);
   const errors=validation.filter(d=>d.severity==='error');
   if(errors.length)throw new Error(errors.map(d=>d.path+': '+d.message).join('\n'));
   if(request.dryRun&&!request.captureSnapshots||!plan.statements.length){await c.rollback();return {written:false,token:opened?.token,plan,validation,...(request.captureSnapshots?{snapshots:{before:before!,after:before!}}:{})};}
@@ -397,13 +437,15 @@ export async function saveIb(c:DbConnection,types:DbTypes,request:IbSaveRequest)
   for(const [k,v] of Object.entries(proposed.properties))if(!IB_STAMPS.has(k)&&!ibSecretColumn(k)&&!same(stored.properties[k],v))throw new Error(`Stored property ${k} differs from the proposed value.`);
   for(const [name,proposedRows] of Object.entries(input.sections)){
    const table=IB_SECTIONS[input.kind][name];
+   if(['handlers','applicationClassHandlers'].includes(name)&&(stored.sections[name]??[]).length!==(proposed.sections[name]??proposedRows).length)throw new Error(`Stored ${name} rows differ from the proposed set.`);
    for(const proposedRow of proposed.sections[name]??proposedRows){const r=(stored.sections[name]??[]).find(r=>table.keys.filter(k=>!IB_PARENTS[input.kind].keys.includes(k)).every(k=>same(r[k],proposedRow[k])));if(!r)throw new Error(`Stored ${name} row is missing.`);for(const [k,v] of Object.entries(proposedRow))if(!IB_STAMPS.has(k)&&!ibSecretColumn(k)&&!same(r[k],v))throw new Error(`Stored ${name}.${k} differs from proposed input.`);}
   }
+  if(handlerMarkerCheck&&markerIdentity(await rows(c,types,'SELECT IB_OPERATIONNAME,HANDLERNAME,VERSION FROM PSOPRHDLRDEL WHERE IB_OPERATIONNAME=:n',{n:input.key[0]}))!==markerIdentity(handlerMarkerCheck))throw new Error('IB handler deletion markers differ before commit.');
   if(input.document&&stored.sections.logicalSchema?.[0]?.xml!==input.document.logicalSchema)throw new Error('Stored logical document body differs from input.');
   if(input.document){for(const p of input.document.physicalSchemas){if(stored.sections.physicalBodies?.find(r=>str(r.IB_PHYSSCHEMANAME)===p.name)?.xml!==p.xml)throw new Error('Stored physical document body differs from input.');}if(stored.sections.xmlSchemas?.[0]?.text!==input.document.xmlSchema||stored.sections.jsonSchemas?.[0]?.text!==input.document.jsonSchema)throw new Error('Stored generated schemas differ from input.');}
   const after=reviewing?await readIbSnapshot(c,types,input.kind as 'service'|'operation',input.key[0]):undefined;
   if(request.expectedAfterHash&&after?.hash!==request.expectedAfterHash)throw new Error('IB after-image differs from the approved proposal.');
   if(request.captureSnapshots){await c.rollback();return {written:false,token:opened?.token,plan,validation,snapshots:{before:before!,after:after!}};}
-  await c.commit();return {written:true,token:stored.token,plan,validation};
+  if(!deferCommit)await c.commit();return {written:true,token:stored.token,plan,validation};
  }catch(e){await c.rollback();throw e;}
 }

@@ -18,7 +18,8 @@ import { isStageablePageRequest } from '../model/pageOperations.js';
 import { prepareStructuredCreationReview } from './structuredCreationReview.js';
 import { prepareProjectCreationReview } from './projectCreationReview.js';
 import { prepareIbHeaderReview } from './ibHeaderReview.js';
-export const REVIEWED_MUTATION_TOOLS = ['psft_save_text_definition', 'psft_process_save', 'psft_query_save', 'psft_query_create', 'psft_query_copy', 'psft_save_peoplecode', 'psft_edit_page', 'psft_edit_record', 'psft_ae_edit', 'psft_ib_save', 'psft_create_record', 'psft_ae_create', 'psft_create_project'];
+import { prepareIbDefinitionReview } from './ibDefinitionReview.js';
+export const REVIEWED_MUTATION_TOOLS = ['psft_save_text_definition', 'psft_process_save', 'psft_query_save', 'psft_query_create', 'psft_query_copy', 'psft_save_peoplecode', 'psft_edit_page', 'psft_edit_record', 'psft_ae_edit', 'psft_ib_save','psft_ib_create','psft_ib_delete', 'psft_create_record', 'psft_ae_create', 'psft_create_project'];
 /** Compatibility routing only for adapters whose exact after-state is known. */
 export function routeReviewedMutations(server: {
     registerTool: unknown;
@@ -33,8 +34,10 @@ export function routeReviewedMutations(server: {
         const schema = config.inputSchema as z.ZodObject;
         const next = { ...config, description: String(config.description) + (name === 'psft_create_record' || name === 'psft_ae_create' || name === 'psft_create_project'
                 ? ' On Oracle with Change Review, new Derived/Work records (existing fields, no subrecords), App Engine programs, and new projects with explicit bounded membership stage exact native rollback previews. Declare dependsOn for proposed Record/SQL/AE prerequisites in the same Change Set. No persistence before developer approval/application. Record/AE creation supports bounded reviewed deletion/recreation; project creation undo remains unsupported. Other Record types retain legacy confirmation outside a Change Set.'
+                : name === 'psft_ib_create'||name === 'psft_ib_delete'
+                ? ' With Oracle Change Review on 8.62.09, bounded standard service and synchronous operation lifecycle stages exact complete checkpoints. Operation approval covers its existing owning service mapping/resave. Deletion is review-only. Other creations retain legacy confirmation outside an explicit Change Set. REST lifecycle remains outside review.'
                 : name === 'psft_ib_save'
-                ? ' With Change Review on Oracle, existing service/operation edits stage fixed noncredential preservation snapshots when they stay inside the bounded contract: description/comments; service owner, namespace, application and app server group; operation header except owning service, routing type, REST method, alias and message binding; existing versions, parameters (not message binding), handlers (not type/event) and application class rows; and adding an ApplicationClass REQUESTHDLR/OnRequest handler (whose reversal is refused). Child removal and other edits keep legacy confirmation and cannot be attached to a Change Set. No IB creation/deletion adapter is implied.'
+                ? ' With Change Review on Oracle, existing service/operation edits stage fixed noncredential preservation snapshots when they stay inside the bounded contract: description/comments; service owner, namespace, application and app server group; operation header except owning service, routing type, REST method, alias and message binding; existing versions, parameters (not message binding), handlers (not type/event) and application class rows; existing REST URI template text preserving ordered URI variables and mappings; and ApplicationClass REQUESTHDLR/OnRequest addition. Paired removal of that handler and its class row, with native tombstones and typed inverse/redo, is calibrated only on 8.62.09. Other child removal and out-of-contract edits keep legacy confirmation and cannot be attached to a Change Set. For bounded 8.62.09 standard definition lifecycle use psft_ib_create / psft_ib_delete and psft_ib_definition_get; REST lifecycle remains outside review.'
                 : name === 'psft_edit_record' || name === 'psft_ae_edit'
                 ? ' With Change Review on Oracle, only existing-definition description/comments edits stage full preservation snapshots for developer approval/application; Record SQL Table/Derived Work only. A structural operation is not staged: it saves through the legacy per-write confirmation, outside creation review. Proposed dependency validation is limited to new definitions with explicit dependencies. Explicit dryRun retains its documented preview path.'
                 : name === 'psft_edit_page'
@@ -81,6 +84,14 @@ export function routeReviewedMutations(server: {
                 const setId = supplied?.id ?? (await service.create('Review ' + name, connection)).id;
                 const staged = await service.stage(setId, 'project-create', proposal.key, proposal.after, args.dependsOn as string[], undefined, proposal.expectedToken);
                 return jsonResult({ status: 'REVIEW_REQUIRED', changeSetId: staged.id, revision: staged.revision, persisted: false, command: 'psft.changeReview.open' });
+            }
+            if(name==='psft_ib_create'||name==='psft_ib_delete'){
+                if(!supplied&&(args.dependsOn as string[]).length)throw new Error('dependsOn requires its Change Set.');
+                const proposal=await prepareIbDefinitionReview(workspace,host?.(),name,args);
+                if('outside' in proposal){refuseOutsideSet('This IB creation is outside lifecycle review ('+proposal.outside+').');return callback(args,...rest);}
+                const setId=supplied?.id??(await service.create('Review '+name,connection)).id;
+                const staged=await service.stage(setId,proposal.adapter,proposal.key,proposal.after,args.dependsOn as string[],undefined,proposal.expectedToken);
+                return jsonResult({status:'REVIEW_REQUIRED',changeSetId:staged.id,revision:staged.revision,persisted:false,command:'psft.changeReview.open'});
             }
             const creationFamily = name === 'psft_create_record' ? 'record' : name === 'psft_ae_create' ? 'ae' : undefined;
             if (creationFamily) {

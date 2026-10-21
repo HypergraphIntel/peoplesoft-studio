@@ -41,6 +41,18 @@ export async function readIbSnapshot(c: DbConnection, types: DbTypes, kind: IbRe
     }
     const head = raw[kind === 'service' ? 'PSSERVICE' : 'PSOPERATION'];
     if (head.length !== 1 || typeof head[0].VERSION !== 'number' || head[0].VERSION < 0) throw new Error('IB review requires one versioned existing definition.');
+    // A native handler deletion writes PSOPRHDLRDEL (ib01, PIA 8.62.09).
+    // Tombstones are cache history, not logical definition content. Bind them to
+    // concurrency without changing old checkpoint hashes or empty-marker tokens.
+    if (kind === 'operation') {
+        const columns = await c.catalog.columns(c, 'PSOPRHDLRDEL');
+        if (columns.length) {
+            if (columns.map(c => c.name).sort().join() !== 'HANDLERNAME,IB_OPERATIONNAME,VERSION') throw new Error('Unsupported IB handler deletion marker schema.');
+            const markers = (await c.execute<Record<string, Json>>('SELECT IB_OPERATIONNAME,HANDLERNAME,VERSION FROM PSOPRHDLRDEL WHERE IB_OPERATIONNAME = :n', { n: name }, { outFormat: types.OUT_FORMAT_OBJECT })).rows ?? [];
+            for (const row of markers) if (typeof row.IB_OPERATIONNAME !== 'string' || row.IB_OPERATIONNAME.trim() !== name || typeof row.HANDLERNAME !== 'string' || !row.HANDLERNAME.trim() || typeof row.VERSION !== 'number' || !Number.isSafeInteger(row.VERSION) || row.VERSION < 0) throw new Error('Invalid IB handler deletion marker.');
+            if (markers.length) raw.PSOPRHDLRDEL = markers.sort(sort);
+        }
+    }
     const value: IbSnapshot = { scope: `ib-${kind}-header/1`, tables };
     ibSnapshot(value, kind);
     if (Buffer.byteLength(canonical(value)) > 8 * 1024 * 1024) throw new Error('IB checkpoint exceeds 8 MiB.');

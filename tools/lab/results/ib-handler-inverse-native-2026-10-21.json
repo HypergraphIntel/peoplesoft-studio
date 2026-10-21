@@ -1,0 +1,20 @@
+{
+  "at": "2026-10-21T17:10:00.345Z",
+  "scope": "Owned Oracle 8.62.09 handler lifecycle; production providers/adapters and private durable review with trusted service test approval; not installed UI",
+  "name": "ZZ_PCODE_LAB_IBO",
+  "history": "/tmp/psft-ib-handler-inverse-AJeAZK",
+  "checks": [
+    "Native handler deletion rollback preserves the complete token and all markers",
+    "Committed typed deletion reproduces the approved empty-handler checkpoint and marker",
+    "Reviewed handler addition stages without persistence, then applies exactly and clears the native marker",
+    "Added-handler inverse is prepared without writes, requires fresh review and applies the calibrated deletion",
+    "Freshly reviewed redo restores the exact native checkpoint and clears its tombstone"
+  ],
+  "changeSets": {
+    "forward": "90e62a8a-d242-4cfd-ba5c-e4c44ea7560d",
+    "inverse": "6703dcb7-98cd-4caf-8414-ce10b98b93ba",
+    "redo": "049fc6a4-673c-48f0-abd5-c6396d69c162"
+  },
+  "passed": true,
+  "originalRestored": true
+}

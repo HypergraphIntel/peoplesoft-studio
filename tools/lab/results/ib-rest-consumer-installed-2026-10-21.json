@@ -1,0 +1,262 @@
+{
+  "at": "2026-10-21T18:24:05.788Z",
+  "scope": "Installed developer-approved HRDMO 8.62.09 REST consumer existing-version description structural apply/inverse; complete URI/mapping/routing preservation; no service invocation",
+  "name": "ZZ_IB_API_5736828_E",
+  "forward": {
+    "checkpoint": {
+      "at": "2026-10-21T18:19:36.316Z",
+      "objects": [
+        {
+          "id": "ff697a4b-f815-4efd-9d60-6fe4f483cf41",
+          "snapshot": "8b62f5b9d82dcfe41f8f77551259955e69441831069859d6cd0306e8dedb4349",
+          "token": "eff8ec6e29b96bbf89d1305fafb6c756b6ea5ab114857a70802506b85880db03"
+        }
+      ]
+    },
+    "created": "2026-10-21T18:19:15.877Z",
+    "description": "",
+    "environment": {
+      "connection": "oracle:HRDMO",
+      "identity": "9c585c10567fd0ba68800246978dba6ac89ce1f17c6baf3113490a052807bb85",
+      "label": "HRDMO"
+    },
+    "id": "192d4fa0-2793-4daf-afff-a9722780d15d",
+    "journal": [
+      {
+        "action": "REVISED_APPROVALS_INVALIDATED",
+        "at": "2026-10-21T18:19:16.105Z"
+      },
+      {
+        "action": "VALIDATING",
+        "at": "2026-10-21T18:19:16.137Z"
+      },
+      {
+        "action": "READY_FOR_REVIEW",
+        "at": "2026-10-21T18:19:17.487Z"
+      },
+      {
+        "action": "APPROVED",
+        "at": "2026-10-21T18:19:36.265Z",
+        "detail": "ff697a4b-f815-4efd-9d60-6fe4f483cf41"
+      },
+      {
+        "action": "APPROVE_AND_APPLY_REQUESTED",
+        "at": "2026-10-21T18:19:36.270Z",
+        "detail": "4ef2815f1f49854301985d9249b4bfe9e844a2f35c33731a31e19b0a95b8e40c"
+      },
+      {
+        "action": "APPLYING",
+        "at": "2026-10-21T18:19:38.201Z"
+      },
+      {
+        "action": "WRITE_STARTED",
+        "at": "2026-10-21T18:19:40.566Z",
+        "object": "ff697a4b-f815-4efd-9d60-6fe4f483cf41"
+      },
+      {
+        "action": "WRITE_VERIFIED",
+        "at": "2026-10-21T18:19:43.372Z",
+        "object": "ff697a4b-f815-4efd-9d60-6fe4f483cf41"
+      },
+      {
+        "action": "APPLIED",
+        "at": "2026-10-21T18:19:43.384Z"
+      },
+      {
+        "action": "REVERTED",
+        "at": "2026-10-21T18:23:32.297Z"
+      },
+      {
+        "action": "REVERSED_BY_VERIFIED_CHANGE_SET",
+        "at": "2026-10-21T18:23:32.297Z",
+        "detail": "51d362a2-6b34-4704-a3f3-8975433d7ace"
+      }
+    ],
+    "objects": [
+      {
+        "adapter": "ib-operation",
+        "after": "d4ed212d9281c1332513e24debb6f1a20189f20e26d8924b31804a45dcddac16",
+        "application": "VERIFIED",
+        "approvedHash": "8bbff1786dc724dce3ab22ae348f41af7a0f77e66871b7a7f20ca91f9fcbeaa9",
+        "authorizationStamp": "a9b4efa7895edd8a776696b5f8b2b41b49d7af6f56682727b0ff72778c6e8285",
+        "baselineToken": "eff8ec6e29b96bbf89d1305fafb6c756b6ea5ab114857a70802506b85880db03",
+        "before": "8b62f5b9d82dcfe41f8f77551259955e69441831069859d6cd0306e8dedb4349",
+        "dependencies": [],
+        "id": "ff697a4b-f815-4efd-9d60-6fe4f483cf41",
+        "key": "ZZ_IB_API_5736828_E",
+        "operation": "UPDATE",
+        "review": "APPROVED",
+        "revision": 1,
+        "validation": [],
+        "verified": "d4ed212d9281c1332513e24debb6f1a20189f20e26d8924b31804a45dcddac16",
+        "verifiedToken": "e2a260e122a42bc5631b3411c55e79a198b2f813fc6a2f4c156a94c49261f999",
+        "warnings": [
+          "Ownership: UNKNOWN (LOW)",
+          "Agent delivered-object policy: requireApproval",
+          "Preferred strategy: configurationFirst; this is not permission to write.",
+          "Only explicitly staged dependencies are ordered; complete external dependency coverage is not established.",
+          "Existing service/operation only: description/comments, plus the bounded structure contract (service owner/namespace/application; operation header except service, routing type, REST method, alias and message binding; existing versions, parameters, handlers and class implementations; existing REST URI template text with URI variable dependencies preserved; adding the calibrated ApplicationClass OnRequest handler). Fixed noncredential preservation scope; credentials are never selected or restored and credential freshness is not certified. No definition create/delete or raw row replay. Paired ApplicationClass REQUESTHDLR/RQST removal and tombstone-bound recreation are calibrated on 8.62.09 only; translated handlers, other implementations and routing handler references refuse deletion. Native reviewed apply/inverse verified on HRDMO (8.62) for the recorded standard header and structural trials, and a REST provider handler addition; 8.61 and REST consumer structural application are not certified."
+        ]
+      }
+    ],
+    "origin": "agent",
+    "revision": 2,
+    "schema": 1,
+    "status": "REVERTED",
+    "title": "Review psft_ib_save",
+    "updated": "2026-10-21T18:23:32.297Z"
+  },
+  "inverse": {
+    "checkpoint": {
+      "at": "2026-10-21T18:23:26.697Z",
+      "objects": [
+        {
+          "id": "54f0afd3-c11d-4b4c-8615-8563d6c1b5a7",
+          "snapshot": "d4ed212d9281c1332513e24debb6f1a20189f20e26d8924b31804a45dcddac16",
+          "token": "e2a260e122a42bc5631b3411c55e79a198b2f813fc6a2f4c156a94c49261f999"
+        }
+      ]
+    },
+    "created": "2026-10-21T18:20:13.400Z",
+    "description": "",
+    "environment": {
+      "connection": "oracle:HRDMO",
+      "identity": "9c585c10567fd0ba68800246978dba6ac89ce1f17c6baf3113490a052807bb85",
+      "label": "HRDMO"
+    },
+    "id": "51d362a2-6b34-4704-a3f3-8975433d7ace",
+    "journal": [
+      {
+        "action": "REVERSAL_PROPOSED",
+        "at": "2026-10-21T18:20:13.701Z",
+        "detail": "192d4fa0-2793-4daf-afff-a9722780d15d"
+      },
+      {
+        "action": "VALIDATING",
+        "at": "2026-10-21T18:20:13.742Z"
+      },
+      {
+        "action": "READY_FOR_REVIEW",
+        "at": "2026-10-21T18:20:15.454Z"
+      },
+      {
+        "action": "APPROVED",
+        "at": "2026-10-21T18:23:26.418Z",
+        "detail": "54f0afd3-c11d-4b4c-8615-8563d6c1b5a7"
+      },
+      {
+        "action": "APPROVE_AND_APPLY_REQUESTED",
+        "at": "2026-10-21T18:23:26.425Z",
+        "detail": "d5ec99b3860813b10682f1561ce5e07a614fad76a22acab51d58803616ce074d"
+      },
+      {
+        "action": "APPLYING",
+        "at": "2026-10-21T18:23:28.552Z"
+      },
+      {
+        "action": "WRITE_STARTED",
+        "at": "2026-10-21T18:23:30.429Z",
+        "object": "54f0afd3-c11d-4b4c-8615-8563d6c1b5a7"
+      },
+      {
+        "action": "WRITE_VERIFIED",
+        "at": "2026-10-21T18:23:32.278Z",
+        "object": "54f0afd3-c11d-4b4c-8615-8563d6c1b5a7"
+      },
+      {
+        "action": "APPLIED",
+        "at": "2026-10-21T18:23:32.291Z"
+      }
+    ],
+    "objects": [
+      {
+        "adapter": "ib-operation",
+        "after": "8b62f5b9d82dcfe41f8f77551259955e69441831069859d6cd0306e8dedb4349",
+        "application": "VERIFIED",
+        "approvedHash": "ce1eec19d6b266dca3a0b3c3a64423fa1ba0c13f237b8dc75acbc5f8e917adcf",
+        "authorizationStamp": "e0e371f90effbd2ea6e22107be20cee254657735a862cda43ecfe0042d6fdaf8",
+        "baselineToken": "e2a260e122a42bc5631b3411c55e79a198b2f813fc6a2f4c156a94c49261f999",
+        "before": "d4ed212d9281c1332513e24debb6f1a20189f20e26d8924b31804a45dcddac16",
+        "dependencies": [],
+        "id": "54f0afd3-c11d-4b4c-8615-8563d6c1b5a7",
+        "key": "ZZ_IB_API_5736828_E",
+        "operation": "UPDATE",
+        "review": "APPROVED",
+        "revision": 1,
+        "validation": [],
+        "verified": "8b62f5b9d82dcfe41f8f77551259955e69441831069859d6cd0306e8dedb4349",
+        "verifiedToken": "fc9d140ae54b22f25a2bcb47445e8e7f4ef0121f8b16c676ce146ab6b65c81f1",
+        "warnings": [
+          "Ownership: UNKNOWN (LOW)",
+          "Agent delivered-object policy: requireApproval",
+          "Preferred strategy: configurationFirst; this is not permission to write.",
+          "Only explicitly staged dependencies are ordered; complete external dependency coverage is not established.",
+          "Existing service/operation only: description/comments, plus the bounded structure contract (service owner/namespace/application; operation header except service, routing type, REST method, alias and message binding; existing versions, parameters, handlers and class implementations; existing REST URI template text with URI variable dependencies preserved; adding the calibrated ApplicationClass OnRequest handler). Fixed noncredential preservation scope; credentials are never selected or restored and credential freshness is not certified. No definition create/delete or raw row replay. Paired ApplicationClass REQUESTHDLR/RQST removal and tombstone-bound recreation are calibrated on 8.62.09 only; translated handlers, other implementations and routing handler references refuse deletion. Native reviewed apply/inverse verified on HRDMO (8.62) for the recorded standard header and structural trials, and a REST provider handler addition; 8.61 and REST consumer structural application are not certified."
+        ]
+      }
+    ],
+    "origin": "reversal",
+    "reverses": "192d4fa0-2793-4daf-afff-a9722780d15d",
+    "revision": 1,
+    "schema": 1,
+    "status": "APPLIED",
+    "title": "Revert Review psft_ib_save",
+    "updated": "2026-10-21T18:23:32.291Z"
+  },
+  "appliedLive": {
+    "status": "MATCHES_RECORDED",
+    "checkedAt": "2026-10-21T18:20:12.969Z",
+    "matched": "192d4fa0-2793-4daf-afff-a9722780d15d:ff697a4b-f815-4efd-9d60-6fe4f483cf41"
+  },
+  "restoredLive": {
+    "status": "MATCHES_RECORDED",
+    "checkedAt": "2026-10-21T18:24:05.494Z",
+    "matched": "51d362a2-6b34-4704-a3f3-8975433d7ace:54f0afd3-c11d-4b4c-8615-8563d6c1b5a7"
+  },
+  "differences": [
+    {
+      "path": "$.tables.PSOPRVERDFN",
+      "kind": "AMBIGUOUS",
+      "before": [
+        {
+          "ACTIVE_FLAG": "I",
+          "CLIENTIMPLEMENT": "N",
+          "DESCR": "IB MCP verification",
+          "DESCRLONG": null,
+          "IBDOCLAYOUTNAME": " ",
+          "IB_EXCLUDE_TOKEN": " ",
+          "IB_EXPORTSTATUS": "N",
+          "IB_MULTIQUEUE": "N",
+          "IB_OPERATIONNAME": "ZZ_IB_API_5736828_E",
+          "IB_SYNCHNONBLOCK": "N",
+          "IB_VALIDATION": "N",
+          "IB_VALID_LEVEL": 0,
+          "NR_FLAG": "N",
+          "OBJECTOWNERID": " ",
+          "VERSIONNAME": "v1"
+        }
+      ],
+      "after": [
+        {
+          "ACTIVE_FLAG": "I",
+          "CLIENTIMPLEMENT": "N",
+          "DESCR": "REST consumer installed review",
+          "DESCRLONG": null,
+          "IBDOCLAYOUTNAME": " ",
+          "IB_EXCLUDE_TOKEN": " ",
+          "IB_EXPORTSTATUS": "N",
+          "IB_MULTIQUEUE": "N",
+          "IB_OPERATIONNAME": "ZZ_IB_API_5736828_E",
+          "IB_SYNCHNONBLOCK": "N",
+          "IB_VALIDATION": "N",
+          "IB_VALID_LEVEL": 0,
+          "NR_FLAG": "N",
+          "OBJECTOWNERID": " ",
+          "VERSIONNAME": "v1"
+        }
+      ]
+    }
+  ],
+  "passed": true,
+  "originalCheckpointRestored": true
+}

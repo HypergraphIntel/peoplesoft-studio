@@ -1,0 +1,274 @@
+{
+  "at": "2026-10-21T18:11:43.840Z",
+  "scope": "Installed developer-approved HCDEV 8.61 existing-version-description structural apply/inverse; no routing or endpoint change",
+  "name": "ZZ_PCODE_LAB_IB61O",
+  "forward": {
+    "checkpoint": {
+      "at": "2026-10-21T18:07:43.951Z",
+      "objects": [
+        {
+          "id": "7afe55bb-e198-49db-9e92-702d6c9be131",
+          "snapshot": "a40443314987d5b2b3979c6195230b151cd2d8eca3fb1bed0e0190efeb609dc3",
+          "token": "2a56600f95420ffc0c72446512b72364288f8115605b517d683380d352ede098"
+        }
+      ]
+    },
+    "created": "2026-10-21T18:07:00.385Z",
+    "description": "",
+    "environment": {
+      "connection": "oracle:HCDEV",
+      "identity": "369bd91c68d092a6faac2de735480b4c4a8369ac73adda357eedb3cf15e0f5bc",
+      "label": "HCDEV"
+    },
+    "id": "1adf7013-af98-48c0-94fd-d917cfccd573",
+    "journal": [
+      {
+        "action": "REVISED_APPROVALS_INVALIDATED",
+        "at": "2026-10-21T18:07:01.471Z"
+      },
+      {
+        "action": "VALIDATING",
+        "at": "2026-10-21T18:07:06.435Z"
+      },
+      {
+        "action": "READY_FOR_REVIEW",
+        "at": "2026-10-21T18:07:15.635Z"
+      },
+      {
+        "action": "APPROVED",
+        "at": "2026-10-21T18:07:43.906Z",
+        "detail": "7afe55bb-e198-49db-9e92-702d6c9be131"
+      },
+      {
+        "action": "APPROVE_AND_APPLY_REQUESTED",
+        "at": "2026-10-21T18:07:43.912Z",
+        "detail": "c52cf18bf6d0eca0edf8051d0a4428e49522b1aa4d7be60920e43e208487f012"
+      },
+      {
+        "action": "APPLYING",
+        "at": "2026-10-21T18:07:53.522Z"
+      },
+      {
+        "action": "WRITE_STARTED",
+        "at": "2026-10-21T18:08:02.931Z",
+        "object": "7afe55bb-e198-49db-9e92-702d6c9be131"
+      },
+      {
+        "action": "WRITE_VERIFIED",
+        "at": "2026-10-21T18:08:14.076Z",
+        "object": "7afe55bb-e198-49db-9e92-702d6c9be131"
+      },
+      {
+        "action": "APPLIED",
+        "at": "2026-10-21T18:08:14.088Z"
+      },
+      {
+        "action": "REVERTED",
+        "at": "2026-10-21T18:11:21.836Z"
+      },
+      {
+        "action": "REVERSED_BY_VERIFIED_CHANGE_SET",
+        "at": "2026-10-21T18:11:21.836Z",
+        "detail": "b07c9d00-9dc0-4745-af68-a598a7c8a27f"
+      }
+    ],
+    "objects": [
+      {
+        "adapter": "ib-operation",
+        "after": "94a5789705caa04c8dece2c3a972d2fd4a497e5856a1d5eb0b727916ecf9fece",
+        "application": "VERIFIED",
+        "approvedHash": "bba0703ae7feef04ad6b49298bd0b65b6d403fd8690c5313691512a0882a00de",
+        "authorizationStamp": "658264c8953132bd58786b17b7f4d57971b082eacf5df32a3e4dfb8a3034d7ef",
+        "baselineToken": "2a56600f95420ffc0c72446512b72364288f8115605b517d683380d352ede098",
+        "before": "a40443314987d5b2b3979c6195230b151cd2d8eca3fb1bed0e0190efeb609dc3",
+        "dependencies": [],
+        "id": "7afe55bb-e198-49db-9e92-702d6c9be131",
+        "key": "ZZ_PCODE_LAB_IB61O",
+        "operation": "UPDATE",
+        "review": "APPROVED",
+        "revision": 1,
+        "validation": [],
+        "verified": "94a5789705caa04c8dece2c3a972d2fd4a497e5856a1d5eb0b727916ecf9fece",
+        "verifiedToken": "50cfdf2379a64b50099cf35fc2790a5efdeffd0368d3ad68cfd1b322383a04d1",
+        "warnings": [
+          "Ownership: CUSTOM (HIGH)",
+          "Agent delivered-object policy: requireApproval",
+          "Preferred strategy: configurationFirst; this is not permission to write.",
+          "Only explicitly staged dependencies are ordered; complete external dependency coverage is not established.",
+          "Existing service/operation only: description/comments, plus the bounded structure contract (service owner/namespace/application; operation header except service, routing type, REST method, alias and message binding; existing versions, parameters, handlers and class implementations; adding the calibrated ApplicationClass OnRequest handler). Fixed noncredential preservation scope; credentials are never selected or restored and credential freshness is not certified. No create/delete, child removal or raw row replay; an added handler cannot be reversed. Native reviewed apply/inverse verified on HRDMO (8.62) for the recorded standard header and structural trials, and a REST provider handler addition; 8.61 and REST consumer structural application are not certified."
+        ]
+      }
+    ],
+    "origin": "agent",
+    "revision": 2,
+    "schema": 1,
+    "status": "REVERTED",
+    "title": "Review psft_ib_save",
+    "updated": "2026-10-21T18:11:21.836Z"
+  },
+  "inverse": {
+    "checkpoint": {
+      "at": "2026-10-21T18:10:49.377Z",
+      "objects": [
+        {
+          "id": "e64015e7-cf8f-404c-8a8e-2dc12b1ef1d8",
+          "snapshot": "94a5789705caa04c8dece2c3a972d2fd4a497e5856a1d5eb0b727916ecf9fece",
+          "token": "50cfdf2379a64b50099cf35fc2790a5efdeffd0368d3ad68cfd1b322383a04d1"
+        }
+      ]
+    },
+    "created": "2026-10-21T18:08:27.262Z",
+    "description": "",
+    "environment": {
+      "connection": "oracle:HCDEV",
+      "identity": "369bd91c68d092a6faac2de735480b4c4a8369ac73adda357eedb3cf15e0f5bc",
+      "label": "HCDEV"
+    },
+    "id": "b07c9d00-9dc0-4745-af68-a598a7c8a27f",
+    "journal": [
+      {
+        "action": "REVERSAL_PROPOSED",
+        "at": "2026-10-21T18:08:28.305Z",
+        "detail": "1adf7013-af98-48c0-94fd-d917cfccd573"
+      },
+      {
+        "action": "VALIDATING",
+        "at": "2026-10-21T18:08:39.009Z"
+      },
+      {
+        "action": "READY_FOR_REVIEW",
+        "at": "2026-10-21T18:08:48.242Z"
+      },
+      {
+        "action": "APPROVED",
+        "at": "2026-10-21T18:10:48.252Z",
+        "detail": "e64015e7-cf8f-404c-8a8e-2dc12b1ef1d8"
+      },
+      {
+        "action": "APPROVE_AND_APPLY_REQUESTED",
+        "at": "2026-10-21T18:10:48.257Z",
+        "detail": "f62170463323878ddcea912ff6fcd74593d917123c905d312ab857f12c8f299b"
+      },
+      {
+        "action": "APPLYING",
+        "at": "2026-10-21T18:11:01.828Z"
+      },
+      {
+        "action": "WRITE_STARTED",
+        "at": "2026-10-21T18:11:11.114Z",
+        "object": "e64015e7-cf8f-404c-8a8e-2dc12b1ef1d8"
+      },
+      {
+        "action": "WRITE_VERIFIED",
+        "at": "2026-10-21T18:11:21.820Z",
+        "object": "e64015e7-cf8f-404c-8a8e-2dc12b1ef1d8"
+      },
+      {
+        "action": "APPLIED",
+        "at": "2026-10-21T18:11:21.828Z"
+      }
+    ],
+    "objects": [
+      {
+        "adapter": "ib-operation",
+        "after": "a40443314987d5b2b3979c6195230b151cd2d8eca3fb1bed0e0190efeb609dc3",
+        "application": "VERIFIED",
+        "approvedHash": "ce7d18cb83f8b38b98f4bd225c8a71f57490e31464441c296f9847afa4138f19",
+        "authorizationStamp": "658264c8953132bd58786b17b7f4d57971b082eacf5df32a3e4dfb8a3034d7ef",
+        "baselineToken": "50cfdf2379a64b50099cf35fc2790a5efdeffd0368d3ad68cfd1b322383a04d1",
+        "before": "94a5789705caa04c8dece2c3a972d2fd4a497e5856a1d5eb0b727916ecf9fece",
+        "dependencies": [],
+        "id": "e64015e7-cf8f-404c-8a8e-2dc12b1ef1d8",
+        "key": "ZZ_PCODE_LAB_IB61O",
+        "operation": "UPDATE",
+        "review": "APPROVED",
+        "revision": 1,
+        "validation": [],
+        "verified": "a40443314987d5b2b3979c6195230b151cd2d8eca3fb1bed0e0190efeb609dc3",
+        "verifiedToken": "98f7a488ebeb21fc511392e4ebc605ccb654137568cf45f9520537fe9b74dee1",
+        "warnings": [
+          "Ownership: CUSTOM (HIGH)",
+          "Agent delivered-object policy: requireApproval",
+          "Preferred strategy: configurationFirst; this is not permission to write.",
+          "Only explicitly staged dependencies are ordered; complete external dependency coverage is not established.",
+          "Existing service/operation only: description/comments, plus the bounded structure contract (service owner/namespace/application; operation header except service, routing type, REST method, alias and message binding; existing versions, parameters, handlers and class implementations; adding the calibrated ApplicationClass OnRequest handler). Fixed noncredential preservation scope; credentials are never selected or restored and credential freshness is not certified. No create/delete, child removal or raw row replay; an added handler cannot be reversed. Native reviewed apply/inverse verified on HRDMO (8.62) for the recorded standard header and structural trials, and a REST provider handler addition; 8.61 and REST consumer structural application are not certified."
+        ]
+      }
+    ],
+    "origin": "reversal",
+    "reverses": "1adf7013-af98-48c0-94fd-d917cfccd573",
+    "revision": 1,
+    "schema": 1,
+    "status": "APPLIED",
+    "title": "Revert Review psft_ib_save",
+    "updated": "2026-10-21T18:11:21.828Z"
+  },
+  "appliedLive": {
+    "status": "MATCHES_RECORDED",
+    "checkedAt": "2026-10-21T18:08:26.131Z",
+    "matched": "1adf7013-af98-48c0-94fd-d917cfccd573:7afe55bb-e198-49db-9e92-702d6c9be131"
+  },
+  "restoredLive": {
+    "status": "MATCHES_RECORDED",
+    "checkedAt": "2026-10-21T18:11:42.742Z",
+    "matched": "b07c9d00-9dc0-4745-af68-a598a7c8a27f:e64015e7-cf8f-404c-8a8e-2dc12b1ef1d8"
+  },
+  "differences": [
+    {
+      "path": "$.tables.PSOPRVERDFN",
+      "kind": "AMBIGUOUS",
+      "before": [
+        {
+          "ACTIVE_FLAG": "I",
+          "CLIENTIMPLEMENT": "N",
+          "DESCR": "IB 8.61 review calibration",
+          "DESCRLONG": null,
+          "IBDOCLAYOUTNAME": " ",
+          "IB_EXCLUDE_TOKEN": " ",
+          "IB_EXPORTSTATUS": "N",
+          "IB_MULTIQUEUE": "N",
+          "IB_OPERATIONNAME": "ZZ_PCODE_LAB_IB61O",
+          "IB_SYNCHNONBLOCK": "N",
+          "IB_VALIDATION": "N",
+          "IB_VALID_LEVEL": 0,
+          "NR_FLAG": "N",
+          "OBJECTOWNERID": " ",
+          "VERSIONNAME": "v1"
+        }
+      ],
+      "after": [
+        {
+          "ACTIVE_FLAG": "I",
+          "CLIENTIMPLEMENT": "N",
+          "DESCR": "IB 8.61 reviewed version",
+          "DESCRLONG": null,
+          "IBDOCLAYOUTNAME": " ",
+          "IB_EXCLUDE_TOKEN": " ",
+          "IB_EXPORTSTATUS": "N",
+          "IB_MULTIQUEUE": "N",
+          "IB_OPERATIONNAME": "ZZ_PCODE_LAB_IB61O",
+          "IB_SYNCHNONBLOCK": "N",
+          "IB_VALIDATION": "N",
+          "IB_VALID_LEVEL": 0,
+          "NR_FLAG": "N",
+          "OBJECTOWNERID": " ",
+          "VERSIONNAME": "v1"
+        }
+      ]
+    }
+  ],
+  "passed": true,
+  "originalCheckpointRestored": true,
+  "fixtureCleanupPending": false,
+  "fixturesRemoved": [
+    "ZZ_PCODE_LAB_IB61O",
+    "ZZ_PCODE_LAB_IB61S"
+  ],
+  "cleanup": "Native PIA Integration Broker Admin deletion; installed MCP independently returns definition not found for both names.",
+  "cleanupScreenshot": "/tmp/ib-861-fixtures-cleaned.png",
+  "releaseEvidence": {
+    "release": "8.61",
+    "source": "HCDEV (PSSTATUS.TOOLSREL)",
+    "readAtCloseout": true
+  }
+}

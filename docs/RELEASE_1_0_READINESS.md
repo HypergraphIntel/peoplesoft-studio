@@ -18,7 +18,7 @@ detail is the [README](../README.md#what-works-now), [roadmap](ROADMAP.md) and
 | Definition viewing/editing | Native-backed editors and writers for major definition families | Close documented bounded edits, missing operations and Not yet definition types; verify required native reopen/save behavior |
 | PeopleCode correctness | Large native corpus comparisons, calibrated compiler/decoder, protected regression baseline | Resolve remaining documented unsupported/literal reconstruction cases without regressions; retain release/platform-specific evidence |
 | Requirements to reviewed build | DOCX intake and Claude analysis; actual installed Codex/Claude Build buttons, reviewed Record/SQL/AE/project creation, separately confirmed Process Definitions, native runs 607265/607266 with exact CSVs, Posted to Web with native View Log/Trace; installed write-confirmation timeout outcomes and deferred PENDING progress | Representative production workflows; Windows handoff |
-| Change Review and recovery | Primary Approve and apply with revision/rendered-state binding and retained object review (fixture-backed acceptance); fourteen bounded Oracle adapters; native Query, Page, Record/AE, text/PeopleCode and standard IB header cycles; standard IB structural apply/inverse and REST provider handler addition; checkpoint inverse, exact-baseline reconciliation and freshly approved continuation; crash/lost-reply reconciliation, continuation undo/redo, creation reversal and undo/redo of every migrated type through App Designer-calibrated deletion writers | Broader structural review, IB creation/deletion, more native adapter/REST/platform acceptance; added IB handler reversal remains refused |
+| Change Review and recovery | Primary Approve and apply with revision/rendered-state binding and retained object review (fixture-backed acceptance); fourteen bounded Oracle adapters; native Query, Page, Record/AE, text/PeopleCode and standard IB header cycles; standard IB structural apply/inverse, 8.61 and REST consumer structural apply/inverse, REST URI template text, REST provider handler addition with calibrated undo/redo, and 8.62.09 standard service/operation creation/deletion with typed inverse (installed, October 21); checkpoint inverse, exact-baseline reconciliation and freshly approved continuation; crash/lost-reply reconciliation, continuation undo/redo, creation reversal and undo/redo of every migrated type through App Designer-calibrated deletion writers | Broader structural review and writable cells, REST IB lifecycle, 8.61 IB child deletion, other IB definition families, more native adapter/platform acceptance |
 | Query authoring | Native Windows Query comparisons for bounded supported shapes | Joins, unions, subqueries, expressions, numeric/date/aggregate/grouped/effective-date/row-security behavior and remaining lifecycle operations |
 | Build and migration | SQL Table creation; Oracle Create Indexes, Alter Tables (rename and in place) and Create Views matching captured App Designer scripts, with native Alter/index execution on a lab table; reviewed project migration of fields, records (SubRecords, user indexes), SQL, HTML, style sheets, PeopleCode, AE, Query, Menu, packages, pages and components with native HRDMO trials and App Designer checks; project membership/related checks | Uncaptured Alter cases and other platforms, meta-SQL views, the explicit migration refusals, cross-database migration and Data Migration Workbench |
 | Runtime and administration | Calibrated metadata/configuration writers and guarded MCP paths | Named runtime/scheduler/integration results where claimed, remaining administrative/security workflows, and documented native boundaries |
@@ -39,12 +39,13 @@ acceptance task.
 
 1. Complete: bounded, evidenced 0.9.7 release published. See
    [release notes](releases/0.9.7.md).
-2. Broaden IB structural review through explicit per-operation snapshot,
-   dependency, validation and typed inverse contracts; retain native approval.
-   In 0.9.6: bounded service/operation structure is implemented; installed
-   developer-approved HRDMO application passed for a standard operation
-   (with typed inverse) and a REST provider handler addition (reversal
-   refused). 8.61 and REST consumer structural application remain open.
+2. Complete (October 21, unreleased): IB structural review now has
+   per-operation snapshot, dependency, validation and typed inverse contracts,
+   with installed developer-approved evidence for 8.61 and REST consumer
+   structural apply/inverse, undo/redo of the added REST provider handler and
+   8.62.09 standard service/operation CREATE/DELETE. See
+   [IB_STRUCTURE.md](change-review/IB_STRUCTURE.md#installed-acceptance-october-21).
+   REST lifecycle, 8.61 child deletion and other IB families remain open.
 3. Close native recovery and remaining adapter acceptance gaps while
    expanding the Query and migration/build workflows. Migration now covers
    every definition type listed in the gate table, with undo/redo; explicit

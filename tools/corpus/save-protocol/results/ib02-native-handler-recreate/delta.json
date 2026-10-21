@@ -1,0 +1,938 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "ib02-native-handler-recreate",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "nonLabRowsOmitted": true,
+ "markers": {
+  "before": {
+   "scn": "39362813226516",
+   "timestamp": "2026-10-21T11:46:58.413409000-05:00"
+  },
+  "after": {
+   "scn": "39362813255655",
+   "timestamp": "2026-10-21T12:01:30.604175000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-21T11:46:58.413409000-05:00",
+    "to": "2026-10-21T12:01:30.604175000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "OPRHM": {
+    "before": 10,
+    "after": 11,
+    "delta": 1
+   },
+   "OPRM": {
+    "before": 27,
+    "after": 28,
+    "delta": 1
+   },
+   "OPRVM": {
+    "before": 25,
+    "after": 26,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 5068,
+    "after": 5071,
+    "delta": 3
+   }
+  },
+  "pslock": {
+   "OPRHM": {
+    "before": 10,
+    "after": 11,
+    "delta": 1
+   },
+   "OPRM": {
+    "before": 27,
+    "after": 28,
+    "delta": 1
+   },
+   "OPRVM": {
+    "before": 25,
+    "after": 26,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 4
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 3
+   },
+   "PSOPERATION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSOPERATIONAC": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSOPRHDLR": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSOPRHDLRDEL": {
+    "inserted": 0,
+    "deleted": 1,
+    "updated": 0
+   },
+   "PSOPRVERDFN": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "otherTablesChanged": {},
+  "unreadableTables": [],
+  "outsideWatch": {
+   "PSACCESSLOG": {
+    "beforeCount": 3510788,
+    "afterCount": 3510789,
+    "touched": true
+   },
+   "PSAPMSGDSPSTAT": {
+    "beforeCount": 3,
+    "afterCount": 3,
+    "touched": true
+   },
+   "PSAPMSGPUBCLOCK": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSAPMSGPUBDATA": {
+    "beforeCount": 910,
+    "afterCount": 912,
+    "touched": true
+   },
+   "PSAPMSGPUBHDR": {
+    "beforeCount": 455,
+    "afterCount": 456,
+    "touched": true
+   },
+   "PSAPMSGPUBLOCK": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSAPMSGPUBSYNC": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSAPMSGSUBCLOCK": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSAPMSGSUBCON": {
+    "beforeCount": 444,
+    "afterCount": 445,
+    "touched": true
+   },
+   "PSAPMSGSUBCSYNC": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSIBNWLOCK": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSIBNWSTATUS": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSIBOALOCK": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSIBOAUTH": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSIBPROFILEBRK": {
+    "beforeCount": 382,
+    "afterCount": 383,
+    "touched": true
+   },
+   "PSIBPROFILESUB": {
+    "beforeCount": 382,
+    "afterCount": 383,
+    "touched": true
+   },
+   "PSOPERATION": {
+    "beforeCount": 2167,
+    "afterCount": 2167,
+    "touched": true
+   },
+   "PSOPERATIONAC": {
+    "beforeCount": 923,
+    "afterCount": 924,
+    "touched": true
+   },
+   "PSOPRDEFN": {
+    "beforeCount": 141,
+    "afterCount": 141,
+    "touched": true
+   },
+   "PSOPRHDLR": {
+    "beforeCount": 1938,
+    "afterCount": 1939,
+    "touched": true
+   },
+   "PSOPRHDLRDEL": {
+    "beforeCount": 1,
+    "afterCount": 0,
+    "touched": false
+   },
+   "PSOPRVERDFN": {
+    "beforeCount": 2308,
+    "afterCount": 2308,
+    "touched": true
+   },
+   "PSOPRVERDFNPARM": {
+    "beforeCount": 4701,
+    "afterCount": 4701,
+    "touched": true
+   },
+   "PSPMCOLLINST": {
+    "beforeCount": 41,
+    "afterCount": 41,
+    "touched": true
+   },
+   "PSPRCSPARMS": {
+    "beforeCount": 536,
+    "afterCount": 537,
+    "touched": true
+   },
+   "PSPRCSQUE": {
+    "beforeCount": 536,
+    "afterCount": 537,
+    "touched": true
+   },
+   "PSPRCSRQST": {
+    "beforeCount": 536,
+    "afterCount": 537,
+    "touched": true
+   },
+   "PSPRCSRQSTSTRNG": {
+    "beforeCount": 534,
+    "afterCount": 535,
+    "touched": true
+   },
+   "PSPTLOGINAUDIT": {
+    "beforeCount": 557,
+    "afterCount": 557,
+    "touched": true
+   },
+   "PSRF_RATTR_TBL": {
+    "beforeCount": 104,
+    "afterCount": 105,
+    "touched": true
+   },
+   "PSRF_RAUTH_TBL": {
+    "beforeCount": 104,
+    "afterCount": 105,
+    "touched": true
+   },
+   "PSRF_RINFO_TBL": {
+    "beforeCount": 104,
+    "afterCount": 105,
+    "touched": true
+   },
+   "PSSERVERSTAT": {
+    "beforeCount": 3,
+    "afterCount": 3,
+    "touched": true
+   }
+  },
+  "incomplete": []
+ },
+ "watch": {
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "OPRHM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "10",
+       "after": "11"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "OPRM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "27",
+       "after": "28"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "OPRVM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "25",
+       "after": "26"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "5068",
+       "after": "5071"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "OPRHM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "10",
+       "after": "11"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "OPRM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "27",
+       "after": "28"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "OPRVM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "25",
+       "after": "26"
+      }
+     }
+    }
+   ]
+  },
+  "PSOPERATION": {
+   "columns": [
+    {
+     "name": "IB_OPERATIONNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DEFAULTVER",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "RTNGTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "IB_USERPWDREQ",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "IB_REQUESTSTATUS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "IB_ACTIVEDATAGUARD",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_THINKTIME",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_CONNAV",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_READONLY_PERM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_RESTMETHOD",
+     "type": "VARCHAR2",
+     "length": 40,
+     "nullable": false
+    },
+    {
+     "name": "IB_REST_SERVICE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_RESTBASE_URL",
+     "type": "VARCHAR2",
+     "length": 1016,
+     "nullable": false
+    },
+    {
+     "name": "URL_ID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "IB_REST_OVERRIDE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_SERVICENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTIBAPPLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "IB_ALIASNAME",
+     "type": "VARCHAR2",
+     "length": 512,
+     "nullable": false
+    },
+    {
+     "name": "MSGNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "IB_MSGVERSION",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "IB_OPERATIONNAME": "ZZ_PCODE_LAB_IBO"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "27",
+       "after": "28"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-21T11:36:13.711248000",
+       "after": "2026-10-21T12:00:57.490054000"
+      }
+     }
+    }
+   ]
+  },
+  "PSOPERATIONAC": {
+   "columns": [
+    {
+     "name": "IB_OPERATIONNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "HANDLERNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PACKAGEID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PACKAGEROOT",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "QUALIFYPATH",
+     "type": "VARCHAR2",
+     "length": 508,
+     "nullable": false
+    },
+    {
+     "name": "APPCLASSID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "APPCLASSMETHOD",
+     "type": "VARCHAR2",
+     "length": 240,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "IB_OPERATIONNAME": "ZZ_PCODE_LAB_IBO",
+     "HANDLERNAME": "REQUESTHDLR",
+     "PACKAGEID": " ",
+     "PACKAGEROOT": "PT_IB_INTROSPECTION",
+     "QUALIFYPATH": " ",
+     "APPCLASSID": "Introspection",
+     "APPCLASSMETHOD": "OnRequest"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSOPRHDLR": {
+   "columns": [
+    {
+     "name": "IB_OPERATIONNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "HANDLERNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_HANDLERALIAS",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "HANDLERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "HANDLEROWNER",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "HANDLERTYPE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "ACTIVE_FLAG",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "SEQNO",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_ROLLBACK",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "IB_ATTRIBUTENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "IB_ATTRIBUTEVALUE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "IB_DMS_ROLLBACK",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_BULKLOAD_MODE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SUBPROC_FLAG",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "IB_OPERATIONNAME": "ZZ_PCODE_LAB_IBO",
+     "HANDLERNAME": "REQUESTHDLR",
+     "VERSION": "11",
+     "IB_HANDLERALIAS": " ",
+     "HANDLERID": "RQST",
+     "HANDLEROWNER": " ",
+     "HANDLERTYPE": "ApplicationClass",
+     "ACTIVE_FLAG": "I",
+     "SEQNO": "0",
+     "IB_ROLLBACK": "N",
+     "IB_ATTRIBUTENAME": " ",
+     "IB_ATTRIBUTEVALUE": " ",
+     "IB_DMS_ROLLBACK": "32",
+     "IB_BULKLOAD_MODE": "0",
+     "SUBPROC_FLAG": "N",
+     "LASTUPDDTTM": "2026-10-21T12:00:57.490116000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "DESCR": "IB lifecycle calibration",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSOPRHDLRDEL": {
+   "columns": [
+    {
+     "name": "IB_OPERATIONNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "HANDLERNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "IB_OPERATIONNAME": "ZZ_PCODE_LAB_IBO",
+     "HANDLERNAME": "REQUESTHDLR",
+     "VERSION": "10"
+    }
+   ],
+   "updated": []
+  },
+  "PSOPRVERDFN": {
+   "columns": [
+    {
+     "name": "IB_OPERATIONNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSIONNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "ACTIVE_FLAG",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "NR_FLAG",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "IB_VALIDATION",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "IB_VALID_LEVEL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_SYNCHNONBLOCK",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "IB_EXPORTSTATUS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "IB_MULTIQUEUE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "IB_EXCLUDE_TOKEN",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "CLIENTIMPLEMENT",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "IBDOCLAYOUTNAME",
+     "type": "VARCHAR2",
+     "length": 80,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "IB_OPERATIONNAME": "ZZ_PCODE_LAB_IBO",
+      "VERSIONNAME": "v1"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "25",
+       "after": "26"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-21T11:36:14.710468000",
+       "after": "2026-10-21T12:00:57.490093000"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {}
+}

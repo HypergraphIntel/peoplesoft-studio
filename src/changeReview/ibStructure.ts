@@ -24,12 +24,15 @@ import type { IbDocument } from '../model/ibDocument.js';
  *    (not type/event) and application class handler implementations.
  *  - Adding exactly the PIA-calibrated handler: ApplicationClass REQUESTHDLR on
  *    RQST (OnRequest) with its PSOPERATIONAC row (8.61.15 and 8.62.09 captures).
- *  - No row is ever removed (child deletion is not calibrated), no key changes,
+ *  - Existing REST URI template text, preserving URI variables and all mapping
+ *    rows. No new template, sequence change or URI message rebinding.
+ *  - Only paired ApplicationClass REQUESTHDLR/RQST removal is supported, with native
+ *    writer release/translation/reference/marker checks; no other row removal or key changes,
  *    and the other checkpoint tables (routings, roots, generated routing
  *    parameters, service mappings, other handler kinds, REST URI/content/queue
  *    rows) must be unchanged.
- * A typed inverse exists only when no row was added: reversing an added handler
- * would need the uncalibrated deletion.
+ * Typed inverses use the native writer, including calibrated handler deletion
+ * and marker-bound recreation on 8.62.09.
  */
 
 type Row = Record<string, Json>;
@@ -40,11 +43,12 @@ const parentKey = (kind: IbReviewKind) => kind === 'service' ? 'IB_SERVICENAME' 
 const text = (v: Json | undefined) => typeof v === 'string' ? v.trim() : v;
 
 /** Editable operation child tables: section name, key columns, refused non-key columns. */
-const CHILDREN: Record<string, { section: string; refused: Set<string> }> = {
+const CHILDREN: Record<string, { section: string; refused: Set<string>; allowed?: Set<string> }> = {
     PSOPRVERDFN: { section: 'versions', refused: new Set() },
     PSOPRVERDFNPARM: { section: 'parameters', refused: new Set(['MSGNAME', 'IB_MSGVERSION']) },
     PSOPRHDLR: { section: 'handlers', refused: new Set(['HANDLERTYPE', 'HANDLERID']) },
-    PSOPERATIONAC: { section: 'applicationClassHandlers', refused: new Set() }
+    PSOPERATIONAC: { section: 'applicationClassHandlers', refused: new Set() },
+    PSOPERATIONURI: { section: 'uriTemplates', refused: new Set(), allowed: new Set(['IB_URI_TEMPLATE']) }
 };
 const keysOf = (table: string) => Object.values(IB_SECTIONS.operation).find(t => t.table === table)!.keys;
 const rowKey = (keys: string[], row: Row) => JSON.stringify(keys.map(k => text(row[k]) ?? null));
@@ -52,12 +56,20 @@ const rowKey = (keys: string[], row: Row) => JSON.stringify(keys.map(k => text(r
 export interface IbStructuralChange {
     /** Human-readable summary, one line per changed cell or added row. */
     changes: string[];
-    /** Rows added (only the calibrated OnRequest handler); these block a typed inverse. */
+    /** Rows added (only the calibrated OnRequest handler). */
     added: string[];
 }
 
 function changedColumns(before: Row, after: Row): string[] {
     return [...new Set([...Object.keys(before), ...Object.keys(after)])].filter(k => canonical(before[k] ?? null) !== canonical(after[k] ?? null)).sort();
+}
+
+/** URI variable identities are dependencies of the preserved URI message/root mappings. */
+function uriVariables(value: Json | undefined): string[] {
+    if (typeof value !== 'string' || !value.trim() || /[\x00-\x1f\x7f]/.test(value)) throw new Error('REST URI template must contain nonempty text without control characters.');
+    const variables = [...value.matchAll(/\{([^{}]+)\}/g)].map(m => m[1]);
+    if (/[{}]/.test(value.replace(/\{([^{}]+)\}/g, '')) || variables.some(v => !v.trim())) throw new Error('REST URI template contains malformed URI variables.');
+    return variables;
 }
 
 /** Throws when before -> after leaves the contract; otherwise describes the difference. */
@@ -77,15 +89,24 @@ export function ibStructuralChange(beforeValue: unknown, afterValue: unknown, ki
             continue;
         }
         const keys = keysOf(t), was = new Map(before.tables[t].map(r => [rowKey(keys, r), r])), now = new Map(after.tables[t].map(r => [rowKey(keys, r), r]));
-        for (const k of was.keys()) if (!now.has(k)) throw new Error(`${t}: removing ${k} needs child deletion, which is not calibrated.`);
+        for (const [k, row] of was) if (!now.has(k)) {
+            if (!['PSOPRHDLR', 'PSOPERATIONAC'].includes(t) || text(row.HANDLERNAME) !== 'REQUESTHDLR' || t === 'PSOPRHDLR' && (text(row.HANDLERID) !== 'RQST' || text(row.HANDLERTYPE) !== 'ApplicationClass')) throw new Error(`${t}: removing ${k} needs child deletion, which is not calibrated.`);
+            out.changes.push(`${t} - ${k}`);
+        }
         for (const [k, row] of now) {
             const old = was.get(k);
             if (!old) {
+                if (t === 'PSOPERATIONURI') throw new Error('Adding REST URI templates needs separate reviewed creation/deletion calibration.');
                 out.added.push(`${t} ${k}`); out.changes.push(`${t} + ${k}`);
                 continue;
             }
             for (const column of changedColumns(old, row)) {
+                if (child.allowed && !child.allowed.has(column)) throw new Error(`${t}.${column} cannot change in reviewed IB structure (URI sequences, transaction and root mappings must be preserved).`);
                 if (child.refused.has(column)) throw new Error(`${t}.${column} cannot change in reviewed IB structure${t === 'PSOPRHDLR' ? ' (handler type/event changes require PIA)' : ' (message binding reaches routings outside the review scope)'}.`);
+                if (t === 'PSOPERATIONURI') {
+                    if (![1, 2].includes(Number(before.tables.PSOPERATION[0].IB_REST_SERVICE))) throw new Error('URI template review requires an existing REST consumer or provider operation.');
+                    if (canonical(uriVariables(old[column])) !== canonical(uriVariables(row[column]))) throw new Error('REST URI variable dependencies must be preserved; rebinding URI message/root mappings needs separate calibration.');
+                }
                 out.changes.push(`${t} ${k}.${column}`);
             }
         }
@@ -95,6 +116,8 @@ export function ibStructuralChange(beforeValue: unknown, afterValue: unknown, ki
         // with its implementation row, and nothing else new.
         const added = (t: string) => after.tables[t].filter(r => !before.tables[t].some(b => rowKey(keysOf(t), b) === rowKey(keysOf(t), r)));
         const handlers = added('PSOPRHDLR'), classes = added('PSOPERATIONAC');
+        const removed = (t: string) => before.tables[t].filter(r => !after.tables[t].some(a => rowKey(keysOf(t), a) === rowKey(keysOf(t), r)));
+        if (removed('PSOPRHDLR').length !== removed('PSOPERATIONAC').length) throw new Error('OnRequest deletion requires its handler and application class implementation together.');
         if (added('PSOPRVERDFN').length || added('PSOPRVERDFNPARM').length) throw new Error('Adding operation versions or parameters is not calibrated for reviewed structure.');
         for (const h of handlers) if (text(h.HANDLERNAME) !== 'REQUESTHDLR' || text(h.HANDLERID) !== 'RQST' || text(h.HANDLERTYPE) !== 'ApplicationClass' || !classes.some(c => text(c.HANDLERNAME) === 'REQUESTHDLR'))
             throw new Error('Only the calibrated ApplicationClass REQUESTHDLR / OnRequest handler (with its implementation row) can be added.');
@@ -106,10 +129,10 @@ export function ibStructuralChange(beforeValue: unknown, afterValue: unknown, ki
 
 /** Why reversing before -> after cannot be a typed inverse, or undefined when it can. */
 export function ibStructuralReversalRefusal(beforeValue: unknown, afterValue: unknown, kind: IbReviewKind, name: string): string | undefined {
-    // An applied change was inside the contract when staged; validation of the inverse
-    // still runs, so only the known-impossible case (an added row) is refused here.
-    const added = ibStructuralChange(beforeValue, afterValue, kind, name).added;
-    return added.length ? `Reversal would delete ${added.join(', ')}; IB child deletion is not calibrated. Deactivate the handler (ACTIVE_FLAG I) as a separate reviewed edit instead.` : undefined;
+    // The native writer validates release-specific handler deletion, translations,
+    // references and tombstones. The inverse is still a fresh reviewed proposal.
+    ibStructuralChange(beforeValue, afterValue, kind, name);
+    return undefined;
 }
 
 /**
@@ -126,6 +149,11 @@ export function ibStructuralInput(beforeValue: unknown, afterValue: unknown, kin
     if (kind === 'operation') {
         for (const [t, { section }] of Object.entries(CHILDREN)) {
             const keys = keysOf(t), rows = (input.sections[section] ??= []);
+            for (const row of before.tables[t]) if (!after.tables[t].some(r => rowKey(keys, r) === rowKey(keys, row))) {
+                const index = rows.findIndex(r => rowKey(keys.filter(k => k !== key), r as Row) === rowKey(keys.filter(k => k !== key), row));
+                if (index < 0) throw new Error(`${t} row is missing from the live input.`);
+                rows.splice(index, 1);
+            }
             for (const row of after.tables[t]) {
                 const old = before.tables[t].find(r => rowKey(keys, r) === rowKey(keys, row));
                 const target = rows.find(r => rowKey(keys.filter(k => k !== key), r as Row) === rowKey(keys.filter(k => k !== key), row));

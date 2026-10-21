@@ -1,0 +1,140 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-7ebab0a44a126b0f28b1a4ed",
+  "fingerprint": "7ebab0a44a126b0f28b1a4ed2f2fe60183bec7856b21ad40fca1d5e644d698c6",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "integration-broker",
+    "objectType": "Service operation definition"
+  },
+  "assertion": {
+    "kind": "single-version-operation-deletion",
+    "facts": {
+      "operationMarkerTable": "PSOPERATIONDEL",
+      "versionMarkerTable": "PSOPRVERDFNDEL",
+      "handlerMarkerTable": "PSOPRHDLRDEL",
+      "operationCounterStep": 3,
+      "operationMarkerOffset": -1,
+      "versionCounterStep": 1,
+      "handlerCounterStep": 1,
+      "serviceCounterStep": 1,
+      "systemCounterStep": 4
+    }
+  },
+  "title": "Native complete operation deletion records three tombstone families",
+  "statement": "Deleting the only version of a standard synchronous operation also deletes its header and request handler, removes the service mapping and writes operation, version and handler deletion markers.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T17:23:21.708Z",
+      "method": "save-capture",
+      "experimentId": "ib05-native-operation-delete",
+      "runId": "ib-lifecycle-2026-10-21",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "One native administration action removed a standard operation with one inactive version, request and response parameters and one inactive application-class request handler. It wrote three marker families, removed the service mapping and resaved the owning service. The operation marker was one below the final operation counter.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSOPERATION",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATIONAC",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATIONDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRHDLR",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRHDLRDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFNDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFNPARM",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSSERVICE",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSERVICEOPR",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "OPRHM": 1,
+          "OPRM": 3,
+          "OPRVM": 1,
+          "SRVM": 1,
+          "SYS": 4
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ib05-native-operation-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/IB_STRUCTURE.md"
+        }
+      ],
+      "digest": "de4b633542b1b5062a763b38640189eeb70780f7839e2ceea42ad4dc181fce63"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-21T17:27:12.351Z",
+    "updatedAt": "2026-10-21T17:27:12.351Z",
+    "schemaVersion": 1
+  }
+}

@@ -9,6 +9,8 @@ export interface ReviewAdapter {
     id: string;
     /** Aliased adapters may preserve different histories for one physical definition. */
     scope?(key: Json): string;
+    /** Composite native writes also reserve their explicitly authorized parent. */
+    scopes?(key: Json): string[];
     read(environment: Environment, key: Json): Promise<Snapshot>;
     validate(environment: Environment, key: Json, before: Json, after: Json, context?: ReviewValidationContext): Promise<string[]>;
     authorize(environment: Environment, key: Json, operation: Change['operation']): Promise<void>;
@@ -56,9 +58,10 @@ export class ReviewService {
     private async checkPrerequisites(set: ChangeSet): Promise<void> {
         const scopes = new Set<string>();
         for (const c of [...set.objects,...(set.continuation?.prerequisites??[])]) {
-            const scope=this.adapter(c.adapter).scope?.(c.key);
-            if(scope&&scopes.has(scope))throw new Error('This native definition is already reviewed through another object or prerequisite scope.');
-            if(scope)scopes.add(scope);
+            for(const scope of this.scopes(c.adapter,c.key)){
+                if(scopes.has(scope))throw new Error('This native definition is already reviewed through another object or prerequisite scope.');
+                scopes.add(scope);
+            }
         }
         await this.checkReversalSources(set);
         const continuation = set.continuation;
@@ -95,6 +98,7 @@ export class ReviewService {
                 throw new Error('Verified prerequisite changed in the database; continuation blocked.');
         }
     }
+    private scopes(adapter:string,key:Json):string[]{const a=this.adapter(adapter);return a.scopes?.(key)??(a.scope?[a.scope(key)]:[]);}
     private async checkReversalSources(set: ChangeSet): Promise<void> {
         if (!set.reversalSources) return;
         // A resumed inverse owns only untouched writers. Its already verified inverse
@@ -243,9 +247,9 @@ export class ReviewService {
                 throw new Error('Object not found.');
             if (existing && (existing.adapter !== adapterId || hash(existing.key) !== hash(key)))
                 throw new Error('An object revision cannot change identity.');
-            const scope = adapter.scope?.(key);
-            if (scope && (set.objects.some(c => c !== existing && this.adapter(c.adapter).scope?.(c.key) === scope) ||
-                set.continuation?.prerequisites.some(p => this.adapter(p.adapter).scope?.(p.key) === scope)))
+            const scopes = this.scopes(adapterId,key);
+            if (set.objects.some(c => c !== existing && this.scopes(c.adapter,c.key).some(s=>scopes.includes(s))) ||
+                set.continuation?.prerequisites.some(p => this.scopes(p.adapter,p.key).some(s=>scopes.includes(s))))
                 throw new Error('This native definition is already reviewed through another object or prerequisite scope. Revise the existing object instead.');
             const live = await adapter.read(set.environment, key);
             if (expectedBaselineToken !== undefined && live.token !== expectedBaselineToken)
