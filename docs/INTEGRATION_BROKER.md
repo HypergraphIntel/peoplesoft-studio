@@ -96,7 +96,9 @@ What PIA fills in that a caller does not give, and Studio now writes the same wa
   `name.version` outbound (every delivered row). PIA dates a new routing
   1900-01-01.
 - **A new REST operation** is named `<alias>_<METHOD>`, and the alias is the name
-  without the suffix. A provider operation's base URL is Service Configuration's
+  without the suffix. PIA appends the suffix to the name typed (8.62.09 ib12,
+  ib16), and so does `psft_ib_new`; a name already ending in it is kept. Saving
+  a new REST operation under any other name succeeds with a warning. A provider operation's base URL is Service Configuration's
   REST Target Location, then `/<service alias>/`.
 - **Every new REST operation generates a routing**, which the page forces for
   REST (`PSSERVICESWRK.SAVE_PB`). For a provider it runs from `~~ANY~~` to the

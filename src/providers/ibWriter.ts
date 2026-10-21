@@ -288,6 +288,8 @@ async function buildPlan(c:DbConnection,types:DbTypes,request:IbSaveRequest,open
  const changed=parentChanged||childWork.some(t=>t.changed)||bodyChanged;
  const proposed=ibDocument(input.kind,input.key,properties,sections);
  const validation=await validateIb(c,types,proposed);
+ // PIA creates a REST operation only as <alias>_<METHOD> (ibNew.ts). Existing or restored names are kept, with a warning.
+ if(!opened&&input.kind==='operation'&&str(properties.IB_RESTMETHOD)&&input.key[0]!==`${str(properties.IB_ALIASNAME)}_${str(properties.IB_RESTMETHOD)}`)validation.push({severity:'warning',path:'IB_OPERATIONNAME',message:`PIA names a new REST operation <alias>_<METHOD> (${str(properties.IB_ALIASNAME)}_${str(properties.IB_RESTMETHOD)}); this name differs from what native creation would produce.`});
  if(!changed)return {plan,proposed,validation};
  plan.changes.push(`${opened?'Update':'Create'} ${input.kind} ${input.key.join(' / ')}`);
  for(const t of childWork.filter(t=>t.changed))plan.changes.push(`Save ${t.name} (${t.after.length} rows)`);

@@ -283,9 +283,10 @@ calibrate REST service and operation deletion/recreation; findings
 - Recreation clears the operation and version tombstones, generates a routing
   with a new random name, and keeps the old routing tombstone.
 - PIA names a new REST operation `<typed name>_<METHOD>` and keeps the typed
-  name as IB_ALIASNAME. Studio's REST creation stores the typed name for both;
-  every other column matches native creation for provider and consumer. That
-  naming difference is a known writer gap, not part of lifecycle review.
+  name as IB_ALIASNAME. Studio's REST creation now does the same (`psft_ib_new`,
+  `ibNew.ts`); every other column already matched native creation for provider
+  and consumer. Creating or restoring a REST operation under any other name is
+  kept, with a writer warning, so existing Studio-named operations still restore.
 
 The lifecycle adapters reproduce all eight captures exactly
 (`ibRestLifecycle.test.ts`, fixture built by `tools/lab/ib-lifecycle-fixture-build.mts`).

@@ -111,8 +111,8 @@ f-9ed38b55…, f-97f609e2…, f-0a71e38b…, f-81208e0a…. The developer chose 
 keep the owned REST fixtures on HRDMO (services `ZZ_PCODE_LAB_IBRP`,
 `ZZ_PCODE_LAB_IBRC`, `ZZ_PCODE_LAB_IBRE`; operations `ZZ_PCODE_LAB_IBRPG`,
 `ZZ_PCODE_LAB_IBRPG_GET`, `ZZ_PCODE_LAB_IBRCG_GET`, all inactive), superseding the
-plan's PIA removal step. Open: Studio's REST
-creation does not apply PIA's `<name>_<METHOD>` naming; 8.61 REST lifecycle;
+plan's PIA removal step. Studio's REST creation
+now applies PIA's `<name>_<METHOD>` naming (other names warn). Open: 8.61 REST lifecycle;
 URI message bindings, credentials and manual routings.
 
 ## October 21 IB structural continuation (complete)

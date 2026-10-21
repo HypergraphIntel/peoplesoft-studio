@@ -41,3 +41,12 @@ test('a REST operation named <alias>_<METHOD> keeps the alias PIA gives it', () 
   assert.equal(newIbInput('operation', ['ZZ_ITEMS_GET'], { service: 'ZZ_REST', method: 'GET' }, {}, 'ENG', service).properties.IB_ALIASNAME, 'ZZ_ITEMS');
   assert.equal(newIbInput('operation', ['ZZ_ITEMS'], { service: 'ZZ_REST', method: 'GET' }, {}, 'ENG', service).properties.IB_ALIASNAME, 'ZZ_ITEMS');
 });
+
+test('a REST operation typed without its method is named as PIA names it (ib12/ib16)', () => {
+  const service = { IB_SERVICENAME: 'ZZ_REST', IB_REST_SERVICE: 1 };
+  const typed = newIbInput('operation', ['ZZ_PCODE_LAB_IBRCG'], { service: 'ZZ_REST', method: 'GET' }, {}, 'ENG', service);
+  assert.deepEqual([typed.key, typed.properties.IB_ALIASNAME], [['ZZ_PCODE_LAB_IBRCG_GET'], 'ZZ_PCODE_LAB_IBRCG']);
+  assert.deepEqual(newIbInput('operation', ['ZZ_ITEMS_DELETE'], { service: 'ZZ_REST', method: 'DELETE' }, {}, 'ENG', service).key, ['ZZ_ITEMS_DELETE']);
+  assert.throws(() => newIbInput('operation', ['ZZ_A_TWENTY_SEVEN_CHARS_XX'], { service: 'ZZ_REST', method: 'PATCH' }, {}, 'ENG', service), /exceeds 30 characters/);
+  assert.deepEqual(newIbInput('operation', ['ZZ_STD'], { operationType: 'S' }, {}, 'ENG', { IB_SERVICENAME: 'ZZ_S', IB_REST_SERVICE: 0 }).key, ['ZZ_STD'], 'standard operations keep their name');
+});

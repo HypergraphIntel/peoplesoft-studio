@@ -40,12 +40,13 @@ try{
   if(kind==='operation'){if((options as any).method){input.properties.IB_RESTBASE_URL='http://example.invalid/rest';input.sections.uriTemplates=[{IB_URI_SEQ:1,IBTRANSACTIONID:' ',IB_RESERVED:0,PTIBURLPARAMNAME:' ',IB_URI_TEMPLATE:'payload'}];}input.sections.versions[0].ACTIVE_FLAG='I';for(const p of input.sections.parameters){if(p.MSGNAME!=='IB_REST_STUB'){p.MSGNAME=name('M');p.IB_MSGVERSION='V1';}}}
   if(kind==='routing'){Object.assign(input.properties,{IB_OPERATIONNAME:name('O'),VERSIONNAME:'v1',SENDERNODENAME:name('N'),RECEIVERNODENAME:'PSFT_HR',EFF_STATUS:'I'});}
   const preview=await call('psft_ib_create',{input,dryRun:true});assert.equal(preview.saved,false);
-  const made=await call('psft_ib_create',{input});assert.equal(made.saved,true);names[kind+(options as any).serviceKind+((options as any).restRole??'')+((options as any).method??'')]=[...key];
-  const got=await call('psft_ib_get',{kind,key});assert.equal(got.properties.DESCR.trim(),'IB MCP verification');
+  const made=await call('psft_ib_create',{input});assert.equal(made.saved,true);names[kind+(options as any).serviceKind+((options as any).restRole??'')+((options as any).method??'')]=[...input.key];
+  // A REST operation is created as <name>_<METHOD>, as PIA names it.
+  const got=await call('psft_ib_get',{kind,key:input.key});assert.equal(got.properties.DESCR.trim(),'IB MCP verification');
   got.input.properties.DESCR='IB MCP edited';
   const saved=await call('psft_ib_save',{input:got.input,expectedToken:got.token});assert.equal(saved.saved,true);
   const stale=await tool('psft_ib_save',{input:got.input,expectedToken:got.token});assert.ok(stale.isError);
-  const now=await call('psft_ib_get',{kind,key});
+  const now=await call('psft_ib_get',{kind,key:input.key});
   const noop=await call('psft_ib_save',{input:now.input,expectedToken:now.token});assert.equal(noop.saved,false);
   checks.push(kind+' create/preview/read/edit/stale/no-op');console.log('PASS '+checks.at(-1));
  }

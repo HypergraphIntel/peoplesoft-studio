@@ -53,6 +53,19 @@ test('REST lifecycle creation preview matches the native checkpoint and restores
     }
 });
 
+test('the writer warns, without refusing, when a REST operation is created under a name PIA would not produce',async()=>{
+    const capture=captures.find(c=>c.case.startsWith('ib11'))!,k=keyOf(capture);
+    const original=await readIbLifecycle(fixture(capture,capture.before).connection,ADAPTER_TYPES,k,true);
+    const f=fixture(capture,capture.after),{saveIb}=await import('../providers/ibWriter.js');
+    const input=ibLifecycleInput(original.value,k);input.sections.handlers=[];input.sections.applicationClassHandlers=[];
+    const result=await saveIb(f.connection,ADAPTER_TYPES,{input,expectedToken:'absent',operatorId:'JARED',dryRun:true});
+    assert.ok(result.validation.some(d=>d.severity==='warning'&&/ZZ_PCODE_LAB_IBRPG_GET/.test(d.message)),JSON.stringify(result.validation));
+    assert.ok(!result.validation.some(d=>d.severity==='error'));
+    const native=captures.find(c=>c.case.startsWith('ib13'))!,n=keyOf(native),kept=await readIbLifecycle(fixture(native,native.before).connection,ADAPTER_TYPES,n,true);
+    const clean=await saveIb(fixture(native,native.after).connection,ADAPTER_TYPES,{input:ibLifecycleInput(kept.value,n),expectedToken:'absent',operatorId:'JARED',dryRun:true});
+    assert.ok(!clean.validation.some(d=>/PIA names/.test(d.message)),'a PIA-named operation has no naming warning');
+});
+
 test('REST lifecycle refuses credentials, extra routing rows, a foreign routing and standard operations with routings',async()=>{
     const capture=captures.find(c=>c.case.startsWith('ib13'))!,k=keyOf(capture);
     const routing=String(capture.before.PSIBRTNGDEFN.find(r=>r.IB_OPERATIONNAME===k.name)!.ROUTINGDEFNNAME);

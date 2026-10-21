@@ -18,8 +18,14 @@ export function newIbInput(kind:IbKind,key:string[],options:IbNewOptions,config:
   if(flag>0&&!options.method)throw new Error('REST operations need an HTTP method.');
   input.properties.IB_SERVICENAME=String(service.IB_SERVICENAME).trim();input.properties.DEFAULTVER='v1';input.properties.RTNGTYPE=flag>0?'S':options.operationType??'S';input.properties.IB_RESTMETHOD=options.method??' ';
   if(flag===0&&options.method)throw new Error('Standard operations do not take an HTTP method.');
-  // PIA names a REST operation <alias>_<METHOD> and keeps the name typed as its alias [8.61.15 XX_IB_ROP_AD_GET].
-  if(flag>0)input.properties.IB_ALIASNAME=options.method&&key[0].endsWith(`_${options.method}`)?key[0].slice(0,-options.method.length-1):key[0];
+  // PIA names a REST operation <alias>_<METHOD> and keeps the name typed as its alias [8.61.15 XX_IB_ROP_AD_GET;
+  // 8.62.09 ib12/ib16: typed ZZ_PCODE_LAB_IBRPG became ZZ_PCODE_LAB_IBRPG_GET]. A name already ending in the
+  // method suffix is taken as the full operation name.
+  if(flag>0){
+   const suffix=`_${options.method}`,full=key[0].endsWith(suffix);
+   input.properties.IB_ALIASNAME=full?key[0].slice(0,-suffix.length):key[0];
+   if(!full){input.key=[key[0]+suffix];ibIdentity(kind,input.key);if(input.key[0].length>30)throw new Error(`REST operation name ${input.key[0]} exceeds 30 characters; PIA appends ${suffix} to the name typed.`);}
+  }
   input.sections.versions=[{...IB_SECTIONS.operation.versions.defaults,VERSIONNAME:'v1'}] as IbWriteInput['sections'][string];
   const roles=input.properties.RTNGTYPE==='A'?['REQUEST']:['REQUEST','RESPONSE'];
   input.sections.parameters=roles.map(role=>({...IB_SECTIONS.operation.parameters.defaults,VERSIONNAME:'v1',PARAMETERNAME:role,...(flag>0&&role==='REQUEST'&&['GET','DELETE','HEAD'].includes(options.method!)?{MSGNAME:'IB_REST_STUB',IB_MSGVERSION:'IB_REST_STUB'}:{}),...(flag>0&&role==='RESPONSE'?{IB_HTTP_STATUS_CD:200,IB_CONTENT_TYPE:'text/xml'}:{})})) as IbWriteInput['sections'][string];
