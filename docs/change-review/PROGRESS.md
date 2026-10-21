@@ -1,6 +1,6 @@
 # Change Review, transactions and history — progress
 
-## Current state — 0.9.7 development (0.9.6 released)
+## Current state — 0.9.7 released
 
 Reconciled October 20, 2026 against the source and recorded native acceptance.
 The 0.9.6 release includes fourteen bounded Oracle adapters: SQL, HTML,

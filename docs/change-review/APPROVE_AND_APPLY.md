@@ -1,6 +1,6 @@
 # Approve and apply
 
-Implemented in 0.9.7 development after the developer selected the primary-action
+Implemented in 0.9.7 after the developer selected the primary-action
 placement on October 20, 2026. See [design decision 3](DESIGN_DECISIONS.md#3-primary-approve-and-apply-action).
 
 ## Developer flow

@@ -9,7 +9,7 @@ HTML, style sheets, projects, packages, pages). Core authoring tools are in
 modules. Authoring tools register only when VS Code provides the write host
 (the setting, review/approval integration, and the editors' state).
 
-## Current staged review paths (0.9.6 release / 0.9.7 development)
+## Current staged review paths (0.9.7 release)
 
 On Oracle with Change Review enabled, supported SQL, HTML/freeform style sheet,
 PeopleCode, Query and Process mutations stage durable proposals. Page edits are
@@ -60,7 +60,7 @@ histories remain readable with their original reversal limits. Physical aliases
 cannot be mixed in one proposal/continuation. See
 [text recovery scope and evidence](change-review/TEXT_DELETION.md).
 
-## Live write confirmations (0.9.7 development)
+## Live write confirmations (0.9.7)
 
 Legacy per-write and agent delivered-object approvals now appear in **PeopleSoft:
 AI Write Approvals**, also available from the shield status-bar item and MCP

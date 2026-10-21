@@ -1,6 +1,6 @@
 # Text-definition creation reversal
 
-The 0.9.7 development writers now implement reviewed creation reversal and
+The 0.9.7 writers now implement reviewed creation reversal and
 freshly approved redo for bounded Oracle PeopleTools 8.62 standalone SQL, HTML
 and freeform stylesheets. Query and project deletion remain separate work.
 

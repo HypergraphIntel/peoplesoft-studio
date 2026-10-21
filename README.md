@@ -13,12 +13,10 @@ writing the same rows Application Designer writes.
 > is experimental: read the [Disclaimer](#disclaimer) before writing to any
 > database.
 
-Current release: **0.9.6** (Build: Create Indexes, Alter Tables and Create
-Views; a PeopleCode language server with problems as you type; the AE/file
-workflow from requirements to verified output); see the
-[release notes](docs/releases/0.9.6.md) and [changelog](CHANGELOG.md).
-
-Development version: **0.9.7** (unreleased).
+Current release: **0.9.7** (project migration of fields, records, pages,
+components and packages with undo and redo; PeopleCode completion from the
+database; Approve and apply); see the
+[release notes](docs/releases/0.9.7.md) and [changelog](CHANGELOG.md).
 
 Track completion gates in [1.0 readiness](docs/RELEASE_1_0_READINESS.md).
 
@@ -328,8 +326,8 @@ compile the program in Application Designer as well (see the Disclaimer). See
 ## Editor features (PeopleCode)
 
 - **Go to Definition** — F12 / Ctrl-click resolves qualified application class paths, supported `Record.NAME` / `Page.NAME` and other definition references, and functions declared against Record PeopleCode. The target must exist in the connected environment.
-- **Completion** — keywords, the known built-in function catalog, system variables, locals and function/method names; connected record fields after `RECORD.`, and application-class own/inherited members after `%This.` / `%Super.` and explicitly typed object variables (0.9.7 development).
-- **Responsiveness and stale results** (0.9.7 development) — completion reads class declarations and bounds slow database reads; live and explicit validation run on background workers and discard obsolete work after edits, settings/connection changes or closure. See [editor acceptance](docs/PEOPLECODE_EDITOR.md) for real VS Code/HRDMO checks and remaining scope.
+- **Completion** — keywords, the known built-in function catalog, system variables, locals and function/method names; connected record fields after `RECORD.`, and application-class own/inherited members after `%This.` / `%Super.` and explicitly typed object variables (0.9.7).
+- **Responsiveness and stale results** (0.9.7) — completion reads class declarations and bounds slow database reads; live and explicit validation run on background workers and discard obsolete work after edits, settings/connection changes or closure. See [editor acceptance](docs/PEOPLECODE_EDITOR.md) for real VS Code/HRDMO checks and remaining scope.
 - **Hover** — short docs for keywords, built-ins, `%` system variables
 - **Outline** — class / method / function / property symbols
 - **Snippets** — `if`, `for`, `try`, `locs`, `msgbox`, `sqlexec`, …

@@ -121,7 +121,7 @@ existing HRDMO saved connection; no credentials are read into the script.
 Results and retained fixture names are recorded in
 `tools/lab/results/mcp-workflow-live-e2e.json`.
 
-## Change Review — 0.9.6 release / 0.9.7 development
+## Change Review — 0.9.7 release
 
 The development server can expose durable Change Set tools. On supported
 Oracle paths, SQL/HTML/freeform style sheet, Query, Process and PeopleCode

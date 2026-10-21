@@ -19,7 +19,7 @@ receipts; writers commit independently. Creation receipts and the append-style
 customization audit are provenance evidence, not reversible complete history.
 No durable Change Set or revision-bound approval system exists in 0.9.0.
 
-## Current implementation — 0.9.6 release / 0.9.7 development
+## Current implementation — 0.9.7 release
 
 The extension wires a durable ReviewStore/ReviewService to the MCP controller,
 manual-save observers, review workspace and sidebar. Fourteen Oracle adapters handle

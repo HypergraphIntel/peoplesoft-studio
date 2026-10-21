@@ -1,7 +1,35 @@
 # Changelog
 
-## Unreleased — 0.9.7
+## 0.9.7 — October 21, 2026
 
+- **Project migration covers fields, records, pages, components and
+  packages.** Fields travel with every stored property and their translate
+  values; records with SubRecords and SQL Table user indexes; pages and
+  components as complete native rows (create or replace); Application
+  Packages with classes and root properties; plus SQL, HTML, freeform style
+  sheets, PeopleCode, Query and menus. Each writer follows a Windows App
+  Designer capture. Export no longer refuses ordinary fields (New Field's
+  default century of 50) or drops owner IDs and non-character formats.
+  Remaining refusals are explicit; see docs/PROJECT_MIGRATION.md.
+- **Undo and redo of migrations and creations.** Change Review history can
+  reverse an applied migration of every supported type through deletion
+  writers calibrated against App Designer's File > Delete, and reverse Record,
+  AE, SQL, HTML, style sheet, Query and project creation. Crashes and lost
+  replies reconcile without replaying writes; an interrupted undo continues
+  from a freshly reviewed remaining-work proposal.
+- **Fixed: "Authorization context changed" and "ownership or policy changed
+  after Change Review"** when a review created a definition and then saved
+  more of it, or something judged by it.
+- **Approve and apply** is the primary Change Review action, bound to the
+  rendered revision; approval only stays under More actions.
+- **AI write confirmations end visibly** (expired, cancelled, declined or
+  approved) with pending cards and a status bar item; a late click never
+  writes.
+- **Build Request progress accepts PENDING**, and the Build button's handoff
+  reaches the requesting Studio window through a per-session MCP endpoint.
+- **Application Packages open in a tree workspace**: create roots, insert
+  empty subpackages and classes, open class PeopleCode.
+- **SQL CLOB reads keep supplementary Unicode** at inline-fetch boundaries.
 - **Fixed: `Page.X`, `SQL.X`, `HTML.X`, `MenuName.X` ... were checked as
   fields.** 0.9.6's environment check took these definition references for
   RECORD.FIELD (the compiler stores them that way in PSPCMNAME) and reported

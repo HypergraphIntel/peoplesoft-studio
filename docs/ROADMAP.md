@@ -5,7 +5,7 @@ Designer parity is the goal; this is the path to it. The
 [1.0 readiness gates](RELEASE_1_0_READINESS.md) separate demonstrated progress
 from the remaining completion work; no 1.0 delivery date is committed.
 
-## Current release: 0.9.6; development: 0.9.7
+## Current release: 0.9.7
 
 0.9.4 adds calibrated 8.61.15 Query and standard Integration Broker writes,
 release-aware Page and Field Configurator mapping, application-class signature
@@ -60,10 +60,11 @@ roots, inserting empty subpackages and classes, and opening class PeopleCode.
 The installed VSIX journey and native HRDMO saves pass; see
 [package workflow and acceptance](APPLICATION_PACKAGES.md).
 
-0.9.7 source adds definition-reference checks and broader PeopleCode completion:
-record fields, the known built-in function catalog, and application-class own
-and inherited members including `%This.` / `%Super.`. See [unreleased
-notes](releases/next.md). **Editor validation and polish acceptance is complete**:
+0.9.7 adds project migration of fields, records, pages, components and
+packages with Change Review undo/redo, Approve and apply, and broader
+PeopleCode completion: record fields, the known built-in function catalog, and
+application-class own and inherited members including `%This.` / `%Super.`.
+See [release notes](releases/0.9.7.md). **Editor validation and polish acceptance is complete**:
 13 checks against the unmodified installed VSIX on VS Code/HRDMO verify record
 fields, class members, rendered suggestion popups, large programs, connection
 changes and stale diagnostics without database saves. The completed task and
@@ -2579,7 +2580,7 @@ Application Classes: class, method, property, visibility, extends, implements, g
    application classes, completion for record fields and class members, and
    references. These editor paths are implemented; installed validation/polish
    acceptance for the new completion and diagnostics features is complete in
-   0.9.7 development. See [the completed acceptance task](PEOPLECODE_EDITOR.md).
+   0.9.7. See [the completed acceptance task](PEOPLECODE_EDITOR.md).
 8. Compile against the environment so errors match what PeopleTools reports.
 
 ## Then: the remaining definition types

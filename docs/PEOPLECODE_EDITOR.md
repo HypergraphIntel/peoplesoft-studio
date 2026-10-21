@@ -1,4 +1,4 @@
-# PeopleCode editor acceptance — completed in 0.9.7 development
+# PeopleCode editor acceptance — completed in 0.9.7
 
 Completed October 20, 2026. The task was: **Validate and polish the new
 PeopleCode editor features — installed acceptance for record-field and
