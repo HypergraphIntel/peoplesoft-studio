@@ -1,0 +1,48 @@
+{
+  "checkedAt": "2026-10-21T12:17:41.980Z",
+  "scope": "Disposable HRDMO pages copied row-for-row from delivered classic HRS_APP_PRINT_PAGE and Fluid EOQF_EVENT_NOTF_FL (read only): writer copy, export with prerequisites, vacant-target creation, unchanged repeat, existing-page refusal, tombstone refusal and durable review; same database; trusted service test approval, not installed UI",
+  "pages": [
+    "ZZ_BG664CF2C",
+    "ZZ_BG664CF2F"
+  ],
+  "project": "ZZ_BG664CF2P",
+  "checks": [
+    "Delivered pages copy row-for-row under new names: rollback preview first, then commit and exact readback",
+    "Export carries both complete pages and declares their records, fields, subpages, images, messages and components as prerequisites",
+    "Vacant-target preview finds every prerequisite; apply creates both pages exactly",
+    "Unchanged repeat import writes nothing and preserves PDM/PJM counters",
+    "A differing existing target page is replaced row for row: stale token refuses, rollback preview, then PDM/SYS +1 and exact readback",
+    "Creating a deleted page name clears its PSPNLDEL tombstone, as App Designer does (dl12); the rollback preview keeps it",
+    "Durable migration review stages both pages and the project without writing; approved apply verifies all"
+  ],
+  "controls": {
+    "ZZ_BG664CF2C": {
+      "PSPNLDEFN": 1,
+      "PSPNLFIELD": 60,
+      "PSPNLFIELDEXT": 1,
+      "PSPNLHTMLAREA": 1,
+      "PSPNLCNTRLDATA": 3,
+      "PSPNLBTNDATA": 12
+    },
+    "ZZ_BG664CF2F": {
+      "PSPNLDEFN": 1,
+      "PSPNLFIELD": 34,
+      "PSPNLFIELDEXT": 34,
+      "PSPNLHTMLAREA": 1,
+      "PSPNLCNTRLDATA": 1,
+      "PSPNLBTNDATA": 11
+    }
+  },
+  "requirementTypes": [
+    0,
+    2,
+    5,
+    25,
+    49,
+    50
+  ],
+  "requirements": 85,
+  "changeSet": "13b496bd-dc90-4f08-bad4-c6e15cc28158",
+  "passed": true,
+  "cleanupVerified": true
+}

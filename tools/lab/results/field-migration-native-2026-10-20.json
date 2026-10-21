@@ -1,0 +1,27 @@
+{
+  "checkedAt": "2026-10-21T12:20:28.056Z",
+  "scope": "Disposable HRDMO fields: base translate values plus owner ID, IME mode, number/time formats, default century, custom format family and formatted length; export, vacant-target creation, update/add, refusals and durable review; same database; trusted service test approval, not installed UI",
+  "fields": [
+    "ZZ_BX145640F",
+    "ZZ_BX145640N",
+    "ZZ_BX145640D",
+    "ZZ_BX145640C",
+    "ZZ_BX145640T"
+  ],
+  "project": "ZZ_BX145640P",
+  "checks": [
+    "Export carries every base translate value with effective dating in canonical order",
+    "Export states owner ID, IME mode, number/time format, default century, format family and formatted length only where not New Field defaults",
+    "Vacant-target preview then apply creates the field and all translate values, with exact readback",
+    "A property-only update (owner ID) saves the field definition and verifies the full payload",
+    "A format family absent from the target blocks preview",
+    "Unchanged repeat import writes nothing and preserves PDM/XTM/PJM counters",
+    "Translate-only update changes and adds values without re-saving the unchanged field definition",
+    "A target-only translate value blocks preview; migration never deletes translate values",
+    "Translated (language) rows refuse the complete migration scope",
+    "Durable migration review stages the translated field and project without writing; approved apply verifies both"
+  ],
+  "changeSet": "2ca13174-c6d4-4d84-8f8d-4b93b4e628a8",
+  "passed": true,
+  "cleanupVerified": true
+}

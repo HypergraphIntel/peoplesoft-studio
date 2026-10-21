@@ -1,0 +1,27 @@
+/** Separate real VS Code window. Optional private history isolates newer test schemas from older running windows. */
+import { spawn } from 'node:child_process';
+import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { createServer } from 'node:net';
+import { createHash } from 'node:crypto';
+const root=process.cwd(), dir=mkdtempSync(path.join(os.tmpdir(),'psft-build-installed-'));
+const port=async()=>{const s=createServer();await new Promise(r=>s.listen(0,'127.0.0.1',r));const p=s.address().port;await new Promise(r=>s.close(r));return p;};
+const cdpPort=await port(),mcpPort=await port();
+const user=path.join(dir,'user'),storage=path.join(user,'User/globalStorage/jarednorris.peoplesoft-studio');mkdirSync(storage,{recursive:true,mode:0o700});
+const original=path.join(os.homedir(),'.config/Code/User/globalStorage/jarednorris.peoplesoft-studio');
+const privateHistory=process.env.PSFT_HANDOFF_PRIVATE_HISTORY==='1';
+for(const kind of ['build-requests','change-review'])if(privateHistory)mkdirSync(path.join(storage,kind),{recursive:true,mode:0o700});else symlinkSync(path.join(original,kind),path.join(storage,kind),'dir');
+const connection={name:'HRDMO',kind:'oracle',connectString:process.env.PSLAB_ORACLE??'127.0.0.1:15210/HRDMO',user:process.env.PSLAB_ACCESSID,peoplecodeAccess:'writable',peoplesoftOperatorId:process.env.PSLAB_OPERATOR??'JARED'};
+if(!connection.user||!process.env.PSLAB_ACCESSPSWD)throw Error('Lab credentials must be provided in the environment.');
+writeFileSync(path.join(user,'User/settings.json'),JSON.stringify({'files.autoSave':'off','files.simpleDialog.enable':true,'workbench.startupEditor':'none','security.workspace.trust.enabled':false,'update.mode':'none','extensions.autoCheckUpdates':false,'extensions.autoUpdate':false,'chat.disableAIFeatures':true,'peoplesoft.connections':[connection],'peoplesoft.mcp.enabled':true,'peoplesoft.mcp.port':mcpPort,'peoplesoft.mcp.writes':'confirm','peoplesoft.writeNamePrefix':'ZZ_B','window.dialogStyle':'custom','peoplesoft.peoplecode.validateAsYouType':false,'editor.accessibilitySupport':'on','terminal.integrated.accessibilitySupport':'on'}));
+const candidate=process.env.PSFT_HANDOFF_CANDIDATE??path.join(os.homedir(),'.vscode/extensions/jarednorris.peoplesoft-studio-0.9.7');
+const hash=file=>createHash('sha256').update(readFileSync(file)).digest('hex');
+const driver=path.join(dir,'driver');mkdirSync(driver);writeFileSync(path.join(driver,'package.json'),JSON.stringify({name:'build-handoff-acceptance-driver',publisher:'psft-tests',version:'0.0.1',engines:{vscode:'^1.90.0'},activationEvents:['onStartupFinished'],main:'./driver.cjs'}));writeFileSync(path.join(driver,'driver.cjs'),`exports.activate=()=>{void require(${JSON.stringify(path.join(root,'tools/lab/build-handoff/installed-driver.cjs'))}).run().catch(e=>{require('node:fs').writeFileSync(${JSON.stringify(path.join(dir,'driver-error.txt'))},e.stack??String(e))})};`);
+const info={dir,root,candidate,connection,storage,privateHistory,cdpUrl:`http://127.0.0.1:${cdpPort}`,mcpUrl:`http://127.0.0.1:${mcpPort}/mcp`,bundleSha256:hash(path.join(candidate,'dist/extension.js')),workerSha256:hash(path.join(candidate,'dist/validateWorker.js'))};
+const input=path.join(dir,'input.json');writeFileSync(input,JSON.stringify(info),{mode:0o600});writeFileSync('/tmp/psft-build-handoff-window.json',JSON.stringify(info),{mode:0o600});
+const env={...process.env,PSFT_BUILD_INPUT:input};for(const key of Object.keys(env))if(key.startsWith('VSCODE_')||key.startsWith('CODEX_')||key==='ELECTRON_RUN_AS_NODE'||key==='PSFT_DISABLE_MCP')delete env[key];delete env.WAYLAND_DISPLAY;env.XDG_SESSION_TYPE='x11';
+const child=spawn('/usr/share/code/code',['--ozone-platform=x11','--no-sandbox','--disable-gpu','--disable-workspace-trust','--skip-welcome','--skip-release-notes','--new-window',`--remote-debugging-port=${cdpPort}`,'--remote-debugging-address=127.0.0.1','--user-data-dir',user,'--extensions-dir',path.dirname(candidate),'--extensionDevelopmentPath',driver,root],{cwd:root,env,stdio:['ignore','pipe','pipe']});
+const log=await import('node:fs').then(fs=>fs.createWriteStream(path.join(dir,'host.log')));child.stdout.pipe(log);child.stderr.pipe(log);
+console.log(JSON.stringify({pid:child.pid,dir,mcpUrl:info.mcpUrl,cdpUrl:info.cdpUrl,bundleSha256:info.bundleSha256}));
+await new Promise(resolve=>child.once('exit',code=>{console.log(JSON.stringify({exitCode:code}));resolve();}));

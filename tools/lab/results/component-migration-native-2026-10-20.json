@@ -1,0 +1,43 @@
+{
+  "checkedAt": "2026-10-21T12:19:10.469Z",
+  "scope": "Disposable HRDMO GBL components copied row-for-row from delivered DEPEND_BENEF and lab ZZ_PCODE_LAB_CMP (read only; extension row, CSS/JS scripts, search page): writer copy, export with prerequisites, vacant-target creation, unchanged repeat, existing-component refusal, tombstone refusal and durable review; same database; trusted service test approval, not installed UI",
+  "components": [
+    "ZZ_BC1D0FB1D",
+    "ZZ_BC1D0FB1L"
+  ],
+  "project": "ZZ_BC1D0FB1P",
+  "checks": [
+    "Components copy row-for-row under new names: rollback preview first, then commit with PGM/SYS +1 (no MDM) and exact readback",
+    "Export carries both complete components and declares their pages, search records, messages and scripts as prerequisites",
+    "Vacant-target preview finds every prerequisite; apply creates both components exactly",
+    "Unchanged repeat import writes nothing and preserves PGM/MDM/PJM counters",
+    "A differing existing target component is replaced row for row: stale token refuses, rollback preview, then PGM/MDM/SYS +1 and exact readback",
+    "Creating a deleted component name clears its PSPNLGRPDEL tombstone, as App Designer does (dl13); the rollback preview keeps it",
+    "Durable migration review stages both components and the project without writing; approved apply verifies all"
+  ],
+  "rows": {
+    "ZZ_BC1D0FB1D": {
+      "PSPNLGRPDEFN": 1,
+      "PSPNLGROUP": 3,
+      "PSPNLGRPDEFNEXT": 1,
+      "PSPNLGRPSCRIPTS": 0
+    },
+    "ZZ_BC1D0FB1L": {
+      "PSPNLGRPDEFN": 1,
+      "PSPNLGROUP": 2,
+      "PSPNLGRPDEFNEXT": 1,
+      "PSPNLGRPSCRIPTS": 4
+    }
+  },
+  "requirementTypes": [
+    0,
+    5,
+    25,
+    50,
+    51
+  ],
+  "requirements": 16,
+  "changeSet": "e9f360c6-18fb-4e0e-bfee-1ee474c0542f",
+  "passed": true,
+  "cleanupVerified": true
+}

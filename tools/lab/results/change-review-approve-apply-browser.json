@@ -1,0 +1,13 @@
+{
+  "checkedAt": "2026-10-20T15:55:08.965Z",
+  "passed": true,
+  "scope": "Chromium production HTML with fixture definitions and a test-only VS Code message bridge; no installed-workbench or database apply claim",
+  "checks": [
+    "real DOM click posts exactly the rendered eligible object IDs and review token",
+    "double click posts only one approval/application request",
+    "apply button disables immediately and reports busy",
+    "cancel and object inspection remain available"
+  ],
+  "eligibleObjects": 2,
+  "htmlSha256": "99ad61ad8944e7e458a1f6ac6e4ed9f5673a8420db3e88cbae36a23412987b2b"
+}

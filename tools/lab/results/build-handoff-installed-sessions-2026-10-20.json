@@ -1,0 +1,177 @@
+{
+  "checkedAt": "2026-10-20T17:13:35.260Z",
+  "scope": "Actual installed Build buttons, real interactive CLI processes and request-linked reviewed creation; runtime evidence is in the independent native reports.",
+  "installedBundleSha256": "1a167a45a7d11622ff7dc4f1814a8cc205c8539fc52bc121749969baf9d8a125",
+  "installedWorkerSha256": "2022a1104d48cd47f48806708a56dfdbd689e7dcf657e913277f287f885b2c01",
+  "originalWindowReloaded": false,
+  "mcpUrl": "http://127.0.0.1:36473/mcp",
+  "sharedRequestAndReviewStorage": true,
+  "clients": [
+    {
+      "agent": "codex",
+      "requestId": "br-b7ed22ea1caa",
+      "pid": 2778570,
+      "sessionId": "01a15a3a-80ef-7e23-b965-cde1f1f1da66",
+      "executable": "/home/noodlesploder/.local/share/mise/installs/codex/latest/bin/codex",
+      "endpointOverrideVerified": true,
+      "approvedSpecRevision": 1,
+      "approvedSpecHash": "fff910faaca1be13534b67e13af7f524e3fe7cadc41d7bd0cb526cc96dac9ed4",
+      "handoff": {
+        "phase": "build",
+        "agent": "codex",
+        "at": "2026-10-20T16:52:24.641Z"
+      },
+      "observedCalls": {
+        "psft_build_request_get": [
+          "2026-10-20T16:52:38.546Z",
+          "2026-10-20T16:52:43.024Z",
+          "2026-10-20T16:57:59.690Z",
+          "2026-10-20T16:59:07.837Z",
+          "2026-10-20T17:03:45.211Z",
+          "2026-10-20T17:06:57.904Z"
+        ],
+        "psft_create_change_set": [
+          "2026-10-20T16:53:23.175Z"
+        ],
+        "psft_set_change_plan": [],
+        "psft_stage_object_change": [],
+        "psft_validate_change_set": [
+          "2026-10-20T16:58:51.981Z"
+        ],
+        "psft_build_request_report": [
+          "2026-10-20T16:53:23.175Z",
+          "2026-10-20T16:53:41.144Z",
+          "2026-10-20T16:55:12.854Z",
+          "2026-10-20T16:58:13.647Z",
+          "2026-10-20T16:58:26.805Z",
+          "2026-10-20T16:58:39.059Z",
+          "2026-10-20T16:58:51.981Z",
+          "2026-10-20T17:04:18.541Z",
+          "2026-10-20T17:05:41.575Z",
+          "2026-10-20T17:07:25.388Z"
+        ],
+        "psft_process_create": [
+          "2026-10-20T17:04:18.541Z",
+          "2026-10-20T17:04:24.991Z",
+          "2026-10-20T17:06:57.904Z"
+        ],
+        "psft_process_get": [
+          "2026-10-20T17:07:16.702Z"
+        ]
+      },
+      "finalObjects": [
+        {
+          "ref": "field-instance",
+          "status": "SKIPPED"
+        },
+        {
+          "ref": "field-description",
+          "status": "SKIPPED"
+        },
+        {
+          "ref": "state",
+          "status": "BUILT",
+          "changeSetId": "31c06921-abb4-4d70-b106-a1bc6d4ffb19"
+        },
+        {
+          "ref": "rows",
+          "status": "BUILT",
+          "changeSetId": "31c06921-abb4-4d70-b106-a1bc6d4ffb19"
+        },
+        {
+          "ref": "export",
+          "status": "BUILT",
+          "changeSetId": "31c06921-abb4-4d70-b106-a1bc6d4ffb19"
+        },
+        {
+          "ref": "project",
+          "status": "BUILT",
+          "changeSetId": "31c06921-abb4-4d70-b106-a1bc6d4ffb19"
+        },
+        {
+          "ref": "scheduler",
+          "status": "BUILT"
+        }
+      ]
+    },
+    {
+      "agent": "claude",
+      "requestId": "br-b6a1848629e9",
+      "pid": 2779962,
+      "sessionId": "e1d279af-cfe9-483a-8c6d-7b91cdbe1690",
+      "executable": "/home/noodlesploder/.local/share/mise/installs/claude/2.1.278/claude",
+      "endpointOverrideVerified": true,
+      "approvedSpecRevision": 1,
+      "approvedSpecHash": "fdcdb43703fa1dc6aa6df8c3928f4ee0a125da7625bbec6dd967cf479b1a94ca",
+      "handoff": {
+        "phase": "build",
+        "agent": "claude",
+        "at": "2026-10-20T16:52:47.511Z"
+      },
+      "observedCalls": {
+        "psft_build_request_get": [
+          "2026-10-20T16:56:12.402Z"
+        ],
+        "psft_create_change_set": [
+          "2026-10-20T16:56:57.419Z"
+        ],
+        "psft_set_change_plan": [],
+        "psft_stage_object_change": [],
+        "psft_validate_change_set": [
+          "2026-10-20T16:59:24.750Z"
+        ],
+        "psft_build_request_report": [
+          "2026-10-20T16:59:56.110Z",
+          "2026-10-20T17:03:04.551Z",
+          "2026-10-20T17:05:45.365Z",
+          "2026-10-20T17:07:18.187Z"
+        ],
+        "psft_process_create": [
+          "2026-10-20T17:03:10.851Z",
+          "2026-10-20T17:03:17.414Z",
+          "2026-10-20T17:04:25.383Z",
+          "2026-10-20T17:06:51.239Z"
+        ],
+        "psft_process_get": [
+          "2026-10-20T17:04:20.596Z",
+          "2026-10-20T17:05:28.018Z",
+          "2026-10-20T17:07:03.153Z"
+        ]
+      },
+      "finalObjects": [
+        {
+          "ref": "field-instance",
+          "status": "SKIPPED"
+        },
+        {
+          "ref": "field-description",
+          "status": "SKIPPED"
+        },
+        {
+          "ref": "state",
+          "status": "BUILT",
+          "changeSetId": "31cd089a-a005-471d-ab6a-780803ab0931"
+        },
+        {
+          "ref": "rows",
+          "status": "BUILT",
+          "changeSetId": "31cd089a-a005-471d-ab6a-780803ab0931"
+        },
+        {
+          "ref": "export",
+          "status": "BUILT",
+          "changeSetId": "31cd089a-a005-471d-ab6a-780803ab0931"
+        },
+        {
+          "ref": "project",
+          "status": "BUILT",
+          "changeSetId": "31cd089a-a005-471d-ab6a-780803ab0931"
+        },
+        {
+          "ref": "scheduler",
+          "status": "BUILT"
+        }
+      ]
+    }
+  ]
+}

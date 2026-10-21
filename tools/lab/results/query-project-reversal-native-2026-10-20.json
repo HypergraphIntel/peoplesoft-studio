@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-10-20T23:14:53.127Z",
+  "scope": "Disposable Oracle 8.62 Query (public/private) and project creation reversal: rollback previews, guarded deletion, owner-specific tombstones, marker-bound redo; not installed UI",
+  "names": {
+    "pub": "ZZ_BRB8F55EQ",
+    "priv": "ZZ_BRB8F55EJ",
+    "project": "ZZ_BRB8F55EP"
+  },
+  "operatorId": "JARED",
+  "checks": [
+    "Public Query creation preview rolls back rows and QDM; committed creation reproduces the complete checkpoint",
+    "Stale complete Query token refuses deletion without mutation",
+    "Project creation with the Query member previews, commits and reproduces its full calibrated checkpoint",
+    "Project membership refuses Query deletion; a proposed project deletion is a rollback-preview assumption only",
+    "Nondefault project metadata refuses deletion without mutation",
+    "Project deletion preview rolls back; committed deletion removes header/members only, writes PSPROJECTDEL at PJM and keeps the Query",
+    "Public Query deletion writes the blank-owner PSQRYDEL at QDM; ordinary reads and creation refuse the tombstone",
+    "Query and project redo previews restore tombstones on rollback; redo clears each bound marker and reproduces both checkpoints",
+    "Private Query deletion writes an owner-specific marker; its redo clears only that owner"
+  ],
+  "passed": true,
+  "cleanupVerified": true
+}

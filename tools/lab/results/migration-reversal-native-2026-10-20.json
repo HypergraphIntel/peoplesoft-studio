@@ -1,0 +1,41 @@
+{
+  "checkedAt": "2026-10-21T12:13:13.982Z",
+  "scope": "Disposable HRDMO reviewed migration of a field with translate values, a Derived/Work record using it with Record PeopleCode, an App Engine program, a popup menu with ItemSelected PeopleCode, a page copied from HRS_APP_PRINT_PAGE, a component listing that page, an Application Package with a class, and their project; destructive inverse through the calibrated deletion writers (dl01-dl13 and earlier captures), tombstones, fresh redo; no permission-list changes; trusted service test approval, not installed UI",
+  "prefix": "ZZ_BME4A8FB",
+  "checks": [
+    "Reviewed import creates the field, record and its PeopleCode, AE program, menu, page, component, package with its class, and the project exactly",
+    "The creation inverse is ten deletions; rollback previews (assuming the same inverse's earlier deletions) leave everything in place and destructive approval is required",
+    "Applying the inverse deletes every definition through its native writer, leaving each deletion tombstone",
+    "Fresh redo from the original history recreates every definition exactly, clearing the tombstones"
+  ],
+  "assets": [
+    "record:ZZ_BME4A8FBW",
+    "field:ZZ_BME4A8FBF",
+    "page:ZZ_BME4A8FBG",
+    "menu:ZZ_BME4A8FBM",
+    "component:ZZ_BME4A8FBC.GBL",
+    "peoplecode:ZZ_BME4A8FBW.ZZ_BME4A8FBF.FieldChange",
+    "ae:ZZ_BME4A8FBA",
+    "package:ZZ_BME4A8FBPKG",
+    "peoplecode:ZZ_BME4A8FBPKG.UI.Panel"
+  ],
+  "inverseObjects": 10,
+  "tombstones": {
+    "record": 1,
+    "program": 1,
+    "menu": 1,
+    "code": 1,
+    "project": 1,
+    "page": 1,
+    "component": 1,
+    "package": 1,
+    "class": 1
+  },
+  "reviewSets": [
+    "7b19f56f-05ef-4737-916f-0df2fba173bf",
+    "0fe2e16b-40b7-4a1e-a614-09ed725a0697",
+    "b53661cd-552d-4421-a4a6-b7f3bfaa2d4f"
+  ],
+  "passed": true,
+  "cleanupVerified": true
+}

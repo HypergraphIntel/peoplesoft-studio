@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-10-20T18:37:13.204Z",
+  "scope": "Disposable HRDMO native creation/paused continuation/combined deletion/redo; trusted service test approval, not installed UI",
+  "record": "ZZ_BRC22FR",
+  "program": "ZZ_BRC22FA",
+  "checks": [
+    "Native one-object apply creates only the record; continuation requires fresh approval and preserves its checkpoint",
+    "Continuation applies AE and retains exact native binary/text checkpoint plus record prerequisite",
+    "Combined inverse deletes AE before the state record and verifies native tombstones with both definitions absent",
+    "Fresh redo recreates typed definitions through calibrated writers, removes native tombstones and matches both complete checkpoints"
+  ],
+  "sets": [
+    "d941180b-ee38-4da3-b371-d346a6af86ea",
+    "8dbbb3e6-92ea-4dc5-9de3-087332c4157d",
+    "b9e393f4-b418-4101-8467-4b4b3af290e1",
+    "bca174fc-0f66-43e8-b0da-65012f170b68"
+  ],
+  "passed": true,
+  "cleanupVerified": true
+}

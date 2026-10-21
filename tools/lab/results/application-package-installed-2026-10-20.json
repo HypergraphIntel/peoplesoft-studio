@@ -1,0 +1,46 @@
+{
+  "checkedAt": "2026-10-20T16:43:52.124Z",
+  "vscode": "1.141.0",
+  "root": "ZZ_AP_UI_447E1112",
+  "checks": [
+    {
+      "name": "installed extension connects to HRDMO",
+      "passed": true
+    },
+    {
+      "name": "New Definition creates an empty Application Package and opens its tree",
+      "passed": true
+    },
+    {
+      "name": "rendered Insert Subpackage creates an empty child and nested child",
+      "passed": true
+    },
+    {
+      "name": "Insert Class opens a declaration; normal PeopleCode save creates it under the selected subpackage",
+      "passed": true
+    },
+    {
+      "name": "Open Definition accepts the search root key and rendered Open PeopleCode opens the saved class",
+      "passed": true
+    },
+    {
+      "name": "switching the connection to read-only disables package edits",
+      "passed": true
+    }
+  ],
+  "cleanupVerified": true,
+  "environment": {
+    "toolsRelease": "8.62",
+    "patchLevel": 9
+  },
+  "passed": true,
+  "installation": {
+    "activation": "installed",
+    "manifestUnmodified": true,
+    "bundleUnmodified": true,
+    "workerUnmodified": true
+  },
+  "bundleSha256": "1a167a45a7d11622ff7dc4f1814a8cc205c8539fc52bc121749969baf9d8a125",
+  "workerSha256": "2022a1104d48cd47f48806708a56dfdbd689e7dcf657e913277f287f885b2c01",
+  "vsixSha256": "6d4fdc4ffd3eab53b2a9c15d11576737e9e6f53459d34e0b7dafce51ff487bee"
+}

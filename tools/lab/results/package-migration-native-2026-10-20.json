@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-10-21T12:19:53.873Z",
+  "scope": "Disposable HRDMO Application Package with nested subpackages and classes at root/level-1/level-2: export, vacant-target creation, unchanged repeat, target-only refusal and durable review; same database; trusted service test approval, not installed UI",
+  "root": "ZZ_BKBC6AE4PKG",
+  "project": "ZZ_BKBC6AE4P",
+  "checks": [
+    "Export carries the package root, both subpackage levels and every class source, though the project lists only the package",
+    "Vacant-target preview then apply creates the package, subpackages and classes with exact stored source",
+    "Unchanged repeat import writes nothing and preserves APM/PPC/PJM counters",
+    "A target-only subpackage blocks preview; migration never deletes subpackages",
+    "A subpackage description refuses the migration scope (Package Properties belong to the root)",
+    "Durable migration review stages package, classes and project without writing; approved dependency-ordered apply verifies all"
+  ],
+  "changeSet": "8d1dc98f-2d33-48bf-b2ff-458cb26ce7b5",
+  "passed": true,
+  "cleanupVerified": true
+}

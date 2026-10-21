@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-10-21T12:29:04.526Z",
+  "bundleSha256": "f1e6416902453e517db794bf5f63b39900ff722fe9f6c8e89cb1984e130cdf39",
+  "scope": "Separate installed candidate VSIX, private history, actual HRDMO writers: Import command, rendered Approve and apply, rendered destructive inverse, redo; migration assets field, page, component, package, peoplecode",
+  "prefix": "ZZ_BJ58F063",
+  "checks": [
+    "Installed Import stages field, page, component, package, class and project without writing; the rendered primary action applies them all exactly",
+    "The rendered review applies the destructive inverse only with explicit consent, deleting every migrated definition",
+    "Redo from the original history, approved in the rendered review, recreates everything exactly"
+  ],
+  "migrationSet": "2148e69c-ab93-40ab-93ba-a6d531c87f8a",
+  "inverseSet": "34d1d744-aa8c-48b3-b467-9ababe167038",
+  "redoSet": "fbdf1e8c-c41d-43c6-8d33-14aee083acf2",
+  "passed": true,
+  "cleanupVerified": true
+}

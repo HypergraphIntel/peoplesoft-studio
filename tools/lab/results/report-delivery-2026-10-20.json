@@ -1,0 +1,72 @@
+{
+  "checkedAt": "2026-10-20T18:26:20.593174+00:00",
+  "runs": [
+    {
+      "PRCSINSTANCE": 607266,
+      "PRCSNAME": "ZZ_BL_EXPORT",
+      "RUNCNTLID": "ZZ_BL_ACC01",
+      "SERVERNAMERUN": "HCMDMO",
+      "RUNSTATUS": "9",
+      "PRCSRTNCD": 0,
+      "DISTSTATUS": "5"
+    },
+    {
+      "PRCSINSTANCE": 607265,
+      "PRCSNAME": "ZZ_BC_EXPORT",
+      "RUNCNTLID": "ZZ_BC_ACC01",
+      "SERVERNAMERUN": "HCMDMO",
+      "RUNSTATUS": "9",
+      "PRCSRTNCD": 0,
+      "DISTSTATUS": "5"
+    }
+  ],
+  "reports": [
+    {
+      "PRCSINSTANCE": 607266,
+      "CONTENTID": 94854,
+      "DISTSTATUS": "5",
+      "PRCSOUTPUTDIR": "/mnt/nginx_shared/reports/HCMDMO/AE_ZZ_BL_EXPORT_607266",
+      "OUTPUTDIR": "HRDMO/20261020/94854"
+    },
+    {
+      "PRCSINSTANCE": 607265,
+      "CONTENTID": 94853,
+      "DISTSTATUS": "5",
+      "PRCSOUTPUTDIR": "/mnt/nginx_shared/reports/HCMDMO/AE_ZZ_BC_EXPORT_607265",
+      "OUTPUTDIR": "HRDMO/20261020/94853"
+    }
+  ],
+  "nativeViewLogTraceVerified": true,
+  "outputs": [
+    {
+      "processInstance": 607265,
+      "file": "ZZ_BC_EXPORT.csv",
+      "bytes": 123,
+      "sha256": "62d92d414fc02901271744facb65c61b5d9bbecc6f7edfecc31fc734f11b6367",
+      "downloadedThroughNativeViewLogTrace": true,
+      "nativeStdoutOpened": true,
+      "stdoutSummary": "accepted=3 rejected=1 total=30.75; ended normally"
+    },
+    {
+      "processInstance": 607266,
+      "file": "ZZ_BL_EXPORT.csv",
+      "bytes": 123,
+      "sha256": "62d92d414fc02901271744facb65c61b5d9bbecc6f7edfecc31fc734f11b6367",
+      "downloadedThroughNativeViewLogTrace": true,
+      "nativeStdoutOpened": true,
+      "stdoutSummary": "accepted=3 rejected=1 total=30.75; ended normally"
+    }
+  ],
+  "repair": {
+    "staleAgentConnectedTo": 80,
+    "savedNodePort": 443,
+    "targetedAgentRecycle": "BASE/103; PSDSTSRV now 2191534; scheduler and AE workers stayed running",
+    "subsequentFailure": "HTTP 200 compressed transfer acknowledgement failed XML document parsing",
+    "nginxChange": "gzip off only at exact /SchedulerTransfer/HCMDMO; existing HTTPS and authentication retained",
+    "nginxReload": "2026-10-20T13:18:04-05:00",
+    "successfulPosts": [
+      "607265/94853 at 13:18:42 CDT",
+      "607266/94854 after native re-send"
+    ]
+  }
+}

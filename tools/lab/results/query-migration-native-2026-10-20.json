@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-10-20T18:48:47.137Z",
+  "scope": "Disposable HRDMO public one-record Query migration; existing JARED Query access retained; source/vacant-target same database; trusted service test approval, not installed UI",
+  "name": "ZZ_BQDC8C00Q",
+  "project": "ZZ_BQDC8C00P",
+  "checks": [
+    "Query export reads all supported native tables, preserves public ownership/comments and declares AAP_TBL prerequisite",
+    "Vacant target native rollback preview then migration apply preserve the exact full semantic Query",
+    "Unchanged repeat import preserves Query and project native counters",
+    "Durable migration review stages a new Query and project without writing, then exact approved native apply verifies both"
+  ],
+  "sql": "SELECT A.DESCR\nFROM PS_AAP_TBL A",
+  "changeSet": "a10dbc45-a5cc-425a-a2a9-58e68e326005",
+  "passed": true,
+  "cleanupVerified": true
+}

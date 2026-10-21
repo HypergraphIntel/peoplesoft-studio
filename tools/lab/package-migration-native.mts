@@ -1,0 +1,61 @@
+/** Disposable HRDMO Application Package/class migration and durable review. No application data changed. */
+import assert from 'node:assert/strict';
+import Module from 'node:module';
+import {randomBytes} from 'node:crypto';
+import {mkdtemp,rm,writeFile} from 'node:fs/promises';
+import os from 'node:os';import path from 'node:path';
+import {DatabaseProvider} from '../../src/providers/database.js';
+import {openDatabase} from '../../src/db/open.js';
+import {DefinitionType,makeKey} from '../../src/model/definitions.js';
+import {setWriteNamePrefix} from '../../src/providers/writeScope.js';
+import {setWriteGuard,writeOrigin} from '../../src/providers/writeGuard.js';
+import {isReviewedWrite} from '../../src/changeReview/authorization.js';
+import {databaseMigrationTarget} from '../../src/providers/migrationTarget.js';
+import {exportMigrationPackage,previewMigrationImport,applyMigrationImport} from '../../src/migrationPackage.js';
+import {stageMigrationImport} from '../../src/changeReview/migration.js';
+import {ReviewService} from '../../src/changeReview/service.js';import {ReviewStore} from '../../src/changeReview/store.js';
+import type {Workspace} from '../../src/workspace.js';
+const {createStub}=await import('../../scripts/vscode-stub.mjs');const {vscode}=createStub(),load=(Module as any)._load;
+(Module as any)._load=function(n:string,p:unknown,m:boolean){return n==='vscode'?vscode:load.call(this,n,p,m);};const {databaseReviewAdapters}=await import('../../src/changeReview/adapters.js');
+const config={name:'HRDMO package migration acceptance',platform:'oracle' as const,connectString:process.env.PSLAB_ORACLE??'127.0.0.1:15210/hrdmo',user:process.env.PSLAB_ACCESSID!,password:process.env.PSLAB_ACCESSPSWD!};assert.match(config.connectString,/hrdmo/i);assert.ok(config.user&&config.password);
+const prefix='ZZ_BK'+randomBytes(3).toString('hex').toUpperCase(),root=prefix+'PKG',project=prefix+'P',operatorId=process.env.PSLAB_OPERATOR??'JARED';
+const p=new DatabaseProvider(config),pool=await openDatabase('oracle',config),c=await pool.getConnection(),dir=await mkdtemp(path.join(os.tmpdir(),'psft-package-migration-native-'));let owned=false;
+setWriteNamePrefix(prefix);setWriteGuard(async w=>{assert.ok([root,project].includes(w.key.parts[0])||w.key.parts[1]===root,JSON.stringify(w.key));if(writeOrigin()==='agent')assert.ok(isReviewedWrite(p.id,w.key));});
+const checks:string[]=[],report:Record<string,unknown>={checkedAt:new Date().toISOString(),scope:'Disposable HRDMO Application Package with nested subpackages and classes at root/level-1/level-2: export, vacant-target creation, unchanged repeat, target-only refusal and durable review; same database; trusted service test approval, not installed UI',root,project,checks};
+const check=async(n:string,fn:()=>Promise<void>)=>{await fn();checks.push(n);console.log('ok '+checks.length+' - '+n);};
+const classKey=(...parts:string[])=>makeKey(DefinitionType.ApplicationClassPeopleCode,root,...parts,'OnExecute');
+const classes={Root:classKey('Root'),Panel:classKey('UI','Panel'),Button:classKey('UI','Widgets','Button')};
+const source=(name:string)=>`class ${name}\n   method ${name}();\n   property string Label;\nend-class;\n\nmethod ${name}\n   &Label = "${name} é";\nend-method;\n`;
+const counters=async()=>(await c.execute("SELECT OBJECTTYPENAME, VERSION FROM PSVERSION WHERE OBJECTTYPENAME IN ('APM','PPC','PJM','SYS') ORDER BY OBJECTTYPENAME")).rows;
+async function cleanup(){if(!owned)return;await c.rollback();for(const t of ['PSPCMTXT','PSPCMNAME','PSPCMPROG','PSPCMPROGDEL'])await c.execute(`DELETE FROM ${t} WHERE OBJECTID1=104 AND OBJECTVALUE1=:r`,{r:root});
+ await c.execute('DELETE FROM PSAPPCLASSDEFN WHERE PACKAGEROOT=:r',{r:root});await c.execute('DELETE FROM PSPACKAGEDEFN WHERE PACKAGEROOT=:r',{r:root});for(const t of ['PSPROJECTITEM','PSPROJECTDEFN'])await c.execute(`DELETE FROM ${t} WHERE PROJECTNAME=:n`,{n:project});await c.commit();}
+const sources=async()=>Object.fromEntries(await Promise.all(Object.entries(classes).map(async([n,k])=>[n,(await p.readPeopleCodeForEdit(k))?.text.replace(/\r\n/g,'\n')])));
+try{await p.connect();assert.equal(await p.readPackageForMigration(root),undefined);assert.equal(await p.projectExists(project),false);owned=true;
+ await p.createPackage({name:root,operatorId});let doc=(await p.readPackageForMigration(root))!;
+ await p.createSubpackage({root,path:['UI'],openedVersion:doc.version,operatorId});doc=(await p.readPackageForMigration(root))!;
+ await p.createSubpackage({root,path:['UI','Widgets'],openedVersion:doc.version,operatorId});
+ for(const [n,k] of Object.entries(classes))await p.savePeopleCode(k,{source:source(n),openedFingerprint:'absent',operatorId,createClass:true});
+ const created=await p.createProject({project,operatorId});await p.saveProject({project,operatorId,openedVersion:created.version,add:[makeKey(DefinitionType.ApplicationPackage,root,root,'.')]});
+ const expected=await sources();assert.ok(Object.values(expected).every(Boolean));
+ const pkg=await exportMigrationPackage(p,project),target=await databaseMigrationTarget(p,operatorId);
+ await check('Export carries the package root, both subpackage levels and every class source, though the project lists only the package',async()=>{
+  assert.deepEqual(pkg.assets.map(a=>[a.kind,a.key.parts.join(':')]),[['package',root],['peoplecode',root+':Root'],['peoplecode',root+':UI:Panel'],['peoplecode',root+':UI:Widgets:Button']]);
+  assert.deepEqual(pkg.assets[0].data,{name:root,packages:['UI','UI:Widgets']});});
+ await cleanup();owned=true;
+ await check('Vacant-target preview then apply creates the package, subpackages and classes with exact stored source',async()=>{const plan=await previewMigrationImport(pkg,target);assert.deepEqual(plan.blockers,[]);assert.deepEqual(plan.changes.map(c=>c.action),['create','create','create','create']);
+  const r=await applyMigrationImport(pkg,plan,target);assert.equal(r.error,undefined,r.error);assert.deepEqual((await p.readPackageForMigration(root))!.data,pkg.assets[0].data);assert.deepEqual(await sources(),expected);
+  assert.deepEqual((await p.readPackageForMigration(root))!.classes,['Root','UI:Panel','UI:Widgets:Button']);});
+ await check('Unchanged repeat import writes nothing and preserves APM/PPC/PJM counters',async()=>{const before=await counters(),plan=await previewMigrationImport(pkg,target);assert.ok(plan.changes.every(c=>c.action==='same'),JSON.stringify(plan.changes.map(c=>c.action)));assert.deepEqual((await applyMigrationImport(pkg,plan,target)).completed,[]);assert.deepEqual(await counters(),before);});
+ await check('A target-only subpackage blocks preview; migration never deletes subpackages',async()=>{const live=(await p.readPackageForMigration(root))!;await p.createSubpackage({root,path:['Extra'],openedVersion:live.version,operatorId});
+  const plan=await previewMigrationImport(pkg,target);assert.ok(plan.blockers.some(b=>/Extra is absent from the package/.test(b)),JSON.stringify(plan.blockers));});
+ await check('A subpackage description refuses the migration scope (Package Properties belong to the root)',async()=>{await c.execute("UPDATE PSPACKAGEDEFN SET DESCR='Described' WHERE PACKAGEROOT=:r AND PACKAGEID='UI'",{r:root});await c.commit();
+  try{await assert.rejects(p.readPackageForMigration(root),/subpackage or class/);}finally{await c.execute("UPDATE PSPACKAGEDEFN SET DESCR=' ' WHERE PACKAGEROOT=:r AND PACKAGEID='UI'",{r:root});await c.commit();}});
+ await cleanup();owned=true;
+ await check('Durable migration review stages package, classes and project without writing; approved dependency-ordered apply verifies all',async()=>{const workspace={connections:[],activeProviders:[p],require:async()=>p,isWritable:()=>true,isSqlWritable:()=>true,isPeopleCodeWritable:()=>true,configFor:()=>({peoplesoftOperatorId:operatorId,peoplecodeSaveMode:'compile-and-save'})} as unknown as Workspace;
+  const registry=databaseReviewAdapters(workspace,()=>({mode:()=> 'confirm',confirm:async()=>{throw Error('No legacy confirmation path.');},hasUnsavedEditor:()=>false,saved(){}}));const service=new ReviewService(new ReviewStore(dir),{environment:registry.environment,changed(){}},registry.adapters);
+  const plan=await previewMigrationImport(pkg,target);let set=(await stageMigrationImport(service,p.id,pkg,plan,target,p))!;assert.equal(set.objects.length,5);assert.equal(await p.readPackageForMigration(root),undefined);
+  set=await service.validate(set.id);assert.equal(set.status,'READY_FOR_REVIEW',JSON.stringify(set.objects.map(o=>o.validation)));set=await service.review(set.id,set.objects.map(o=>o.id),'APPROVED',set.revision);set=await service.apply(set.id);
+  assert.equal(set.status,'APPLIED',JSON.stringify(set.journal));assert.ok(set.objects.every(o=>o.application==='VERIFIED'));assert.deepEqual(await sources(),expected);assert.deepEqual((await p.readPackageForMigration(root))!.data,pkg.assets[0].data);report.changeSet=set.id;});
+ report.passed=true;
+}catch(error){report.error=error instanceof Error?error.stack??error.message:String(error);throw error;}
+finally{try{await cleanup();report.cleanupVerified=owned?!(await p.readPackageForMigration(root))&&!(await p.projectExists(project))&&Number((await c.execute<{N:number}>('SELECT COUNT(*) AS N FROM PSPCMPROG WHERE OBJECTID1=104 AND OBJECTVALUE1=:r',{r:root})).rows![0].N)===0:true;}finally{await writeFile('tools/lab/results/package-migration-native-2026-10-20.json',JSON.stringify(report,null,2)+'\n');await c.close();await pool.close();await p.dispose();await rm(dir,{recursive:true,force:true});}}

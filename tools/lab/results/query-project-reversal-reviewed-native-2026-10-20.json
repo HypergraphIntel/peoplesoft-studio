@@ -1,0 +1,38 @@
+{
+  "checkedAt": "2026-10-20T23:09:18.915Z",
+  "scope": "Disposable Oracle 8.62 Query (public/private) and project creation reversal: rollback previews, guarded deletion, owner-specific tombstones, marker-bound redo, durable Change Review apply/pause/inverse/lost reply/redo with trusted service approval; not installed UI",
+  "names": {
+    "pub": "ZZ_BRC593A5Q",
+    "priv": "ZZ_BRC593A5J",
+    "project": "ZZ_BRC593A5P"
+  },
+  "operatorId": "JARED",
+  "checks": [
+    "Public Query creation preview rolls back rows and QDM; committed creation reproduces the complete checkpoint",
+    "Stale complete Query token refuses deletion without mutation",
+    "Project creation with the Query member previews, commits and reproduces its full calibrated checkpoint",
+    "Project membership refuses Query deletion; a proposed project deletion is a rollback-preview assumption only",
+    "Nondefault project metadata refuses deletion without mutation",
+    "Project deletion preview rolls back; committed deletion removes header/members only, writes PSPROJECTDEL at PJM and keeps the Query",
+    "Public Query deletion writes the blank-owner PSQRYDEL at QDM; ordinary reads and creation refuse the tombstone",
+    "Query and project redo previews restore tombstones on rollback; redo clears each bound marker and reproduces both checkpoints",
+    "Private Query deletion writes an owner-specific marker; its redo clears only that owner",
+    "Query and dependent project proposals stage without writing and require approval",
+    "One-object pause creates and verifies only the Query; continuation needs fresh approval",
+    "Continuation creates the project after its Query and verifies the complete checkpoint",
+    "Inverse requires destructive approval",
+    "Inverse deletes the project before its Query and stops safely after a lost committed deletion reply",
+    "Reconciliation never repeats the project deletion; the remaining Query undo needs fresh destructive approval",
+    "Fresh redo from original history clears both tombstones and restores the Query and project checkpoints"
+  ],
+  "reviewSets": [
+    "2a0817ef-155c-4aa8-a947-a62baf53fbb4",
+    "110700ff-ae04-4483-9afc-30daab579c73",
+    "07ac5420-8549-4492-8288-63f54612b28b",
+    "cc49af14-a8e2-48ff-88b3-e9e30457ba1c",
+    "85ffaf3a-9599-4c91-8442-5f9f8176f820"
+  ],
+  "projectDeletionWrites": 1,
+  "passed": true,
+  "cleanupVerified": true
+}

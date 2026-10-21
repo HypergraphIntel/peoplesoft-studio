@@ -57,5 +57,12 @@
     "selectiveTraceScopeRows": 0,
     "processTraceRestorationChangeSet": "9771ac70-e1ae-446f-903e-cde0f1bb7af8"
   },
-  "nativeValidation": "Developer confirmed corrected Export PeopleCode validates in native App Designer before this run."
+  "nativeValidation": "Developer confirmed corrected Export PeopleCode validates in native App Designer before this run.",
+  "distributionCorrection": {
+    "recordedAt": "2026-10-20",
+    "value": "4",
+    "label": "Unable to Post",
+    "postingVerified": false,
+    "evidence": "HRDMO PSXLATITEM DISTSTATUS and Process Monitor; prior Posted interpretation was incorrect. Raw process/output evidence is unchanged."
+  }
 }

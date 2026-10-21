@@ -1,0 +1,11 @@
+{
+  "checkedAt": "2026-10-20T18:06:56.371Z",
+  "bundleSha256": "1ba73ca20ba162ada5e7879994002255efd52ae934fcf5dbea010845b7cf88e9",
+  "tests": [
+    "Real MCP request expires, UI shows EXPIRED and offers no stale Allow button.",
+    "Fresh retry appears independently and explicit Decline returns without writing.",
+    "Explicit Allow reaches native writer, which refuses existing lab definition before any save; full process readback unchanged.",
+    "Installed tools/list advertises PENDING; HTTP report keeps create object unfinished, restores BUILT and preserves both history entries."
+  ],
+  "passed": true
+}

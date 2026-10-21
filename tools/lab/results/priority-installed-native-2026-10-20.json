@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-10-20T19:13:59.254Z",
+  "bundleSha256": "716dc5b65f3bf560e8935800845915b6709b6a2605523ef0103152c410de6450",
+  "record": "ZZ_BI0D90F7R",
+  "program": "ZZ_BI0D90F7A",
+  "scope": "Separate installed production VSIX, private history; actual HRDMO writers; native Import file/environment pickers and rendered developer review controls for disposable synthetic fixtures; original window never reloaded",
+  "checks": [
+    "Installed Import command opens durable exact target review without writes; rendered primary action applies both menus and project",
+    "Rendered Approve only then Apply one pauses after the native record and leaves AE absent",
+    "Fresh installed continuation retains prerequisite, requires new rendered approval and verifies complete AE source/binary",
+    "Installed combined inverse displays both source histories and fresh destructive approval deletes AE then Record",
+    "Fresh installed redo recreates definitions from native tombstone baselines and restores exact full checkpoints"
+  ],
+  "migrationSet": "648eac25-507a-48e9-ac6d-a3df100147c6",
+  "recoverySets": [
+    "99658c2f-fe43-4fb2-a320-1db603989517",
+    "0aa9b7f5-3a04-4442-9512-b9dcc1e3b9d9",
+    "6ab3d0ed-99fd-4c98-b30f-ae4491ce3887",
+    "5ab603fc-f7a1-40be-92da-602b0f173f0c"
+  ],
+  "passed": true,
+  "cleanupVerified": true
+}

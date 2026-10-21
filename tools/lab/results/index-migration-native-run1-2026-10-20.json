@@ -1,0 +1,47 @@
+{
+  "checkedAt": "2026-10-20T22:46:23.574Z",
+  "scope": "HRDMO SQL Table ZZ_PCODE_LAB_IX with user index A (DESCR, EFF_STATUS; comment) saved by Windows App Designer (capture ix01): export, removal, vacant-target creation compared row for row with App Designer, unchanged repeat, existing-record refusal and durable review; same database; trusted service test approval, not installed UI",
+  "record": "ZZ_PCODE_LAB_IX",
+  "project": "ZZ_PCODE_LAB_IXP",
+  "checks": [
+    "Export carries index A with its two keys, platform flags and comment exactly as App Designer stored them",
+    "Vacant-target apply recreates the record and every key/index row equal to App Designer, apart from version stamps",
+    "Unchanged repeat import writes nothing",
+    "An existing target record whose user indexes differ blocks preview; indexed records are not updated",
+    "User indexes with custom DDL refuse export"
+  ],
+  "appDesignerRows": {
+    "PSRECDEFN": [
+      "{\"AUDITRECNAME\":\" \",\"AUXFLAGMASK\":0,\"BUILDSEQNO\":1,\"DDLCOUNT\":0,\"DESCRLONG\":null,\"FIELDCOUNT\":4,\"INDEXCOUNT\":2,\"OBJECTOWNERID\":\" \",\"OPTDELRECNAME\":\" \",\"OPTTRIGFLAG\":\"N\",\"PARENTRECNAME\":\" \",\"QRYSECRECNAME\":\" \",\"RECDESCR\":\"Index capture\",\"RECNAME\":\"ZZ_PCODE_LAB_IX\",\"RECTYPE\":0,\"RECUSE\":0,\"RELLANGRECNAME\":\" \",\"SETCNTRLFLD\":\" \",\"SQLTABLENAME\":\" \",\"SYSTEMIDFIELDNAME\":\" \",\"TIMESTAMPFIELDNAME\":\" \"}"
+    ],
+    "PSRECFIELD": [
+      "{\"CURCTLFIELDNAME\":\" \",\"CURRCTLUSE\":0,\"DEFFIELDNAME\":\" \",\"DEFGUICONTROL\":99,\"DEFRECNAME\":\" \",\"EDITTABLE\":\" \",\"FIELDNAME\":\"DESCR\",\"FIELDNUM\":3,\"LABEL_ID\":\" \",\"RECNAME\":\"ZZ_PCODE_LAB_IX\",\"RELTMDTFIELDNAME\":\" \",\"SETCNTRLFLD\":\" \",\"SUBRECORD\":\"N\",\"SUBRECVER\":0,\"TIMEZONEFIELDNAME\":\" \",\"TIMEZONEUSE\":0,\"USEEDIT\":8388608,\"USEEDIT2\":0}",
+      "{\"CURCTLFIELDNAME\":\" \",\"CURRCTLUSE\":0,\"DEFFIELDNAME\":\" \",\"DEFGUICONTROL\":99,\"DEFRECNAME\":\" \",\"EDITTABLE\":\" \",\"FIELDNAME\":\"EFF_STATUS\",\"FIELDNUM\":4,\"LABEL_ID\":\" \",\"RECNAME\":\"ZZ_PCODE_LAB_IX\",\"RELTMDTFIELDNAME\":\" \",\"SETCNTRLFLD\":\" \",\"SUBRECORD\":\"N\",\"SUBRECVER\":0,\"TIMEZONEFIELDNAME\":\" \",\"TIMEZONEUSE\":0,\"USEEDIT\":8388608,\"USEEDIT2\":0}",
+      "{\"CURCTLFIELDNAME\":\" \",\"CURRCTLUSE\":0,\"DEFFIELDNAME\":\" \",\"DEFGUICONTROL\":99,\"DEFRECNAME\":\" \",\"EDITTABLE\":\" \",\"FIELDNAME\":\"EMPLID\",\"FIELDNUM\":1,\"LABEL_ID\":\" \",\"RECNAME\":\"ZZ_PCODE_LAB_IX\",\"RELTMDTFIELDNAME\":\" \",\"SETCNTRLFLD\":\" \",\"SUBRECORD\":\"N\",\"SUBRECVER\":0,\"TIMEZONEFIELDNAME\":\" \",\"TIMEZONEUSE\":0,\"USEEDIT\":8388609,\"USEEDIT2\":0}",
+      "{\"CURCTLFIELDNAME\":\" \",\"CURRCTLUSE\":0,\"DEFFIELDNAME\":\"%date\",\"DEFGUICONTROL\":99,\"DEFRECNAME\":\" \",\"EDITTABLE\":\" \",\"FIELDNAME\":\"EFFDT\",\"FIELDNUM\":2,\"LABEL_ID\":\" \",\"RECNAME\":\"ZZ_PCODE_LAB_IX\",\"RELTMDTFIELDNAME\":\" \",\"SETCNTRLFLD\":\" \",\"SUBRECORD\":\"N\",\"SUBRECVER\":0,\"TIMEZONEFIELDNAME\":\" \",\"TIMEZONEUSE\":0,\"USEEDIT\":8388673,\"USEEDIT2\":0}"
+    ],
+    "PSRECFIELDDB": [
+      "{\"CURCTLFIELDNAME\":\" \",\"CURRCTLUSE\":0,\"DEFFIELDNAME\":\" \",\"DEFGUICONTROL\":99,\"DEFRECNAME\":\" \",\"EDITTABLE\":\" \",\"FIELDNAME\":\"DESCR\",\"FIELDNUM\":3,\"LABEL_ID\":\" \",\"RECNAME\":\"ZZ_PCODE_LAB_IX\",\"RECNAME_PARENT\":\"ZZ_PCODE_LAB_IX\",\"RELTMDTFIELDNAME\":\" \",\"SETCNTRLFLD\":\" \",\"SUBRECORD\":\"N\",\"SUBRECVER\":0,\"TIMEZONEFIELDNAME\":\" \",\"TIMEZONEUSE\":0,\"USEEDIT\":8388608,\"USEEDIT2\":0}",
+      "{\"CURCTLFIELDNAME\":\" \",\"CURRCTLUSE\":0,\"DEFFIELDNAME\":\" \",\"DEFGUICONTROL\":99,\"DEFRECNAME\":\" \",\"EDITTABLE\":\" \",\"FIELDNAME\":\"EFF_STATUS\",\"FIELDNUM\":4,\"LABEL_ID\":\" \",\"RECNAME\":\"ZZ_PCODE_LAB_IX\",\"RECNAME_PARENT\":\"ZZ_PCODE_LAB_IX\",\"RELTMDTFIELDNAME\":\" \",\"SETCNTRLFLD\":\" \",\"SUBRECORD\":\"N\",\"SUBRECVER\":0,\"TIMEZONEFIELDNAME\":\" \",\"TIMEZONEUSE\":0,\"USEEDIT\":8388608,\"USEEDIT2\":0}",
+      "{\"CURCTLFIELDNAME\":\" \",\"CURRCTLUSE\":0,\"DEFFIELDNAME\":\" \",\"DEFGUICONTROL\":99,\"DEFRECNAME\":\" \",\"EDITTABLE\":\" \",\"FIELDNAME\":\"EMPLID\",\"FIELDNUM\":1,\"LABEL_ID\":\" \",\"RECNAME\":\"ZZ_PCODE_LAB_IX\",\"RECNAME_PARENT\":\"ZZ_PCODE_LAB_IX\",\"RELTMDTFIELDNAME\":\" \",\"SETCNTRLFLD\":\" \",\"SUBRECORD\":\"N\",\"SUBRECVER\":0,\"TIMEZONEFIELDNAME\":\" \",\"TIMEZONEUSE\":0,\"USEEDIT\":8388609,\"USEEDIT2\":0}",
+      "{\"CURCTLFIELDNAME\":\" \",\"CURRCTLUSE\":0,\"DEFFIELDNAME\":\"%date\",\"DEFGUICONTROL\":99,\"DEFRECNAME\":\" \",\"EDITTABLE\":\" \",\"FIELDNAME\":\"EFFDT\",\"FIELDNUM\":2,\"LABEL_ID\":\" \",\"RECNAME\":\"ZZ_PCODE_LAB_IX\",\"RECNAME_PARENT\":\"ZZ_PCODE_LAB_IX\",\"RELTMDTFIELDNAME\":\" \",\"SETCNTRLFLD\":\" \",\"SUBRECORD\":\"N\",\"SUBRECVER\":0,\"TIMEZONEFIELDNAME\":\" \",\"TIMEZONEUSE\":0,\"USEEDIT\":8388673,\"USEEDIT2\":0}"
+    ],
+    "PSINDEXDEFN": [
+      "{\"ACTIVEFLAG\":1,\"CLUSTERFLAG\":0,\"CUSTKEYORDER\":1,\"DDLCOUNT\":0,\"IDXCOMMENTS\":\"Capture index\",\"INDEXID\":\"A\",\"INDEXTYPE\":4,\"KEYCOUNT\":2,\"PLATFORM_ALB\":0,\"PLATFORM_DB2\":1,\"PLATFORM_DB4\":0,\"PLATFORM_DBX\":0,\"PLATFORM_INF\":0,\"PLATFORM_MSS\":1,\"PLATFORM_ORA\":1,\"PLATFORM_SBS\":0,\"PLATFORM_SYB\":0,\"RECNAME\":\"ZZ_PCODE_LAB_IX\",\"UNIQUEFLAG\":0}",
+      "{\"ACTIVEFLAG\":1,\"CLUSTERFLAG\":1,\"CUSTKEYORDER\":0,\"DDLCOUNT\":0,\"IDXCOMMENTS\":\" \",\"INDEXID\":\"_\",\"INDEXTYPE\":1,\"KEYCOUNT\":2,\"PLATFORM_ALB\":1,\"PLATFORM_DB2\":1,\"PLATFORM_DB4\":1,\"PLATFORM_DBX\":1,\"PLATFORM_INF\":1,\"PLATFORM_MSS\":1,\"PLATFORM_ORA\":1,\"PLATFORM_SBS\":1,\"PLATFORM_SYB\":1,\"RECNAME\":\"ZZ_PCODE_LAB_IX\",\"UNIQUEFLAG\":1}"
+    ],
+    "PSKEYDEFN": [
+      "{\"ASCDESC\":0,\"FIELDNAME\":\"EFFDT\",\"INDEXID\":\"_\",\"KEYPOSN\":2,\"RECNAME\":\"ZZ_PCODE_LAB_IX\"}",
+      "{\"ASCDESC\":1,\"FIELDNAME\":\"DESCR\",\"INDEXID\":\"A\",\"KEYPOSN\":1,\"RECNAME\":\"ZZ_PCODE_LAB_IX\"}",
+      "{\"ASCDESC\":1,\"FIELDNAME\":\"EFF_STATUS\",\"INDEXID\":\"A\",\"KEYPOSN\":2,\"RECNAME\":\"ZZ_PCODE_LAB_IX\"}",
+      "{\"ASCDESC\":1,\"FIELDNAME\":\"EMPLID\",\"INDEXID\":\"_\",\"KEYPOSN\":1,\"RECNAME\":\"ZZ_PCODE_LAB_IX\"}"
+    ],
+    "PSRECTBLSPC": [
+      "{\"DBNAME\":\"PSHRDMOB\",\"DBTYPE\":\" \",\"DDLSPACENAME\":\"AAAPP\",\"PT_TS_LOCK_TYPE\":\" \",\"PT_UTS_ENABLED\":\" \",\"RECNAME\":\"ZZ_PCODE_LAB_IX\",\"TEMPTBLINST\":\"N\"}"
+    ],
+    "PSIDXDDLPARM": [],
+    "PSRECDDLPARM": []
+  },
+  "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n1 !== 2\n\n    at <anonymous> (/home/noodlesploder/repos/peoplesoft-studio/tools/lab/index-migration-native.mts:50:132)\n    at async check (/home/noodlesploder/repos/peoplesoft-studio/tools/lab/index-migration-native.mts:27:52)\n    at async <anonymous> (/home/noodlesploder/repos/peoplesoft-studio/tools/lab/index-migration-native.mts:48:2)",
+  "cleanupVerified": true
+}

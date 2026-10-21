@@ -1,0 +1,28 @@
+/** Controlled crash boundary for the disposable native acceptance parent. Never run independently. */
+import assert from 'node:assert/strict';
+import Module from 'node:module';
+import { readFile } from 'node:fs/promises';
+import { DatabaseProvider } from '../../src/providers/database.js';
+import { ReviewStore } from '../../src/changeReview/store.js';
+import { ReviewService } from '../../src/changeReview/service.js';
+import { setWriteNamePrefix } from '../../src/providers/writeScope.js';
+import { setWriteGuard } from '../../src/providers/writeGuard.js';
+import { isReviewedWrite } from '../../src/changeReview/authorization.js';
+import type { Workspace } from '../../src/workspace.js';
+const spec=JSON.parse(await readFile(process.argv[2],'utf8'));
+assert.match(spec.name,/^ZZ_BX[A-F0-9]{6}$/);assert.ok(['before-commit','after-commit'].includes(spec.mode));
+assert.match(spec.root,/^\/tmp\/psft-native-crash-/);
+const config={name:spec.connection,platform:'oracle' as const,connectString:process.env.PSLAB_ORACLE??'127.0.0.1:15210/hrdmo',user:process.env.PSLAB_ACCESSID!,password:process.env.PSLAB_ACCESSPSWD!};assert.match(config.connectString,/hrdmo/i);
+const {createStub}=await import('../../scripts/vscode-stub.mjs');const {vscode}=createStub(),load=(Module as any)._load;
+(Module as any)._load=function(name:string,parent:unknown,main:boolean){return name==='vscode'?vscode:load.call(this,name,parent,main);};
+const {databaseReviewAdapters}=await import('../../src/changeReview/adapters.js');
+const p=new DatabaseProvider(config);await p.connect();
+setWriteNamePrefix(spec.name);setWriteGuard(async w=>{assert.equal(w.key.parts[0],spec.name);assert.ok(isReviewedWrite(p.id,w.key));});
+const workspace={connections:[],activeProviders:[p],require:async()=>p,isWritable:()=>true,isSqlWritable:()=>true,isPeopleCodeWritable:()=>true,configFor:()=>({peoplesoftOperatorId:spec.operatorId,peoplecodeSaveMode:'compile-and-save'})} as unknown as Workspace;
+const registry=databaseReviewAdapters(workspace,()=>({mode:()=> 'confirm',confirm:async()=>{throw Error('No legacy confirmation path.');},hasUnsavedEditor:()=>false,saved(){}}));
+const adapter=registry.adapters.find(a=>a.id==='migration-html')!,write=adapter.write;
+const hold=async()=>{setInterval(()=>{},60000);process.stdout.write('CRASH_BOUNDARY '+spec.mode+'\n');await new Promise(()=>{});};
+adapter.write=async(...args)=>{if(spec.mode==='before-commit')await hold();await write(...args);if(spec.mode==='after-commit')await hold();};
+const service=new ReviewService(new ReviewStore(spec.root),{environment:registry.environment,changed(){}},registry.adapters);
+const set=await service.store.get(spec.id);assert.equal(set.objects.length,1);assert.equal(set.objects[0].adapter,'migration-html');assert.equal((set.objects[0].key as any).parts[0],spec.name);
+await service.apply(spec.id);throw Error('The parent must kill this child at the requested boundary.');

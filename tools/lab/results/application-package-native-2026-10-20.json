@@ -1,0 +1,37 @@
+{
+  "checkedAt": "2026-10-20T16:34:38.000Z",
+  "root": "ZZ_AP_07F7F658",
+  "scope": "Oracle HRDMO provider save/readback; no native App Designer equivalence claim",
+  "checks": [
+    {
+      "name": "new empty package has a root tree and independent native row",
+      "passed": true
+    },
+    {
+      "name": "empty subpackage commits with APM/SYS +1, unchanged PCM and native readback",
+      "passed": true
+    },
+    {
+      "name": "stale package tree is refused without advancing counters",
+      "passed": true
+    },
+    {
+      "name": "nested empty package saves, duplicate sibling is refused, dry run leaves no rows",
+      "passed": true
+    },
+    {
+      "name": "class creation saves PeopleCode under its nested tree identity and reopens stored source",
+      "passed": true
+    },
+    {
+      "name": "normal class edit saves and stale PeopleCode edit is refused",
+      "passed": true
+    }
+  ],
+  "cleanupVerified": true,
+  "environment": {
+    "toolsRelease": "8.62",
+    "patchLevel": 9
+  },
+  "passed": true
+}

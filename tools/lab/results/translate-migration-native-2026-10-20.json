@@ -1,0 +1,9 @@
+{
+  "checkedAt": "2026-10-20T22:03:15.934Z",
+  "scope": "Disposable HRDMO character field with base translate values: export, vacant-target creation, update/add, target-only refusal and durable review; same database; trusted service test approval, not installed UI",
+  "field": "ZZ_BX66DC17F",
+  "project": "ZZ_BX66DC17P",
+  "checks": [],
+  "error": "Error: ZZ_BX66DC17F: advanced field properties are not supported by migration v1.\n    at portableField (/home/noodlesploder/repos/peoplesoft-studio/src/migrationPackage.ts:121:99)\n    at exportMigrationPackage (/home/noodlesploder/repos/peoplesoft-studio/src/migrationPackage.ts:334:53)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async <anonymous> (/home/noodlesploder/repos/peoplesoft-studio/tools/lab/translate-migration-native.mts:34:12)",
+  "cleanupVerified": true
+}

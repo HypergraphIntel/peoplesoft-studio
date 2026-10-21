@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-10-20T22:38:00Z",
+  "scope": "Windows Application Designer (HRDMO, PeopleTools 8.62) opening and natively re-saving definitions that Studio migration created: tools/lab/migration-app-designer-fixtures.mts built sources, exported the project, removed every row and imported the package (prefix ZZ_BVC176D7). Row snapshots are in tools/lab/results/migration-app-designer-check/*.json.",
+  "checks": [
+    {"name": "Application Package with subpackage UI and class Panel opens with the full tree", "evidence": "migration-app-designer-check/ad-package.png", "passed": true},
+    {"name": "Page copied from delivered HRS_APP_PRINT_PAGE opens and renders every control, group box, subpage and button", "evidence": "migration-app-designer-check/ad-page.png", "passed": true},
+    {"name": "App Designer native re-save of the migrated page leaves every migrated PSPNLFIELD row unchanged", "evidence": "migrated.json vs ad-page-saved.json", "passed": true,
+     "observed": "PSPNLDEFN VERSION/LASTUPDDTTM; App Designer also adds 59 PSPNLFIELDEXT and 6 PSPNLBTNDATA rows and blank-vs-null FFSTYLELONG, upgrading the delivered page's older storage format (the source page has 1 extension row for 60 controls). The migrated rows equal the source rows exactly; this is App Designer normalization of legacy rows, not a migration difference."},
+    {"name": "Component copied from delivered DEPEND_BENEF opens with its three pages; native re-save changes only VERSION and LASTUPDDTTM", "evidence": "migration-app-designer-check/ad-component.png; ad-page-saved.json vs ad-component-saved.json", "passed": true},
+    {"name": "Field with owner ID PPT, IME mode 1 and two translate values shows Owner ID PeopleTools and both values; two native saves change only VERSION/LASTUPDDTTM (and the holding record's VERSION, as in f06)", "evidence": "migration-app-designer-check/ad-field.png, ad-field-owner.png, ad-field-translates.png; ad-component-saved.json vs ad-field-saved.json", "passed": true},
+    {"name": "Field with custom format family shows Format Type Custom, Family PHONE, Display Name NORMAL", "evidence": "migration-app-designer-check/ad-field-format-family.png", "passed": true},
+    {"name": "Derived/Work record shows its field and the SRec row for ABS_HIST_GERSBR", "evidence": "migration-app-designer-check/ad-record-subrecord.png", "passed": true}
+  ],
+  "cleanup": "App Designer windows closed via Window > Close All (no save prompts); --cleanup removed every ZZ_BVC176D7 row; absence verified across page, component, field, translate, record, package, class, PeopleCode and project tables."
+}

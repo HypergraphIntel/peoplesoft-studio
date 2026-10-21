@@ -1,0 +1,228 @@
+{
+  "checkedAt": "2026-10-20T20:26:25.399Z",
+  "scope": "Actual Windows App Designer / HRDMO Oracle 8.62 deletion and native recreation of disposable SQLTYPE 0, HTML and freeform stylesheet definitions. Native scoped rows, tombstones and counters are captured. Nonlab row values omitted; global table-count observations retained. Production deletion writers and reviewed integration are not yet implemented.",
+  "names": {
+    "sql": "ZZ_PCODE_LAB_DSQ7",
+    "html": "ZZ_PCODE_LAB_DHT7",
+    "stylesheet": "ZZ_PCODE_LAB_DCS7"
+  },
+  "project": "ZZ_PCODE_LAB_DPR7",
+  "cases": [
+    {
+      "case": "td01-native-sql-delete",
+      "markers": {
+        "before": {
+          "scn": "39362810106695",
+          "timestamp": "2026-10-20T15:09:38.260692000-05:00"
+        },
+        "after": {
+          "scn": "39362810110474",
+          "timestamp": "2026-10-20T15:11:38.327946000-05:00"
+        }
+      },
+      "counters": {
+        "SRM": {
+          "before": 218,
+          "after": 219,
+          "delta": 1
+        },
+        "SYS": {
+          "before": 4148,
+          "after": 4149,
+          "delta": 1
+        }
+      },
+      "locks": {
+        "SRM": {
+          "before": 218,
+          "after": 219,
+          "delta": 1
+        }
+      }
+    },
+    {
+      "case": "td02-native-html-delete",
+      "markers": {
+        "before": {
+          "scn": "39362810112542",
+          "timestamp": "2026-10-20T15:12:25.911017000-05:00"
+        },
+        "after": {
+          "scn": "39362810114738",
+          "timestamp": "2026-10-20T15:13:36.511615000-05:00"
+        }
+      },
+      "counters": {
+        "CRM": {
+          "before": 65,
+          "after": 66,
+          "delta": 1
+        },
+        "SYS": {
+          "before": 4149,
+          "after": 4150,
+          "delta": 1
+        }
+      },
+      "locks": {
+        "CRM": {
+          "before": 65,
+          "after": 66,
+          "delta": 1
+        }
+      }
+    },
+    {
+      "case": "td03-native-css-delete",
+      "markers": {
+        "before": {
+          "scn": "39362810117111",
+          "timestamp": "2026-10-20T15:14:52.401699000-05:00"
+        },
+        "after": {
+          "scn": "39362810123248",
+          "timestamp": "2026-10-20T15:18:23.227832000-05:00"
+        }
+      },
+      "counters": {
+        "CRM": {
+          "before": 66,
+          "after": 67,
+          "delta": 1
+        },
+        "SSM": {
+          "before": 74,
+          "after": 75,
+          "delta": 1
+        },
+        "SYS": {
+          "before": 4150,
+          "after": 4151,
+          "delta": 1
+        }
+      },
+      "locks": {
+        "CRM": {
+          "before": 66,
+          "after": 67,
+          "delta": 1
+        },
+        "SSM": {
+          "before": 74,
+          "after": 75,
+          "delta": 1
+        }
+      }
+    },
+    {
+      "case": "td04-native-sql-recreate",
+      "markers": {
+        "before": {
+          "scn": "39362810124389",
+          "timestamp": "2026-10-20T15:19:04.838070000-05:00"
+        },
+        "after": {
+          "scn": "39362810126495",
+          "timestamp": "2026-10-20T15:20:21.178998000-05:00"
+        }
+      },
+      "counters": {
+        "SRM": {
+          "before": 219,
+          "after": 220,
+          "delta": 1
+        },
+        "SYS": {
+          "before": 4152,
+          "after": 4153,
+          "delta": 1
+        }
+      },
+      "locks": {
+        "SRM": {
+          "before": 219,
+          "after": 220,
+          "delta": 1
+        }
+      }
+    },
+    {
+      "case": "td05-native-html-recreate",
+      "markers": {
+        "before": {
+          "scn": "39362810127336",
+          "timestamp": "2026-10-20T15:20:46.005417000-05:00"
+        },
+        "after": {
+          "scn": "39362810132906",
+          "timestamp": "2026-10-20T15:21:54.970578000-05:00"
+        }
+      },
+      "counters": {
+        "CRM": {
+          "before": 67,
+          "after": 68,
+          "delta": 1
+        },
+        "SYS": {
+          "before": 4153,
+          "after": 4154,
+          "delta": 1
+        }
+      },
+      "locks": {
+        "CRM": {
+          "before": 67,
+          "after": 68,
+          "delta": 1
+        }
+      }
+    },
+    {
+      "case": "td06-native-css-recreate",
+      "markers": {
+        "before": {
+          "scn": "39362810133714",
+          "timestamp": "2026-10-20T15:22:18.198323000-05:00"
+        },
+        "after": {
+          "scn": "39362810136039",
+          "timestamp": "2026-10-20T15:23:38.979662000-05:00"
+        }
+      },
+      "counters": {
+        "SSM": {
+          "before": 75,
+          "after": 76,
+          "delta": 1
+        },
+        "SYS": {
+          "before": 4154,
+          "after": 4155,
+          "delta": 1
+        }
+      },
+      "locks": {
+        "SSM": {
+          "before": 75,
+          "after": 76,
+          "delta": 1
+        }
+      }
+    }
+  ],
+  "passed": true,
+  "cleanupVerified": true,
+  "originalProjectRestored": "ZZ_BENEFITS",
+  "originalPackageRestored": "ZZ_PCODE_LAB",
+  "originalSelectionRestored": "SUPPORT:SmokeTest",
+  "validation": {
+    "nativeProtocolChecks": 6,
+    "fullVerifyPassed": 2142,
+    "fullVerifySkipped": 1,
+    "activationSmoke": true,
+    "editorChecks": 18,
+    "packageChecks": 9,
+    "labHelperStrictTypecheck": true
+  }
+}

@@ -1,0 +1,5 @@
+RowType,ID,Description,Amount
+D,A001,"Alpha",10.25
+D,A002,"Bravo, Inc",20.50
+D,A004,"Quote ""Lab""",0.00
+T,3,"TOTAL",30.75

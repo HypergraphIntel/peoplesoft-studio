@@ -1,0 +1,120 @@
+{
+  "checkedAt": "2026-10-20T18:26:09.897Z",
+  "agent": "claude",
+  "requestId": "br-b6a1848629e9",
+  "program": "ZZ_BL_EXPORT",
+  "project": "ZZ_BL_PRJ",
+  "specRevision": 1,
+  "buildAuthorized": true,
+  "handoffRequested": {
+    "phase": "build",
+    "agent": "claude",
+    "at": "2026-10-20T16:52:47.511Z"
+  },
+  "metadataVerified": true,
+  "runtimeVerified": true,
+  "postingVerified": true,
+  "blockers": [],
+  "changeSet": {
+    "id": "31cd089a-a005-471d-ab6a-780803ab0931",
+    "revision": 5,
+    "objects": [
+      {
+        "adapter": "record-create",
+        "key": "ZZ_BL_AET",
+        "hash": "56c437826d64d6019f922ba1e6095d31709caa1ed7d5a2ac4f775b63afc07167",
+        "token": "e9cd02d315c41d24365ee18bfff5ab4f92a34c7496a6d55e3489a00a347439ac"
+      },
+      {
+        "adapter": "sql",
+        "key": "ZZ_BL_ROWS",
+        "hash": "056d87eae9aa33a4619a9f197bf08c1c10711df556a94f5f2b7cc832a0f54512",
+        "token": "216"
+      },
+      {
+        "adapter": "ae-create",
+        "key": "ZZ_BL_EXPORT",
+        "hash": "7752b7dd609e8b11a97914fac038096b78fc8702fb62d5d622eb4e332a5ac63d",
+        "token": "543b61b764e04785119875563ae30c7a1727d36e0757a6d33aead84f4b1e3b4c"
+      },
+      {
+        "adapter": "project-create",
+        "key": "ZZ_BL_PRJ",
+        "hash": "bc4f666f2cdaa9f9aba00b287f9374985208830daac152884fbc8bd68b7ebca9",
+        "token": "0d6678a84b5bf8c9158cb5b3c248fcbe83976f36d27fb4877eada18ff59d6d15"
+      }
+    ]
+  },
+  "process": {
+    "token": "92acf126a1105c661d5bce4af0a28a9360127f6407421491329bfc585eb44a08",
+    "input": {
+      "properties": {
+        "DESCR": "Synthetic handoff CSV",
+        "PRCSPRIORITY": "5",
+        "RUNLOCATION": "2",
+        "APIAWARE": "1",
+        "LOGRQST": "1",
+        "PRCSCATEGORY": "Default",
+        "SERVERNAME": "",
+        "RECURNAME": "",
+        "DESCRLONG": "",
+        "PARMLISTTYPE": "0",
+        "PARMLIST": "",
+        "CMDLINETYPE": "0",
+        "CMDLINE": "",
+        "WORKINGDIRTYPE": "0",
+        "WORKINGDIR": "",
+        "OUTDESTTYPE": "0",
+        "OUTDESTFORMAT": "",
+        "OUTDESTSRC": "3",
+        "OUTDEST": "",
+        "RESTARTENABLED": "0",
+        "RECVRYPRCSTYPE": "",
+        "RECVRYPRCSNAME": "",
+        "RETRYCOUNT": "0",
+        "MAXCONCURRENT": "0",
+        "TIMEOUTMINUTES": "0",
+        "RETENTIONDAYS": "0"
+      },
+      "components": [
+        "AE_REQUEST"
+      ],
+      "groups": [
+        "TLSALL"
+      ]
+    }
+  },
+  "closure": {
+    "project": "ZZ_BL_PRJ",
+    "members": 5,
+    "missing": 0,
+    "addable": [],
+    "notAddable": []
+  },
+  "distribution": {
+    "value": "5",
+    "label": "Posted to Web"
+  },
+  "nativeProcess": {
+    "PRCSINSTANCE": 607266,
+    "PRCSNAME": "ZZ_BL_EXPORT",
+    "SERVERNAMERUN": "HCMDMO",
+    "RUNSTATUS": "9",
+    "PRCSRTNCD": 0,
+    "DISTSTATUS": "5",
+    "RUNCNTLID": "ZZ_BL_ACC01"
+  },
+  "output": {
+    "directory": "/opt/psoft/hcm/ps_cfg_home/HRDMO/20261020/94854",
+    "file": "ZZ_BL_EXPORT.csv",
+    "bytes": 123,
+    "sha256": "62d92d414fc02901271744facb65c61b5d9bbecc6f7edfecc31fc734f11b6367",
+    "matchesExpected": true,
+    "utf8WithoutBom": true
+  },
+  "stdout": {
+    "sha256": "74ce9880f775c30196d2b3e4dd38f6837660289c014128dc505d94ebc712073f",
+    "expectedSummaryPresent": true,
+    "endedNormally": true
+  }
+}

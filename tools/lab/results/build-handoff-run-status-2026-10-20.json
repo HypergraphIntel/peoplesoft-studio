@@ -1,0 +1,205 @@
+{
+  "runs": [
+    {
+      "PRCSINSTANCE": 607266,
+      "PRCSNAME": "ZZ_BL_EXPORT",
+      "RUNCNTLID": "ZZ_BL_ACC01",
+      "SERVERNAMERUN": "HCMDMO",
+      "RUNSTATUS": "9",
+      "PRCSRTNCD": 0,
+      "DISTSTATUS": "4"
+    },
+    {
+      "PRCSINSTANCE": 607265,
+      "PRCSNAME": "ZZ_BC_EXPORT",
+      "RUNCNTLID": "ZZ_BC_ACC01",
+      "SERVERNAMERUN": "HCMDMO",
+      "RUNSTATUS": "9",
+      "PRCSRTNCD": 0,
+      "DISTSTATUS": "4"
+    }
+  ],
+  "controls": [
+    {
+      "OPRID": "JARED",
+      "RUN_CNTL_ID": "ZZ_BC_ACC01",
+      "AE_APPLID": "ZZ_BC_EXPORT",
+      "PROCESS_FREQUENCY": "O"
+    },
+    {
+      "OPRID": "JARED",
+      "RUN_CNTL_ID": "ZZ_BL_ACC01",
+      "AE_APPLID": "ZZ_BL_EXPORT",
+      "PROCESS_FREQUENCY": "O"
+    }
+  ],
+  "distributionLabels": [
+    {
+      "FIELDNAME": "DISTSTATUS",
+      "FIELDVALUE": "0",
+      "XLATLONGNAME": "None"
+    },
+    {
+      "FIELDNAME": "DISTSTATUS",
+      "FIELDVALUE": "1",
+      "XLATLONGNAME": "Scheduled"
+    },
+    {
+      "FIELDNAME": "DISTSTATUS",
+      "FIELDVALUE": "2",
+      "XLATLONGNAME": "Processing"
+    },
+    {
+      "FIELDNAME": "DISTSTATUS",
+      "FIELDVALUE": "3",
+      "XLATLONGNAME": "Generated"
+    },
+    {
+      "FIELDNAME": "DISTSTATUS",
+      "FIELDVALUE": "4",
+      "XLATLONGNAME": "Unable to Post"
+    },
+    {
+      "FIELDNAME": "DISTSTATUS",
+      "FIELDVALUE": "5",
+      "XLATLONGNAME": "Posted to Web"
+    },
+    {
+      "FIELDNAME": "DISTSTATUS",
+      "FIELDVALUE": "6",
+      "XLATLONGNAME": "Delete"
+    },
+    {
+      "FIELDNAME": "DISTSTATUS",
+      "FIELDVALUE": "7",
+      "XLATLONGNAME": "Posting"
+    },
+    {
+      "FIELDNAME": "DISTSTATUS",
+      "FIELDVALUE": "9",
+      "XLATLONGNAME": "Pending for Approval"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "1",
+      "XLATLONGNAME": "Cancel"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "10",
+      "XLATLONGNAME": "Not Successful"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "11",
+      "XLATLONGNAME": "Posted"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "12",
+      "XLATLONGNAME": "Unable to post"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "13",
+      "XLATLONGNAME": "Resend"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "14",
+      "XLATLONGNAME": "Posting"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "15",
+      "XLATLONGNAME": "Content Generated"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "16",
+      "XLATLONGNAME": "Pending"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "17",
+      "XLATLONGNAME": "Success With Warning"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "18",
+      "XLATLONGNAME": "Blocked"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "19",
+      "XLATLONGNAME": "Restart"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "2",
+      "XLATLONGNAME": "Delete"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "3",
+      "XLATLONGNAME": "Error"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "4",
+      "XLATLONGNAME": "Hold"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "5",
+      "XLATLONGNAME": "Queued"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "6",
+      "XLATLONGNAME": "Initiated"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "7",
+      "XLATLONGNAME": "Processing"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "8",
+      "XLATLONGNAME": "Cancelled"
+    },
+    {
+      "FIELDNAME": "RUNSTATUS",
+      "FIELDVALUE": "9",
+      "XLATLONGNAME": "Success"
+    }
+  ],
+  "reports": [
+    {
+      "PRCSINSTANCE": 607266,
+      "CONTENTID": 94854,
+      "DISTSTATUS": "4",
+      "PRCSOUTPUTDIR": "/mnt/nginx_shared/reports/HCMDMO/AE_ZZ_BL_EXPORT_607266",
+      "OUTPUTDIR": "HRDMO/20261020/94854"
+    },
+    {
+      "PRCSINSTANCE": 607265,
+      "CONTENTID": 94853,
+      "DISTSTATUS": "4",
+      "PRCSOUTPUTDIR": "/mnt/nginx_shared/reports/HCMDMO/AE_ZZ_BC_EXPORT_607265",
+      "OUTPUTDIR": "HRDMO/20261020/94853"
+    }
+  ],
+  "reportNode": [
+    {
+      "DISTNODENAME": "REPORTS_HCMDMO",
+      "PT_TRANSFR_PROTCOL": "HTTPS",
+      "URI_HOST": "hcm.deathstar.chickenkiller.com",
+      "URI_PORT": 443,
+      "URI_RESOURCE": "SchedulerTransfer/HCMDMO",
+      "URI_SCHEME": "https",
+      "URI_RPT": "https://hcm.deathstar.chickenkiller.com:443/psc/HCMDMO/EMPLOYEE/HRMS/c/CDM_RPT.CDM_RPT.GBL?Page=CDM_RPT_INDEX&Action=U&CDM_ID="
+    }
+  ]
+}

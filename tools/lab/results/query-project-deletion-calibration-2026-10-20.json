@@ -1,0 +1,459 @@
+{
+  "checkedAt": "2026-10-20T21:29:17.459Z",
+  "scope": "Actual Windows App Designer project deletion/native New recreation and Windows Query public/private deletion/native Save As recreation on HRDMO Oracle 8.62. Scoped rows and native markers/counters captured; nonlab row values omitted. This calibrates protocol, not implemented production deletion writers or reviewed creation reversal.",
+  "names": {
+    "public": "ZZ_PCODE_LAB_DQP8",
+    "private": "ZZ_PCODE_LAB_DQJ8",
+    "project": "ZZ_PCODE_LAB_DPR8"
+  },
+  "operatorId": "JARED",
+  "cases": [
+    {
+      "case": "qp01-native-project-delete",
+      "markers": {
+        "before": {
+          "scn": "39362810241683",
+          "timestamp": "2026-10-20T16:17:45.559019000-05:00"
+        },
+        "after": {
+          "scn": "39362810244241",
+          "timestamp": "2026-10-20T16:19:07.923752000-05:00"
+        }
+      },
+      "counters": {
+        "PJM": {
+          "before": 190,
+          "after": 191,
+          "delta": 1
+        },
+        "SYS": {
+          "before": 4284,
+          "after": 4285,
+          "delta": 1
+        }
+      },
+      "locks": {
+        "PJM": {
+          "before": 190,
+          "after": 191,
+          "delta": 1
+        }
+      },
+      "changed": {
+        "PSPROJECTDEFN": {
+          "inserted": 0,
+          "deleted": 1,
+          "updated": 0
+        },
+        "PSPROJECTITEM": {
+          "inserted": 0,
+          "deleted": 2,
+          "updated": 0
+        },
+        "PSVERSION": {
+          "inserted": 0,
+          "deleted": 0,
+          "updated": 2
+        },
+        "PSLOCK": {
+          "inserted": 0,
+          "deleted": 0,
+          "updated": 1
+        },
+        "PSPROJECTDEL": {
+          "inserted": 1,
+          "deleted": 0,
+          "updated": 0
+        }
+      }
+    },
+    {
+      "case": "qp02-native-project-recreate",
+      "markers": {
+        "before": {
+          "scn": "39362810245553",
+          "timestamp": "2026-10-20T16:19:58.431694000-05:00"
+        },
+        "after": {
+          "scn": "39362810246794",
+          "timestamp": "2026-10-20T16:20:40.317745000-05:00"
+        }
+      },
+      "counters": {
+        "PJM": {
+          "before": 191,
+          "after": 192,
+          "delta": 1
+        },
+        "SYS": {
+          "before": 4285,
+          "after": 4286,
+          "delta": 1
+        }
+      },
+      "locks": {
+        "PJM": {
+          "before": 191,
+          "after": 192,
+          "delta": 1
+        }
+      },
+      "changed": {
+        "PSPROJECTDEFN": {
+          "inserted": 1,
+          "deleted": 0,
+          "updated": 0
+        },
+        "PSVERSION": {
+          "inserted": 0,
+          "deleted": 0,
+          "updated": 2
+        },
+        "PSLOCK": {
+          "inserted": 0,
+          "deleted": 0,
+          "updated": 1
+        },
+        "PSPROJECTDEL": {
+          "inserted": 0,
+          "deleted": 1,
+          "updated": 0
+        }
+      }
+    },
+    {
+      "case": "qp03-native-public-query-delete",
+      "markers": {
+        "before": {
+          "scn": "39362810252314",
+          "timestamp": "2026-10-20T16:21:21.883084000-05:00"
+        },
+        "after": {
+          "scn": "39362810254015",
+          "timestamp": "2026-10-20T16:22:28.442967000-05:00"
+        }
+      },
+      "counters": {
+        "QDM": {
+          "before": 36,
+          "after": 37,
+          "delta": 1
+        },
+        "SYS": {
+          "before": 4286,
+          "after": 4287,
+          "delta": 1
+        }
+      },
+      "locks": {
+        "QDM": {
+          "before": 36,
+          "after": 37,
+          "delta": 1
+        }
+      },
+      "changed": {
+        "PSVERSION": {
+          "inserted": 0,
+          "deleted": 0,
+          "updated": 2
+        },
+        "PSLOCK": {
+          "inserted": 0,
+          "deleted": 0,
+          "updated": 1
+        },
+        "PSQRYDEFN": {
+          "inserted": 0,
+          "deleted": 1,
+          "updated": 0
+        },
+        "PSQRYDEL": {
+          "inserted": 1,
+          "deleted": 0,
+          "updated": 0
+        },
+        "PSQRYFIELD": {
+          "inserted": 0,
+          "deleted": 1,
+          "updated": 0
+        },
+        "PSQRYRECORD": {
+          "inserted": 0,
+          "deleted": 1,
+          "updated": 0
+        },
+        "PSQRYSELECT": {
+          "inserted": 0,
+          "deleted": 1,
+          "updated": 0
+        }
+      }
+    },
+    {
+      "case": "qp04-native-public-query-recreate",
+      "markers": {
+        "before": {
+          "scn": "39362810255303",
+          "timestamp": "2026-10-20T16:23:13.827976000-05:00"
+        },
+        "after": {
+          "scn": "39362810256818",
+          "timestamp": "2026-10-20T16:23:59.596053000-05:00"
+        }
+      },
+      "counters": {
+        "QDM": {
+          "before": 38,
+          "after": 39,
+          "delta": 1
+        },
+        "SYS": {
+          "before": 4288,
+          "after": 4289,
+          "delta": 1
+        }
+      },
+      "locks": {
+        "QDM": {
+          "before": 38,
+          "after": 39,
+          "delta": 1
+        }
+      },
+      "changed": {
+        "PSVERSION": {
+          "inserted": 0,
+          "deleted": 0,
+          "updated": 2
+        },
+        "PSLOCK": {
+          "inserted": 0,
+          "deleted": 0,
+          "updated": 1
+        },
+        "PSQRYBIND": {
+          "inserted": 1,
+          "deleted": 0,
+          "updated": 0
+        },
+        "PSQRYCRITERIA": {
+          "inserted": 1,
+          "deleted": 0,
+          "updated": 0
+        },
+        "PSQRYDEFN": {
+          "inserted": 1,
+          "deleted": 0,
+          "updated": 0
+        },
+        "PSQRYDEL": {
+          "inserted": 0,
+          "deleted": 1,
+          "updated": 0
+        },
+        "PSQRYEXPR": {
+          "inserted": 1,
+          "deleted": 0,
+          "updated": 0
+        },
+        "PSQRYFIELD": {
+          "inserted": 1,
+          "deleted": 0,
+          "updated": 0
+        },
+        "PSQRYRECORD": {
+          "inserted": 1,
+          "deleted": 0,
+          "updated": 0
+        },
+        "PSQRYSELECT": {
+          "inserted": 1,
+          "deleted": 0,
+          "updated": 0
+        }
+      }
+    },
+    {
+      "case": "qp05-native-private-query-delete",
+      "markers": {
+        "before": {
+          "scn": "39362810257637",
+          "timestamp": "2026-10-20T16:24:22.950881000-05:00"
+        },
+        "after": {
+          "scn": "39362810259017",
+          "timestamp": "2026-10-20T16:25:18.366667000-05:00"
+        }
+      },
+      "counters": {
+        "QDM": {
+          "before": 39,
+          "after": 40,
+          "delta": 1
+        },
+        "SYS": {
+          "before": 4289,
+          "after": 4290,
+          "delta": 1
+        }
+      },
+      "locks": {
+        "QDM": {
+          "before": 39,
+          "after": 40,
+          "delta": 1
+        }
+      },
+      "changed": {
+        "PSVERSION": {
+          "inserted": 0,
+          "deleted": 0,
+          "updated": 2
+        },
+        "PSLOCK": {
+          "inserted": 0,
+          "deleted": 0,
+          "updated": 1
+        },
+        "PSQRYBIND": {
+          "inserted": 0,
+          "deleted": 1,
+          "updated": 0
+        },
+        "PSQRYCRITERIA": {
+          "inserted": 0,
+          "deleted": 1,
+          "updated": 0
+        },
+        "PSQRYDEFN": {
+          "inserted": 0,
+          "deleted": 1,
+          "updated": 0
+        },
+        "PSQRYDEL": {
+          "inserted": 1,
+          "deleted": 0,
+          "updated": 0
+        },
+        "PSQRYEXPR": {
+          "inserted": 0,
+          "deleted": 1,
+          "updated": 0
+        },
+        "PSQRYFIELD": {
+          "inserted": 0,
+          "deleted": 1,
+          "updated": 0
+        },
+        "PSQRYRECORD": {
+          "inserted": 0,
+          "deleted": 1,
+          "updated": 0
+        },
+        "PSQRYSELECT": {
+          "inserted": 0,
+          "deleted": 1,
+          "updated": 0
+        }
+      }
+    },
+    {
+      "case": "qp06-native-private-query-recreate",
+      "markers": {
+        "before": {
+          "scn": "39362810260116",
+          "timestamp": "2026-10-20T16:25:49.705042000-05:00"
+        },
+        "after": {
+          "scn": "39362810262204",
+          "timestamp": "2026-10-20T16:27:16.150660000-05:00"
+        }
+      },
+      "counters": {
+        "QDM": {
+          "before": 40,
+          "after": 41,
+          "delta": 1
+        },
+        "SYS": {
+          "before": 4290,
+          "after": 4291,
+          "delta": 1
+        }
+      },
+      "locks": {
+        "QDM": {
+          "before": 40,
+          "after": 41,
+          "delta": 1
+        }
+      },
+      "changed": {
+        "PSVERSION": {
+          "inserted": 0,
+          "deleted": 0,
+          "updated": 2
+        },
+        "PSLOCK": {
+          "inserted": 0,
+          "deleted": 0,
+          "updated": 1
+        },
+        "PSQRYBIND": {
+          "inserted": 1,
+          "deleted": 0,
+          "updated": 0
+        },
+        "PSQRYCRITERIA": {
+          "inserted": 1,
+          "deleted": 0,
+          "updated": 0
+        },
+        "PSQRYDEFN": {
+          "inserted": 1,
+          "deleted": 0,
+          "updated": 0
+        },
+        "PSQRYDEL": {
+          "inserted": 0,
+          "deleted": 1,
+          "updated": 0
+        },
+        "PSQRYEXPR": {
+          "inserted": 1,
+          "deleted": 0,
+          "updated": 0
+        },
+        "PSQRYFIELD": {
+          "inserted": 1,
+          "deleted": 0,
+          "updated": 0
+        },
+        "PSQRYRECORD": {
+          "inserted": 1,
+          "deleted": 0,
+          "updated": 0
+        },
+        "PSQRYSELECT": {
+          "inserted": 1,
+          "deleted": 0,
+          "updated": 0
+        }
+      }
+    }
+  ],
+  "passed": true,
+  "cleanupVerified": true,
+  "runtimeBundleUnchanged": true,
+  "runtimeBundleSha256": "8dae01cb0940cddde2116dd71b16c3eae0e62444907bc5ecbbc89f1c834ad19a",
+  "nativeViewRestored": "query-project-native-restored-2026-10-20.png",
+  "validation": {
+    "nativeProtocolTests": 6,
+    "unitTestsPassed": 2155,
+    "unitTestsSkipped": 1,
+    "editorChecks": 18,
+    "packageChecks": 9,
+    "strictHelperTypecheck": true
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "checkedAt": "2026-10-20T16:14:51.193Z",
+  "scope": "Real installed CLI routing/read-only approval refusal using a per-session endpoint override; no installed button, review application or runtime claim",
+  "clients": [
+    {
+      "agent": "claude",
+      "requestId": "br-b6a1848629e9",
+      "exitCode": 0,
+      "observedGetCalls": 1,
+      "buildAuthorized": false,
+      "passed": true,
+      "privateTranscript": "/tmp/psft-handoff-client-bsBqjJ/claude.jsonl"
+    },
+    {
+      "agent": "codex",
+      "requestId": "br-b7ed22ea1caa",
+      "exitCode": 0,
+      "observedGetCalls": 1,
+      "buildAuthorized": false,
+      "observedAt": "2026-10-20T16:14:55.958Z",
+      "passed": true,
+      "privateTranscript": "/tmp/psft-handoff-client-pMu7Oy/codex.jsonl"
+    }
+  ],
+  "passed": true
+}

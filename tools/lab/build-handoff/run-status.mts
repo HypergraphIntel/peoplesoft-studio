@@ -1,0 +1,14 @@
+/** Read-only status for the two installed-client synthetic acceptance runs. */
+import oracledb from 'oracledb';
+const connectString = process.env.PSLAB_ORACLE ?? '127.0.0.1:15210/hrdmo';
+if (!/hrdmo/i.test(connectString)) throw Error('HRDMO only.');
+const c = await oracledb.getConnection({ user: process.env.PSLAB_ACCESSID, password: process.env.PSLAB_ACCESSPSWD, connectString });
+try {
+  await c.execute('SET TRANSACTION READ ONLY');
+  const q = async (sql: string) => (await c.execute(sql, {}, { outFormat: oracledb.OUT_FORMAT_OBJECT })).rows;
+  console.log(JSON.stringify({ runs: await q("SELECT PRCSINSTANCE,PRCSNAME,RUNCNTLID,SERVERNAMERUN,RUNSTATUS,PRCSRTNCD,DISTSTATUS FROM SYSADM.PSPRCSQUE WHERE PRCSNAME IN ('ZZ_BC_EXPORT','ZZ_BL_EXPORT') ORDER BY PRCSINSTANCE DESC"),
+    controls: await q("SELECT OPRID,RUN_CNTL_ID,AE_APPLID,PROCESS_FREQUENCY FROM SYSADM.PS_AEREQUESTTBL WHERE OPRID='JARED' AND AE_APPLID IN ('ZZ_BC_EXPORT','ZZ_BL_EXPORT')"),
+    distributionLabels: await q("SELECT FIELDNAME,FIELDVALUE,XLATLONGNAME FROM SYSADM.PSXLATITEM WHERE FIELDNAME IN ('DISTSTATUS','RUNSTATUS') ORDER BY FIELDNAME,FIELDVALUE"),
+    reports: await q("SELECT PRCSINSTANCE,CONTENTID,DISTSTATUS,PRCSOUTPUTDIR,OUTPUTDIR FROM SYSADM.PS_CDM_LIST WHERE PRCSINSTANCE IN (SELECT PRCSINSTANCE FROM SYSADM.PSPRCSQUE WHERE PRCSNAME IN ('ZZ_BC_EXPORT','ZZ_BL_EXPORT'))"),
+    reportNode: await q("SELECT DISTNODENAME,PT_TRANSFR_PROTCOL,URI_HOST,URI_PORT,URI_RESOURCE,URI_SCHEME,URI_RPT FROM SYSADM.PS_CDM_DIST_NODE WHERE DISTNODENAME IN (SELECT DISTNODENAME FROM SYSADM.PS_SERVERDEFN WHERE SERVERNAME='HCMDMO')") }, null, 2));
+} finally { await c.rollback(); await c.close(); }

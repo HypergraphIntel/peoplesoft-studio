@@ -1,0 +1,15 @@
+{
+  "checks": [
+    "PeopleCode enables inline suggestions by default; typing an opening parenthesis renders the complete call without changing the document",
+    "Physical Tab accepts the full call once and selects the first editable argument",
+    "Argument tab stops are editable and the optional comma/binds segment can be removed together",
+    "The preview setting disables ghost calls while standard signature help remains available"
+  ],
+  "passed": true,
+  "scope": "Installed unmodified extension; rendered ghost text and physical Tab in unsaved PeopleCode; no database access or saves",
+  "bundleSha256": "c278dad29c0eb25cfe62149e44fe4cc13fd9845a4523581e6e5f76607f520639",
+  "bundleUnmodified": true,
+  "archiveMatchesTestedBundle": true,
+  "archiveSha256": "7b10c810bedaf630c475347a1d7ee3ad3b7e45d0fdbb80b5a08ae771b16fd66b",
+  "archivePath": "/tmp/peoplesoft-studio-inline-preview.vsix"
+}

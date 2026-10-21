@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-10-20T19:08:09.154Z",
+  "scope": "Disposable HRDMO standard/popup menus including native ItemSelected binary and transfers; no permission-list changes; same-database source/vacant target; trusted service approval, not installed UI",
+  "names": [
+    "ZZ_BMD7CEE3S",
+    "ZZ_BMD7CEE3U"
+  ],
+  "project": "ZZ_BMD7CEE3P",
+  "checks": [
+    "Complete menu export preserves items, transfer, comments and authoritative ItemSelected source without installation stamps",
+    "Vacant target native rollback previews leave menus absent and reviewed dependency order restores both scopes exactly",
+    "Unchanged import preserves native menu/PeopleCode/project counters",
+    "Existing menu item removal and group edits are blocked before writes; unversioned metadata drift changes the full token"
+  ],
+  "changeSet": "7f7d84bb-a1c2-4d7e-8088-102b3d46a88d",
+  "passed": true,
+  "cleanupVerified": true
+}

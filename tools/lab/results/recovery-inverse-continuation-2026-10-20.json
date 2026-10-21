@@ -1,0 +1,24 @@
+{
+  "checkedAt": "2026-10-20T19:59:24.536Z",
+  "scope": "Disposable HRDMO interrupted inverse with test-injected lost reply after actual native AE deletion, reconciliation, fresh remaining inverse approval and complete redo; trusted service test approval, not installed UI",
+  "record": "ZZ_BR06F7R",
+  "program": "ZZ_BR06F7A",
+  "checks": [
+    "Native one-object apply creates only the record; continuation requires fresh approval and preserves its checkpoint",
+    "Continuation applies AE and retains exact native binary/text checkpoint plus record prerequisite",
+    "Lost AE deletion reply stops undo before Record deletion and leaves forward histories unreverted",
+    "Live reconciliation confirms committed deletion without replay; schema-4 continuation includes only the untouched Record inverse",
+    "Combined inverse deletes AE before the state record and verifies native tombstones with both definitions absent",
+    "Fresh redo recreates typed definitions through calibrated writers, removes native tombstones and matches both complete checkpoints"
+  ],
+  "inverseRoot": "42d6796f-e7d2-420d-8c64-5f23452adfe8",
+  "nativeAeDeletionWrites": 1,
+  "sets": [
+    "c54f25bf-0e68-4474-b27b-08702256d093",
+    "fd268163-7539-412c-a4cb-76825dd45654",
+    "51e86c9c-961f-45d6-9eb8-427200641979",
+    "93ebd762-6fe3-4b27-bcc0-1c2aa0a5f093"
+  ],
+  "passed": true,
+  "cleanupVerified": true
+}

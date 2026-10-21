@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-10-20T21:12:40.690Z",
+  "scope": "Unmodified installed production VSIX; actual HRDMO complete text writers, private history, rendered developer controls and full native readback. Original window never reloaded.",
+  "bundleSha256": "8dae01cb0940cddde2116dd71b16c3eae0e62444907bc5ecbbc89f1c834ad19a",
+  "sqlCommentCharacters": 19200,
+  "names": {
+    "sql": "ZZ_BU17DB07S",
+    "stylesheet": "ZZ_BU17DB07C",
+    "html": "ZZ_BU17DB07H"
+  },
+  "checks": [
+    "Installed MCP stages complete SQL/CSS/HTML without persistence; full SQL metadata remains reviewable",
+    "Rendered approval-only and one-object pause create SQL with full long comments and owner, leaving content absent",
+    "Rendered remaining work and fresh primary approval apply CSS before its referring HTML with exact complete checkpoints",
+    "Rendered destructive approval can pause after HTML deletion without reverting incomplete source histories",
+    "Fresh rendered schema-4 undo continuation checks the deleted HTML prerequisite and deletes only remaining CSS/SQL",
+    "Rendered fresh redo from original history restores all metadata/text and clears calibrated tombstones"
+  ],
+  "changeSets": [
+    "f49760a7-4467-4832-94a2-260f0748dd41",
+    "01f94877-f132-4888-b2e2-c29822aa2fcc",
+    "de2cc3b7-2a31-4300-a30d-b2fa9f56f570",
+    "7697ca4b-713f-48c4-8762-92f87e4a4901",
+    "86c91d90-2376-4673-ba3b-5d05dfbb0ede"
+  ],
+  "passed": true,
+  "cleanupVerified": true,
+  "bundleUnmodified": true,
+  "archiveMatchesTestedBundle": true,
+  "archiveSha256": "1aed513810bf918e606227741d5efc775473a39026959bc9b492156b250e1ae8",
+  "archivePath": "/tmp/peoplesoft-studio-text-reversal.vsix"
+}

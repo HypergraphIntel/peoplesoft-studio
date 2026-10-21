@@ -1,0 +1,43 @@
+{
+  "checkedAt": "2026-10-20T21:07:47.107Z",
+  "scope": "Disposable Oracle 8.62 provider/native transactions, rollback previews, guarded deletion, tombstone-aware recreation and complete portable checkpoints; not installed UI",
+  "names": {
+    "sql": "ZZ_BTF067CFS",
+    "html": "ZZ_BTF067CFH",
+    "stylesheet": "ZZ_BTF067CFC"
+  },
+  "project": "ZZ_BTF067CFP",
+  "reference": "ZZ_BTF067CFX",
+  "checks": [
+    "sql preview rolls back native rows/counters; create preserves full metadata and multi-chunk Unicode content",
+    "sql stale full token refuses deletion without mutation",
+    "Native project membership and stored SQL macro references refuse deletion; proposed assumptions cannot commit",
+    "sql deletion preview rolls back; committed deletion writes the calibrated marker scope",
+    "sql explicit redo preview restores tombstone baseline on rollback; redo clears markers and reproduces the complete checkpoint",
+    "html preview rolls back native rows/counters; create preserves full metadata and multi-chunk Unicode content",
+    "html stale full token refuses deletion without mutation",
+    "html deletion preview rolls back; committed deletion writes the calibrated marker scope",
+    "html explicit redo preview restores tombstone baseline on rollback; redo clears markers and reproduces the complete checkpoint",
+    "stylesheet preview rolls back native rows/counters; create preserves full metadata and multi-chunk Unicode content",
+    "stylesheet stale full token refuses deletion without mutation",
+    "stylesheet deletion preview rolls back; committed deletion writes the calibrated marker scope",
+    "stylesheet explicit redo preview restores tombstone baseline on rollback; redo clears markers and reproduces the complete checkpoint",
+    "Complete text proposals retain metadata without writing and require fresh approval",
+    "Native one-object pause verifies SQL metadata; unchanged-VERSION comment drift blocks remaining work",
+    "Fresh native continuation creates CSS before its referring HTML and verifies complete checkpoints",
+    "Combined text inverse validates declared content dependencies and stops safely after a lost committed deletion reply",
+    "Reconciliation never repeats the committed HTML deletion; remaining CSS/SQL undo needs fresh destructive approval",
+    "Fresh redo from original source history restores all three complete native checkpoints and removes every tombstone",
+    "Concurrent native SQL and stylesheet saves serialize shared counters and preserve both full after-images"
+  ],
+  "reviewSets": [
+    "a385dba4-ea4f-484d-802f-1c76d18e2e43",
+    "3b50dd64-e6d5-42c8-9137-8e3a3815a755",
+    "21a85aab-a37e-48e2-8463-4b2c295e1f42",
+    "0f7a91ce-18a6-4f89-a8cd-5a45f7683d5b",
+    "f210ea31-2646-4d06-b158-dbe8855debda"
+  ],
+  "htmlDeletionWrites": 1,
+  "passed": true,
+  "cleanupVerified": true
+}

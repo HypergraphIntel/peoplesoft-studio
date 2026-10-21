@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-10-21T12:21:02.454Z",
+  "scope": "Disposable HRDMO Derived/Work record holding a field, the delivered subrecord ABS_HIST_GERSBR (read only) and a new SubRecord definition in the same project: export, vacant-target creation (SubRecord first) with PSRECFIELDDB expansion, unchanged repeat and durable review; same database; trusted service test approval, not installed UI",
+  "record": "ZZ_BSCC7AF5W",
+  "ownSubrecord": "ZZ_BSCC7AF5S",
+  "project": "ZZ_BSCC7AF5P",
+  "sub": "ABS_HIST_GERSBR",
+  "checks": [
+    "Export carries the SubRecord definition and the record's plain subrecord rows; only the delivered subrecord is a prerequisite",
+    "Vacant-target apply creates the SubRecord, then the record with both subrecord rows and the same expanded PSRECFIELDDB rows",
+    "Unchanged repeat import writes nothing",
+    "Durable migration review stages the SubRecord, record and project without writing; approved dependency-ordered apply verifies all"
+  ],
+  "changeSet": "4dbc1446-3fe5-4b0d-9976-cf1de523d1e3",
+  "passed": true,
+  "cleanupVerified": true
+}

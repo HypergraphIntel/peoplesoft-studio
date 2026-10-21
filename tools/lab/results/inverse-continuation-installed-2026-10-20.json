@@ -1,0 +1,28 @@
+{
+  "checkedAt": "2026-10-20T20:03:19.498Z",
+  "bundleSha256": "e468c0a3fef05120bd2ad839996dea19651a345f0703877d60fb34500b32859d",
+  "record": "ZZ_BI5FC3C6R",
+  "program": "ZZ_BI5FC3C6A",
+  "scope": "Separate installed production VSIX, private history; actual HRDMO writers; native Import file/environment pickers and rendered developer review controls for disposable synthetic fixtures; original window never reloaded",
+  "checks": [
+    "Installed Import command opens durable exact target review without writes; rendered primary action applies both menus and project",
+    "Rendered Approve only then Apply one pauses after the native record and leaves AE absent",
+    "Fresh installed continuation retains prerequisite, requires new rendered approval and verifies complete AE source/binary",
+    "Installed undo can pause after native AE deletion without marking forward histories reverted",
+    "Rendered remaining-work action opens schema-4 undo; deletion consent survives identical refresh, fresh approval deletes only Record and completes both histories",
+    "Rendered redo from original source history restores both complete native checkpoints"
+  ],
+  "migrationSet": "88cd06e2-27ea-4082-86c0-05148c0ca934",
+  "inverseRoot": "b4cd92c2-72a1-43c1-8c09-1b998df48d50",
+  "recoverySets": [
+    "4177867b-d38a-4d62-8819-f9724fe78c3d",
+    "6004e489-788b-45dc-a24a-6a21555e5030",
+    "ccd9ce22-355d-4a0b-87db-0db69901cb24",
+    "b3163913-1316-4e8a-96e0-a3b0129d8c9d"
+  ],
+  "passed": true,
+  "cleanupVerified": true,
+  "archiveMatchesTestedBundle": true,
+  "archiveSha256": "476402402ad5d488bd9d757fd91378222e884123b556d1b09b097d4354c04c70",
+  "archivePath": "/tmp/peoplesoft-studio-inverse-continuation.vsix"
+}

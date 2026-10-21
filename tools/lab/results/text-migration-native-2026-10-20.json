@@ -1,0 +1,41 @@
+{
+  "checkedAt": "2026-10-20T18:53:03.260Z",
+  "scope": "Disposable HRDMO native provider/writer and durable ReviewService; test approval via service API, not installed UI; same database source/vacant target",
+  "prefix": "ZZ_BM_A97D5C",
+  "checks": [
+    "Native export preserves multi-chunk Unicode HTML/CSS and authoritative PeopleCode with owners as prerequisites",
+    "Vacant target creates each payload and project through production migration writers with full readback",
+    "Unchanged repeat import does not save definitions or bump native counters",
+    "Native unchanged-VERSION content metadata edit invalidates both preview and locked writer",
+    "Complete native migration stages without writing; exact fresh review applies all three definitions then target project",
+    "Native Record-only project export includes its associated stored PeopleCode without adding a separate project member"
+  ],
+  "changeSet": {
+    "id": "2451bd7b-5cf5-4a9c-979d-612e8ed591f0",
+    "revision": 5,
+    "objects": [
+      {
+        "adapter": "migration-html",
+        "operation": "CREATE",
+        "verified": "25b6f00519ff60521bc6ef81b0de976426d912484532003857f22395a1b03b02"
+      },
+      {
+        "adapter": "migration-stylesheet",
+        "operation": "CREATE",
+        "verified": "aa3fcad95d4c13015f78b642e8fac049d668393f39ac9a9adc55cdee87deb28a"
+      },
+      {
+        "adapter": "migration-peoplecode",
+        "operation": "CREATE",
+        "verified": "4e2042f95abf8613e6f55ef720c7a8df1db071a8d300fa1df31fa5cfcd7561be"
+      },
+      {
+        "adapter": "migration-project",
+        "operation": "CREATE",
+        "verified": "0036a0e15d2c94e363ebfa14dfe1c091786df3c5fa0f916b2654a772d2ab8b0e"
+      }
+    ]
+  },
+  "passed": true,
+  "cleanupVerified": true
+}

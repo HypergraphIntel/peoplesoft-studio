@@ -1,0 +1,104 @@
+{
+  "checkedAt": "2026-10-20T15:22:01.256Z",
+  "scope": "Native Oracle HRDMO provider pipeline; same database source/vacant-target import, no App Designer claim",
+  "project": "ZZ_MIG_759CDE35_P",
+  "sql": "ZZ_MIG_759CDE35_S",
+  "checks": [
+    {
+      "name": "Native project export round-trips complete SQL payload without local stamps",
+      "passed": true
+    },
+    {
+      "name": "Vacant target preview binds native identity and classifies SQL creation",
+      "passed": true
+    },
+    {
+      "name": "Create import commits SQL and project membership with independent full-CLOB/hash readback",
+      "passed": true
+    },
+    {
+      "name": "Repeated import is unchanged and does not advance SQL/project counters",
+      "passed": true
+    },
+    {
+      "name": "Update preview shows target text and all changed properties",
+      "passed": true
+    },
+    {
+      "name": "Imported SQL executes through the read-only native query path",
+      "passed": true
+    },
+    {
+      "name": "A concurrent native SQL save invalidates the entire preview before migration writes",
+      "passed": true
+    },
+    {
+      "name": "Native writer rejects metadata drift even when SQL VERSION did not move",
+      "passed": true
+    },
+    {
+      "name": "Concurrent target project membership invalidates the preview",
+      "passed": true
+    },
+    {
+      "name": "Fresh preview resumes the SQL update and preserves unrelated target project members",
+      "passed": true
+    },
+    {
+      "name": "Effective-dated SQL cannot be exported through a preferred display variant",
+      "passed": true
+    }
+  ],
+  "environment": {
+    "toolsRelease": "8.62",
+    "patchLevel": 9
+  },
+  "countersBefore": [
+    {
+      "OBJECTTYPENAME": "PJM",
+      "VERSION": 123
+    },
+    {
+      "OBJECTTYPENAME": "SRM",
+      "VERSION": 208
+    },
+    {
+      "OBJECTTYPENAME": "SYS",
+      "VERSION": 3943
+    }
+  ],
+  "packageChecksum": "70777c4218716f6377d20f94bec35944d11a141fb2addba6855c639a36593826",
+  "creationReadback": {
+    "version": 210,
+    "textCharacters": 7059,
+    "commentCharacters": 24020,
+    "hashMatches": true
+  },
+  "updateReadback": {
+    "version": 212,
+    "textCharacters": 7059,
+    "commentCharacters": 24020,
+    "hashMatches": true
+  },
+  "runtime": {
+    "rows": 1,
+    "result": "migration-ok",
+    "readOnly": true
+  },
+  "passed": true,
+  "cleanup": "All uniquely owned lab SQL/project rows absent; version counters retained.",
+  "countersAfter": [
+    {
+      "OBJECTTYPENAME": "PJM",
+      "VERSION": 128
+    },
+    {
+      "OBJECTTYPENAME": "SRM",
+      "VERSION": 215
+    },
+    {
+      "OBJECTTYPENAME": "SYS",
+      "VERSION": 3955
+    }
+  ]
+}

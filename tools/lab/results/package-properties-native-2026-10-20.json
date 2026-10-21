@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-10-21T12:21:55.936Z",
+  "scope": "HRDMO Application Package ZZ_PCODE_LAB_PK saved by Windows App Designer with Package Properties (pk01) and a second subpackage (pk02): export, removal, vacant-target creation compared row for row with App Designer, unchanged repeat, property-only update and durable review; same database; trusted service test approval, not installed UI",
+  "root": "ZZ_PCODE_LAB_PK",
+  "project": "ZZ_PCODE_LAB_PKP",
+  "checks": [
+    "Export carries the root description, comments and owner ID App Designer saved, and both subpackages",
+    "Vacant-target apply recreates every PSPACKAGEDEFN row equal to App Designer, apart from version stamps",
+    "Unchanged repeat import writes nothing and preserves APM/PJM counters",
+    "A property-only difference is saved by the Package Properties writer: APM/SYS +1, every row at the new version",
+    "Subpackage owner IDs refuse export (no App Designer path sets them)",
+    "Durable migration review stages the package with its properties and the project; approved apply reproduces App Designer rows"
+  ],
+  "sourceRestoredFromCapture": "pk02-native-subpackage-under-owned-root/after.json",
+  "appDesignerRows": [
+    "{\"DESCR\":\" \",\"DESCRLONG\":null,\"OBJECTOWNERID\":\" \",\"PACKAGEID\":\"SUB\",\"PACKAGELEVEL\":1,\"PACKAGEREF\":\" \",\"PACKAGEROOT\":\"ZZ_PCODE_LAB_PK\",\"QUALIFYPATH\":\":\"}",
+    "{\"DESCR\":\" \",\"DESCRLONG\":null,\"OBJECTOWNERID\":\" \",\"PACKAGEID\":\"SUB2\",\"PACKAGELEVEL\":1,\"PACKAGEREF\":\" \",\"PACKAGEROOT\":\"ZZ_PCODE_LAB_PK\",\"QUALIFYPATH\":\":\"}",
+    "{\"DESCR\":\"Capture package\",\"DESCRLONG\":\"Capture comments\",\"OBJECTOWNERID\":\"PPTD\",\"PACKAGEID\":\"ZZ_PCODE_LAB_PK\",\"PACKAGELEVEL\":0,\"PACKAGEREF\":\" \",\"PACKAGEROOT\":\"ZZ_PCODE_LAB_PK\",\"QUALIFYPATH\":\".\"}"
+  ],
+  "changeSet": "e65aad34-b201-4371-b90e-d774e8931a25",
+  "passed": true,
+  "cleanupVerified": true
+}

@@ -1,0 +1,41 @@
+{
+  "reviewedAt": "2026-10-20T17:01:47.005Z",
+  "phase": "Independent audit after delegated UI application",
+  "agent": "codex",
+  "requestId": "br-b7ed22ea1caa",
+  "approvedSpecHash": "fff910faaca1be13534b67e13af7f524e3fe7cadc41d7bd0cb526cc96dac9ed4",
+  "changeSetId": "31c06921-abb4-4d70-b106-a1bc6d4ffb19",
+  "revision": 5,
+  "planApproved": true,
+  "objects": [
+    {
+      "id": "df71c9a1-af33-49db-beaf-81818b1659fe",
+      "adapter": "record-create",
+      "key": "ZZ_BC_AET",
+      "after": "e39de6661dc22a26e37f184076b364dd706c7232b7d224839fa5895cfa839ed0",
+      "baseline": "4d045df856b125e2a3d5b53f294ef3548ad7d0afc8fc4947b5bba47fcc244196"
+    },
+    {
+      "id": "cf0b754c-0de6-4d61-88ab-0652f3581f00",
+      "adapter": "sql",
+      "key": "ZZ_BC_ROWS",
+      "after": "056d87eae9aa33a4619a9f197bf08c1c10711df556a94f5f2b7cc832a0f54512",
+      "baseline": "absent"
+    },
+    {
+      "id": "591e6beb-43a1-431f-8229-90fa6bb59a5a",
+      "adapter": "ae-create",
+      "key": "ZZ_BC_EXPORT",
+      "after": "7af6a9e42ae71c80f0b0ffa778f618d8d673e936e1998e46ef242a32f47ab2b4",
+      "baseline": "f76ed6cecf5d45af22413ecc2952ca9e70e0d36430fdccbd48cff2005ce24942"
+    },
+    {
+      "id": "768a9592-56f8-4ed0-8faa-871554f4f859",
+      "adapter": "project-create",
+      "key": "ZZ_BC_PRJ",
+      "after": "ce167e4a9b1bc64e5b8fac532a5083d6c80e2835c67fc366704f89f5c4d0136f",
+      "baseline": "59389287862bf9aff6cc3ccd2b7396ab21a55aecd514c74bf125dca72eefdc3d"
+    }
+  ],
+  "passed": true
+}

@@ -1,0 +1,50 @@
+--- com.chickenkiller.deathstar.hcm
++++ com.chickenkiller.deathstar.hcm
+@@ -192,6 +192,47 @@
+     }
+ 
+ 
++    # Native Distribution Agent consumes plain XML transfer acknowledgements.
++    location = /SchedulerTransfer/HCMDMO {
++        gzip off;
++        proxy_pass http://hcm_servers;
++
++        proxy_http_version 1.1;
++
++        # proxy_cache hcm_cache;
++        # proxy_cache_methods GET HEAD;
++        # proxy_cache_valid 200 302 10m;
++        # proxy_cache_valid 404 1m;
++
++        # proxy_cache_bypass $http_authorization $cookie_PS_TOKEN $arg_cmd;
++        # proxy_no_cache     $http_authorization $cookie_PS_TOKEN $arg_cmd;
++
++        proxy_set_header Accept-Encoding "";
++
++        proxy_set_header Host $host;
++        proxy_set_header X-Real-IP $remote_addr;
++	proxy_buffering off;
++
++        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
++
++        proxy_set_header X-Forwarded-Proto https;
++        proxy_set_header X-Forwarded-Port $external_port;
++        proxy_set_header X-Forwarded-Host $host;
++
++        proxy_set_header WL-Proxy-SSL true;
++        proxy_set_header WL-Proxy-Client-IP $remote_addr;
++
++        proxy_set_header Upgrade $http_upgrade;
++        proxy_set_header Connection $connection_upgrade;
++
++        # add_header X-Frame-Options "SAMEORIGIN" always;
++        # add_header Content-Security-Policy "frame-ancestors 'self'" always;
++	# add_header Content-Security-Policy "frame-ancestors 'self' https://hcm.deathstar.chickenkiller.com https://*.deathstar.chickenkiller.com:*;" always;
++
++        proxy_read_timeout 3600;
++        proxy_send_timeout 3600;
++    }
++
+     location / {
+         proxy_pass http://hcm_servers;
+ 

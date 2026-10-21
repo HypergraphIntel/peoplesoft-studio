@@ -1,0 +1,25 @@
+{
+  "checkedAt": "2026-10-20T18:38:50.734Z",
+  "scope": "Actual child-process SIGKILL around real HRDMO commit; durable native baseline/readback reconciliation with no replay; test service approval, not installed UI",
+  "name": "ZZ_BX5E6140",
+  "checks": [
+    {
+      "mode": "after-commit",
+      "actualSignal": "SIGKILL",
+      "interruptedStatus": "APPLYING",
+      "recoveredStatus": "APPLIED",
+      "noReplay": true,
+      "stableNativeTokenDuringRecovery": true
+    },
+    {
+      "mode": "before-commit",
+      "actualSignal": "SIGKILL",
+      "interruptedStatus": "APPLYING",
+      "recoveredStatus": "PARTIALLY_APPLIED",
+      "noReplay": true,
+      "stableNativeTokenDuringRecovery": true
+    }
+  ],
+  "passed": true,
+  "cleanupVerified": true
+}

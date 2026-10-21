@@ -1,0 +1,13 @@
+PeopleTools 8.62.07 - Application Engine Server
+Copyright (c) 1988-2026 Oracle and/or its affiliates.
+All Rights Reserved
+
+
+PSAESRV started service request at 12.10.04 2026-10-20
+
+
+ZZ_BL_EXPORT: accepted=3 rejected=1 total=30.75 (0,0)
+Application Engine program ZZ_BL_EXPORT ended normally
+
+PSAESRV completed service request at 12.10.04 2026-10-20
+
