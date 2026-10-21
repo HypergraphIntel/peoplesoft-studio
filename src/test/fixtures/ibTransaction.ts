@@ -61,7 +61,7 @@ export function ibTransaction(kind: IbReviewKind, structure = false, options: { 
                 else {
                     if (fail && updates && text.includes('FUTURE_COLUMN')) throw new Error('after snapshot unavailable');
                     rows = structuredClone(state[table]);
-                    for(const [,column,bind] of text.slice(text.indexOf(' WHERE ')).matchAll(/(IB_SERVICENAME|IB_OPERATIONNAME|HANDLERNAME|OBJECTTYPE|OBJECTVALUE1)\s*=\s*:(\w+)/g)) rows = rows.filter(r => r[column] === b[bind]);
+                    for(const [,column,bind] of text.slice(text.indexOf(' WHERE ')).matchAll(/(IB_SERVICENAME|IB_OPERATIONNAME|HANDLERNAME|OBJECTTYPE|OBJECTVALUE1|ROUTINGDEFNNAME)\s*=\s*:(\w+)/g)) rows = rows.filter(r => r[column] === b[bind]);
                     if (['PSVERSION','PSLOCK'].includes(table) && text.includes(' IN (')) rows=rows.filter(r=>Object.values(b).includes(r.OBJECTTYPENAME));
                     for(const [,col] of text.matchAll(/TRIM\(([A-Z0-9_]+)\) IS NOT NULL/g))rows=rows.filter(r=>String(r[col]??'').trim());
                     if(text.includes('DBMS_LOB.INSTR'))rows=rows.filter(r=>Object.values(r).some(v=>String(v).toUpperCase().includes(String(b.n))));
@@ -90,7 +90,9 @@ export function ibTransaction(kind: IbReviewKind, structure = false, options: { 
                 const [, table, columns, values] = text.match(/^INSERT INTO ([A-Z0-9_]+) \(([^)]*)\) VALUES \((.*)\)$/)!;
                 // Strip quoted SQL literals before finding binds in timestamp expressions.
                 const binds = [...values.replace(/'(?:''|[^'])*'/g, '').matchAll(/:(\w+)/g)].map(m => b[m[1]]);
-                (state[table] ??= []).push(Object.fromEntries(columns.split(',').map((c, i) => { const v = binds[i]; return [c, v && typeof v === 'object' && 'val' in v ? v.val : v]; })));
+                // A DATE column reads back as the lifecycle reader projects it.
+                const dates = new Set((options.schema?.[table] ?? []).filter(col => col.dataType === 'DATE').map(col => col.name));
+                (state[table] ??= []).push(Object.fromEntries(columns.split(',').map((c, i) => { const raw = binds[i], v = raw && typeof raw === 'object' && 'val' in raw ? raw.val : raw; return [c, dates.has(c) && typeof v === 'string' ? v.replace(/^(\d{4}-\d\d-\d\d)$/, '$1T00:00:00.000000000') : v]; })));
                 updates++; rowsAffected = 1;
             } else throw new Error('Unexpected IB fixture DML: ' + text);
             return { rows: rows as T[], ...(rowsAffected === undefined ? {} : { rowsAffected }) };

@@ -325,6 +325,23 @@ async function captureWatch(session: Session, asOfScn?: string): Promise<Snapsho
         AND SUBSTR(T.TABLE_NAME,1,2)='PS' AND SUBSTR(T.TABLE_NAME,3,1)<>'_'
         AND C.COLUMN_NAME IN ('QRYNAME','PROJECTNAME','IB_SERVICENAME','IB_OPERATIONNAME') ORDER BY T.TABLE_NAME,C.COLUMN_NAME`);
   const extra = keyed.filter((row, i) => !WATCH.some(w => w.table === row.TABLE_NAME) && keyed.findIndex(r => r.TABLE_NAME === row.TABLE_NAME) === i).map(row => ({ table: row.TABLE_NAME, scratchColumn: row.COLUMN_NAME }));
+  // REST operation lifecycle also removes the routing PIA generated for it: watch
+  // the named routings (--routings) in every routing-keyed table not already covered.
+  const routings = (argument('routings') ?? '').split(',').filter(Boolean);
+  for (const r of routings) if (!/^(~GENERATED~[0-9]+|ZZ_PCODE_LAB[A-Z0-9_]*)$/.test(r)) throw new Error(`Invalid routing ${JSON.stringify(r)}.`);
+  const routingTables = routings.length ? (await session.select<{ TABLE_NAME: string }>(
+    `SELECT T.TABLE_NAME FROM ALL_TABLES T JOIN ALL_TAB_COLUMNS C ON C.OWNER=T.OWNER AND C.TABLE_NAME=T.TABLE_NAME
+      WHERE T.OWNER=SYS_CONTEXT('USERENV','CURRENT_SCHEMA') AND SUBSTR(T.TABLE_NAME,1,2)='PS' AND SUBSTR(T.TABLE_NAME,3,1)<>'_'
+        AND C.COLUMN_NAME='ROUTINGDEFNNAME' ORDER BY T.TABLE_NAME`)).map(r => r.TABLE_NAME)
+    .filter(t => !WATCH.some(w => w.table === t) && !extra.some(w => w.table === t)) : [];
+  for (const table of routingTables) {
+    const columns = (await columnsOf(session, table)).filter(c => !ibSecretColumn(c.name) && !['PROPVALUE','DATACHUNK','MESSAGEDATA'].includes(c.name));
+    // Named routings (already deleted ones included) plus any routing a lab operation owns now, so a
+    // routing generated during the window appears as an insertion.
+    const filter = `WHERE (t.${quote('ROUTINGDEFNNAME')} IN (${routings.map(r => `'${r}'`).join(',')}) OR t.${quote('ROUTINGDEFNNAME')} IN
+      (SELECT R.ROUTINGDEFNNAME FROM PSIBRTNGDEFN R WHERE R.IB_OPERATIONNAME LIKE ${SCRATCH_LIKE}))`;
+    out[table] = { columns, key: await keyOf(session, table), filter, rows: await readRows(session, table, columns, filter, asOfScn) };
+  }
   for (const w of [...WATCH, ...extra]) {
     // Never retain a project's target login/account material, even in a lab
     // capture. Those columns are outside the reviewed noncredential scope.
@@ -734,7 +751,7 @@ async function main(): Promise<void> {
   const phase = process.argv[2];
   const name = argument('case');
   if ((phase !== 'before' && phase !== 'after') || !name) {
-    throw new Error('Usage: snapshot.ts before|after --case NAME [--scope tools|all] [--as-of TIMESTAMP|scn:NNN] [--database HRDMO] [--omit-nonlab-rows]');
+    throw new Error('Usage: snapshot.ts before|after --case NAME [--scope tools|all] [--as-of TIMESTAMP|scn:NNN] [--database HRDMO] [--omit-nonlab-rows] [--routings NAME,NAME]');
   }
   const scope = argument('scope') === 'all' ? 'all' : 'tools';
   const session = await open(argument('database') ?? 'HRDMO');

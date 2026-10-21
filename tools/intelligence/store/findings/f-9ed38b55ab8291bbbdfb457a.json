@@ -1,0 +1,171 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-9ed38b55ab8291bbbdfb457a",
+  "fingerprint": "9ed38b55ab8291bbbdfb457a0715f6b638889ead1de1bca7291814b1a305ecf7",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "integration-broker",
+    "objectType": "Service operation definition"
+  },
+  "assertion": {
+    "kind": "rest-operation-deletion",
+    "facts": {
+      "routingTombstoneTable": "PSIBRTNGDEFNDEL",
+      "routingCounter": "RTDM",
+      "routingRowsRemoved": "PSIBRTNGDEFN,PSIBRTNGSUBDEFN,PSRTNGDFNPARM,PSOPRGENRTGPARM"
+    }
+  },
+  "title": "Native REST operation deletion removes its generated routing and writes a routing tombstone",
+  "statement": "Deleting a single-version REST provider GET in Service Administration also deletes its URI template and the routing PIA generated for it (definition, sub-definition and two parameters) and writes PSIBRTNGDEFNDEL at the new RTDM, on top of the standard operation, version and handler tombstones.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T20:43:31.918Z",
+      "method": "save-capture",
+      "experimentId": "ib11-native-rest-provider-operation-delete",
+      "runId": "ib-rest-lifecycle-2026-10-21",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "One PIA delete of a Studio-created REST provider GET with an inactive application-class request handler removed operation, version, parameters, handler pair, URI template, generated-routing parameter mapping and the routing rows; it wrote operation, version, handler and routing tombstones and resaved the owning service.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSIBRTNGDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSIBRTNGDEFNDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSIBRTNGSUBDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATION",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATIONAC",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATIONDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATIONURI",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRGENRTGPARM",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRHDLR",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRHDLRDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFNDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFNPARM",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRTNGDFNPARM",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSSERVICE",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSERVICEOPR",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "OPRHM": 1,
+          "OPRM": 3,
+          "OPRVM": 1,
+          "RTDM": 1,
+          "SRVM": 1,
+          "SYS": 5
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ib11-native-rest-provider-operation-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/IB_STRUCTURE.md"
+        }
+      ],
+      "digest": "42ee30dc645f49f7cea078694fd300546516dbe737e06168dbc71df043e7501a"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-21T22:57:20.945Z",
+    "updatedAt": "2026-10-21T22:57:20.945Z",
+    "schemaVersion": 1
+  }
+}

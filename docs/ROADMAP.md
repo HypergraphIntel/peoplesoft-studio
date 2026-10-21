@@ -104,7 +104,7 @@ project creation and bounded IB structure. Native acceptance includes Query,
 Page, Record/AE, text/PeopleCode and IB trials, crash and lost-reply
 reconciliation, continuation undo/redo, creation reversal, undo/redo of every
 migrated type, and bounded 8.62.09 IB service/operation creation/deletion and
-handler reversal. REST IB lifecycle, 8.61 IB child deletion and broader
+handler reversal, including REST services and operations. 8.61 IB child deletion and broader
 operations remain open. Resume from
 [the progress tracker](change-review/PROGRESS.md); the
 [full user proposal](change-review/PROPOSAL.md) defines scope and acceptance.

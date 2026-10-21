@@ -115,6 +115,7 @@ remains outside the contract.
 | Paired OnRequest handler add/remove | Complete operation checkpoint plus PSOPRHDLRDEL token | Only ApplicationClass REQUESTHDLR/RQST and its paired class row; live class/reference validation, translated-handler and routing-handler-reference refusal; exact 8.62.09 deletion protocol | Remove the pair and write native handler marker, or typed recreation clearing that marker; other handler kinds refuse |
 | Standard service CREATE/DELETE | Separate ib-service-definition/1 checkpoint over four tables, safe raw stamps and PSSERVICEDEL | Empty unrestricted standard service; no credentials, ancillary rows, operation/runtime/project/source references; typed/default completeness | Guarded typed recreation clearing the bound marker, or native delete plus SRVM/SYS movement; fresh destructive review for DELETE |
 | Standard synchronous operation CREATE/DELETE | Separate ib-operation-definition/1 checkpoint over complete operation scope, three marker families and owning service | One existing parent with separately bound policy/dirty state; one version and request/response messages; optional paired OnRequest class; no wider ancillary rows/references; parent overlap refusal | Typed header/version/parameter/mapping recreation and optional handler save, or native full deletion; exact marker, parent and cache checks before commit and complete readback after commit |
+| REST service and operation CREATE/DELETE | Same adapters; REST operation checkpoint adds URI templates, PSOPRGENRTGPARM, PSIBRTNGDEFN and a `routing` section (sub-definition, two parameters) with the random routing name normalized to `~GENERATED~`; the token binds the real name | REST kind/role from the service; exactly the writer-generated routing for the default version; other routing-keyed rows, routing credentials, URI message bindings and manual routings refuse | DELETE also removes the routing and writes PSIBRTNGDEFNDEL at RTDM (RTDM +1, SYS +1); CREATE lets the writer generate a new routing (RTDM +1, SYS 4 total) and leaves old routing tombstones |
 
 ## October 21 continuation
 
@@ -195,9 +196,10 @@ Change Set. Parent creation is a separate reviewed step: an existing owning
 service is required. Dynamic references remain subject to developer assessment.
 Supported shapes are empty unrestricted standard services and single-version
 standard synchronous operations with request/response messages and at most the
-paired ApplicationClass REQUESTHDLR/OnRequest handler. REST lifecycle, credentials,
-translations, runtime/deployment rows, other handler implementations, new versions
-and wider shapes refuse pending their own native protocols.
+paired ApplicationClass REQUESTHDLR/OnRequest handler; REST services and
+operations are covered as described in [REST definition lifecycle](#rest-definition-lifecycle-october-21).
+Credentials, translations, runtime/deployment rows, other handler implementations,
+new versions and wider shapes refuse pending their own native protocols.
 
 MCP: bounded `psft_ib_create` routes to these adapters;
 `psft_ib_definition_get` returns the complete checkpoint/token and adapter key;
@@ -263,4 +265,40 @@ restored, live MATCHES_RECORDED. Only the existing v1 DESCR changed; URI mapping
 and routing remained part of both complete checkpoints. Report
 `tools/lab/results/ib-rest-consumer-installed-2026-10-21.json`.
 These trials do not certify every writable cell, runtime service execution,
-8.61 child deletion, REST definition lifecycle or additional definition families.
+8.61 child deletion or additional definition families.
+
+## REST definition lifecycle, October 21
+
+Eight PIA captures on 8.62.09 (`ib09`-`ib16` in `tools/corpus/save-protocol/results/`)
+calibrate REST service and operation deletion/recreation; findings
+`f-9ed38b55ab8291bbbdfb457a`, `f-97f609e2c5fe8a32d4d1a416`,
+`f-0a71e38b8e830c67293b5076` and `f-81208e0af4855695a669a7fe` record them.
+
+- An empty REST service deletes and recreates exactly like a standard one.
+- Deleting a REST operation also deletes its URI template and the routing PIA
+  generated for it (PSOPRGENRTGPARM, PSIBRTNGDEFN, PSIBRTNGSUBDEFN, two
+  PSRTNGDFNPARM rows) and writes PSIBRTNGDEFNDEL at the new RTDM. Without a
+  handler: OPRM +2, OPRVM/SRVM/RTDM +1, SYS +4; with the request handler as in
+  ib05 plus RTDM +1 and SYS +5. Provider and consumer behave identically.
+- Recreation clears the operation and version tombstones, generates a routing
+  with a new random name, and keeps the old routing tombstone.
+- PIA names a new REST operation `<typed name>_<METHOD>` and keeps the typed
+  name as IB_ALIASNAME. Studio's REST creation stores the typed name for both;
+  every other column matches native creation for provider and consumer. That
+  naming difference is a known writer gap, not part of lifecycle review.
+
+The lifecycle adapters reproduce all eight captures exactly
+(`ibRestLifecycle.test.ts`, fixture built by `tools/lab/ib-lifecycle-fixture-build.mts`).
+The private-review native trial passed 11 checks
+(`tools/lab/results/ib-rest-definition-review-native-2026-10-21.json`).
+
+Installed acceptance: with a developer-built and reloaded candidate, the
+developer approved plan and objects for set `1d6cdb6d-d45c-474e-8013-72ae0d2418fb`,
+deleting the provider GET `ZZ_PCODE_LAB_IBRPG` (handler and routing), the
+consumer GET `ZZ_PCODE_LAB_IBRCG_GET` and the empty REST service
+`ZZ_PCODE_LAB_IBRE`; all three VERIFIED. The fresh inverse
+`0a08a356-084a-4a19-a16d-bc1bfe3a4aef` recreated them, all VERIFIED, with live
+logical checkpoints equal to the originals. Report
+`tools/lab/results/ib-rest-lifecycle-installed-2026-10-21.json`. Not covered:
+runtime invocation, URI message bindings, credentials, manual routings,
+multiple versions and 8.61 REST lifecycle.

@@ -1,0 +1,134 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-81208e0af4855695a669a7fe",
+  "fingerprint": "81208e0af4855695a669a7fe84bca3f3be5d876bfe4ed3e0811736f32867a00d",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "integration-broker",
+    "objectType": "Service operation definition"
+  },
+  "assertion": {
+    "kind": "rest-operation-naming",
+    "facts": {
+      "nameSuffix": "_METHOD",
+      "aliasIsTypedName": true,
+      "routingAlias": "alias.version"
+    }
+  },
+  "title": "PIA names a new REST operation after its method and keeps the typed name as its alias",
+  "statement": "Adding a REST GET operation named X on a REST service creates operation X_GET with IB_ALIASNAME X; its generated routing sub-definition alias is X.v1. PIA also copies the operation description into the version description.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T20:48:09.626Z",
+      "method": "save-capture",
+      "experimentId": "ib12-native-rest-provider-operation-recreate",
+      "runId": "ib-rest-lifecycle-2026-10-21",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "PIA creation from the provider service page with typed name ZZ_PCODE_LAB_IBRPG and method GET produced ZZ_PCODE_LAB_IBRPG_GET.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSIBRTNGDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSIBRTNGSUBDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATION",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATIONURI",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRGENRTGPARM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFNPARM",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRTNGDFNPARM",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSERVICE",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSERVICEOPR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "OPRM": 1,
+          "OPRVM": 1,
+          "RTDM": 1,
+          "SRVM": 1,
+          "SYS": 4
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ib12-native-rest-provider-operation-recreate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/IB_STRUCTURE.md"
+        }
+      ],
+      "digest": "07b1d9314cb7bbb58a56b8e4d22cf1f9a3d83355f1d1ea99204e0e040a5fd7cc"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-21T22:57:21.838Z",
+    "updatedAt": "2026-10-21T22:57:21.838Z",
+    "schemaVersion": 1
+  }
+}

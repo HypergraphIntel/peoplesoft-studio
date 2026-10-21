@@ -1,0 +1,40 @@
+{
+  "at": "2026-10-21T22:41:05.983Z",
+  "scope": "Owned Oracle 8.62.09 REST lifecycle; production providers/adapters and private durable review with trusted service test approval; not installed UI",
+  "history": "/tmp/psft-ib-rest-definition-review-dVbcUt",
+  "checks": [
+    "operation ZZ_PCODE_LAB_IBRPG reviewed CREATE verifies complete native checkpoint, routing, markers, cache and parent",
+    "operation ZZ_PCODE_LAB_IBRPG fresh reviewed inverse applies exact typed restoration/deletion",
+    "operation ZZ_PCODE_LAB_IBRPG fresh reviewed redo verifies complete native result",
+    "operation ZZ_PCODE_LAB_IBRPG_GET reviewed DELETE verifies complete native checkpoint, routing, markers, cache and parent",
+    "operation ZZ_PCODE_LAB_IBRPG_GET fresh reviewed inverse applies exact typed restoration/deletion",
+    "operation ZZ_PCODE_LAB_IBRPG_GET fresh reviewed redo verifies complete native result",
+    "operation ZZ_PCODE_LAB_IBRPG_GET original live checkpoint restored after redo deletion",
+    "service ZZ_PCODE_LAB_IBRE reviewed DELETE verifies complete native checkpoint, routing, markers, cache and parent",
+    "service ZZ_PCODE_LAB_IBRE fresh reviewed inverse applies exact typed restoration/deletion",
+    "service ZZ_PCODE_LAB_IBRE fresh reviewed redo verifies complete native result",
+    "service ZZ_PCODE_LAB_IBRE original live checkpoint restored after redo deletion"
+  ],
+  "changeSets": [
+    {
+      "definition": "ZZ_PCODE_LAB_IBRPG",
+      "forward": "ea1e5c55-5fa9-4a2a-ad3f-641f194a9549",
+      "inverse": "3ed8e810-725e-4007-a6fc-02dccabddf03",
+      "redo": "e1c2540c-18d9-4ffc-8ee9-b4f1468231b2"
+    },
+    {
+      "definition": "ZZ_PCODE_LAB_IBRPG_GET",
+      "forward": "1d4e2476-e2c4-4373-b25c-86fecb46828f",
+      "inverse": "df9100fe-86e9-4e55-8ccf-6bdb8e1e207f",
+      "redo": "d72de04a-d8e8-43fc-bb34-38eb50b13479"
+    },
+    {
+      "definition": "ZZ_PCODE_LAB_IBRE",
+      "forward": "79454b58-1cb2-432c-bdb4-80a919a7f42a",
+      "inverse": "7f5b4bdc-f304-4abd-8c80-cd2f691fcd68",
+      "redo": "74fd7b18-6cd6-4c5a-b39b-fb02d2a927e9"
+    }
+  ],
+  "passed": true,
+  "originalsRestored": true
+}

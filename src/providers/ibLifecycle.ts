@@ -13,14 +13,17 @@ export interface IbLifecycleState { value: Json; token: string; hash: string; de
 export interface IbLifecycleRequest extends IbLifecycleKey { after: Json; operatorId: string; expectedSnapshotToken: string; expectedAfterHash: string; allowDeletedBaseline?: boolean; dryRun?: boolean }
 const SERVICE = ['PSSERVICE', 'PSSERVICELANG', 'PSSERVICEUDDI', 'PSSERVICEOPR'];
 const OPERATION = ['PSOPERATION', ...Object.values(IB_SECTIONS.operation).map(t => t.table), 'PSIBOPRROOT', 'PSOPRGENRTGPARM', 'PSSERVICEOPR', 'PSIBRTNGDEFN', 'PSOPERATIONLANG', 'PSOPRHDLRLANG', 'PSOPRVERDFNLANG', 'PSOPRVDPARMTYPE', 'PSOPRVERDEPLOY', 'PSOPRVERDPLYDAT', 'PSOPRVERDPLYVER'];
-const MARKERS: Record<string, string[]> = { PSSERVICEDEL: ['IB_SERVICENAME','VERSION'], PSOPERATIONDEL: ['IB_OPERATIONNAME','VERSION'], PSOPRVERDFNDEL: ['IB_OPERATIONNAME','VERSIONNAME','VERSION'], PSOPRHDLRDEL: ['IB_OPERATIONNAME','HANDLERNAME','VERSION'] };
+const MARKERS: Record<string, string[]> = { PSSERVICEDEL: ['IB_SERVICENAME','VERSION'], PSOPERATIONDEL: ['IB_OPERATIONNAME','VERSION'], PSOPRVERDFNDEL: ['IB_OPERATIONNAME','VERSIONNAME','VERSION'], PSOPRHDLRDEL: ['IB_OPERATIONNAME','HANDLERNAME','VERSION'], PSIBRTNGDEFNDEL: ['ROUTINGDEFNNAME','EFFDT','VERSION'] };
+// A REST operation owns the routing PIA generates for it (ib11-ib16). Its name is
+// random on every save, so the logical checkpoint carries content, not the name.
+const ROUTING = ['PSIBRTNGSUBDEFN','PSRTNGDFNPARM'], GENERATED = '~GENERATED~';
 const trim = (v: Json | undefined) => String(v ?? '').trim();
 const stamp = new Set(['VERSION','LASTUPDDTTM','LASTUPDOPRID']);
 const sort = (r: Row[]) => r.sort((a,b) => canonical(a).localeCompare(canonical(b)));
 const tablesFor = (k: IbLifecycleKey) => k.kind === 'service' ? SERVICE : OPERATION;
 const markersFor = (k: IbLifecycleKey) => k.kind === 'service' ? ['PSSERVICEDEL'] : ['PSOPERATIONDEL','PSOPRVERDFNDEL','PSOPRHDLRDEL'];
 const columnFor = (k: IbLifecycleKey) => k.kind === 'service' ? 'IB_SERVICENAME' : 'IB_OPERATIONNAME';
-const writableTables = (k: IbLifecycleKey) => k.kind === 'service' ? ['PSSERVICE'] : ['PSOPERATION','PSOPRVERDFN','PSOPRVERDFNPARM','PSOPRHDLR','PSOPERATIONAC','PSSERVICEOPR'];
+const writableTables = (k: IbLifecycleKey) => k.kind === 'service' ? ['PSSERVICE'] : ['PSOPERATION','PSOPRVERDFN','PSOPRVERDFNPARM','PSOPRHDLR','PSOPERATIONAC','PSSERVICEOPR','PSOPERATIONURI','PSOPRGENRTGPARM','PSIBRTNGDEFN'];
 export function ibLifecycleIdentity(k: IbLifecycleKey): void {
     if (!['service','operation'].includes(k.kind) || !/^[A-Z][A-Z0-9_]{0,29}$/.test(k.name) || (k.kind === 'operation' ? !k.service || !/^[A-Z][A-Z0-9_]{0,29}$/.test(k.service) : k.service !== undefined)) throw new Error('Invalid IB definition lifecycle identity.');
 }
@@ -55,7 +58,32 @@ async function rawState(c: DbConnection, types: DbTypes, k: IbLifecycleKey) {
         for (const r of markers[t]) if (!Number.isSafeInteger(r.VERSION) || Number(r.VERSION) < 1) throw new Error('Invalid IB lifecycle deletion marker.');
     }
     const parent = k.kind === 'operation' ? await tableRows(c,types,'PSSERVICE','IB_SERVICENAME',k.service!) : [];
-    return { tables, markers, parent };
+    const routing: Record<string,Row[]> = {};
+    for (const name of new Set([...(tables.PSIBRTNGDEFN ?? []), ...(tables.PSOPRGENRTGPARM ?? [])].map(r => String(r.ROUTINGDEFNNAME)))) {
+        if (!/^~GENERATED~[0-9]+$/.test(name)) throw new Error('Only a writer-generated routing is part of operation lifecycle.');
+        for (const t of ROUTING) routing[t] = sort([...(routing[t] ?? []), ...await tableRows(c,types,t,'ROUTINGDEFNNAME',name)]);
+        await routingPreserved(c,types,name);
+    }
+    // Present only for operations owning a routing, so standard checkpoint tokens are unchanged.
+    return { tables, markers, parent, ...(Object.keys(routing).length ? { routing } : {}) };
+}
+async function routingPreserved(c: DbConnection, types: DbTypes, name: string) {
+    const tables = await rows(c,types,"SELECT T.TABLE_NAME FROM ALL_TABLES T WHERE T.OWNER=SYS_CONTEXT('USERENV','CURRENT_SCHEMA') AND SUBSTR(T.TABLE_NAME,1,2)='PS' AND EXISTS (SELECT 1 FROM ALL_TAB_COLUMNS C WHERE C.OWNER=T.OWNER AND C.TABLE_NAME=T.TABLE_NAME AND C.COLUMN_NAME=:col) ORDER BY T.TABLE_NAME",{col:'ROUTINGDEFNNAME'});
+    for (const row of tables) {
+        const t = String(row.TABLE_NAME); if (!/^[A-Z][A-Z0-9_]*$/.test(t)) throw new Error('Invalid IB routing table.');
+        if (['PSIBRTNGDEFN','PSOPRGENRTGPARM','PSIBRTNGDEFNDEL',...ROUTING].includes(t)) continue;
+        if (await count(c,types,`SELECT COUNT(*) AS N FROM ${t} WHERE ROUTINGDEFNNAME=:r`,{r:name})) throw new Error(t + ': the generated routing needs a wider lifecycle preservation scope.');
+    }
+    for (const col of (await c.catalog.columns(c,'PSRTNGDFNPARM')).filter(col => ibSecretColumn(col.name))) {
+        if (!/^[A-Z][A-Z0-9_]*$/.test(col.name)) throw new Error('Invalid IB routing credential column.');
+        if (await count(c,types,`SELECT COUNT(*) AS N FROM PSRTNGDFNPARM WHERE ROUTINGDEFNNAME=:r AND TRIM(${col.name}) IS NOT NULL`,{r:name})) throw new Error('Credential-bearing routing lifecycle is not supported.');
+    }
+}
+const anonymous = (t: Record<string,Row[]>) => Object.fromEntries(Object.entries(t).map(([n,r]) => [n, r.map(row => 'ROUTINGDEFNNAME' in row ? { ...row, ROUTINGDEFNNAME: GENERATED } : row)]));
+async function restOperation(c: DbConnection, types: DbTypes, k: IbLifecycleKey) {
+    if (k.kind !== 'operation') return false;
+    const [s] = await rows(c,types,'SELECT IB_REST_SERVICE FROM PSSERVICE WHERE IB_SERVICENAME=:n',{n:k.service});
+    return Number(s?.IB_REST_SERVICE ?? 0) !== 0;
 }
 function state(k: IbLifecycleKey, raw: Awaited<ReturnType<typeof rawState>>, allowDeleted: boolean): IbLifecycleState {
     const header = raw.tables[k.kind === 'service' ? 'PSSERVICE' : 'PSOPERATION'], anyRows = Object.values(raw.tables).some(r => r.length), anyMarkers = Object.values(raw.markers).some(r => r.length);
@@ -66,7 +94,7 @@ function state(k: IbLifecycleKey, raw: Awaited<ReturnType<typeof rawState>>, all
     if(deleted&&(raw.markers[k.kind==='service'?'PSSERVICEDEL':'PSOPERATIONDEL'].length!==1||k.kind==='operation'&&raw.markers.PSOPRVERDFNDEL.length!==1))throw new Error('Incomplete or unsupported IB definition deletion history.');
     if (deleted && !allowDeleted) throw new Error('Deleted IB definition requires explicit reviewed restoration.');
     if (header.length && (raw.markers[k.kind === 'service' ? 'PSSERVICEDEL' : 'PSOPERATIONDEL'].length || k.kind === 'operation' && raw.markers.PSOPRVERDFNDEL.length)) throw new Error('Live IB definition has conflicting deletion markers.');
-    const value: Json = header.length ? { scope:`ib-${k.kind}-definition/1`,tables:logical(raw.tables), ...(k.kind === 'operation' ? { service: logical({PSSERVICE:raw.parent}).PSSERVICE[0] } : {}) } : null;
+    const value: Json = header.length ? { scope:`ib-${k.kind}-definition/1`,tables:anonymous(logical(raw.tables)), ...(k.kind === 'operation' ? { service: logical({PSSERVICE:raw.parent}).PSSERVICE[0] } : {}), ...(raw.routing ? { routing: anonymous(logical(raw.routing)) } : {}) } : null;
     privacy(value); if (Buffer.byteLength(canonical(value)) > 8*1024*1024) throw new Error('IB lifecycle checkpoint exceeds 8 MiB.');
     return { value, hash:hash(value), token: !anyRows && !anyMarkers && k.kind === 'service' ? 'absent' : hash(raw as unknown as Json), deleted };
 }
@@ -78,7 +106,7 @@ export async function previewIbLifecycleCreation(c:DbConnection,types:DbTypes,in
         if(input.kind!=='service'&&input.kind!=='operation')throw new Error('IB lifecycle creation supports services and operations only.');
         const k:IbLifecycleKey={kind:input.kind,name:input.key[0],...(input.kind==='operation'?{service:String(input.properties.IB_SERVICENAME).trim()}:{})};
         const before=await readIbLifecycle(c,types,k);
-        const names=k.kind==='service'?['SRVM','SYS']:['OPRHM','OPRM','OPRVM','SRVM','SYS'],counters=await cache(c,types,names);
+        const names=k.kind==='service'?['SRVM','SYS']:['OPRHM','OPRM','OPRVM','SRVM','SYS',...(await restOperation(c,types,k)?['RTDM']:[])],counters=await cache(c,types,names);
         if(before.value!==null)throw new Error('IB creation requires a completely absent definition.');
         await dependencies(c,types,k,false);
         const request=structuredClone(input),handlers=request.sections.handlers??[],classes=request.sections.applicationClassHandlers??[];
@@ -91,24 +119,29 @@ export async function previewIbLifecycleCreation(c:DbConnection,types:DbTypes,in
     }catch(error){await c.rollback().catch(()=>{});throw error;}
 }
 
-/** Reconstruct only the typed shape captured natively in ib03..ib06. No raw row replay. */
+/** Reconstruct only the typed shape captured natively in ib03..ib06 and, for REST, ib09..ib16. No raw row replay. */
 export function ibLifecycleInput(value: Json, k: IbLifecycleKey): IbWriteInput {
     ibLifecycleIdentity(k);
-    if (!value || Array.isArray(value) || typeof value !== 'object' || value.scope !== `ib-${k.kind}-definition/1` || Object.keys(value).sort().join() !== (k.kind === 'service' ? 'scope,tables' : 'scope,service,tables') || !value.tables || Array.isArray(value.tables) || typeof value.tables !== 'object') throw new Error('Invalid IB lifecycle checkpoint.');
+    if (!value || Array.isArray(value) || typeof value !== 'object' || value.scope !== `ib-${k.kind}-definition/1` || Object.keys(value).sort().join() !== (k.kind === 'service' ? 'scope,tables' : `${'routing' in value ? 'routing,' : ''}scope,service,tables`) || !value.tables || Array.isArray(value.tables) || typeof value.tables !== 'object') throw new Error('Invalid IB lifecycle checkpoint.');
     const tables = value.tables as Record<string,Row[]>;
     if (Object.keys(tables).sort().join() !== [...tablesFor(k)].sort().join() || Object.values(tables).some(r => !Array.isArray(r) || r.some(row => !row || Array.isArray(row) || typeof row !== 'object' || Object.keys(row).some(key => stamp.has(key) || ibSecretColumn(key))))) throw new Error('Incomplete IB lifecycle tables.');
     privacy(value);
     const head = tables[k.kind === 'service' ? 'PSSERVICE' : 'PSOPERATION'];
     if (head.length !== 1 || trim(head[0][columnFor(k)]) !== k.name) throw new Error('IB lifecycle checkpoint identifies another definition.');
-    const allowed = k.kind === 'service' ? ['PSSERVICE'] : ['PSOPERATION','PSOPRVERDFN','PSOPRVERDFNPARM','PSOPRHDLR','PSOPERATIONAC','PSSERVICEOPR'];
+    const allowed = writableTables(k);
     for (const [t,r] of Object.entries(tables)) if (!allowed.includes(t) && r.length) throw new Error(t + ': this IB definition needs a wider lifecycle protocol.');
     const service = k.kind === 'service' ? head[0] : value.service as Row;
-    if (!service || typeof service !== 'object' || Array.isArray(service) || trim(service.IB_SERVICENAME) !== (k.service ?? k.name) || Number(service.IB_REST_SERVICE) !== 0 || trim(service.IB_PSOFTSERVICE) !== 'N' || Number(service.PT_OPEN_API) !== 0 || Object.keys(service).some(key => stamp.has(key) || ibSecretColumn(key))) throw new Error('Lifecycle requires an unrestricted standard service; REST lifecycle needs its own native protocol.');
+    if (!service || typeof service !== 'object' || Array.isArray(service) || trim(service.IB_SERVICENAME) !== (k.service ?? k.name) || ![0,1,2].includes(Number(service.IB_REST_SERVICE)) || trim(service.IB_PSOFTSERVICE) !== 'N' || Number(service.PT_OPEN_API) !== 0 || Object.keys(service).some(key => stamp.has(key) || ibSecretColumn(key))) throw new Error('Lifecycle requires an unrestricted standard or REST service.');
+    const flag = Number(service.IB_REST_SERVICE);
     const properties = Object.fromEntries(Object.entries(head[0]).filter(([key]) => key !== columnFor(k) && !['IB_REST_SERVICE','IB_PSOFTSERVICE'].includes(key))) as IbWriteInput['properties'];
     if(!trim(head[0].DESCR)||k.kind==='service'&&!trim(head[0].IB_NAMESPACE))throw new Error('IB lifecycle description/namespace is required.');
-    const input: IbWriteInput = { kind:k.kind,key:[k.name],properties,sections:{},...(k.kind === 'service' ? {serviceKind:'standard' as const} : {}) };
+    const input: IbWriteInput = { kind:k.kind,key:[k.name],properties,sections:{},...(k.kind === 'service' ? flag ? {serviceKind:'rest' as const,restRole:flag === 1 ? 'consumer' as const : 'provider' as const} : {serviceKind:'standard' as const} : {}) };
     if (k.kind === 'operation') {
-        if (trim(head[0].IB_SERVICENAME) !== k.service || trim(head[0].RTNGTYPE) !== 'S' || Number(head[0].IB_REST_SERVICE) !== 0 || trim(head[0].IB_RESTMETHOD) || trim(head[0].IB_ALIASNAME) || trim(head[0].MSGNAME) || trim(head[0].IB_MSGVERSION) || tables.PSOPRVERDFN.length !== 1 || trim(tables.PSOPRVERDFN[0].VERSIONNAME) !== trim(head[0].DEFAULTVER)) throw new Error('Lifecycle supports one-version standard synchronous operations without aliases or URI message binding only.');
+        if (trim(head[0].IB_SERVICENAME) !== k.service || trim(head[0].RTNGTYPE) !== 'S' || Number(head[0].IB_REST_SERVICE) !== flag || !flag && (trim(head[0].IB_RESTMETHOD) || trim(head[0].IB_ALIASNAME)) || trim(head[0].MSGNAME) || trim(head[0].IB_MSGVERSION) || tables.PSOPRVERDFN.length !== 1 || trim(tables.PSOPRVERDFN[0].VERSIONNAME) !== trim(head[0].DEFAULTVER)) throw new Error('Lifecycle supports one-version standard synchronous operations without aliases or URI message binding only.');
+        const routing = value.routing as Record<string,Row[]> | undefined;
+        if (!flag && (tables.PSOPERATIONURI.length || tables.PSOPRGENRTGPARM.length || tables.PSIBRTNGDEFN.length || routing)) throw new Error('PSIBRTNGDEFN: this IB definition needs a wider lifecycle protocol.');
+        // REST (ib11-ib16): URI templates and exactly the routing the writer generates for the default version.
+        if (flag && (!trim(head[0].IB_RESTMETHOD) || !tables.PSOPERATIONURI.length || tables.PSOPRGENRTGPARM.length !== 1 || trim(tables.PSOPRGENRTGPARM[0].VERSIONNAME) !== trim(head[0].DEFAULTVER) || tables.PSIBRTNGDEFN.length !== 1 || trim(tables.PSIBRTNGDEFN[0].GENERATED) !== 'Y' || trim(tables.PSIBRTNGDEFN[0].IB_OPERATIONNAME) !== k.name || !routing || Object.keys(routing).sort().join() !== [...ROUTING].sort().join() || routing.PSIBRTNGSUBDEFN.length !== 1 || routing.PSRTNGDFNPARM.length !== 2 || [tables.PSOPRGENRTGPARM,tables.PSIBRTNGDEFN,...Object.values(routing)].flat().some(r => r.ROUTINGDEFNNAME !== GENERATED))) throw new Error('REST lifecycle supports one-version operations with URI templates and exactly their writer-generated routing.');
         if (tables.PSSERVICEOPR.length !== 1 || trim(tables.PSSERVICEOPR[0].IB_SERVICENAME) !== k.service || trim(tables.PSSERVICEOPR[0].IB_OPERATIONNAME) !== k.name) throw new Error('Operation service mapping differs from its lifecycle identity.');
         if (tables.PSOPRVERDFNPARM.length !== 2 || !['REQUEST','RESPONSE'].every(role => tables.PSOPRVERDFNPARM.some(r => trim(r.PARAMETERNAME) === role && trim(r.VERSIONNAME) === trim(head[0].DEFAULTVER)))) throw new Error('Operation requires its request/response parameter pair.');
         if (tables.PSOPRHDLR.length !== tables.PSOPERATIONAC.length || tables.PSOPRHDLR.length > 1 || tables.PSOPRHDLR.some(h => trim(h.HANDLERNAME) !== 'REQUESTHDLR' || trim(h.HANDLERID) !== 'RQST' || trim(h.HANDLERTYPE) !== 'ApplicationClass') || tables.PSOPERATIONAC.some(h => trim(h.HANDLERNAME) !== 'REQUESTHDLR' || trim(h.APPCLASSMETHOD) !== 'OnRequest')) throw new Error('Only the paired application-class OnRequest handler is reproducible by this lifecycle.');
@@ -150,7 +183,7 @@ export async function writeIbLifecycle(c: DbConnection, types: DbTypes, r: IbLif
         const head = r.kind === 'service' ? 'PSSERVICE' : 'PSOPERATION';
         await rows(c,types,`SELECT ${columnFor(r)} FROM ${head} WHERE ${columnFor(r)}=:n FOR UPDATE`,{n:r.name});
         if (r.service) await rows(c,types,'SELECT IB_SERVICENAME FROM PSSERVICE WHERE IB_SERVICENAME=:n FOR UPDATE',{n:r.service});
-        const names = r.kind === 'service' ? ['SRVM','SYS'] : ['OPRHM','OPRM','OPRVM','SRVM','SYS'], counters = await cache(c,types,names,true);
+        const rest = await restOperation(c,types,r), names = r.kind === 'service' ? ['SRVM','SYS'] : ['OPRHM','OPRM','OPRVM','SRVM','SYS',...(rest ? ['RTDM'] : [])], counters = await cache(c,types,names,true);
         const raw = await rawState(c,types,r), before = state(r,raw,!!r.allowDeletedBaseline);
         if (before.token !== r.expectedSnapshotToken) throw new Error('Complete IB lifecycle baseline changed.');
         const delta = Object.fromEntries(names.map(n=>[n,0]));
@@ -167,10 +200,15 @@ export async function writeIbLifecycle(c: DbConnection, types: DbTypes, r: IbLif
                 await expect(c,'INSERT INTO PSSERVICEDEL (IB_SERVICENAME,VERSION) VALUES (:n,:v)',{n:r.name,v:counters.v.SRVM+1},1);
                 delta.SRVM=delta.SYS=1;
             } else {
-                const value = before.value as {tables:Record<string,Row[]>}, handlers = value.tables.PSOPRHDLR.length, version = trim(value.tables.PSOPRVERDFN[0].VERSIONNAME);
+                const value = before.value as {tables:Record<string,Row[]>}, handlers = value.tables.PSOPRHDLR.length, version = trim(value.tables.PSOPRVERDFN[0].VERSIONNAME), routing = raw.tables.PSIBRTNGDEFN[0];
                 if(handlers&&raw.markers.PSOPRHDLRDEL.some(h=>trim(h.HANDLERNAME)==='REQUESTHDLR'))throw new Error('Live handler has a conflicting deletion marker.');
-                for (const t of ['PSOPERATIONAC','PSOPRHDLR','PSOPRVERDFNPARM','PSOPRVERDFN','PSSERVICEOPR','PSOPERATION']) await expect(c,`DELETE FROM ${t} WHERE IB_OPERATIONNAME=:n`,{n:r.name},value.tables[t].length);
+                if(routing&&await count(c,types,'SELECT COUNT(*) AS N FROM PSIBRTNGDEFNDEL WHERE ROUTINGDEFNNAME=:r',{r:routing.ROUTINGDEFNNAME}))throw new Error('Generated routing has a conflicting deletion marker.');
+                for (const t of ['PSOPERATIONAC','PSOPRHDLR','PSOPRVERDFNPARM','PSOPERATIONURI','PSOPRGENRTGPARM']) await expect(c,`DELETE FROM ${t} WHERE IB_OPERATIONNAME=:n`,{n:r.name},value.tables[t].length);
+                // ib11/ib13: PIA removes the generated routing with the operation and writes its tombstone at RTDM.
+                if (routing) for (const t of ROUTING) await expect(c,`DELETE FROM ${t} WHERE ROUTINGDEFNNAME=:r`,{r:routing.ROUTINGDEFNNAME},raw.routing![t].length);
+                for (const t of ['PSIBRTNGDEFN','PSOPRVERDFN','PSSERVICEOPR','PSOPERATION']) await expect(c,`DELETE FROM ${t} WHERE IB_OPERATIONNAME=:n`,{n:r.name},value.tables[t].length);
                 delta.OPRM=2+handlers; delta.OPRVM=1; delta.OPRHM=handlers; delta.SRVM=1; delta.SYS=3+handlers;
+                if (routing) { delta.RTDM=1; delta.SYS++; await expect(c,`INSERT INTO PSIBRTNGDEFNDEL (ROUTINGDEFNNAME,EFFDT,VERSION) VALUES (:r,TO_TIMESTAMP(:e,'YYYY-MM-DD"T"HH24:MI:SS.FF9'),:v)`,{r:routing.ROUTINGDEFNNAME,e:routing.EFFDT,v:counters.v.RTDM+1},1); }
                 await expect(c,'INSERT INTO PSOPERATIONDEL (IB_OPERATIONNAME,VERSION) VALUES (:n,:v)',{n:r.name,v:counters.v.OPRM+2},1);
                 await expect(c,'INSERT INTO PSOPRVERDFNDEL (IB_OPERATIONNAME,VERSIONNAME,VERSION) VALUES (:n,:ver,:v)',{n:r.name,ver:version,v:counters.v.OPRVM+1},1);
                 if (handlers) await expect(c,'INSERT INTO PSOPRHDLRDEL (IB_OPERATIONNAME,HANDLERNAME,VERSION) VALUES (:n,:h,:v)',{n:r.name,h:'REQUESTHDLR',v:counters.v.OPRHM+1},1);
@@ -187,9 +225,10 @@ export async function writeIbLifecycle(c: DbConnection, types: DbTypes, r: IbLif
             const handlers = input.sections.handlers ?? [], classes = input.sections.applicationClassHandlers ?? [];
             if(r.kind==='operation'){input.sections.handlers=[];input.sections.applicationClassHandlers=[];}
             await saveIb(c,types,{input,expectedToken:'absent',operatorId:r.operatorId},true);
-            delta.SRVM=1; delta.SYS=r.kind==='service'?1:3;
+            delta.SRVM=1; delta.SYS=r.kind==='service'?1:rest?4:3;
             if(r.kind==='operation'){
-                delta.OPRM=1;delta.OPRVM=1;
+                // ib12/ib14/ib16: the writer generates a fresh routing; an old routing tombstone stays.
+                delta.OPRM=1;delta.OPRVM=1;if(rest)delta.RTDM=1;
                 if(handlers.length){const doc=(await readIb(c,types,'operation',[r.name]))!;await saveIb(c,types,{input:{...input,sections:{...input.sections,handlers,applicationClassHandlers:classes}},expectedToken:doc.token,operatorId:r.operatorId},true);delta.OPRM++;delta.OPRVM++;delta.OPRHM++;delta.SYS+=3;}
             }
         }
@@ -203,6 +242,8 @@ export async function writeIbLifecycle(c: DbConnection, types: DbTypes, r: IbLif
             if(r.kind==='service')expected.PSSERVICEDEL=[{IB_SERVICENAME:r.name,VERSION:next.v.SRVM}];
             else{const v=(before.value as {tables:Record<string,Row[]>}).tables;expected.PSOPERATIONDEL=[{IB_OPERATIONNAME:r.name,VERSION:counters.v.OPRM+2}];expected.PSOPRVERDFNDEL=[{IB_OPERATIONNAME:r.name,VERSIONNAME:v.PSOPRVERDFN[0].VERSIONNAME,VERSION:next.v.OPRVM}];if(v.PSOPRHDLR.length)expected.PSOPRHDLRDEL=sort([...expected.PSOPRHDLRDEL,{IB_OPERATIONNAME:r.name,HANDLERNAME:'REQUESTHDLR',VERSION:next.v.OPRHM}]);}
             if(canonical(afterRaw.markers)!==canonical(expected))throw new Error('IB lifecycle marker identities or versions differ before commit.');
+            const routing=raw.tables.PSIBRTNGDEFN?.[0];
+            if(routing&&canonical(await tableRows(c,types,'PSIBRTNGDEFNDEL','ROUTINGDEFNNAME',String(routing.ROUTINGDEFNNAME)))!==canonical([{ROUTINGDEFNNAME:routing.ROUTINGDEFNNAME,EFFDT:routing.EFFDT,VERSION:next.v.RTDM}]))throw new Error('Generated routing tombstone differs before commit.');
         }else if(r.kind==='operation'){
             const v=r.after as {tables:Record<string,Row[]>},expected=v.tables.PSOPRHDLR.length?raw.markers.PSOPRHDLRDEL.filter(h=>trim(h.HANDLERNAME)!=='REQUESTHDLR'):raw.markers.PSOPRHDLRDEL;
             if(canonical(afterRaw.markers.PSOPRHDLRDEL)!==canonical(expected))throw new Error('IB lifecycle changed unrelated handler tombstones.');

@@ -1,0 +1,151 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-97f609e2c5fe8a32d4d1a416",
+  "fingerprint": "97f609e2c5fe8a32d4d1a41674ff110354d2eabf2faf54634dc3eeeb3006350c",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "integration-broker",
+    "objectType": "Service operation definition"
+  },
+  "assertion": {
+    "kind": "rest-operation-deletion-nohandler",
+    "facts": {
+      "operationMarkerAtEndingOPRM": true,
+      "routingMarkerAtRTDM": true
+    }
+  },
+  "title": "REST operation deletion without a handler moves SYS by four",
+  "statement": "A handler-free REST operation deletion moves OPRM by two, OPRVM, SRVM and RTDM by one and SYS by four; the operation tombstone takes the ending OPRM, the version tombstone OPRVM and the routing tombstone RTDM. A consumer GET behaves identically.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T20:50:12.976Z",
+      "method": "save-capture",
+      "experimentId": "ib13-native-rest-provider-operation-nohandler-delete",
+      "runId": "ib-rest-lifecycle-2026-10-21",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Native PIA deletion of a PIA-created REST provider GET without handlers; ib15 repeated the same protocol for a REST consumer GET.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSIBRTNGDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSIBRTNGDEFNDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSIBRTNGSUBDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATION",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATIONDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATIONURI",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRGENRTGPARM",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFNDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFNPARM",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRTNGDFNPARM",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSSERVICE",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSERVICEOPR",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "OPRM": 2,
+          "OPRVM": 1,
+          "RTDM": 1,
+          "SRVM": 1,
+          "SYS": 4
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ib13-native-rest-provider-operation-nohandler-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/IB_STRUCTURE.md"
+        }
+      ],
+      "digest": "65a7e330db6195d29822ad5d102cb3bc1a5505ae793b31b65f82da50ac2aafc5"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-21T22:57:21.244Z",
+    "updatedAt": "2026-10-21T22:57:21.244Z",
+    "schemaVersion": 1
+  }
+}

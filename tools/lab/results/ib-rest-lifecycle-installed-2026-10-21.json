@@ -1,0 +1,27 @@
+{
+  "at": "2026-10-21T22:55:08.571Z",
+  "scope": "Installed VS Code candidate (developer-built and reloaded); developer-approved Change Review on HRDMO PeopleTools 8.62.09; owned REST calibration fixtures only",
+  "plan": "Developer-approved plan: three reviewed REST lifecycle DELETEs without overlapping parent scopes, then a fresh reviewed inverse",
+  "forward": {
+    "changeSet": "1d6cdb6d-d45c-474e-8013-72ae0d2418fb",
+    "status": "APPLIED",
+    "objects": [
+      { "adapter": "ib-operation-definition", "key": ["ZZ_PCODE_LAB_IBRPG", "ZZ_PCODE_LAB_IBRP"], "operation": "DELETE", "application": "VERIFIED", "before": "cdc9d36ca07eb1627ae0700d64351e3ff69ce9c4fe68e5119281195f35df03e1", "verifiedToken": "892e0bc8412f63f6c8e3402bb8161bf01d7ff5e96bb9e8775a497a5ebd82ac1b", "shape": "REST provider GET with inactive PT_SES:Init OnRequest handler, URI template and generated routing" },
+      { "adapter": "ib-operation-definition", "key": ["ZZ_PCODE_LAB_IBRCG_GET", "ZZ_PCODE_LAB_IBRC"], "operation": "DELETE", "application": "VERIFIED", "before": "f311cf0709450df575b220ed6e0cf6ad7628c99246b2dbd7ab1712671a8d7324", "verifiedToken": "61193aa943bd8ad154954672a8b4b2a5e7aa712a9149c3d0d4face6e6e8e85cb", "shape": "PIA-created REST consumer GET, generated routing to WADL_NODE" },
+      { "adapter": "ib-service-definition", "key": ["ZZ_PCODE_LAB_IBRE"], "operation": "DELETE", "application": "VERIFIED", "before": "8b4956fd4b62f0c3c7e137872ca4c5e3f38d60ecd965796788009af16e23c1ff", "verifiedToken": "19e11fbfe60ed3cadb06cf1fcbe5c9962b4689874d4e76f59a6db439d3be60a4", "shape": "Empty REST provider service" }
+    ],
+    "liveAfter": "ZZ_PCODE_LAB_IBRPG read deleted with markers; token equals verifiedToken"
+  },
+  "inverse": {
+    "changeSet": "0a08a356-084a-4a19-a16d-bc1bfe3a4aef",
+    "status": "APPLIED",
+    "objects": [
+      { "key": ["ZZ_PCODE_LAB_IBRPG", "ZZ_PCODE_LAB_IBRP"], "operation": "CREATE", "application": "VERIFIED", "liveHash": "cdc9d36ca07eb1627ae0700d64351e3ff69ce9c4fe68e5119281195f35df03e1", "liveToken": "868ad4096df00e39ae390102c23a3a9181e1d1f91fa188b77e9a534e55194147" },
+      { "key": ["ZZ_PCODE_LAB_IBRCG_GET", "ZZ_PCODE_LAB_IBRC"], "operation": "CREATE", "application": "VERIFIED", "liveHash": "f311cf0709450df575b220ed6e0cf6ad7628c99246b2dbd7ab1712671a8d7324", "liveToken": "22d4fb978f10e68206f671b52e29538407c463ec65876ebfb513ba2d18199a57" },
+      { "key": ["ZZ_PCODE_LAB_IBRE"], "operation": "CREATE", "application": "VERIFIED", "liveHash": "8b4956fd4b62f0c3c7e137872ca4c5e3f38d60ecd965796788009af16e23c1ff", "liveToken": "4854f3ccb299062aba7c102030b4d49799ecc6f6598b85939560006bcc5bd533" }
+    ],
+    "originalCheckpointsRestored": true,
+    "note": "Live logical checkpoints equal the originals; tokens differ because recreation generates new routing names and earlier routing tombstones remain (native ib14 behavior)."
+  },
+  "notClaimed": "Runtime service invocation, REST URI message bindings, credentials, manual routings, multiple versions, 8.61 REST lifecycle"
+}

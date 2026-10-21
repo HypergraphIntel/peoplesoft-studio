@@ -7,4 +7,5 @@ if [[ $# != 2 || ! $1 =~ ^(before|after)$ || ! $2 =~ ^ib[0-9]+-[a-z0-9-]+$ ]]; t
 fi
 capture_args=("$1" --case "$2")
 if [[ $1 == after ]]; then capture_args+=(--omit-nonlab-rows); fi
+if [[ -n ${PSLAB_ROUTINGS:-} ]]; then capture_args+=(--routings "$PSLAB_ROUTINGS"); fi
 exec bash -lic 'exec node --import tsx tools/corpus/save-protocol/snapshot.ts "$@"' ib-lifecycle-capture "${capture_args[@]}"

@@ -1,0 +1,147 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-0a71e38b8e830c67293b5076",
+  "fingerprint": "0a71e38b8e830c67293b5076eccb68e595770cfb97f2d60e37d404079a1b6344",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "integration-broker",
+    "objectType": "Service operation definition"
+  },
+  "assertion": {
+    "kind": "rest-operation-recreation",
+    "facts": {
+      "clearsOperationMarker": true,
+      "clearsVersionMarker": true,
+      "keepsRoutingTombstone": true,
+      "newRoutingName": true
+    }
+  },
+  "title": "Same-name REST operation recreation generates a new routing and keeps the old routing tombstone",
+  "statement": "Recreating a deleted REST operation under the same name clears its operation and version tombstones, generates a routing with a new random name and leaves the earlier routing tombstone in PSIBRTNGDEFNDEL.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T20:53:07.863Z",
+      "method": "save-capture",
+      "experimentId": "ib14-native-rest-provider-operation-recreate",
+      "runId": "ib-rest-lifecycle-2026-10-21",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "PIA recreation of the GET deleted in ib13 with the same name, URI template and response message.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSIBRTNGDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSIBRTNGSUBDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATION",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATIONDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATIONURI",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRGENRTGPARM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFNDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFNPARM",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRTNGDFNPARM",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSERVICE",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSERVICEOPR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "OPRM": 1,
+          "OPRVM": 1,
+          "RTDM": 1,
+          "SRVM": 1,
+          "SYS": 4
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ib14-native-rest-provider-operation-recreate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/IB_STRUCTURE.md"
+        }
+      ],
+      "digest": "28ba6f0052de21e7db17ab1f5d1ee1ee0a8e8723b0d497efb481adae4488ad26"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-21T22:57:21.536Z",
+    "updatedAt": "2026-10-21T22:57:21.536Z",
+    "schemaVersion": 1
+  }
+}

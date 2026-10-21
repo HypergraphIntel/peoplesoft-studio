@@ -49,6 +49,68 @@ exercised, and the production page preview was visually inspected. These are
 fixture-backed approval/application checks; no new live PeopleSoft application
 was performed for this UI change.
 
+## October 21 REST lifecycle calibration (complete)
+
+The developer approved one HRDMO batch: owned REST fixtures
+`ZZ_PCODE_LAB_IBRP` (provider), `ZZ_PCODE_LAB_IBRC` (consumer) and
+`ZZ_PCODE_LAB_IBRE` (empty provider), seeded with the calibrated REST writer
+(`tools/lab/ib-rest-lifecycle-fixture.mts`; manifest
+`/tmp/psft-ib-rest-lifecycle-fixture.json`), then native PIA deletion and
+recreation. The snapshot tool gained `--routings` (also `PSLAB_ROUTINGS` in
+`ib-lifecycle-capture.sh`): routing-keyed tables are watched for the named
+routings plus any routing a lab operation owns, so a routing generated inside
+the window is captured as an insertion.
+
+Eight native captures, all on 8.62.09 in PIA (Service Administration delete,
+Services/Service Operations add):
+
+| Case | Native result |
+| --- | --- |
+| ib09 empty REST service delete | Same as standard ib03: PSSERVICE row out, PSSERVICEDEL at SRVM; SRVM/SYS +1 |
+| ib10 empty REST service recreate | Same as ib04: marker cleared; SRVM/SYS +1 |
+| ib11 Studio-made REST provider GET delete (handler) | Standard ib05 rows plus URI template, PSOPRGENRTGPARM and the generated routing (PSIBRTNGDEFN, PSIBRTNGSUBDEFN, 2 PSRTNGDFNPARM) removed; PSIBRTNGDEFNDEL written at RTDM; OPRM +3, OPRVM/OPRHM/SRVM/RTDM +1, SYS +5 |
+| ib12 native REST provider GET create | OPRM/OPRVM/SRVM/RTDM +1, SYS +4; new generated routing with sub-definition and two parameters |
+| ib13 native REST provider delete (no handler) | OPRM +2, OPRVM/SRVM/RTDM +1, SYS +4; operation marker at ending OPRM, version at OPRVM, routing at RTDM |
+| ib14 same-name native recreate | Clears operation/version markers; generates a new routing name; the old routing tombstone stays |
+| ib15 Studio-made REST consumer delete | Identical protocol to ib13 (role-independent) |
+| ib16 native REST consumer create | Same counters as ib12; routing PSFT_HR to WADL_NODE over HTTPTARGET |
+
+PIA names a new REST operation `<typed name>_<METHOD>` and keeps the typed
+name as IB_ALIASNAME (routing aliases `<alias>.v1`). Studio's REST creation
+stores the typed name for both; otherwise its rows match native creation column
+for column (provider and consumer).
+
+Implemented (uncommitted): `ibLifecycle.ts` accepts REST services and
+single-version REST operations with URI templates and exactly their
+writer-generated routing. The logical checkpoint carries the routing's content
+(`routing` key, name normalized to `~GENERATED~`); the token binds the real
+name. DELETE removes the routing rows and writes PSIBRTNGDEFNDEL at RTDM
+(RTDM +1, SYS +1); CREATE lets the writer generate a new routing (RTDM +1,
+SYS 4) and leaves old routing tombstones. Credentials in routing parameters,
+manual or extra routing rows refuse. `tools/lab/ib-lifecycle-fixture-build.mts`
+builds `rest-lifecycle.json`; `ibRestLifecycle.test.ts` replays all eight
+captures exactly (11 tests). Full suite 2,199 pass / 1 skipped; 69 HTTP/UI
+checks pass. The private-review native trial
+(`tools/lab/ib-rest-definition-review-native.mts`, run by the developer because
+the auto-mode classifier blocks direct HRDMO writes) passed 11 checks:
+reviewed typed recreation of the natively deleted provider GET with its handler,
+plus inverse/redo; delete/inverse/redo/restore of the native provider GET and
+of the empty REST service. Report
+`tools/lab/results/ib-rest-definition-review-native-2026-10-21.json`. A first
+run was refused at validation (CONFLICTED, nothing written): the fixture held
+capture-format DATE text, not the reader's FF9 projection; the builder now
+emits the reader format, verified read-only against three live checkpoints.
+Installed acceptance passed with the developer-built, reloaded candidate
+(version unchanged; no release): plan-approved set
+`1d6cdb6d-d45c-474e-8013-72ae0d2418fb` deleted the provider GET with handler and
+routing, the consumer GET and the empty REST service, all VERIFIED; fresh
+inverse `0a08a356-084a-4a19-a16d-bc1bfe3a4aef` recreated all three, VERIFIED,
+live logical checkpoints equal to the originals. Report
+`tools/lab/results/ib-rest-lifecycle-installed-2026-10-21.json`; findings
+f-9ed38b55…, f-97f609e2…, f-0a71e38b…, f-81208e0a…. Open: Studio's REST
+creation does not apply PIA's `<name>_<METHOD>` naming; 8.61 REST lifecycle;
+URI message bindings, credentials and manual routings.
+
 ## October 21 IB structural continuation (complete)
 
 Added reviewed editing of existing REST URI template text, with preservation of

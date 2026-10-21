@@ -1,0 +1,350 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "ib10-native-rest-empty-service-recreate",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "nonLabRowsOmitted": true,
+ "markers": {
+  "before": {
+   "scn": "39362813674634",
+   "timestamp": "2026-10-21T15:38:00.818158000-05:00"
+  },
+  "after": {
+   "scn": "39362813685474",
+   "timestamp": "2026-10-21T15:41:16.912197000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-21T15:38:00.818158000-05:00",
+    "to": "2026-10-21T15:41:16.912197000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "SRVM": {
+    "before": 63,
+    "after": 64,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 5170,
+    "after": 5171,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "SRVM": {
+    "before": 63,
+    "after": 64,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSSERVICE": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSSERVICEDEL": {
+    "inserted": 0,
+    "deleted": 1,
+    "updated": 0
+   }
+  },
+  "otherTablesChanged": {},
+  "unreadableTables": [],
+  "outsideWatch": {
+   "PSAPMSGDSPSTAT": {
+    "beforeCount": 3,
+    "afterCount": 3,
+    "touched": true
+   },
+   "PSAPMSGPUBCLOCK": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSAPMSGPUBLOCK": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSAPMSGSUBCLOCK": {
+    "beforeCount": 191,
+    "afterCount": 191,
+    "touched": true
+   },
+   "PSIBNWLOCK": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSIBNWSTATUS": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSIBOALOCK": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSIBOAUTH": {
+    "beforeCount": 1,
+    "afterCount": 1,
+    "touched": true
+   },
+   "PSSERVERSTAT": {
+    "beforeCount": 3,
+    "afterCount": 3,
+    "touched": true
+   },
+   "PSSERVICE": {
+    "beforeCount": 1093,
+    "afterCount": 1094,
+    "touched": true
+   },
+   "PSSERVICEDEL": {
+    "beforeCount": 1,
+    "afterCount": 0,
+    "touched": false
+   }
+  },
+  "incomplete": []
+ },
+ "watch": {
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "SRVM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "63",
+       "after": "64"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "5170",
+       "after": "5171"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "SRVM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "63",
+       "after": "64"
+      }
+     }
+    }
+   ]
+  },
+  "PSSERVICE": {
+   "columns": [
+    {
+     "name": "IB_SERVICENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_NAMESPACE",
+     "type": "VARCHAR2",
+     "length": 1016,
+     "nullable": false
+    },
+    {
+     "name": "IB_ALIASNAME",
+     "type": "VARCHAR2",
+     "length": 512,
+     "nullable": false
+    },
+    {
+     "name": "IB_PSOFTSERVICE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "IB_REST_SERVICE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PT_OPEN_API",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTIBAPPLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "IBEXTERNALUSERID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "TOKENTYPE",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "PTIB_APPSRVGRP",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "IB_SERVICENAME": "ZZ_PCODE_LAB_IBRE",
+     "VERSION": "64",
+     "IB_NAMESPACE": "urn:psft:ib-rest-lifecycle",
+     "IB_ALIASNAME": " ",
+     "IB_PSOFTSERVICE": "N",
+     "IB_REST_SERVICE": "2",
+     "PT_OPEN_API": "0",
+     "PTIBAPPLNAME": " ",
+     "IBEXTERNALUSERID": " ",
+     "TOKENTYPE": "NONE",
+     "PTIB_APPSRVGRP": " ",
+     "LASTUPDDTTM": "2026-10-21T15:41:05.622287000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "DESCR": "IB REST lifecycle calibration",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSSERVICEDEL": {
+   "columns": [
+    {
+     "name": "IB_SERVICENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "IB_SERVICENAME": "ZZ_PCODE_LAB_IBRE",
+     "VERSION": "63"
+    }
+   ],
+   "updated": []
+  }
+ },
+ "otherTables": {}
+}

@@ -42,8 +42,9 @@ service/operation creation stages complete lifecycle checkpoints;
 review-only deletion. Empty unrestricted services and single-version standard
 synchronous operations with request/response messages and optional paired
 OnRequest handler support typed inverse/redo. Owning-service resaves are explicitly
-authorized and overlapping parent scopes require separate sets. REST lifecycle,
-credentials and wider ancillary shapes refuse. Other creation/out-of-contract
+authorized and overlapping parent scopes require separate sets. REST services
+and operations (URI templates and their writer-generated routing) are included;
+credentials, manual routings and wider ancillary shapes refuse. Other creation/out-of-contract
 changes retain legacy confirmation outside explicit Change Sets. Editor saves
 use their existing save flow.
 
