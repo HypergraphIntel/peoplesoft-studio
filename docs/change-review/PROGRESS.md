@@ -107,7 +107,11 @@ routing, the consumer GET and the empty REST service, all VERIFIED; fresh
 inverse `0a08a356-084a-4a19-a16d-bc1bfe3a4aef` recreated all three, VERIFIED,
 live logical checkpoints equal to the originals. Report
 `tools/lab/results/ib-rest-lifecycle-installed-2026-10-21.json`; findings
-f-9ed38b55…, f-97f609e2…, f-0a71e38b…, f-81208e0a…. Open: Studio's REST
+f-9ed38b55…, f-97f609e2…, f-0a71e38b…, f-81208e0a…. The developer chose to
+keep the owned REST fixtures on HRDMO (services `ZZ_PCODE_LAB_IBRP`,
+`ZZ_PCODE_LAB_IBRC`, `ZZ_PCODE_LAB_IBRE`; operations `ZZ_PCODE_LAB_IBRPG`,
+`ZZ_PCODE_LAB_IBRPG_GET`, `ZZ_PCODE_LAB_IBRCG_GET`, all inactive), superseding the
+plan's PIA removal step. Open: Studio's REST
 creation does not apply PIA's `<name>_<METHOD>` naming; 8.61 REST lifecycle;
 URI message bindings, credentials and manual routings.
 
