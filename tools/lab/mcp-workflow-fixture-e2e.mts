@@ -643,7 +643,16 @@ async function reviewRpc(method:string,params:unknown) {
  const body=await response.text(),value=JSON.parse(body.startsWith('{')?body:body.split('\n').find(line=>line.startsWith('data:'))!.slice(5));
  if(value.error)throw new Error(JSON.stringify(value.error));return value.result;
 }
-async function reviewCall(name:string,args:object,expect=true){const r=await reviewRpc('tools/call',{name,arguments:args});if(!expect){assert.equal(r.isError,true,'Expected refusal: '+name);return r;}assert.ok(!r.isError,r.content?.[0]?.text);return JSON.parse(r.content[0].text);}
+// Successful calls are sequential journey steps. UI status publication precedes
+// completion of its exclusive action, especially on Windows. Wait before sending
+// the next independent request, never retry an already submitted request.
+// Raw reviewRpc and expected-refusal calls retain their original race behavior.
+async function reviewCall(name:string,args:object,expect=true){
+ if(expect)await until(async()=>!require('node:fs').existsSync(join(reviewRoot,'writer.lock')));
+ const r=await reviewRpc('tools/call',{name,arguments:args});
+ if(!expect){assert.equal(r.isError,true,'Expected refusal: '+name);return r;}
+ assert.ok(!r.isError,r.content?.[0]?.text);return JSON.parse(r.content[0].text);
+}
 async function until(test:()=>Promise<boolean>){for(let n=0;n<2000;n++){if(await test())return;await new Promise(resolve=>setTimeout(resolve,5));}throw new Error('Review UI did not reach expected state');}
 
 // Store publication can precede the UI handler's final idle render. A user
