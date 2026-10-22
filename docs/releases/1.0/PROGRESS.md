@@ -68,3 +68,16 @@ retained DRAFT history. It uses an independent owned SQL fixture for the dirty
 editor setup. No passing native write is attributed to that old Windows asset.
 Current-candidate save, inverse, redo and deletion still require actual rendered
 review. A final restart checks the resulting history and cleanup without replay.
+
+
+The next Windows CI run passed all unit/activation/editor/runtime checks, then
+found that the Build Request workflow fixture mocked only Linux terminals,
+although the existing Windows branch uses VS Code Tasks. The fixture now
+models both actual API boundaries and asserts literal strong quoting; this is
+fixture acceptance, not the deferred native Windows AI-client handoff.
+Native Windows also exposed transient `EPERM` during atomic history replacement.
+The shared replacement helper retries only bounded Windows sharing/scan errors
+for the same flushed local file. It never deletes the old checkpoint or retries
+a native writer. Permanent storage errors still propagate. New tests cover
+retained checkpoints, the platform-specific retry and permanent-error refusal.
+Final Windows and exact-candidate evidence remain open until inspected.

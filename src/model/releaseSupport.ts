@@ -45,6 +45,8 @@ export function definitionReleaseSupport(type:D,operation:string,exposed:boolean
  if(!exposed)return {level:'NOT_EXPOSED',label:'Not exposed',detail:'No tool route is available for this operation.',target:'1.5'};
  if(operation==='execute'&&(type===D.ProcessDefinition||type===D.AppEngineProgram))return toolReleaseSupport('Run and Monitor');
  if(operation==='migrate')return core('Bounded Oracle package adapters retain their recorded native scope. Separate-environment promotion remains preview pending its own 1.5 qualification.');
+ if(type===D.ApplicationClassPeopleCode&&['create','copy','rename','delete'].includes(operation))return preview('Standalone class lifecycle review needs combined package/class metadata and parent side effects. Bounded package migration has a separate contract.');
+ if([D.MenuPeopleCode,D.ComponentRecordPeopleCode].includes(type)&&['create','edit','copy','rename','delete'].includes(operation))return preview('This event writer retains its existing guards, but standalone installed/native reviewed save acceptance is not recorded. Menu migration has separate native evidence.');
  if(coreTypes.has(type))return core('Bounded operations on the declared Oracle profile; consult the exact tool schema and documented review/legacy-save limits. Core qualification is in progress.');
  return preview('A routed tool is not certification. Consult the family reference and native evidence.');
 }

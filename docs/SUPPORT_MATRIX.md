@@ -42,6 +42,11 @@ than the current CI runtime promise.
   is reversible. Separate-environment promotion remains preview pending its
   own 1.5 acceptance. Import does not copy application data.
 
+Standalone Menu and Component Record PeopleCode write acceptance remains preview;
+Menu migration has separate native evidence. Existing Application Class source
+edits and bounded package migration do not qualify standalone class lifecycle
+review, which remains a 1.5 expansion.
+
 Core means in the release scope, not blanket native acceptance of every
 property or variant. The [coverage matrix](change-review/COVERAGE.md), writer
 contracts and final [qualification evidence](releases/1.0/PROGRESS.md) retain

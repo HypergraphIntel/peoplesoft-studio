@@ -3,6 +3,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { hash, canonical, privacy, type ChangeSet, type Json } from './model.js';
 import { syncDirectory } from '../util/syncDirectory.js';
+import { replaceFile } from '../util/replaceFile.js';
 /** Single-machine storage. Never remove a live/unknown owner's lock. */
 export class ReviewStore {
     constructor(readonly root: string) { }
@@ -84,7 +85,7 @@ export class ReviewStore {
         finally {
             await f.close();
         }
-        await fs.rename(temp, file);
+        await replaceFile(temp, file);
         await syncDirectory(path.dirname(file));
     }
     async blob(value: Json): Promise<string> {

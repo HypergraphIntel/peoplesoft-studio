@@ -461,6 +461,18 @@ const buildServer = await startPeopleSoftMcpServer(workspace, { port: 39522, wri
 const oldBuildOpen = vscode.window.showOpenDialog, oldBuildInformation = vscode.window.showInformationMessage;
 const oldBuildTerminal = vscode.window.createTerminal, oldBuildEnv = vscode.env, oldBuildFs = vscode.workspace.fs;
 const terminals: any[] = [];
+const launchedTasks:any[]=[];
+const oldBuildTaskApi=Object.fromEntries(['Task','ShellExecution','ShellQuoting','TaskScope','TaskRevealKind','TaskPanelKind','tasks'].map(k=>[k,vscode[k]]));
+Object.assign(vscode,{
+ Task:class{constructor(public definition:any,public scope:any,public name:any,public source:any,public execution:any){}},
+ ShellExecution:class{constructor(public command:any,public args:any[],public options:any){}},
+ ShellQuoting:{Strong:2},TaskScope:{Global:1},TaskRevealKind:{Always:1},TaskPanelKind:{New:3},
+ tasks:{executeTask:async(task:any)=>{launchedTasks.push(task);return {task};}}
+});
+const launches=()=>process.platform==='win32'?launchedTasks.length:terminals.length;
+const launchDetails=(index:number)=>process.platform==='win32'
+ ? {command:launchedTasks[index].execution.command,args:launchedTasks[index].execution.args.map((a:any)=>{assert.equal(a.quoting,vscode.ShellQuoting.Strong);return a.value;}),shown:launchedTasks[index].presentationOptions.reveal===vscode.TaskRevealKind.Always}
+ : {command:terminals[index].options.shellPath,args:terminals[index].options.shellArgs,shown:terminals[index].shown};
 let buildApproval = false;
 vscode.window.createTerminal = (options: any) => {
   const terminal = { options, shown: false, commands: [] as string[], show() { this.shown = true; }, sendText(text: string) { this.commands.push(text); } };
@@ -495,14 +507,14 @@ try {
   await entered;
   requestPanel._receive({ type: 'handoff', phase: 'analyze', agent: 'codex' });
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(terminals.length, 0, 'handoff must wait for the pending edit');
+  assert.equal(launches(), 0, 'handoff must wait for the pending edit');
   releaseEdit();
   await until(async () => (await buildStore.get(request.id)).handoffs.length === 1);
   buildStore.edit = originalEdit;
-  assert.equal(terminals.length, 1); assert.equal(terminals[0].shown, true);
-  assert.equal(terminals[0].options.shellPath, 'codex');
-  assert.match(terminals[0].options.shellArgs[1], /39522\/mcp/);
-  assert.match(terminals[0].options.shellArgs.at(-1), new RegExp(`^Analyze PeopleSoft Studio build request ${request.id}:`));
+  assert.equal(launches(), 1); assert.equal(launchDetails(0).shown, true);
+  assert.equal(launchDetails(0).command, 'codex');
+  assert.match(launchDetails(0).args[1], /39522\/mcp/);
+  assert.match(launchDetails(0).args.at(-1), new RegExp(`^Analyze PeopleSoft Studio build request ${request.id}:`));
   check('Build Request handoff waits for pending page edits before launching the configured agent');
 
   const file = join(buildRoot, 'requirements.txt');
@@ -534,9 +546,10 @@ try {
   requestPanel._receive({ type: 'approve', specRevision: 2 });
   await until(async () => (await buildTool('psft_build_request_get', { id: request.id })).buildAuthorized);
   requestPanel._receive({ type: 'handoff', phase: 'build', agent: 'codex' });
-  await until(async () => terminals.length === 2);
-  assert.match(terminals[1].options.shellArgs.at(-1), /confirm buildAuthorized is true/);
-  assert.equal(terminals[1].commands.length, 0, 'handoff must not reconstruct a shell command');
+  await until(async () => launches() === 2);
+  assert.match(launchDetails(1).args.at(-1), /confirm buildAuthorized is true/);
+  if(process.platform!=='win32')assert.equal(terminals[1].commands.length, 0, 'handoff must not reconstruct a shell command');
+  else assert.equal(launchedTasks[1].execution.command,'codex','Windows must pass the command and strongly quoted literal arguments separately');
   const stagedReport = await buildTool('psft_build_request_report', { id: request.id, entries: [{ ref: 'sql', status: 'STAGED', detail: 'Fixture proposal only', changeSetId: '00000000-0000-4000-8000-000000000000' }] });
   assert.equal(stagedReport.status, 'AWAITING_REVIEW');
   assert.deepEqual(stagedReport.remaining, ['sql']);
@@ -561,6 +574,7 @@ try {
   requestPanel?.dispose(); await buildServer.dispose();
   vscode.window.showOpenDialog = oldBuildOpen; vscode.window.showInformationMessage = oldBuildInformation;
   vscode.window.createTerminal = oldBuildTerminal; vscode.env = oldBuildEnv; vscode.workspace.fs = oldBuildFs;
+  Object.assign(vscode,oldBuildTaskApi);
   await buildFs.rm(buildRoot, { recursive: true, force: true });
 }
 

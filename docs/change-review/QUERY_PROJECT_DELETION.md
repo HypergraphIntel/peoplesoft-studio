@@ -1,8 +1,8 @@
 # Query and project creation reversal: native calibration
 
-Production deletion writers and reviewed creation reversal for these families
-remain open. Six native cases now establish their Oracle HRDMO / PeopleTools
-8.62 protocol. This evidence comes from actual Windows Application Designer
+Production deletion writers and reviewed creation reversal are implemented for
+the bounded Oracle 8.62 scope below. Six native cases establish their Oracle
+HRDMO / PeopleTools 8.62 protocol. This evidence comes from actual Windows Application Designer
 and Windows Query, rather than assumptions about the existing readers.
 
 | Case | Native operation | Captured behavior |
@@ -35,25 +35,28 @@ owned Query/project headers, children and markers and verifies absence across
 the complete discovered scope. Native global counters remain monotonic. The
 original project and package view are restored after the trial.
 
-## Next implementation
+## Implemented writers and reviewed recovery
 
-Add explicit marker-aware vacant checkpoints without reinterpreting old history
-or weakening native ownership/access checks. Implement typed deletion with
-reference and ancillary refusal, locked complete native tokens/counters,
-operator/write scope, rollback validation and exact precommit/readback checks.
-Project deletion must remove only its own header and memberships, never the
-contained definitions or unrelated project metadata. Ordinary creation must
-refuse tombstones; only freshly reviewed restoration can clear bound markers.
+Complete typed Query/project checkpoints include native deletion markers and
+freshness tokens. Writers retain operator, writable-name scope, owner/access,
+known-reference and ancillary-table checks, rollback previews and exact native
+readback. Project deletion removes its own header/memberships and preserves
+contained definitions. Nondefault metadata and target credentials refuse
+project deletion; existing-project membership reversal is not calibrated.
+Ordinary creation refuses tombstones. Only a freshly reviewed recreation can
+clear the exact marker bound to its retained checkpoint.
 
-Integrate the typed paths with Query/project creation, migration and history,
-including dependency-ordered inverse, fresh continuation approval and full redo.
-Use native rollback/application trials and separately installed rendered review
-controls before claiming creation reversal support. Dynamic Query references,
-project ancillary/configuration state and credentials need explicit refusal
-boundaries rather than raw-row replay.
+The [nine native writer checks](../../tools/lab/results/query-project-reversal-native-2026-10-20.json)
+and [16 reviewed native checks](../../tools/lab/results/query-project-reversal-reviewed-native-2026-10-20.json)
+pass, including public/private owner markers, project-before-Query inverse,
+lost committed deletion reply, reconciliation without replay, fresh remaining
+approval and exact redo. Both reports verify owned-scope cleanup. These service
+trials use trusted test approval and do not claim installed UI certification.
 
-Validation: all six native-protocol tests pass, including explicit checks that
-project account columns are absent from all twelve snapshots. Full
-`npm run verify` passes 2,155 tests / one skipped, activation smoke, 18 editor
-checks and 9 package checks. Both lab helpers pass strict TypeScript checking.
-No production runtime, encoder or decoder change is made by this calibration.
+Separate installed acceptance covers Query rename/delete, destructive-consent
+refusal and reviewed undo ([Query report](../../tools/lab/results/query-installed-2026-10-21.json)),
+and bounded migration import/inverse/redo with its project
+([migration report](../../tools/lab/results/migration-installed-2026-10-21.json)).
+Current-candidate evidence is tracked in [1.0 progress](../releases/1.0/PROGRESS.md).
+Dynamic references remain unknown; no raw-row replay, application-data undo or
+separate-environment certification is implied.

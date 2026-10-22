@@ -15,6 +15,10 @@ test('MCP orientation and catalog carry the shared contract without certifying u
  const process=capabilityCatalog({type:D.ProcessDefinition}).entries[0] as any;
  assert.equal(process.operations.execute.releaseSupport.level,'PREVIEW');assert.equal(process.operations.execute.session,'WRITE_HOST_REQUIRED');
  assert.equal(definitionReleaseSupport(D.Query,'delete',false).level,'NOT_EXPOSED');
+ assert.equal(definitionReleaseSupport(D.ApplicationClassPeopleCode,'create',true).level,'PREVIEW');
+ assert.equal(definitionReleaseSupport(D.ApplicationClassPeopleCode,'read',true).level,'CORE');
+ assert.equal(definitionReleaseSupport(D.ComponentRecordPeopleCode,'edit',true).level,'PREVIEW');
+ assert.equal(definitionReleaseSupport(D.RecordPeopleCode,'edit',true).level,'CORE');
  const config=capabilityCatalog({kind:'configuration',query:'Run and Monitor'}).entries.find(e=>(e as any).label==='Run and Monitor') as any;
  assert.deepEqual(config.releaseSupport,toolReleaseSupport('Run and Monitor'));
  assert.equal(toolReleaseSupport('Data Migration Workbench',true).level,'PLANNED');assert.equal(toolReleaseSupport('Data Migration Workbench',true).target,'2.0');

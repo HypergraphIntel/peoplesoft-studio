@@ -69,8 +69,9 @@ Record/SQL/AE/project application is ordered per-writer transactions, not an
 atomic cross-object transaction. A partial/uncertain outcome stops dependents;
 reconciliation and fresh reviewed continuation remain required. Record and AE
 creation adapters support calibrated deletion with full native scope guards,
-reference checks, rollback preview and readback. Complete Oracle 8.62 SQL checkpoints now also support creation reversal and fresh redo; legacy SQL histories remain text-only. Project creation
-reversal remains unsupported. See [TEXT_DELETION.md](TEXT_DELETION.md). No DDL, data
+reference checks, rollback preview and readback. Complete Oracle 8.62 SQL checkpoints now also support creation reversal and fresh redo; legacy SQL histories remain text-only. Bounded Oracle 8.62 project creation inverse/redo is also implemented, with
+reference/default-metadata/credential refusal and marker-bound recreation. See
+[Query/project protocol](QUERY_PROJECT_DELETION.md). See [TEXT_DELETION.md](TEXT_DELETION.md). No DDL, data
 load, scheduler execution, delivery transmission or general structural edit
 reversal is implied.
 

@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { replaceFile } from '../util/replaceFile.js';
 import { extractText } from './extract.js';
 import {
   applyEdit, approvalBlocker, buildSpec, checkSpec, isApproved, newRequest, OBJECT_STATUSES, SCHEMA, specHash,
@@ -236,7 +237,7 @@ export class BuildRequestStore {
     const file = path.join(this.folder(r.id), 'request.json');
     const temp = `${file}.${process.pid}.tmp`;
     await fs.writeFile(temp, JSON.stringify(r, null, 1), { encoding: 'utf8', mode: 0o600 });
-    await fs.rename(temp, file);
+    await replaceFile(temp, file);
   }
 
   private serialized<T>(work: () => Promise<T>, id: string): Promise<T> {

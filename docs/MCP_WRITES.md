@@ -9,7 +9,7 @@ HTML, style sheets, projects, packages, pages). Core authoring tools are in
 modules. Authoring tools register only when VS Code provides the write host
 (the setting, review/approval integration, and the editors' state).
 
-## Current staged review paths (0.9.7 release)
+## Current staged review paths (0.9.8 preparation)
 
 On Oracle with Change Review enabled, supported SQL, HTML/freeform style sheet,
 PeopleCode, Query and Process mutations stage durable proposals. Page edits are
@@ -20,11 +20,14 @@ staged Page/Record/AE edit tools are refused. Creation/copy/rename/delete tools
 outside the migrated paths retain their existing legacy gates.
 
 Dedicated adapters also stage new Derived/Work records, AE programs and projects
-with declared proposal dependencies. Record/AE creation has bounded reviewed
-deletion/recreation; project creation undo remains unsupported. Existing IB
-services/operations stage description/comments and bounded structure, including
-the calibrated OnRequest handler addition. Out-of-contract IB changes retain
-legacy confirmation; reversing an added handler is refused.
+with declared proposal dependencies. Bounded Record/AE and Oracle 8.62 project
+creation have reviewed deletion/recreation. Project reversal removes only its
+header/memberships; credentials, nondefault metadata and ancillary references
+refuse deletion. Existing IB services/operations stage bounded noncredential
+structure. Calibrated 8.62.09 OnRequest handler deletion/recreation and standard/REST
+service/operation lifecycle have separately recorded native/installed inverse
+and redo evidence. Wider IB changes retain legacy confirmation or an explicit
+refusal; see the exact [IB scope](change-review/IB_STRUCTURE.md).
 
 `REVIEW_REQUIRED` means **no committed PeopleSoft change**. Open **PeopleSoft →
 Change Review → Open Review**, inspect the objects and differences, then choose

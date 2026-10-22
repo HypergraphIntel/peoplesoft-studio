@@ -3,6 +3,7 @@ import path from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
 import type {RuntimeRequest,RuntimeRun} from './protocol.js';
 import {syncDirectory} from '../util/syncDirectory.js';
+import {replaceFile} from '../util/replaceFile.js';
 export interface RuntimeIntent {
  schema:1; id:string; connection:string; endpoint:string; operator:string; identity:string;
  request:RuntimeRequest; afterInstance:number; baselineToken:string; description:string; created:string; expires:string; confirmationHash:string;
@@ -36,7 +37,7 @@ export class RuntimeStore {
   const file=this.location(value.id),temp=file+'.'+randomUUID()+'.tmp',text=JSON.stringify({checksum:hash(value),value});
   if(Buffer.byteLength(text)>128*1024)throw Error('Process runtime history limit exceeded.');
   const handle=await fs.open(temp,'wx',0o600);try{await handle.writeFile(text);await handle.sync();}finally{await handle.close();}
-  await fs.rename(temp,file);await syncDirectory(this.root);
+  await replaceFile(temp,file);await syncDirectory(this.root);
  }
  async get(id:string):Promise<RuntimeIntent>{
   let envelope:any;try{envelope=JSON.parse(await fs.readFile(this.location(id),'utf8'));}catch{throw Error('Process request history was not found.');}
