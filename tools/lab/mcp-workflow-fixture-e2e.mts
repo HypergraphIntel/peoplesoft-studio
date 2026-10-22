@@ -640,6 +640,17 @@ async function reviewRpc(method:string,params:unknown) {
 async function reviewCall(name:string,args:object,expect=true){const r=await reviewRpc('tools/call',{name,arguments:args});if(!expect){assert.equal(r.isError,true,'Expected refusal: '+name);return r;}assert.ok(!r.isError,r.content?.[0]?.text);return JSON.parse(r.content[0].text);}
 async function until(test:()=>Promise<boolean>){for(let n=0;n<2000;n++){if(await test())return;await new Promise(resolve=>setTimeout(resolve,5));}throw new Error('Review UI did not reach expected state');}
 
+// Store publication can precede the UI handler's final idle render. A user
+// cannot click a disabled busy form; legal fixture actions wait for that same boundary.
+async function readyRenderedReview(page:any,action:string,destructive=false){
+ await until(async()=>{
+  const html=page.webview.html;
+  const button=[...html.matchAll(/<button\b([^>]*)>/g)].find(m=>m[1].includes(`data-action="${action}"`));
+  return !!button&&!/\bdisabled\b/.test(button[1])&&!html.includes('aria-busy="true"');
+ });
+ return clickRenderedReview(page.webview.html,action,destructive);
+}
+
 // Evaluate the actual rendered webview script with a minimal DOM: capture its exact click payload,
 // including JSON-decoded data attributes and duplicate-click suppression. No browser/DB claim.
 function clickRenderedReview(html:string, action:string, destructive=false) {
@@ -812,11 +823,11 @@ try{
  assert.equal((await reviewService.reversalSupport(await reviewService.store.get(contentSet.id))).supported,true);
  check('HTML/style proposals use complete reversible checkpoints and normalize before approval');
  let contentInverse=await reviewCall('psft_prepare_revert',{changeSetId:contentSet.id});contentInverse=await reviewCall('psft_validate_change_set',{changeSetId:contentInverse.id});assert.equal(contentInverse.status,'READY_FOR_REVIEW');await reviewUi.show(contentInverse.id);
- contentPage._receive(clickRenderedReview(contentPage.webview.html,'approveAndApply',true));
+ contentPage._receive(await readyRenderedReview(contentPage,'approveAndApply',true));
  await until(async()=>(await reviewService.store.get(contentInverse.id)).status==='APPLIED'&&(await reviewService.store.get(contentSet.id)).status==='REVERTED'&&!require('node:fs').existsSync(join(reviewRoot,'writer.lock')));assert.equal(contentDefinitions.size,0);
  const nativeCountBeforeRedo=nativeWrites;
  await reviewCall('psft_save_text_definition',{connection:'FIXTURE',type:51,name:'ZZ_REVIEW_HTML',text:'unreviewed recreation'},false);assert.equal(contentDefinitions.size,0);assert.equal(nativeWrites,nativeCountBeforeRedo);
- let contentRedo=await reviewCall('psft_prepare_redo',{changeSetId:contentSet.id});contentRedo=await reviewCall('psft_validate_change_set',{changeSetId:contentRedo.id});await reviewUi.show(contentRedo.id);contentPage._receive(clickRenderedReview(contentPage.webview.html,'approveAndApply'));
+ let contentRedo=await reviewCall('psft_prepare_redo',{changeSetId:contentSet.id});contentRedo=await reviewCall('psft_validate_change_set',{changeSetId:contentRedo.id});await reviewUi.show(contentRedo.id);contentPage._receive(await readyRenderedReview(contentPage,'approveAndApply'));
  await until(async()=>(await reviewService.store.get(contentRedo.id)).status==='APPLIED'&&!require('node:fs').existsSync(join(reviewRoot,'writer.lock')));assert.equal(contentDefinitions.size,2);
  assert.equal((await provider.readTextDefinitionForReview('html','ZZ_REVIEW_HTML')).value?.description,'Review HTML');assert.equal((await provider.readTextDefinitionForReview('stylesheet','ZZ_REVIEW_CSS')).value?.description,'Review CSS');
  check('HTTP content creation inverse needs rendered destructive consent; ordinary recreation refuses markers and fresh reviewed redo restores complete payloads');
@@ -825,11 +836,11 @@ try{
  const sqlPayload={name:'ZZ_FULL_SQL',text:'SELECT 7 FROM DUAL',description:'Full SQL metadata',definition:'Complete comments é😀 '.repeat(600),ownerId:'PPT'};
  completeSql=await reviewCall('psft_stage_object_change',{changeSetId:completeSql.id,adapter:'sql-definition',key:'ZZ_FULL_SQL',objectId:completeSql.objects[0].id,after:sqlPayload});
  sqlPayload.text='SELECT 8 FROM DUAL';await reviewCall('psft_save_text_definition',{connection:'FIXTURE',type:30,name:'ZZ_FULL_SQL',text:sqlPayload.text,changeSetId:completeSql.id});completeSql=await reviewCall('psft_get_change_set',{changeSetId:completeSql.id});assert.deepEqual(await reviewService.store.readBlob(completeSql.objects[0].after),sqlPayload);
- completeSql=await reviewCall('psft_validate_change_set',{changeSetId:completeSql.id});await reviewUi.show(completeSql.id);contentPage._receive(clickRenderedReview(contentPage.webview.html,'approveAndApply'));
+ completeSql=await reviewCall('psft_validate_change_set',{changeSetId:completeSql.id});await reviewUi.show(completeSql.id);contentPage._receive(await readyRenderedReview(contentPage,'approveAndApply'));
  await until(async()=>(await reviewService.store.get(completeSql.id)).status==='APPLIED'&&!require('node:fs').existsSync(join(reviewRoot,'writer.lock')));
- let sqlInverse=await reviewCall('psft_prepare_revert',{changeSetId:completeSql.id});sqlInverse=await reviewCall('psft_validate_change_set',{changeSetId:sqlInverse.id});await reviewUi.show(sqlInverse.id);contentPage._receive(clickRenderedReview(contentPage.webview.html,'approveAndApply',true));
+ let sqlInverse=await reviewCall('psft_prepare_revert',{changeSetId:completeSql.id});sqlInverse=await reviewCall('psft_validate_change_set',{changeSetId:sqlInverse.id});await reviewUi.show(sqlInverse.id);contentPage._receive(await readyRenderedReview(contentPage,'approveAndApply',true));
  await until(async()=>(await reviewService.store.get(sqlInverse.id)).status==='APPLIED'&&(await reviewService.store.get(completeSql.id)).status==='REVERTED'&&!require('node:fs').existsSync(join(reviewRoot,'writer.lock')));assert.equal(sqlDefinitions.has('ZZ_FULL_SQL'),false);
- let sqlRedo=await reviewCall('psft_prepare_redo',{changeSetId:completeSql.id});sqlRedo=await reviewCall('psft_validate_change_set',{changeSetId:sqlRedo.id});await reviewUi.show(sqlRedo.id);contentPage._receive(clickRenderedReview(contentPage.webview.html,'approveAndApply'));
+ let sqlRedo=await reviewCall('psft_prepare_redo',{changeSetId:completeSql.id});sqlRedo=await reviewCall('psft_validate_change_set',{changeSetId:sqlRedo.id});await reviewUi.show(sqlRedo.id);contentPage._receive(await readyRenderedReview(contentPage,'approveAndApply'));
  await until(async()=>(await reviewService.store.get(sqlRedo.id)).status==='APPLIED'&&!require('node:fs').existsSync(join(reviewRoot,'writer.lock')));assert.deepEqual((await provider.readTextDefinitionForReview('sql','ZZ_FULL_SQL')).value,sqlPayload);
  check('HTTP SQL creation uses a complete checkpoint and rendered inverse/redo retains long comments, description and owner');
  const codeDefinitions=new Map<string,{text:string;fingerprint:string}>();
@@ -852,10 +863,10 @@ try{
  let reversal=await reviewCall('psft_prepare_revert',{changeSetId:codeSet.id});reversal=await reviewCall('psft_validate_change_set',{changeSetId:reversal.id});
  await reviewUi.show(reversal.id);const deletionHtml=codePage.webview.html;assert.ok(deletionHtml.includes('id="destructive"'));await reviewUi.show(reversal.id);assert.equal(codePage.webview.html,deletionHtml,'Exact-state refresh must retain the existing DOM.');
  check('identical review refresh retains the rendered consent form instead of replacing its DOM');
- codePage._receive(clickRenderedReview(codePage.webview.html,'approveAndApply'));
+ codePage._receive(await readyRenderedReview(codePage,'approveAndApply'));
  await until(async()=>codePage.webview.html.includes('Distinct destructive-operation approval is required.'));
  const refusedHtml=codePage.webview.html;
- codePage._receive(clickRenderedReview(codePage.webview.html,'approveAndApply'));
+ codePage._receive(await readyRenderedReview(codePage,'approveAndApply'));
  await until(async()=>codePage.webview.html!==refusedHtml);
  assert.equal((await reviewService.store.get(reversal.id)).status,'READY_FOR_REVIEW');assert.equal(codeDefinitions.size,1);
  check('repeated identical destructive-approval refusal rebuilds the locally disabled form and remains retryable without writing');
@@ -1270,7 +1281,7 @@ try{
  pausedUi._receive({action:'approve',id:chain.id,revision:chain.revision});await until(async()=>(await reviewService.store.get(chain.id)).status==='APPROVED');
  pausedUi._receive({action:'applyOne',id:chain.id,revision:chain.revision});await until(async()=>(await reviewService.store.get(chain.id)).status==='PARTIALLY_APPLIED');
  let chainLeaf=await reviewCall('psft_prepare_remaining_work',{changeSetId:chain.id});chainLeaf=await reviewCall('psft_validate_change_set',{changeSetId:chainLeaf.id});await reviewUi.show(chainLeaf.id);
- pausedUi._receive(clickRenderedReview(pausedUi.webview.html,'approveAndApply'));await until(async()=>(await reviewService.store.get(chainLeaf.id)).status==='APPLIED');
+ pausedUi._receive(await readyRenderedReview(pausedUi,'approveAndApply'));await until(async()=>(await reviewService.store.get(chainLeaf.id)).status==='APPLIED');
  await until(async()=>!require('node:fs').existsSync(require('node:path').join(reviewRoot,'writer.lock')));
  let chainInverse=await reviewCall('psft_prepare_revert',{changeSetId:chainLeaf.id});assert.equal(chainInverse.schema,3);assert.equal(chainInverse.objects.length,2);assert.equal(chainInverse.reversalSources.length,2);
  await reviewCall('psft_validate_change_set',{changeSetId:chainInverse.id});await reviewUi.show(chainInverse.id);
@@ -1278,19 +1289,19 @@ try{
  assert.ok(pausedUi.webview.html.includes(chain.id)&&pausedUi.webview.html.includes(chainLeaf.id));
  pausedUi._receive({action:'approve',id:chainInverse.id,revision:chainInverse.revision});await until(async()=>(await reviewService.store.get(chainInverse.id)).status==='APPROVED');
  await until(async()=>!require('node:fs').existsSync(require('node:path').join(reviewRoot,'writer.lock')));await reviewUi.show(chainInverse.id);
- pausedUi._receive(clickRenderedReview(pausedUi.webview.html,'applyOne'));await until(async()=>(await reviewService.store.get(chainInverse.id)).status==='PARTIALLY_APPLIED');
+ pausedUi._receive(await readyRenderedReview(pausedUi,'applyOne'));await until(async()=>(await reviewService.store.get(chainInverse.id)).status==='PARTIALLY_APPLIED');
  await until(async()=>!require('node:fs').existsSync(require('node:path').join(reviewRoot,'writer.lock')));
  assert.equal((await reviewService.store.get(chainLeaf.id)).status,'APPLIED');assert.equal((await reviewService.store.get(chain.id)).status,'PARTIALLY_APPLIED');
  const inverseRoot=chainInverse;chainInverse=await reviewCall('psft_prepare_remaining_work',{changeSetId:inverseRoot.id});
  assert.equal(chainInverse.schema,4);assert.equal(chainInverse.objects.length,1);assert.equal(chainInverse.objects[0].review,'PENDING');assert.equal(chainInverse.continuation.prerequisites.length,1);
  await reviewCall('psft_validate_change_set',{changeSetId:chainInverse.id});await reviewUi.show(chainInverse.id);assert.ok(pausedUi.webview.html.includes('Continue an interrupted reversal'));
- pausedUi._receive(clickRenderedReview(pausedUi.webview.html,'approveAndApply'));await until(async()=>(await reviewService.store.get(chainInverse.id)).status==='APPLIED');
+ pausedUi._receive(await readyRenderedReview(pausedUi,'approveAndApply'));await until(async()=>(await reviewService.store.get(chainInverse.id)).status==='APPLIED');
  await until(async()=>(await reviewService.store.get(chain.id)).status==='REVERTED'&&(await reviewService.store.get(chainLeaf.id)).status==='REVERTED'&&!require('node:fs').existsSync(require('node:path').join(reviewRoot,'writer.lock')));
  assert.equal((await reviewService.store.get(chain.id)).status,'REVERTED');assert.equal((await reviewService.store.get(chainLeaf.id)).status,'REVERTED');
  for(const name of ['ZZ_CONT_UPDATE_A','ZZ_CONT_UPDATE_B'])assert.equal(sqlDefinitions.get(name)?.text,'SELECT 0 FROM DUAL');
  check('HTTP paused inverse retains source histories, uses schema-4 remaining work and restores both fixture updates only after fresh rendered approval');
  const chainRedo=await reviewCall('psft_prepare_redo',{changeSetId:chainLeaf.id});await reviewCall('psft_validate_change_set',{changeSetId:chainRedo.id});await reviewUi.show(chainRedo.id);
- pausedUi._receive(clickRenderedReview(pausedUi.webview.html,'approveAndApply'));await until(async()=>(await reviewService.store.get(chainRedo.id)).status==='APPLIED');
+ pausedUi._receive(await readyRenderedReview(pausedUi,'approveAndApply'));await until(async()=>(await reviewService.store.get(chainRedo.id)).status==='APPLIED');
  for(const name of ['ZZ_CONT_UPDATE_A','ZZ_CONT_UPDATE_B'])assert.equal(sqlDefinitions.get(name)?.text,'SELECT 9 FROM DUAL');assert.equal(nativeWrites,continuationWrites+6);
  await until(async()=>!require('node:fs').existsSync(require('node:path').join(reviewRoot,'writer.lock')));
  check('HTTP continuation redo is a newly reviewed forward proposal and never inherits an inverse approval');
