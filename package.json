@@ -1489,7 +1489,7 @@
         "peoplesoft.peoplecode.languageServer.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "PeopleCode language features: completion, hover, signature help, Go to Definition, Find References, the outline and validation as you type. Off: PeopleCode editors are plain text with highlighting; Validate PeopleCode still runs on demand."
+          "description": "PeopleCode language features: completion, hover, signature help, Go to Definition, Find References, the outline, Format Document and validation as you type. Off: PeopleCode editors are plain text with highlighting; Validate PeopleCode still runs on demand."
         },
         "peoplesoft.peoplecode.inlineCallPreview": {
           "type": "boolean",

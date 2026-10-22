@@ -105,6 +105,49 @@ runner terminates its entire private process group if it times out and removes
 its temporary profile. It retains the result report, screenshots and tested
 VSIX in the requested output directory (default `/tmp`).
 
+## Format Document
+
+**Format Document** (Shift+Alt+F) lays a PeopleCode program out as Application
+Designer does. App Designer keeps no layout of its own: it shows the program
+its compiler stored, reformatted, and Validate Syntax rewrites the editor's
+text the same way. Studio formats by compiling the text and decoding the
+program in App Designer's layout. That layout has these rules:
+
+- three-space indentation;
+- keywords and definition keywords in App Designer's casing (`Record.X`,
+  `Component.X`);
+- a blank line keeps the indentation of the block it sits in;
+- a wrapped condition continues two levels under `If`/`While`/`For`/`Evaluate`
+  and one level under anything else;
+- one level more after `And` once an `Or` has passed, and one more for each
+  continuation line that opened a parenthesis that is still open;
+- `( True)`, `( Not`, `( - 1)` and `Exit (1)` keep App Designer's spacing;
+- a class's `private` and `protected` headers sit at the class line's level.
+
+The source keeps its own spelling of quoted definition names
+(`BusProcess."Administer Workforce"`), its line endings and its trailing blank
+lines.
+
+A format can change spacing, line breaks and keyword case, never what runs.
+The formatted text is applied only when it compiles to the same program and
+name table as the text it replaces. Otherwise the text is left as it is and
+the reason is shown. A program that does not compile is never changed.
+
+On the HCDEV snapshot (30,208 programs, counts only), Format Document turns
+App Designer's stored text into itself for 30,114. It refuses 55 and lays out
+39 differently: a record name's row index (`GetRow().REC (1)`, which App
+Designer writes both ways) and comments placed inside a wrapped condition.
+The rules were calibrated on one sample and checked on a disjoint one before
+the full run (`tools/lab/peoplecode-format-corpus.mts`).
+
+Native check, HRDMO 8.62.09: an unformatted program was typed into
+ZZ_PCODE_LAB.ZZ_PCODE_LAB_C02 FieldChange and run through Validate Syntax.
+App Designer's reformatted buffer matched Studio's output column for column,
+and the program was closed without saving. See the
+[evidence](../tools/lab/results/peoplecode-format-2026-10-22.json).
+
+The Language Server setting turns it off with the other language features.
+
 ## Scope and activation
 
 The original acceptance task is complete. These results establish the listed

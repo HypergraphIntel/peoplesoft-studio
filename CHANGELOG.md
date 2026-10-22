@@ -33,6 +33,11 @@
   App Engine SQL references as requirements, and undo of records/SQL used by
   a program deleted in the same undo. Migration now also carries alternate
   search keys, Oracle In-Memory and message channels.
+- **Format Document for PeopleCode (V15-4).** Lays a program out as
+  Application Designer does (three-space blocks, wrapped conditions, keyword
+  casing and spacing), reproducing App Designer's stored text for 30,114 of
+  30,208 HCDEV programs. It applies only when the formatted text compiles to
+  the same program, so it cannot change what runs.
 - **PS Query row security (V15-4).** Queries on records with a query
   security record run with the security join Windows Query generates (keys,
   then the operator's OPRID), calibrated on delivered HRDMO queries.

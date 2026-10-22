@@ -3,8 +3,8 @@ import * as vscode from 'vscode';
 /*
  * The PeopleCode Editor's Language Server switch (Settings > PeopleCode
  * Editor): completion, hover, signature help, Go to Definition, references,
- * the outline and validation as you type answer only while it is on. Read on
- * every request, so turning it off or on takes effect at once.
+ * the outline, Format Document and validation as you type answer only while
+ * it is on. Read on every request, so turning it off or on takes effect at once.
  */
 export function languageFeaturesOn(): boolean {
   return vscode.workspace.getConfiguration('peoplesoft').get<boolean>('peoplecode.languageServer.enabled') ?? true;

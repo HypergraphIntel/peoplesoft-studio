@@ -520,7 +520,20 @@ export interface DecodeOptions {
    * rather than trying to detect it from content.
    */
   isApplicationClass?: boolean;
+  /**
+   * 'appDesigner' lays the text out as Application Designer stores and shows it
+   * (Format Document, formatProgram.ts): three-space indentation and definition
+   * keywords in its casing (`Record.X`, `Component.X`). The default keeps the
+   * decoder's own layout.
+   */
+  layout?: 'studio' | 'appDesigner';
 }
+
+/** Application Designer's casing of definition keywords (HCDEV snapshot census of `KEYWORD.NAME` in stored source). */
+const DEFINITION_KEYWORD_CASE: ReadonlyMap<string, string> = new Map(['Record', 'Scroll', 'Field', 'Page', 'Panel', 'Component', 'PanelGroup', 'MenuName',
+  'BarName', 'ItemName', 'SQL', 'Image', 'HTML', 'StyleSheet', 'Message', 'CompIntfc', 'FileLayout', 'URL', 'Operation', 'Node', 'BusProcess',
+  'BusActivity', 'BusEvent', 'Interlink']
+  .map((k) => [k.toUpperCase(), k]));
 
 export interface DecodeResult {
   text: string;
@@ -1821,7 +1834,7 @@ export function decodeProgram(
   const declarations = trailerOffset !== undefined
     ? decodeDeclarations(bytes, trailerOffset, options.isApplicationClass ?? false)
     : undefined;
-  return { text: render(tokens, unknownOpcodes), tokens, unknownOpcodes, trailerOffset, declarations };
+  return { text: render(tokens, unknownOpcodes, options.layout ?? 'studio'), tokens, unknownOpcodes, trailerOffset, declarations };
 }
 
 /**
@@ -1833,7 +1846,14 @@ export function decodeProgram(
  * whitespace before a newline is trimmed so indentation changes never leave
  * stray spaces.
  */
-function render(tokens: readonly Token[], unknown: readonly { offset: number; opcode: number }[]): string {
+function render(tokens: readonly Token[], unknown: readonly { offset: number; opcode: number }[], layout: 'studio' | 'appDesigner' = 'studio'): string {
+  const unit = layout === 'appDesigner' ? '   ' : '  ';
+  const textOf = (t: Token) => {
+    if (layout !== 'appDesigner' || t.kind !== TokenKind.Name) return t.text;
+    const m = /^([A-Za-z]+)\.(.+)$/.exec(t.text);
+    const keyword = m && DEFINITION_KEYWORD_CASE.get(m[1].toUpperCase());
+    return keyword ? `${keyword}.${m![2]}` : t.text;
+  };
   // Built as an array of chunks rather than repeated string concatenation:
   // the trim/lookback operations below only ever need to see the last chunk
   // emitted, so this stays linear in the token count even for the largest
@@ -1859,6 +1879,41 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
     while (out.length > 0 && /^[ \t]+$/.test(out[out.length - 1])) out.pop();
     if (out.length > 0) out[out.length - 1] = out[out.length - 1].replace(/[ \t]+$/, '');
   };
+  /*
+   * Application Designer's layout (appDesigner), calibrated on the HCDEV snapshot's stored text:
+   * - a blank line keeps the indentation current where it falls (where its neighbours differ it follows neither
+   *   consistently -- it is the block it sits in; inside a wrapped statement, the continuation's);
+   * - a statement wrapped after an operator, And / Or or a comma, or going on with a line that starts with And / Or,
+   *   continues two levels deeper than the line it started on, plus one for each continuation line that opened a
+   *   parenthesis still open (`If %Page = Page.X And\n      (A Or\n         B) Then`; `((` on one line is one);
+   * - a `Then` on a line of its own sits one level in, and a comment line takes the indentation of the code after it.
+   */
+  let lastText = '', lastCode = '';
+  let continued = false, statementIndent = 0, lineId = 0, currentLine = 0, statementHead = '';
+  let parens: number[] = [];
+  // Per parenthesis level (outermost first): whether an Or has gone by, and whether an And after it is open -- that And's
+  // operands go one level deeper (`If A Or\n      B And\n         C Then`), until the next Or.
+  let logic: Array<{ or: boolean; and: boolean }> = [{ or: false, and: false }];
+  const CONTINUES = /^(?:And|Or|Not|,|\||\+|-|\*|\/|=|<>|<|>|<=|>=|\(|\[)$/i;
+  // Two levels under a block header (If, While ...: one would read as its body), one under anything else (Until, `=`).
+  const BLOCK_HEADS = /^(?:If|While|For|Evaluate|When)$/;
+  const continuationIndent = () => statementIndent + (BLOCK_HEADS.test(statementHead) ? 2 : 1) + new Set(parens.filter((line) => line > 0)).size
+    + logic.filter((level) => level.and).length;
+  const newline = () => {
+    if (layout === 'appDesigner') {
+      let k = out.length - 1;
+      while (k >= 0 && /^[ \t]*$/.test(out[k])) k--;
+      const blank = k >= 0 && out[k].endsWith('\n');
+      if (blank) { out.length = k + 1; out.push(unit.repeat(continued ? continuationIndent() : indent)); }
+      else continued = CONTINUES.test(lastCode);
+    }
+    out.push('\n');
+  };
+  /** The first code token at or after `from` (comments and empty markers skipped). */
+  const nextCode = (from: number): Token | undefined => {
+    for (let i = from; i < tokens.length; i++) if (tokens[i].text && tokens[i].kind !== TokenKind.Comment) return tokens[i];
+    return undefined;
+  };
   // Writing the indent puts us at the start of a line with nothing on it
   // yet -- atLineStart stays true until real token text is pushed. Setting
   // it false here (an earlier revision did) meant a token's own
@@ -1868,7 +1923,19 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
   // always emitted a second, redundant newline -- a blank line after every
   // single statement, corpus-wide, that the text-only (whitespace-blind)
   // corpus-validate.mjs metric never had a way to catch.
-  const writeIndent = () => { out.push('  '.repeat(indent)); atLineStart = true; };
+  const writeIndent = (lineFrom?: number) => {
+    if (layout === 'appDesigner' && lineFrom !== undefined) {
+      const next = nextCode(lineFrom);
+      if (next && (next.text === 'And' || next.text === 'Or') && next.kind === TokenKind.Keyword && lastCode !== ';') continued = true;
+      if (next && next.text === 'Then' && lastCode !== ';') { out.push(unit.repeat(statementIndent + 1)); atLineStart = true; currentLine = 0; return; }
+    }
+    if (continued) { out.push(unit.repeat(continuationIndent())); currentLine = ++lineId; }
+    else {
+      statementIndent = indent; parens = []; logic = [{ or: false, and: false }]; currentLine = 0; out.push(unit.repeat(indent));
+      statementHead = lineFrom !== undefined ? nextCode(lineFrom)?.text ?? '' : '';
+    }
+    atLineStart = true;
+  };
 
   for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
     const t = tokens[tokenIndex];
@@ -2132,7 +2199,11 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
       effectivePrecedingToken !== undefined &&
       effectivePrecedingToken.kind !== TokenKind.Header;
 
-    if (f & F.DECREASE_INDENT) indent = Math.max(0, indent - 1);
+    if (f & F.DECREASE_INDENT) {
+      indent = Math.max(0, indent - 1);
+      // A line that starts by closing a block (`Until A Or`) starts its statement at the outer level.
+      if (atLineStart && !continued) statementIndent = Math.min(statementIndent, indent);
+    }
     // NO_SPACE_BEFORE overrides whatever trailing space the previous token's
     // own SPACE_AFTER left behind (e.g. `;` right after `False `), not just
     // its own SPACE_BEFORE -- a token has no way to know what precedes it.
@@ -2227,8 +2298,8 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         redundantStructuralBoundary ||
         followsDirectiveRecord
       )) {
-        out.push('\n');
-        writeIndent();
+        newline();
+        writeIndent(tokenIndex + 1);
       }
     } else if (f & F.NEWLINE_BEFORE) {
       /*
@@ -2304,8 +2375,8 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         // Skip the newline entirely when we're already sitting at the start
         // of a fresh, empty line -- someone else's NEWLINE_AFTER (or
         // NEWLINE_ONCE) already got us here.
-        if (!atLineStart) out.push('\n');
-        writeIndent();
+        if (!atLineStart) newline();
+        writeIndent(tokenIndex);
       } else if (
         commentInlineAfterStatement &&
         !atLineStart &&
@@ -2324,7 +2395,9 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
       }
     } else if (
       f & F.SPACE_BEFORE && !(f & F.NO_SPACE_BEFORE) &&
-      !atLineStart && lastChar() !== ' ' && !TIGHT_AFTER.has(lastChar()) &&
+      !atLineStart && lastChar() !== ' ' &&
+      // App Designer keeps a keyword's space after `(`: `( True)`, `( Not None(...))` (HCDEV snapshot).
+      !(TIGHT_AFTER.has(lastChar()) && !(layout === 'appDesigner' && lastChar() === '(' && (t.kind === TokenKind.Keyword && t.text !== 'create' || t.text === '-'))) &&
       /*
        * Compiler closure: `[` (0x4C) always carries SPACE_BEFORE (correct
        * for the FIRST index of an array variable, e.g. `&arr [1]`), but
@@ -2371,9 +2444,24 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
       (t.kind === TokenKind.Name || t.kind === TokenKind.StringLiteral || t.kind === TokenKind.NumberLiteral)
     ) trimTrailing();
 
+    // App Designer outdents a class's `private` / `protected` section headers to the class line's level.
+    if (layout === 'appDesigner' && atLineStart && (t.text === 'private' || t.text === 'protected') && t.kind === TokenKind.Keyword) {
+      trimTrailing();
+      if (lastChar() === '\n' || out.length === 0) out.push(unit.repeat(Math.max(0, indent - 1)));
+    }
+    // App Designer writes `Exit (1)`.
+    if (layout === 'appDesigner' && t.text === '(' && lastText === 'Exit' && lastChar() !== ' ' && !atLineStart) out.push(' ');
+
     if (t.text) {
-      out.push(t.text);
+      out.push(textOf(t));
       atLineStart = false;
+      lastText = t.text;
+      if (t.kind !== TokenKind.Comment) lastCode = t.text;
+      const level = logic[logic.length - 1];
+      if (t.text === '(') { parens.push(currentLine); logic.push({ or: false, and: false }); }
+      else if (t.text === ')') { parens.pop(); if (logic.length > 1) logic.pop(); }
+      else if (t.kind === TokenKind.Keyword && t.text === 'Or') { level.or = true; level.and = false; }
+      else if (t.kind === TokenKind.Keyword && t.text === 'And' && level.or) level.and = true;
     }
 
     if (f & (F.INCREASE_INDENT | F.INCREASE_INDENT_ONCE)) indent++;
@@ -2502,8 +2590,8 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         out.push(' ');
       } else {
         trimTrailing();
-        out.push('\n');
-        writeIndent();
+        newline();
+        writeIndent(tokenIndex + 1);
       }
     } else if (
       f & F.SPACE_AFTER && !(f & F.NO_SPACE_AFTER)

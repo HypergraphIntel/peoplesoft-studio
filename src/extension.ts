@@ -63,6 +63,7 @@ import { registerPeopleCodeHover } from './peoplecode/hover.js';
 import { registerPeopleCodeSymbols } from './peoplecode/symbols.js';
 import { registerPeopleCodeDefinition } from './peoplecode/definitionProvider.js';
 import { registerPeopleCodeReferences } from './peoplecode/referenceProvider.js';
+import { registerPeopleCodeFormatting } from './peoplecode/formatProvider.js';
 import { registerPeopleCodeSignatureHelp } from './peoplecode/signatureProvider.js';
 import { registerPeopleCodeInlineCalls } from './peoplecode/inlineCallProvider.js';
 import { parseUri, SCHEME } from './util/uri.js';
@@ -445,6 +446,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   registerPeopleCodeSymbols(context);
   registerPeopleCodeDefinition(context, workspace);
   registerPeopleCodeReferences(context, workspace);
+  registerPeopleCodeFormatting(context, workspace);
   registerPeopleCodeSignatureHelp(context);
   registerPeopleCodeInlineCalls(context);
 

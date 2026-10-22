@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-22",
+  "feature": "PeopleCode Format Document (src/peoplecode/formatProgram.ts, decoder layout 'appDesigner')",
+  "corpus": {
+    "source": "LOCAL SNAPSHOT tools/corpus/hcdev-snapshot.sqlite (PeopleTools 8.61), read only; counts only",
+    "command": "npx tsx tools/lab/peoplecode-format-corpus.mts 1 0",
+    "programs": 30208,
+    "storedTextFormatsToItself": 30114,
+    "refusedLeftAsIs": 55,
+    "layoutDiffers": 39,
+    "tuning": "rules calibrated on definition_id % 50 = 0 (604 programs), then checked on the disjoint definition_id % 3 = 1 (10,069: 10,040 exact, 21 refused, 8 differ) before the full run",
+    "remainingDifferences": "record-name row index spacing (`GetRow().REC (1)`, 12 of 196 upper-case sites), comments placed inside a wrapped condition"
+  },
+  "native": {
+    "database": "HRDMO 8.62.09",
+    "program": "ZZ_PCODE_LAB.ZZ_PCODE_LAB_C02.FieldChange (not saved)",
+    "method": "typed an unformatted program into Application Designer, Tools > Validate Syntax, compared the reformatted buffer column by column with Studio's Format Document output; closed with No",
+    "result": "identical: wrapped If (6/9 columns), wrapped assignment and Until (+3), Else body, ( True), ( - 1); the stored program stayed 82 bytes, last updated 2026-10-06"
+  },
+  "gates": { "unitTests": "src/test/formatPeopleCode.test.ts (6)", "corpusVerify": "REGRESSION GATE: PASS, 0 regressed" }
+}
