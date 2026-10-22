@@ -462,13 +462,8 @@ const oldBuildOpen = vscode.window.showOpenDialog, oldBuildInformation = vscode.
 const oldBuildTerminal = vscode.window.createTerminal, oldBuildEnv = vscode.env, oldBuildFs = vscode.workspace.fs;
 const terminals: any[] = [];
 const launchedTasks:any[]=[];
-const oldBuildTaskApi=Object.fromEntries(['Task','ShellExecution','ShellQuoting','TaskScope','TaskRevealKind','TaskPanelKind','tasks'].map(k=>[k,vscode[k]]));
-Object.assign(vscode,{
- Task:class{constructor(public definition:any,public scope:any,public name:any,public source:any,public execution:any){}},
- ShellExecution:class{constructor(public command:any,public args:any[],public options:any){}},
- ShellQuoting:{Strong:2},TaskScope:{Global:1},TaskRevealKind:{Always:1},TaskPanelKind:{New:3},
- tasks:{executeTask:async(task:any)=>{launchedTasks.push(task);return {task};}}
-});
+const oldBuildExecuteTask=vscode.tasks.executeTask;
+vscode.tasks.executeTask=async(task:any)=>{launchedTasks.push(task);return {task};};
 const launches=()=>process.platform==='win32'?launchedTasks.length:terminals.length;
 const launchDetails=(index:number)=>process.platform==='win32'
  ? {command:launchedTasks[index].execution.command,args:launchedTasks[index].execution.args.map((a:any)=>{assert.equal(a.quoting,vscode.ShellQuoting.Strong);return a.value;}),shown:launchedTasks[index].presentationOptions.reveal===vscode.TaskRevealKind.Always}
@@ -574,7 +569,7 @@ try {
   requestPanel?.dispose(); await buildServer.dispose();
   vscode.window.showOpenDialog = oldBuildOpen; vscode.window.showInformationMessage = oldBuildInformation;
   vscode.window.createTerminal = oldBuildTerminal; vscode.env = oldBuildEnv; vscode.workspace.fs = oldBuildFs;
-  Object.assign(vscode,oldBuildTaskApi);
+  vscode.tasks.executeTask=oldBuildExecuteTask;
   await buildFs.rm(buildRoot, { recursive: true, force: true });
 }
 

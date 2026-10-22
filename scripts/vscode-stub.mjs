@@ -127,6 +127,10 @@ export function createStub() {
 
   const vscode = {
     Disposable, EventEmitter, Uri, TreeItem, ThemeIcon, ThemeColor,
+    Task: class { constructor(definition, scope, name, source, execution) { Object.assign(this, { definition, scope, name, source, execution }); } },
+    ShellExecution: class { constructor(command, args, options) { Object.assign(this, { command, args, options }); } },
+    ShellQuoting: { Strong: 2 }, TaskScope: { Global: 1 }, TaskRevealKind: { Always: 1 }, TaskPanelKind: { New: 3 },
+    tasks: { executeTask: async (task) => ({ task }) },
     TabInputText, TabInputCustom, TabInputWebview,
     MarkdownString, FileSystemError, CompletionItem, SnippetString, Hover,
     DocumentSymbol, Range, Position, Diagnostic,
