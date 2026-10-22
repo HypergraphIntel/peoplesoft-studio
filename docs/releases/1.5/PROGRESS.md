@@ -13,11 +13,14 @@ nothing here is released.
 | V15-1 AE structural edits | Implemented | Unit tests, HTTP/UI fixture, HRDMO reconstruction of all 20 saveable ZZ_ programs, rolled-back native apply/inverse/redo with tombstone projection | Installed developer apply/inverse/redo |
 | V15-1 Package/class lifecycle | Implemented | HTTP/UI fixture, HRDMO previews and rolled-back native create/undo/redo of classes and packages | Installed developer apply/inverse/redo |
 | V15-2 Separate-environment promotion | Implemented | Unit tests, HTTP/UI fixture, HRDMO → HRDEV native trial (8 checks incl. undo/redo, conflicts, partial failure, alternate keys/In-Memory, message channels) | Installed UI promotion between two configured connections; class/subpackage metadata (no calibrated writer) |
-| V15-3 Business application acceptance + Windows AI handoff | Not started | — | — |
+| V15-3 Business application acceptance + Windows AI handoff | Prepared | Representative request [documents](../../build-requests/samples/benefits-eligibility/) (read correctly by Studio's intake), independent expected-output verifier `tools/lab/benelig-expected.mts` (1,821 rows as of 2026-10-22); ps-win-client inventoried (VS Code present; Node, Claude Code, Codex missing) | [Session](ACCEPTANCE_SESSION.md) §3–4: Windows CLI install and sign-in, intake, approval, Codex build, native run, HRDEV promotion |
 | V15-4 Query/release/editor breadth | In progress | Row security (qrs01, qrs02); effective-date operators (qed01–qed06, [native](../../../tools/lab/results/query-effdt-native-2026-10-22.json)); HAVING OR (qhv01); date Min/Max (qag06); expression-column criteria (qex04); nested subqueries (qsq03); subqueries beside unions (qsq04); PeopleCode Format Document ([evidence](../../../tools/lab/results/peoplecode-format-2026-10-22.json)) | 8.61 captures need HCDEV RDP (batched) |
-| V15-5 Run and Monitor RT-L1–RT-L4 (Low) | Not started | — | Needs server maintenance (gateway TLS) |
+| V15-5 Run and Monitor RT-L1–RT-L4 (Low) | Prepared | Gateway script now inspects first and applies only against the hashes it printed (guard, idempotence and rollback tested locally) | [Session](ACCEPTANCE_SESSION.md) §1–2: sudo inspect/apply, JARED sign-in, one confirmed run |
 
 ## Batched installed acceptance (one developer session)
+
+The full ordered session, including the server, Windows and HCDEV steps, is
+[ACCEPTANCE_SESSION.md](ACCEPTANCE_SESSION.md).
 
 Per the developer's preference, installed acceptance waits until several items
 can share one Change Set, one inverse and one redo. Queue:
@@ -36,5 +39,6 @@ can share one Change Set, one inverse and one redo. Queue:
 
 ## Next action
 
-V15-4: 8.61 Query captures in the batched HCDEV session; then V15-3 business acceptance on
-ps-win-client; V15-5 gateway commands for the developer.
+Everything left needs the developer (passwords, sign-ins, spec approval, installed clicks). Run
+[ACCEPTANCE_SESSION.md](ACCEPTANCE_SESSION.md) in order; the agent drives each step once the developer's part
+of it is done.

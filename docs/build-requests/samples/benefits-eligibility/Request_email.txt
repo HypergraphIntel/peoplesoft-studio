@@ -1,0 +1,9 @@
+From: Benefits Operations
+Subject: Monthly eligibility file for the new benefits administrator
+
+Hi,
+
+Attached are our requirements and the administrator's file specification. We would like to run this ourselves each month instead of building the spreadsheet by hand. The first file is due before open enrollment, so please build it in development and move it to test so we can check a run against the administrator's sample. Let us know if anything in the spec does not match what PeopleSoft has.
+
+Thanks,
+Benefits Operations

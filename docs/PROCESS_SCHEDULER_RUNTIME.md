@@ -95,7 +95,11 @@ Local native definitions and installed/runtime evidence govern acceptance.
   `(158,535)` (operator password required), proving the transport prerequisite.
 - `tools/lab/process-runtime/nginx-soap-tls.patch` and `.py` prepare a narrowly
   scoped exact-connector route to that listener with TLS verification enabled,
-  a configuration hash guard, backup, nginx validation and rollback. The
+  a configuration hash guard, backup, nginx validation and rollback. The script
+  has `inspect` (changes nothing: live config hash, locations, backend chain,
+  CA saved and verified), `apply CONFIG_SHA256 CA_SHA256` (refuses unless both
+  still match what inspect printed) and `rollback BACKUP`, so the guard never
+  goes stale between sessions; the `.patch` shows the shape of the change. The
   public URL stays unchanged. This patch is **not deployed**: server sudo
   requires the developer's password. IB service permissions/security have not
   been changed. No TLS validation has been disabled.
