@@ -66,7 +66,7 @@ const familyRoutes: Partial<Record<D, Partial<Record<Operation, string[]>>>> = {
   [D.Page]: { read: ['psft_get_page_layout', 'psft_get_page_structure'], create: ['psft_page_create'], edit: ['psft_edit_page'] },
   [D.Component]: { read: ['psft_get_component', 'psft_get_component_structure'], create: ['psft_component_create'], edit: ['psft_component_edit'] },
   [D.Project]: { create: ['psft_create_project'], edit: ['psft_add_to_project'], migrate: ['psft_project_related', 'psft_project_migration_review', 'psft_project_export_migration', 'psft_project_preview_migration'] },
-  [D.ApplicationPackage]: { create: ['psft_create_package'], read: ['psft_list_children'] },
+  [D.ApplicationPackage]: { create: ['psft_create_package'], read: ['psft_list_children'], delete: ['psft_delete_package'] },
   [D.Query]: { search: ['psft_query_list'], read: ['psft_query_get'], create: ['psft_query_create'], edit: ['psft_query_save'], copy: ['psft_query_copy'], rename: ['psft_query_rename'], delete: ['psft_query_delete'], validate: ['psft_query_prepare'], execute: ['psft_query_run'] },
   [D.ProcessDefinition]: { read: ['psft_process_get'], create: ['psft_process_create'], edit: ['psft_process_save'], execute: ['psft_process_prepare_run', 'psft_process_submit_run'] },
   [D.PermissionList]: { edit: ['psft_security_grant'] },
@@ -83,7 +83,8 @@ const familyRoutes: Partial<Record<D, Partial<Record<Operation, string[]>>>> = {
     { search: ['psft_ib_list'], read: ['psft_ib_get'], create: ['psft_ib_create'], edit: ['psft_ib_save'], validate: ['psft_ib_validate'] }])),
   ...Object.fromEntries([D.IbService,D.IbServiceOperation].map(type=>[type,{search:['psft_ib_list'],read:['psft_ib_get','psft_ib_definition_get'],create:['psft_ib_create'],edit:['psft_ib_save'],delete:['psft_ib_delete'],validate:['psft_ib_validate']}])),
   ...Object.fromEntries([D.MessageCatalog, D.UrlDefinition].map(type => [type, { search: ['psft_admin_list'], read: ['psft_admin_get'], create: ['psft_admin_save'], edit: ['psft_admin_save'] }])),
-  ...Object.fromEntries(authoredPeopleCode.map(type => [type, { create: ['psft_save_peoplecode'], edit: ['psft_save_peoplecode'] }]))
+  ...Object.fromEntries(authoredPeopleCode.map(type => [type, { create: ['psft_save_peoplecode'], edit: ['psft_save_peoplecode'],
+    ...(type === D.ApplicationClassPeopleCode ? { delete: ['psft_delete_application_class'] } : {}) }]))
 };
 
 const CONSTRAINTS: Partial<Record<D, string[]>> = {

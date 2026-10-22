@@ -1,0 +1,51 @@
+{
+  "checkedAt": "2026-10-22T20:05:23.954Z",
+  "connection": "HRDMO",
+  "mode": "rollback previews and one rolled-back transaction; nothing persisted",
+  "previews": {
+    "createClass": {
+      "before": null,
+      "after": [
+        {
+          "APPCLASSID": "ZZReview",
+          "PACKAGEROOT": "ZZ_PCODE_LAB_PK3",
+          "QUALIFYPATH": "SUB1",
+          "APPCLASSREF": " ",
+          "DESCR": " "
+        }
+      ],
+      "programRows": 1
+    },
+    "deleteClass": {
+      "beforeRows": 1,
+      "after": null
+    },
+    "createPackage": {
+      "after": 1
+    },
+    "deletePackageWithClasses": "refused: stage its classes' deletion first"
+  },
+  "cycle": {
+    "newClass": {
+      "created": true,
+      "undone": true,
+      "redoEqual": true
+    },
+    "existingClass": {
+      "class": "ZZ_PCODE_LAB_PK3:SUB1:Second",
+      "deletedAndRestoredExactly": true,
+      "programRows": 1
+    },
+    "package": {
+      "root": "ZZ_PKG_REVIEW",
+      "rows": 2,
+      "deletedAndRestoredExactly": true
+    }
+  },
+  "commitsSuppressed": 12,
+  "persisted": false,
+  "notVerified": [
+    "developer-approved application through the installed review UI",
+    "App Designer reopen of a re-created class"
+  ]
+}

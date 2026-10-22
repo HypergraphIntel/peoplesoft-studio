@@ -23,6 +23,7 @@ import type { McpWriteHost } from '../mcp/writeTools.js';
 import { requireProvider } from '../mcp/tools.js';
 import { recordStructureRequest, aeHeaderDocument, isHeaderChange, structuredHeaderDiff } from './structuredHeaders.js';
 import { aeDocumentFromSnapshot, aeTombstoneProjection } from './aeStructure.js';
+import { classKey, type LifecycleScope } from '../providers/classLifecycle.js';
 import type { StructuredFamily } from '../providers/structuredSnapshot.js';
 import { deepValidate } from '../mcp/appEngineTools.js';
 import { ibDefinitionKey } from '../model/ibOperations.js';
@@ -154,6 +155,38 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
                 host()!.saved(p.id, k);
             }
         };
+    };
+    // Application Class and Package lifecycle: complete scope checkpoints and the calibrated typed writers (classLifecycle.ts).
+    const lifecycle = (kind: 'class' | 'package'): ReviewAdapter => {
+        const parts = (key: Json): string[] => {
+            if (kind === 'class') { const k = classKey(key); return [k.root, ...k.path, k.className]; }
+            if (typeof key !== 'string' || !/^[A-Z0-9_]{1,30}$/.test(key)) throw new Error('A package key is its root name.');
+            return [key];
+        };
+        const defn = (key: Json) => kind === 'class' ? makeKey(DefinitionType.ApplicationClassPeopleCode, ...parts(key)) : makeKey(DefinitionType.ApplicationPackage, parts(key)[0]);
+        const scope = (value: Json) => value as unknown as LifecycleScope | null;
+        return { id: kind === 'class' ? 'app-class' : 'app-package', canDelete: true,
+            scope: key => (kind === 'class' ? 'app-class:' : 'app-package:') + parts(key).join(':'),
+            authorizationState: (e, key) => authorizationState(e, defn(key)),
+            warnings: async (e, key) => [...await warnings(e, defn(key)), kind === 'class'
+                ? 'Application Class lifecycle: creating, deleting or saving one class with its PeopleCode, as App Designer does (c04-c06, dl09). A new class\'s subpackages must already exist. Deleting a class leaves a PSPCMPROGDEL marker that re-creating it clears.'
+                : 'Application Package lifecycle: creating a root package with its subpackages and properties (c03, c05, pk01), or deleting an empty package (dl04). Classes are their own reviewed objects.'],
+            read: async (e, key) => { const p = await provider(e), live = await p.readLifecycleForReview(kind, parts(key)); return { value: live.value as unknown as Json, token: live.token }; },
+            validate: async (e, key, before, after) => {
+                try {
+                    const { p, operator } = await authorize(e, defn(key)), live = await p.readLifecycleForReview(kind, parts(key));
+                    if (live.hash !== hash(before)) return ['Package or class baseline changed before validation.'];
+                    const preview = await p.runLifecycleChange(kind, parts(key), scope(after), operator, live.token, true);
+                    return preview.after.hash === hash(after) ? [] : ['The calibrated package/class writers cannot reproduce this proposal exactly.'];
+                } catch (error) { return [error instanceof Error ? error.message : String(error)]; }
+            },
+            authorize: async (e, key) => { await authorize(e, defn(key)); },
+            write: async (e, key, after, baseline) => {
+                const k = defn(key), { p, operator, policyIdentity } = await authorizeReviewed(e, k, baseline), live = await p.readLifecycleForReview(kind, parts(key));
+                if (live.token !== baseline.token || live.hash !== hash(baseline.value)) throw new Error('Package or class changed before approved application.');
+                await withReviewedWrite(p.id, k, () => runAsAgent(() => p.runLifecycleChange(kind, parts(key), scope(after), operator, live.token, false)), policyIdentity);
+                host()!.saved(p.id, k);
+            } };
     };
     const sql: ReviewAdapter = { id: 'sql', scope:key=>'text:sql:'+sqlKey(key).parts[0], authorizationState: (e, key) => authorizationState(e, sqlKey(key)), warnings: (e, key) => warnings(e, sqlKey(key)), normalize: value => value && typeof value === 'object' && !Array.isArray(value) && typeof value.text === 'string' ? { ...value, text: prepareSqlText(value.text) } : value,
         read: async (e, key) => {
@@ -697,5 +730,5 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
             throw new Error('A connected database is required.');
         return { connection: p.id, label: p.displayName, identity: await p.changeReviewIdentity() };
     }
-    return { adapters: [textDefinition('sql'), textDefinition('html'), textDefinition('stylesheet'), migrationProject, ...(['field', 'record', 'sql', 'html', 'stylesheet', 'ae', 'peoplecode', 'query','menu','package','page','component'] as const).map(migration), sql, content('html', DefinitionType.HtmlDefinition), content('stylesheet', DefinitionType.StyleSheet), process, query, peoplecode, page, structuredHeader('record'), structuredHeader('ae'), structuredCreation('record'), structuredCreation('ae'), projectCreate, ibHeader('service'), ibHeader('operation'),ibDefinition('service'),ibDefinition('operation')], environment, adapterHash: hash };
+    return { adapters: [textDefinition('sql'), textDefinition('html'), textDefinition('stylesheet'), migrationProject, ...(['field', 'record', 'sql', 'html', 'stylesheet', 'ae', 'peoplecode', 'query','menu','package','page','component'] as const).map(migration), sql, content('html', DefinitionType.HtmlDefinition), content('stylesheet', DefinitionType.StyleSheet), process, query, peoplecode, page, structuredHeader('record'), structuredHeader('ae'), structuredCreation('record'), structuredCreation('ae'), projectCreate, ibHeader('service'), ibHeader('operation'),ibDefinition('service'),ibDefinition('operation'), lifecycle('class'), lifecycle('package')], environment, adapterHash: hash };
 }

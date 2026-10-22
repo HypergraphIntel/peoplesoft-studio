@@ -604,4 +604,19 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
     const r = await gate.provider.createPackage({ name: key.parts[0], operatorId: gate.operatorId });
     return done(gate, key, { version: r.version });
   });
+
+  // Deleting packages and classes is a Change Review operation only (dl04, dl09: markers, counters, outside users refused).
+  server.registerTool('psft_delete_package', {
+    title: 'Stage deletion of an Application Package',
+    description: 'Review-only deletion of an empty Application Package (no classes; delete them first with psft_delete_application_class) on Oracle with Change Review. ' +
+      'The reviewed writer deletes its package rows and writes the PSPACKAGEDEL marker as App Designer\'s Delete does; anything outside the package that names it, or a project listing it, refuses. Returns REVIEW_REQUIRED; undo re-creates it with its subpackages and properties.',
+    inputSchema: z.object({ connection: z.string().min(1), package: z.string().min(1) }), annotations: DESTRUCTIVE
+  }, async () => { throw new Error('Package deletion requires Change Review on Oracle; nothing was deleted.'); });
+  server.registerTool('psft_delete_application_class', {
+    title: 'Stage deletion of an Application Class',
+    description: 'Review-only deletion of one Application Class (its PSAPPCLASSDEFN row and PeopleCode, with a PSPCMPROGDEL marker) as App Designer\'s package editor does (dl09), on Oracle with Change Review. ' +
+      'Programs outside the package that name it refuse. Returns REVIEW_REQUIRED; undo re-creates the class with its reviewed source.',
+    inputSchema: z.object({ connection: z.string().min(1), package: z.string().min(1), path: z.array(z.string().min(1)).max(2).optional().describe('Subpackages from the root down.'), className: z.string().min(1) }),
+    annotations: DESTRUCTIVE
+  }, async () => { throw new Error('Application Class deletion requires Change Review on Oracle; nothing was deleted.'); });
 }

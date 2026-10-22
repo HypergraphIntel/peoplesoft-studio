@@ -1077,6 +1077,59 @@ try{
  provider.readPageLayout=originalPageRead;provider.withConnection=originalPageConnection;provider.guard=originalPageGuard;delete provider.types;
 
 
+ // Application Package / class lifecycle: MCP routing, staging, destructive consent, application and exact inverse/redo.
+ // The calibrated writers are modelled here (in memory); their native behaviour is verified by tools/lab/lifecycle-native.mts.
+ {
+   const {hash:lh}=require('./src/changeReview/model.ts');
+   const store=new Map<string,any>(),marks=new Map<string,number>();let lifecycleWrites=0;
+   const id=(kind:string,key:string[])=>kind+':'+key.join(':');
+   const read=(kind:string,key:string[])=>{const v=store.get(id(kind,key))??null;return {value:v,hash:lh(v),token:lh({v,m:marks.get(id(kind,key))??0})};};
+   const oldRead=provider.readLifecycleForReview,oldRun=provider.runLifecycleChange,oldGuard=provider.guard;
+   provider.readLifecycleForReview=async(kind:string,key:string[])=>read(kind,key);
+   provider.runLifecycleChange=async(kind:string,key:string[],after:any,_op:string,token:string,preview:boolean)=>{
+     const before=read(kind,key);if(before.token!==token)throw new Error('The package or class changed since review; restage it.');
+     if(kind==='package'&&!after&&[...store.keys()].some(k=>k.startsWith('class:'+key[0]+':')))throw new Error(key[0]+' still has classes: stage their deletion first.');
+     // Native form: a class gets its compiled program row, as the PeopleCode writer stores it.
+     const value=after&&kind==='class'?{...after,tables:{...after.tables,PSPCMPROG:[{PROGSEQ:0,PROGTXT:{nativeBinaryHex:Buffer.from(after.tables.PSPCMTXT.map((r:any)=>r.PCTEXT).join('')).toString('hex')}}]}}:after;
+     const next={value,hash:lh(value),token:lh({v:value,m:(marks.get(id(kind,key))??0)+(after?0:1)})};
+     if(!preview){if(value)store.set(id(kind,key),value);else store.delete(id(kind,key));if(!after)marks.set(id(kind,key),(marks.get(id(kind,key))??0)+1);lifecycleWrites++;}
+     return {before,after:next};
+   };
+   provider.guard=async()=>{assert.equal(writeOrigin(),'agent');};
+   const ui=vscode._panels.at(-1);
+   const lset=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'Package and class lifecycle'});
+   await reviewCall('psft_create_package',{connection:'FIXTURE',name:'ZZ_FIX_PKG',changeSetId:lset.id});
+   const pkgId=(await reviewService.store.get(lset.id)).objects[0].id;
+   await reviewCall('psft_save_peoplecode',{connection:'FIXTURE',type:58,parts:['ZZ_FIX_PKG','Greeter'],source:'class Greeter\nend-class;\n',changeSetId:lset.id,dependsOn:[pkgId]});
+   let lready=await reviewCall('psft_validate_change_set',{changeSetId:lset.id});assert.equal(lready.status,'READY_FOR_REVIEW',JSON.stringify(lready.objects.map((c:any)=>c.validation)));
+   assert.deepEqual(lready.objects.map((c:any)=>[c.adapter,c.operation]),[['app-package','CREATE'],['app-class','CREATE']]);assert.equal(lifecycleWrites,0);
+   await reviewUi.show(lset.id);ui._receive(await readyRenderedReview(ui,'approveAndApply'));await settledReview(async()=>(await reviewService.store.get(lset.id)).status==='APPLIED');
+   assert.equal(lifecycleWrites,2);assert.ok(store.has('class:ZZ_FIX_PKG:Greeter'));
+   // Deleting the class is review-only and needs explicit destructive consent.
+   const dset=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'Class deletion'});
+   const dstage=await reviewCall('psft_delete_application_class',{connection:'FIXTURE',package:'ZZ_FIX_PKG',className:'Greeter',changeSetId:dset.id});assert.equal(dstage.status,'REVIEW_REQUIRED');
+   const dready=await reviewCall('psft_validate_change_set',{changeSetId:dset.id});assert.equal(dready.objects[0].operation,'DELETE');
+   await reviewUi.show(dset.id);ui._receive(await readyRenderedReview(ui,'approveAndApply',true));await settledReview(async()=>(await reviewService.store.get(dset.id)).status==='APPLIED');
+   assert.equal(store.has('class:ZZ_FIX_PKG:Greeter'),false);
+   // Undo the deletion: the class comes back exactly; redo deletes it again.
+   let dundo=await reviewCall('psft_prepare_revert',{changeSetId:dset.id});dundo=await reviewCall('psft_validate_change_set',{changeSetId:dundo.id});assert.equal(dundo.status,'READY_FOR_REVIEW');
+   await reviewUi.show(dundo.id);ui._receive(await readyRenderedReview(ui,'approveAndApply'));await settledReview(async()=>(await reviewService.store.get(dundo.id)).status==='APPLIED');
+   assert.ok(store.has('class:ZZ_FIX_PKG:Greeter'));
+   // A package with classes refuses deletion at staging; nothing is written outside review.
+   const blocked=await reviewRpc('tools/call',{name:'psft_delete_package',arguments:{connection:'FIXTURE',package:'ZZ_FIX_PKG'}});assert.equal(blocked.isError,true);assert.match(blocked.content[0].text,/still has classes/);
+   // The class was deleted and restored since the creation set applied: undoing that set is blocked, not replayed.
+   const stale=await reviewRpc('tools/call',{name:'psft_prepare_revert',arguments:{changeSetId:lset.id}});assert.equal(stale.isError,true);assert.match(stale.content[0].text,/Live state changed since application/);
+   // Redo the class deletion (destructive), then the now-empty package's review-only deletion.
+   let dredo=await reviewCall('psft_prepare_redo',{changeSetId:dset.id});dredo=await reviewCall('psft_validate_change_set',{changeSetId:dredo.id});assert.equal(dredo.objects[0].operation,'DELETE');
+   await reviewUi.show(dredo.id);ui._receive(await readyRenderedReview(ui,'approveAndApply',true));await settledReview(async()=>(await reviewService.store.get(dredo.id)).status==='APPLIED');
+   const pset=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'Package deletion'});
+   await reviewCall('psft_delete_package',{connection:'FIXTURE',package:'ZZ_FIX_PKG',changeSetId:pset.id});
+   const pready=await reviewCall('psft_validate_change_set',{changeSetId:pset.id});assert.equal(pready.status,'READY_FOR_REVIEW');assert.equal(pready.objects[0].operation,'DELETE');
+   await reviewUi.show(pset.id);ui._receive(await readyRenderedReview(ui,'approveAndApply',true));await settledReview(async()=>(await reviewService.store.get(pset.id)).status==='APPLIED');
+   assert.equal(store.size,0);
+   provider.readLifecycleForReview=oldRead;provider.runLifecycleChange=oldRun;provider.guard=oldGuard;
+   check('package and class lifecycle stages creation, review-only deletion with destructive consent, exact undo/redo, and blocks an undo whose state moved on');
+ }
  // Existing Record/AE header adapters run actual writers against a transactional fixture.
  const {structuredTransaction}=require('./src/test/fixtures/structuredTransaction.ts');
  const oldStructuredConnection=provider.withConnection,oldStructuredGuard=provider.guard,oldEnvironment=provider.readEnvironment;

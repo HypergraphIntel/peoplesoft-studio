@@ -19,7 +19,9 @@ import { prepareStructuredCreationReview } from './structuredCreationReview.js';
 import { prepareProjectCreationReview } from './projectCreationReview.js';
 import { prepareIbHeaderReview } from './ibHeaderReview.js';
 import { prepareIbDefinitionReview } from './ibDefinitionReview.js';
-export const REVIEWED_MUTATION_TOOLS = ['psft_save_text_definition', 'psft_process_save', 'psft_query_save', 'psft_query_create', 'psft_query_copy', 'psft_query_delete', 'psft_query_rename', 'psft_save_peoplecode', 'psft_edit_page', 'psft_edit_record', 'psft_ae_edit', 'psft_ib_save','psft_ib_create','psft_ib_delete', 'psft_create_record', 'psft_ae_create', 'psft_create_project'];
+import { prepareLifecycleReview } from './lifecycleReview.js';
+export const REVIEWED_MUTATION_TOOLS = ['psft_save_text_definition', 'psft_process_save', 'psft_query_save', 'psft_query_create', 'psft_query_copy', 'psft_query_delete', 'psft_query_rename', 'psft_save_peoplecode', 'psft_edit_page', 'psft_edit_record', 'psft_ae_edit', 'psft_ib_save','psft_ib_create','psft_ib_delete', 'psft_create_record', 'psft_ae_create', 'psft_create_project',
+    'psft_create_package', 'psft_delete_package', 'psft_delete_application_class'];
 /** Compatibility routing only for adapters whose exact after-state is known. */
 export function routeReviewedMutations(server: {
     registerTool: unknown;
@@ -38,6 +40,8 @@ export function routeReviewedMutations(server: {
                 ? ' With Oracle Change Review on 8.62.09, bounded standard or REST service and synchronous operation lifecycle stages exact complete checkpoints; a REST operation includes its URI templates and writer-generated routing. Operation approval covers its existing owning service mapping/resave. Deletion is review-only. Other creations retain legacy confirmation outside an explicit Change Set.'
                 : name === 'psft_ib_save'
                 ? ' With Change Review on Oracle, existing service/operation edits stage fixed noncredential preservation snapshots when they stay inside the bounded contract: description/comments; service owner, namespace, application and app server group; operation header except owning service, routing type, REST method, alias and message binding; existing versions, parameters (not message binding), handlers (not type/event) and application class rows; existing REST URI template text preserving ordered URI variables and mappings; and ApplicationClass REQUESTHDLR/OnRequest addition. Paired removal of that handler and its class row, with native tombstones and typed inverse/redo, is calibrated only on 8.62.09. Other child removal and out-of-contract edits keep legacy confirmation and cannot be attached to a Change Set. For bounded 8.62.09 standard and REST definition lifecycle use psft_ib_create / psft_ib_delete and psft_ib_definition_get.'
+                : name === 'psft_create_package' || name === 'psft_delete_package' || name === 'psft_delete_application_class'
+                ? ' With Change Review on Oracle, package creation (root package; subpackages and properties restored by undo), empty-package deletion and Application Class deletion stage complete lifecycle checkpoints run by the calibrated writers in one rolled-back transaction; a new class (psft_save_peoplecode type 58) stages the same way. Undo deletes or re-creates the definition exactly; deletion markers are cleared on re-creation as App Designer does. Deletions require the developer\'s destructive approval.'
                 : name === 'psft_edit_record'
                 ? ' With Change Review on Oracle, SQL Table/Derived Work description/comments and field structure (insert_field, insert_subrecord, remove_field, move_field, set_use, set_edits, set_default, set_label) stage full six-table metadata checkpoints for developer approval/application, with exact typed inverse/redo (a removed field is restored from its own reviewed row). Physical DDL and data are not reviewed: build separately; undo restores metadata, not dropped column data. Removing a field still used by its PeopleCode, pages, queries or other records is refused. set_type, other Record Properties and In Memory are not staged: they save through the legacy per-write confirmation. Explicit dryRun retains its documented preview path.'
                 : name === 'psft_ae_edit'
@@ -66,12 +70,15 @@ export function routeReviewedMutations(server: {
                 if (typeof args.changeSetId === 'string' || (Array.isArray(args.dependsOn) && args.dependsOn.length > 0))
                     throw new Error(`${what} It cannot be grouped into a Change Set: retry without changeSetId / dependsOn to write it through the per-write confirmation.`);
             };
-            // A new Application Class has no review adapter (no package/class snapshot), so it keeps the legacy
-            // confirmation gate; staging it would leave a proposal that can never apply.
-            if (name === 'psft_save_peoplecode' && Number(args.type) === DefinitionType.ApplicationClassPeopleCode && requestedProvider instanceof DatabaseProvider
-                && !(await requestedProvider.hasPeopleCode({ type: DefinitionType.ApplicationClassPeopleCode, parts: (args.parts as string[]).map(p => p.trim()) }))) {
-                refuseOutsideSet('A new Application Class is not staged; it saves through the legacy per-write confirmation.');
-                return callback(args, ...rest);
+            // A new Application Class, a new package and their deletion stage complete lifecycle checkpoints (classLifecycle.ts).
+            const newClass = name === 'psft_save_peoplecode' && Number(args.type) === DefinitionType.ApplicationClassPeopleCode && requestedProvider instanceof DatabaseProvider
+                && !(await requestedProvider.hasPeopleCode({ type: DefinitionType.ApplicationClassPeopleCode, parts: (args.parts as string[]).map(p => p.trim()) }));
+            if (newClass || ['psft_create_package', 'psft_delete_package', 'psft_delete_application_class'].includes(name)) {
+                if (!supplied && (args.dependsOn as string[]).length) throw new Error('dependsOn requires its Change Set.');
+                const proposal = await prepareLifecycleReview(workspace, host?.(), name, args);
+                const setId = supplied?.id ?? (await service.create('Review ' + name, connection)).id;
+                const staged = await service.stage(setId, proposal.adapter, proposal.key, proposal.after, args.dependsOn as string[], undefined, proposal.expectedToken);
+                return jsonResult({ status: 'REVIEW_REQUIRED', changeSetId: staged.id, revision: staged.revision, persisted: false, command: 'psft.changeReview.open' });
             }
             // Inserting or deleting a Page control is not stageable; it takes the legacy
             // per-write confirmation rather than being refused, as creation does.

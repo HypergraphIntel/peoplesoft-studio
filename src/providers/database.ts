@@ -48,6 +48,7 @@ import { projectItemFor } from '../model/projectItems.js';
 import type { UserIndexRows } from './recordWriter.js';
 import { readComponentForMigration as readComponentMigration, createComponentFromMigration as createComponentMigration, deleteComponentForMigration as deleteComponentMigration, type ComponentMigrationData } from './componentMigration.js';
 import { readPageForMigration as readPageMigration, createPageFromMigration as createPageMigration, deletePageForMigration as deletePageMigration, type PageMigrationData, type ProposedDeletions } from './pageMigration.js';
+import { readClassScope, readPackageScope, writeClassChange, writePackageChange, classSource, type LifecycleRead, type LifecycleScope } from './classLifecycle.js';
 import { createSubpackage as createSubpackageRow, savePackageProperties as savePackagePropertyRows, deletePackage as deletePackageRows, deleteClass as deleteClassRows, type SubpackageCreateRequest, type PackagePropertiesRequest } from './packageWriter.js';
 import { readApplicationPackage } from './packageReader.js';
 import { packageAddress } from '../model/appPackages.js';
@@ -1469,6 +1470,48 @@ export class DatabaseProvider implements DefinitionProvider {
     return result;
     };
     return request.dryRun ? write() : observeManualHistory(this.id, makeKey(DefinitionType.Page, request.pnlName), write);
+  }
+
+  /** An Application Class's or Package's lifecycle checkpoint (classLifecycle.ts), read consistently. */
+  async readLifecycleForReview(kind: 'class' | 'package', key: readonly string[]): Promise<LifecycleRead> {
+    if (this.platform !== 'oracle') throw new ProviderError('Package and class review snapshots are currently supported on Oracle only.');
+    return this.withConnection(async c => {
+      await c.execute('SET TRANSACTION READ ONLY');
+      try { return kind === 'class' ? await readClassScope(c, this.types, key) : await readPackageScope(c, this.types, key[0]); }
+      finally { await c.rollback(); }
+    });
+  }
+
+  /**
+   * A reviewed package / class change, with the calibrated typed writers run in ONE transaction on a connection whose
+   * commit is suppressed: the live checkpoint must still hold `expectedToken`; a preview reads the after-image and
+   * rolls back, an application commits once. Each writer's own refusal rolls the whole change back.
+   */
+  async runLifecycleChange(kind: 'class' | 'package', key: readonly string[], after: LifecycleScope | null, operatorId: string, expectedToken: string, preview: boolean):
+    Promise<{ before: LifecycleRead; after: LifecycleRead }> {
+    if (this.platform !== 'oracle') throw new ProviderError('Package and class review is currently supported on Oracle only.');
+    if (!preview) {
+      const defn = kind === 'class' ? makeKey(DefinitionType.ApplicationClassPeopleCode, ...key) : makeKey(DefinitionType.ApplicationPackage, key[0]);
+      await this.guard(defn, after ? 'save' : 'delete');
+    }
+    if (after && kind === 'class') await this.assertPeopleCodeImports([classSource(after)]);
+    const types = this.types;
+    return this.withConnection(async raw => {
+      const c: Connection = { catalog: raw.catalog, execute: (sql, binds, options) => raw.execute(sql, binds, options), commit: async () => {}, rollback: () => raw.rollback(), close: async () => {} };
+      const read = () => (kind === 'class' ? readClassScope(c, types, key) : readPackageScope(c, types, key[0]));
+      try {
+        const before = await read();
+        if (before.token !== expectedToken) throw new ProviderError('The package or class changed since review; restage it.');
+        if (kind === 'class') await writeClassChange(c, types, key, before.value, after, operatorId);
+        else await writePackageChange(c, types, key[0], before.value, after, operatorId);
+        const result = { before, after: await read() };
+        if (preview) await raw.rollback(); else await raw.commit();
+        return result;
+      } catch (error) {
+        await raw.rollback().catch(() => { /* the original error matters more */ });
+        throw error;
+      }
+    });
   }
 
   async readPageForReview(name: string): Promise<PageSnapshotRead> {

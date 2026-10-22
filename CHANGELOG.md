@@ -19,6 +19,11 @@
   operation now stages the shared writer's full after-image. Undo reaches the
   checkpoint plus the deletion records App Designer writes for removed keys;
   redo re-creates them exactly.
+- **Application Package and class lifecycle under Change Review (V15-1).**
+  New classes and packages stage complete checkpoints; new review-only
+  `psft_delete_application_class` and `psft_delete_package` stage deletions
+  with destructive consent. Undo re-creates deleted classes (PeopleCode
+  recompiled exactly) and packages with their subpackages and properties.
 - **Page writer corrections from App Designer captures (ps01–ps04).** Related
   Field references (ASSOCFIELDNUM) now follow their control through deletes,
   inserts and reorders, and turn off when the control is deleted, as App
