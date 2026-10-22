@@ -9,8 +9,14 @@ export interface QueryRecordSql {
   fields: Record<string, { type: number }>;
   /** Key fields in record order (related joins and effective dating, qjn04). */
   keys?: string[];
+  /** The query security record (QRYSECRECNAME) as joined: its table and key fields in record order (qrs01, qrs02). */
+  security?: { table: string; keys: string[] };
 }
-export interface QuerySqlContext extends QueryRecordSql { joined?: Record<string, QueryRecordSql> }
+export interface QuerySqlContext extends QueryRecordSql {
+  joined?: Record<string, QueryRecordSql>;
+  /** The operator the query runs as: row security compares the security record's OPRID with it. */
+  operatorId?: string;
+}
 
 export interface QuerySqlPlan {
   sql: string;
@@ -60,7 +66,7 @@ export function compileQuerySql(view: QueryView, context: QuerySqlContext): Quer
     const ctx = first ? context : context.joined?.[text(record.RECNAME)] ?? (text(record.RECNAME) === context.record ? context : undefined);
     if (!ctx || text(record.RECNAME) !== ctx.record) refuse('Query record metadata does not match.');
     if (ctx.recordType !== 0) refuse('Execution is currently calibrated for SQL Table records.');
-    if (ctx.querySecurityRecord.trim()) refuse('This record requires query row security; that SQL is not calibrated yet.');
+    if (ctx.querySecurityRecord.trim() && (!ctx.security || !context.operatorId?.trim())) refuse('This record requires query row security; its security record and the operator are needed.');
     return { record, ctx, alias: identifier(record.CORRNAME), table: identifier(ctx.table), join: number(record.JOINTYPE), sel: number(record.SELNUM) };
   });
   if (new Set(sources.map(src => src.alias)).size !== sources.length) refuse('Record aliases must be unique.');
@@ -234,7 +240,21 @@ export function compileQuerySql(view: QueryView, context: QuerySqlContext): Quer
       if (depth) refuse('Criteria parentheses do not balance.');
       return joined.map((w,i) => i && !/^(AND|OR) /.test(w) ? `AND ${w}` : w).join('\n     ');
     };
-    const whereSql = conditions(rendered.filter(r => !number(r.c.QRYOJSELNUM)), clauses);
+    // Row security (qrs01 CONTRACT / EMPLMT_SRCH_QRY, qrs02 DEPT_BUDGET / DEPT_SRCH_QRY): the security record joins as
+    // <alias>1 on its keys the record shares, in its own key order, then <alias>1.OPRID is the operator; the query's own
+    // criteria follow as one parenthesized group. Captured for a single-record query only.
+    const secured = records.filter(src => src.ctx.querySecurityRecord.trim());
+    let whereSql: string;
+    if (secured.length) {
+      if (records.length > 1 || selects.length > 1 || clauses.length || kind !== 1) refuse('Row security is calibrated for a single-record query without joins, translates, subqueries or unions.');
+      const src = secured[0], security = src.ctx.security!, sec = `${src.alias}1`;
+      if (!security.keys.includes('OPRID') || security.keys.some(k => ['OPRCLASS', 'ROWSECCLASS'].includes(k))) refuse('Row security is calibrated for security records keyed by OPRID.');
+      from += `, ${identifier(security.table)} ${sec}`;
+      const own = conditions(rendered.filter(r => !number(r.c.QRYOJSELNUM)), []);
+      const security_ = [...security.keys.filter(k => k !== 'OPRID' && src.ctx.fields[k]).map(k => `${src.alias}.${identifier(k)} = ${sec}.${identifier(k)}`),
+        `${sec}.OPRID = ${quoted(context.operatorId)}`];
+      whereSql = [...security_, ...(own ? [`( ${own})`] : [])].join('\n     AND ');
+    } else whereSql = conditions(rendered.filter(r => !number(r.c.QRYOJSELNUM)), clauses);
     const distinct = text(selects[sel-1].QRYDISTINCT);
     if (distinct && (distinct !== 'Y' || kind === 2)) refuse('This DISTINCT setting is not calibrated.');
     const lines = [`SELECT ${distinct ? 'DISTINCT ' : ''}${columns.map(columnSql).join(',')}`, `FROM ${from}`];
@@ -270,7 +290,8 @@ export function compileQuerySql(view: QueryView, context: QuerySqlContext): Quer
   if (ordering.some((f,i) => number(f.ORDERBYNUM) !== i+1)) refuse('Order By positions must be consecutive.');
   if (ordering.length) lines.push(`ORDER BY ${ordering.map(f => {
     if (!columns.includes(f)) refuse('Ordering by hidden fields is not calibrated yet.');
-    const direction = text(f.ORDERBYDIR);
+    // Windows Query saves 'A' / 'D'; delivered queries store ascending as a blank, which its SQL tab sorts ascending (qrs01).
+    const direction = text(f.ORDERBYDIR) || 'A';
     if (!['A','D'].includes(direction)) refuse('Unknown sort direction.');
     return `${number(f.COLUMNNUM)}${direction === 'D' ? ' DESC' : ''}`;
   }).join(',')}`);

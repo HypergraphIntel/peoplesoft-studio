@@ -50,14 +50,18 @@ export async function prepareQueryExecution(c: DbConnection, view: QueryView, op
     const record = await recordInfo(c,name);
     const fields = (await c.execute<{FIELDNAME:string; FIELDTYPE:number; USEEDIT:number}>(`SELECT F.FIELDNAME,D.FIELDTYPE,F.USEEDIT
       FROM PSRECFIELD F JOIN PSDBFIELD D ON D.FIELDNAME=F.FIELDNAME WHERE F.RECNAME=:r ORDER BY F.FIELDNUM`, { r:name })).rows ?? [];
+    // Row security (qrs01, qrs02): the security record's table and its key fields in record order; the SQL joins it for this operator.
+    const securityName = text(record.QRYSECRECNAME);
+    const security = securityName ? { table: tableName({ name: securityName, sqlTableName: (await recordInfo(c, securityName)).SQLTABLENAME }),
+      keys: ((await c.execute<{ FIELDNAME: string }>('SELECT FIELDNAME FROM PSRECFIELDDB WHERE RECNAME=:r AND BITAND(USEEDIT,1)=1 ORDER BY FIELDNUM', { r: securityName })).rows ?? []).map(f => text(f.FIELDNAME)) } : undefined;
     contexts.push({
       record:name, table:tableName({name,sqlTableName:record.SQLTABLENAME}), recordType:Number(record.RECTYPE),
-      querySecurityRecord:text(record.QRYSECRECNAME), fields:Object.fromEntries(fields.map(f => [text(f.FIELDNAME),{type:Number(f.FIELDTYPE)}])),
-      keys:fields.filter(f => Number(f.USEEDIT) & 1).map(f => text(f.FIELDNAME))
+      querySecurityRecord:securityName, fields:Object.fromEntries(fields.map(f => [text(f.FIELDNAME),{type:Number(f.FIELDTYPE)}])),
+      keys:fields.filter(f => Number(f.USEEDIT) & 1).map(f => text(f.FIELDNAME)), ...(security ? { security } : {})
     });
   }
   if (!contexts.length) throw new QueryUnsupportedError('The query has no record.');
-  return compileQuerySql(view, {...contexts[0], joined:Object.fromEntries(contexts.slice(1).map(ctx => [ctx.record,ctx]))});
+  return compileQuerySql(view, {...contexts[0], operatorId: operator, joined:Object.fromEntries(contexts.slice(1).map(ctx => [ctx.record,ctx]))});
 }
 
 /** Captured Prompt Table edit: validate the bound value through an unsecured, granted record. */

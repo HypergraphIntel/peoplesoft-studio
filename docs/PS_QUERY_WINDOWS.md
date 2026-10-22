@@ -335,7 +335,20 @@ joins; aggregates, HAVING (AND) and DISTINCT; character and number expression
 columns; translates; unions; subqueries with correlation to the top level.
 `psft_query_get` describes the stored criteria in the same form, and replacing
 the criteria with that description reproduces the stored rows (tested for each
-family). Refused: row-security SQL, nested subqueries, subqueries together with
+family). Row security (1.5, V15-4): a single-record query on a record with a
+query security record (QRYSECRECNAME) joins that record as `<alias>1` on its
+keys the record shares, in the security record's key order, then
+`<alias>1.OPRID = '<operator>'`, with the query's own criteria as one
+parenthesized group after them (`FROM PS_CONTRACT A, PS_EMPLMT_SRCH_QRY A1
+WHERE ( A.EMPLID = A1.EMPLID AND A.EMPL_RCD = A1.EMPL_RCD AND A1.OPRID =
+'JARED' AND ( A.EMPLID LIKE 'QIE%' ))`). Calibrated from Windows Query's SQL
+tab for delivered QA_QI_CNTRTACTLS (EMPLMT_SRCH_QRY) and QA_Q_DB_FY2000
+(DEPT_SRCH_QRY, OPRID between its keys yet compared last), opened as JARED
+(fixtures qrs01, qrs02); Studio runs both with that SQL and, like Windows Query,
+returns no rows for an operator without row-security data. Delivered queries
+store an ascending sort as a blank ORDERBYDIR. Row security with joins,
+translates, subqueries or unions, and security records keyed by OPRCLASS or
+ROWSECCLASS, remain refused. Refused: nested subqueries, subqueries together with
 unions, effective-dated subquery or union records, HAVING OR, aggregates on
 date columns, criteria on expression columns, and the remaining Windows options
 (Eff Date >=, tree prompts, Effective Seq, expression translate dates).

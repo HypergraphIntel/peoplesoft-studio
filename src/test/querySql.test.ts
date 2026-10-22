@@ -113,3 +113,26 @@ test('aggregate, expression, subquery, union and translate SQL matches Windows Q
   assert.throws(() => compileQuerySql({...sub,criteria:sub.criteria.filter(c => Number(c.SELNUM) !== 1 || Number(c.CRTNUM) !== 2)},year),/not used|criterion/);
   assert.throws(() => compileQuerySql({...snapshot('qun01-union'),fields:snapshot('qun01-union').fields.map(f => Number(f.SELNUM) === 2 ? {...f,COLUMNNUM:0} : f)},{...aapTbl,joined:{AAP_YEAR:year}}),/output field/);
 });
+
+// Windows Query's SQL tab for the delivered HRDMO queries QA_QI_CNTRTACTLS (CONTRACT, security EMPLMT_SRCH_QRY) and
+// QA_Q_DB_FY2000 (DEPT_BUDGET, security DEPT_SRCH_QRY), opened as operator JARED.
+test('row-security SQL matches Windows Query: the security record joins on its shared keys, then OPRID, then the criteria (qrs01, qrs02)', () => {
+  const normalize = (sql: string) => sql.replace(/\s+/g, ' ').replace(/, /g, ',').replace(/\( /g, '(').replace(/ \)/g, ')').trim();
+  const fields = (list: string) => Object.fromEntries(list.split(' ').map(f => { const [name, type] = f.split(':'); return [name, { type: Number(type) }]; }));
+  const contract: QuerySqlContext = { record: 'CONTRACT', table: 'PS_CONTRACT', recordType: 0, querySecurityRecord: 'EMPLMT_SRCH_QRY', operatorId: 'JARED',
+    fields: fields('EMPLID:0 EMPL_RCD:2 HP_CONTRACT_NUM:2 EFFDT:4 HP_WORKDAYS:2 HP_USE_HOL_SCHD:0'), keys: ['EMPLID', 'EMPL_RCD', 'HP_CONTRACT_NUM', 'EFFDT'],
+    security: { table: 'PS_EMPLMT_SRCH_QRY', keys: ['OPRID', 'EMPLID', 'EMPL_RCD'] } };
+  const budget: QuerySqlContext = { record: 'DEPT_BUDGET', table: 'PS_DEPT_BUDGET', recordType: 0, querySecurityRecord: 'DEPT_SRCH_QRY', operatorId: 'JARED',
+    fields: fields('SETID:0 DEPTID:0 FISCAL_YEAR:2 EMPLID:0 EMPL_RCD:2 EFFDT:4 BUDGET_LEVEL_INDC:0 OVERALL_BDGT_CAP:2'), keys: ['SETID', 'DEPTID', 'FISCAL_YEAR', 'EFFDT'],
+    security: { table: 'PS_DEPT_SRCH_QRY', keys: ['SETID', 'OPRID', 'DEPTID'] } };
+  assert.equal(normalize(compileQuerySql(snapshot('qrs01-contract-security'), contract).sql), normalize(
+    "SELECT A.EMPLID, A.EMPL_RCD, TO_CHAR(A.EFFDT,'YYYY-MM-DD'), A.HP_WORKDAYS, A.HP_USE_HOL_SCHD FROM PS_CONTRACT A, PS_EMPLMT_SRCH_QRY A1 "
+    + "WHERE ( A.EMPLID = A1.EMPLID AND A.EMPL_RCD = A1.EMPL_RCD AND A1.OPRID = 'JARED' AND ( A.EMPLID LIKE 'QIE%' )) ORDER BY 1, 2, 3"));
+  assert.equal(normalize(compileQuerySql(snapshot('qrs02-dept-security'), budget).sql), normalize(
+    "SELECT A.DEPTID, A.FISCAL_YEAR, TO_CHAR(A.EFFDT,'YYYY-MM-DD'), A.BUDGET_LEVEL_INDC, A.OVERALL_BDGT_CAP FROM PS_DEPT_BUDGET A, PS_DEPT_SRCH_QRY A1 "
+    + "WHERE ( A.SETID = A1.SETID AND A.DEPTID = A1.DEPTID AND A1.OPRID = 'JARED' AND ( A.DEPTID = 'QBD01' AND A.FISCAL_YEAR = 2000 AND A.BUDGET_LEVEL_INDC = 'D' ))"));
+  // Without the security record or the operator, nothing is compiled.
+  assert.throws(() => compileQuerySql(snapshot('qrs01-contract-security'), { ...contract, security: undefined }), /row security/);
+  assert.throws(() => compileQuerySql(snapshot('qrs01-contract-security'), { ...contract, operatorId: '' }), /row security/);
+  assert.throws(() => compileQuerySql(snapshot('qrs01-contract-security'), { ...contract, security: { table: 'PS_X', keys: ['OPRCLASS', 'EMPLID'] } }), /keyed by OPRID/);
+});
