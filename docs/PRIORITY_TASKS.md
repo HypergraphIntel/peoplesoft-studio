@@ -2,13 +2,14 @@
 
 ## Release targeting
 
-See the [proposed release plan](RELEASE_PLAN.md) for explicit assignments:
+See the [release plan](RELEASE_PLAN.md) for explicit assignments:
 V1-1 through V1-5 are core 1.0 reliability, support-scope and release gates;
 broader structural review, separate-environment promotion and business/AI
 workflow expansion target 1.5; platform/parity expansion targets 2.0.
 Existing stable-path correctness and safety issues cannot be deferred merely
-by assigning a related feature to a later release. Final support profiles and
-release dates remain to be agreed.
+by assigning a related feature to a later release. The core profile is Oracle / PeopleTools 8.62.09 on Linux/Windows x64;
+[qualification evidence](releases/1.0/PROGRESS.md) records completed gates. No
+publication date is committed.
 
 ## Run and Monitor — Low-priority follow-up
 
@@ -29,8 +30,8 @@ was performed, and no acceptance window remains waiting for credentials.
 [Detailed scope, dependencies and evidence](PROCESS_SCHEDULER_RUNTIME.md#deferred-tasks--low-priority).
 These are deferred acceptance tasks, not completed native runtime capabilities.
 This priority change applies to Run and Monitor only.
-Its proposed release target is **1.5**, still **Low priority** and explicitly
-outside the proposed 1.0 gate; native acceptance remains pending.
+Its release target is **1.5**, still **Low priority** and explicitly
+outside the 1.0 gate; native acceptance remains pending.
 
 ## Earlier priority tasks — October 20, 2026
 

@@ -39,7 +39,7 @@
         "extensions": [
           ".pssql"
         ],
-        "configuration": "./language-configuration.json"
+        "configuration": "./sql-language-configuration.json"
       }
     ],
     "configurationDefaults": {

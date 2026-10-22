@@ -8,7 +8,7 @@ test('support requires observed platform/patch and distinguishes core scope from
  for(const release of ['8.62','8.62.08','8.63.01','8.61.15'])assert.equal(connectionReleaseSupport('oracle',{status:'available',release}).level,'PREVIEW');
  for(const status of ['loading','not-connected','error'])assert.equal(connectionReleaseSupport('oracle',{status}).level,'PREVIEW');
  for(const platform of ['mssql','db2'])assert.equal(connectionReleaseSupport(platform,{status:'available',release:'8.62.09'}).target,'2.0');
- assert.equal(connectionReleaseSupport('projectFile').level,'READ_ONLY');assert.equal(RELEASE_SUPPORT.qualification,'IN_PROGRESS');
+ assert.equal(connectionReleaseSupport('projectFile').level,'READ_ONLY');assert.equal(RELEASE_SUPPORT.qualification,'CORE_READY');
 });
 test('MCP orientation and catalog carry the shared contract without certifying unexposed or runtime paths',()=>{
  assert.deepEqual(studioReference().releaseSupport,RELEASE_SUPPORT);assert.deepEqual(capabilityCatalog().releaseSupport,RELEASE_SUPPORT);

@@ -2,14 +2,14 @@ import {DefinitionType as D} from './definitions.js';
 /** Product scope is separate from connection authorization and from an individual native trial. */
 export type ReleaseLevel='CORE'|'PREVIEW'|'READ_ONLY'|'PLANNED'|'NOT_EXPOSED';
 export interface ReleaseSupport {level:ReleaseLevel;label:string;detail:string;target:'1.0'|'1.5'|'2.0';}
-const core=(detail:string):ReleaseSupport=>({level:'CORE',label:'1.0 core candidate',detail,target:'1.0'});
+const core=(detail:string):ReleaseSupport=>({level:'CORE',label:'1.0 core',detail,target:'1.0'});
 const preview=(detail:string,target:'1.5'|'2.0'='1.5'):ReleaseSupport=>({level:'PREVIEW',label:'Preview',detail,target});
 export const RELEASE_SUPPORT={
- target:'1.0',qualification:'IN_PROGRESS',
+ target:'1.0',qualification:'CORE_READY',
  primary:{database:'Oracle',toolsRelease:'8.62',nativePatch:'8.62.09',clients:['Linux x64','Windows x64']},
  compatibility:'PeopleTools 8.61.15 retains its documented bounded compatibility; it is not full 8.62 Query parity.',
  experimental:'SQL Server/DB2 and unqualified releases/patches remain experimental. macOS has no installed acceptance claim.',
- principle:'Core identifies release scope, not completed certification or permission. Exact native/installed evidence, connection gates and operation limits still apply.',
+ principle:'Core identifies the qualified bounded release scope, not permission or complete platform parity. Exact native/installed evidence, connection gates and operation limits still apply.',
  coreWorkflows:[
   'Connect, search and open implemented definitions and project exports',
   'Authoritative-source PeopleCode editing, supported compilation, diagnostics and navigation',
@@ -29,7 +29,7 @@ export function connectionReleaseSupport(kind:string,environment?:{status:string
  if(kind==='projectFile')return {level:'READ_ONLY',label:'Project export · read only',detail:'Scope is the file; no database writes or release certification.',target:'1.0'};
  if(kind!=='oracle')return preview('Native PeopleSoft platform save/recovery certification is incomplete; documented experimental paths only.','2.0');
  if(environment?.status!=='available')return preview('Connect or test this Oracle connection to inspect its native PeopleTools release.');
- if(environment.release==='8.62.09')return core('Primary Oracle/PeopleTools profile. Qualification is in progress; bounded operation checks and native permissions still apply.');
+ if(environment.release==='8.62.09')return core('Primary Oracle/PeopleTools profile. Qualification evidence is recorded in the release tracker; bounded operation checks and native permissions still apply.');
  if(environment.release==='8.61.15')return preview(RELEASE_SUPPORT.compatibility);
  return preview('This release/patch is not the primary native qualification profile. Schema compatibility and compiler support do not certify every operation.');
 }
@@ -47,6 +47,6 @@ export function definitionReleaseSupport(type:D,operation:string,exposed:boolean
  if(operation==='migrate')return core('Bounded Oracle package adapters retain their recorded native scope. Separate-environment promotion remains preview pending its own 1.5 qualification.');
  if(type===D.ApplicationClassPeopleCode&&['create','copy','rename','delete'].includes(operation))return preview('Standalone class lifecycle review needs combined package/class metadata and parent side effects. Bounded package migration has a separate contract.');
  if([D.MenuPeopleCode,D.ComponentRecordPeopleCode].includes(type)&&['create','edit','copy','rename','delete'].includes(operation))return preview('This event writer retains its existing guards, but standalone installed/native reviewed save acceptance is not recorded. Menu migration has separate native evidence.');
- if(coreTypes.has(type))return core('Bounded operations on the declared Oracle profile; consult the exact tool schema and documented review/legacy-save limits. Core qualification is in progress.');
+ if(coreTypes.has(type))return core('Bounded operations on the declared Oracle profile; consult the exact tool schema and documented review/legacy-save limits. Recorded core qualification does not expand those operation limits.');
  return preview('A routed tool is not certification. Consult the family reference and native evidence.');
 }

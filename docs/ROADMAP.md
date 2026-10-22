@@ -5,10 +5,10 @@ Designer parity is the goal; this is the path to it. The
 [1.0 readiness gates](RELEASE_1_0_READINESS.md) separate demonstrated progress
 from the remaining completion work; no 1.0 delivery date is committed.
 
-## Proposed release targets
+## Release targets
 
 The developer directed larger readiness items toward later releases. The
-[1.0 / 1.5 / 2.0 release plan](RELEASE_PLAN.md) proposes:
+[1.0 / 1.5 / 2.0 release plan](RELEASE_PLAN.md) assigns:
 
 - **1.0:** dependable supported core workflows, PeopleCode regression gates,
   clear stable/preview boundaries, installation/upgrade/recovery acceptance

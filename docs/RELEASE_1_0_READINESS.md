@@ -1,20 +1,21 @@
 # 1.0 readiness
 
-Assessment as of October 21, 2026: 0.9.7 is released. The next development
+Assessment as of October 22, 2026: 0.9.7 is released. The next development
 version is **0.9.8 — unreleased**; package metadata and
 [draft release notes](releases/0.9.8.md) are prepared, with no release date set.
 There is meaningful implementation and native verification progress,
 but not feature-complete for the project's long-term full Application Designer
 parity goal. The developer has directed larger items toward later releases;
-[the proposed 1.0 / 1.5 / 2.0 plan](RELEASE_PLAN.md) separates core release gates
-from expansions. No 1.0 delivery date or final support matrix has been agreed. A claim
-that delivery is on schedule is therefore not supported. Version 0.9.7 does not
+[the 1.0 / 1.5 / 2.0 plan](RELEASE_PLAN.md) separates core release gates
+from expansions. The focused support matrix is Oracle / PeopleTools 8.62.09 on Linux and Windows
+x64; [core qualification evidence](releases/1.0/PROGRESS.md) records the release
+gates. No 1.0 publication date is committed. Version 0.9.7 does not
 mean 97 percent complete.
 
 Keep the long-term completion goal visible while planning staged releases.
 This is an evidence inventory across the whole product, not a requirement to
 complete every remaining item for 1.0. Use [V1-1 through V1-5](RELEASE_PLAN.md#10--dependable-core-workflows)
-as the proposed 1.0 gate; structural review expansion, cross-environment
+as the 1.0 gate; structural review expansion, cross-environment
 promotion and broader business/AI handoffs target 1.5, with platform/parity
 expansion targeting 2.0. These targets do not certify unsupported paths.
 The current source of capability

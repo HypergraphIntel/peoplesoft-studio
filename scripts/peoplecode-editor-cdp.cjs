@@ -36,6 +36,9 @@ exports.connectWorkbench = async function (url) {
     for (const type of ['keyDown', 'keyUp']) await send('Input.dispatchKeyEvent', { type, key: name, code: name, windowsVirtualKeyCode: code, nativeVirtualKeyCode: code, ...(name === 'Enter' && type === 'keyDown' ? { text: '\r', unmodifiedText: '\r' } : {}) });
   };
   return {
+    async notifications() {
+      return call(function(){return [...document.querySelectorAll('.notification-list-item')].map(e=>e.innerText);});
+    },
     async terminalKey(name) {
       if(!['Enter','Escape'].includes(name))throw Error('Unsupported terminal key');
       await call(function(){

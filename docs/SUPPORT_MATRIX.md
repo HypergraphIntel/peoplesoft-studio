@@ -1,7 +1,7 @@
 # 1.0 support contract and qualification
 
-This contract names the 1.0 scope being qualified. Qualification is **in
-progress**; it is not a claim that 1.0 is already released or every gate passed.
+This contract names the qualified bounded 1.0 core. Product status is
+**CORE_READY**; the development package remains **0.9.8, unreleased**.
 The active evidence tracker is [1.0 progress](releases/1.0/PROGRESS.md).
 The shared product model is `src/model/releaseSupport.ts`, surfaced in Settings,
 tool-pane descriptions, MCP orientation and operation-level capability entries.
@@ -10,8 +10,8 @@ tool-pane descriptions, MCP orientation and operation-level capability entries.
 
 | Profile | Release scope | Evidence boundary |
 | --- | --- | --- |
-| Oracle / PeopleTools 8.62.09 | Primary 1.0 core qualification | Named native HRDMO evidence and final installed acceptance are required for the supported operations below. Other 8.62 patches are not certified by the family name alone. |
-| Linux x64 / Windows x64 / VS Code | Required core client qualification | Fresh install/upgrade, native database editing, credentials, drafts/history and recovery must pass on both clients before qualification completes. VS Code's manifest minimum is API compatibility, not installed acceptance on every old version. Record actual tested host versions in release evidence. |
+| Oracle / PeopleTools 8.62.09 | Primary qualified 1.0 core | Native HRDMO evidence and installed acceptance bind the supported operations below. Other 8.62 patches are not certified by the family name alone. |
+| Linux x64 / Windows x64 / VS Code | Qualified core clients | Installed upgrade, native editing, credentials, drafts/history and reconnect checks pass on Linux VS Code 1.143.0 and Windows VS Code 1.141.0; fresh-profile checks are recorded separately. VS Code's manifest minimum is API compatibility, not installed acceptance on every old version. Record actual tested host versions in release evidence. |
 | Oracle / PeopleTools 8.61.15 | Bounded compatibility / preview | Retain the native scopes documented for this release; Query authoring is more limited. No automatic claim of parity with 8.62.09. |
 | SQL Server / DB2 | Experimental / 2.0 production target | Fixture-backed platform comparisons do not certify native PeopleSoft writes or reviewed recovery on these platforms. |
 | macOS, other client architectures or unqualified PeopleTools patches | Unqualified / preview | Existing compatibility is not a native/installed certification. |

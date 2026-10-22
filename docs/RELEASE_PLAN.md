@@ -1,12 +1,12 @@
 # Release plan: 1.0, 1.5 and 2.0
 
-Planning checkpoint: October 21, 2026. The developer directed that larger
+Planning checkpoint: October 21, 2026; qualification execution: October 22. The developer directed that larger
 items from the readiness discussion can move to 1.5 or 2.0. The assignments
-below are proposed planning targets, not release dates or a final support
-matrix. The current development version remains 0.9.8, unreleased.
+below are release targets, not release dates. The selected 1.0 support
+matrix is recorded in [the support contract](SUPPORT_MATRIX.md). The current development version remains 0.9.8, unreleased.
 
 Full Application Designer parity remains the long-term goal. It is not the
-completion test for the focused 1.0 proposed here. Existing functionality stays
+completion test for the focused 1.0 defined here. Existing functionality stays
 available within its recorded limits; moving an expansion to a later target
 does not remove its implementation or certify an unverified path.
 
@@ -57,7 +57,7 @@ Application Designer parity is already scoped or estimated.
 
 The [1.0 readiness inventory](RELEASE_1_0_READINESS.md) retains the technical
 gaps and evidence. Its broader remaining-work column is not an instruction to
-finish every item before 1.0; the proposed release assignments above distinguish
+finish every item before 1.0; the release assignments above distinguish
 the gate from later expansions. [Priority tasks](PRIORITY_TASKS.md) links the
 active release gate and the scheduler's explicitly Low-priority follow-up.
 No tag, publication, support certification or version bump follows from this

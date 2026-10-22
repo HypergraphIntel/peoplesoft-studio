@@ -515,8 +515,14 @@ try {
   const file = join(buildRoot, 'requirements.txt');
   await buildFs.writeFile(file, 'Create ZZ_BR_SQL. Read-only SQL: SELECT 1 FROM PS_INSTALLATION. No business data writes.');
   vscode.window.showOpenDialog = async () => [vscode.Uri.file(file)];
+  const attachmentMessageStart=vscode._messages.length;
   requestPanel._receive({ type: 'addFiles' });
-  await until(async () => (await buildStore.get(request.id)).attachments.length === 1);
+  await until(async()=>{
+   assert.ok(!requestPanel.disposed,'Build Request was disposed before attachment intake: '+JSON.stringify(vscode._messages.slice(attachmentMessageStart)));
+   const errors=vscode._messages.slice(attachmentMessageStart).filter((m:any)=>m[0]==='error');
+   assert.equal(errors.length,0,'Attachment intake failed: '+JSON.stringify(errors));
+   return (await buildStore.get(request.id)).attachments.length===1;
+  });
   const read = await buildTool('psft_build_request_get', { id: request.id });
   assert.equal(read.buildAuthorized, false); assert.match(read.attachments[0].text, /SELECT 1 FROM PS_INSTALLATION/);
   const names = (await buildRpc('tools/list', {})).tools.map((t: any) => t.name);

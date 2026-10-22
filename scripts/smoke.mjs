@@ -39,8 +39,18 @@ for (const grammar of manifest.contributes.grammars ?? []) {
     `grammar scope does not match its contribution: ${grammar.path}`);
 }
 for (const language of manifest.contributes.languages ?? []) {
-  if (language.configuration) check(existsSync(path.join(root, language.configuration)),
-    `missing language configuration: ${language.configuration}`);
+  if (!language.configuration) continue;
+  const file = path.join(root, language.configuration);
+  check(existsSync(file), `missing language configuration: ${language.configuration}`);
+  if (existsSync(file)) {
+    try {
+      const config = JSON.parse(readFileSync(file, 'utf8'));
+      for (const pattern of [config.wordPattern, ...Object.values(config.indentationRules ?? {})].filter(Boolean)) {
+        new RegExp(typeof pattern === 'string' ? pattern : pattern.pattern, typeof pattern === 'string' ? undefined : pattern.flags);
+      }
+      if (language.id === 'psft-sql') check(config.comments?.lineComment === '--', 'SQL comment toggling must use SQL syntax');
+    } catch (error) { check(false, `invalid language configuration ${language.configuration}: ${error.message}`); }
+  }
 }
 
 const require = createRequire(import.meta.url);

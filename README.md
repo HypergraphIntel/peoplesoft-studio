@@ -9,9 +9,10 @@ experimental) or opens an Application Designer project export. Every connection
 is read-only until you make it writable; then definitions are saved natively,
 writing the same rows Application Designer writes.
 
-> **Status:** under active development, with new builds every few days. Saving
-> is experimental: read the [Disclaimer](#disclaimer) before writing to any
-> database.
+> **Development status:** a focused 1.0 core is qualified for Oracle /
+> PeopleTools 8.62.09 on Linux and Windows x64. Preview features retain their
+> documented limits; see the [support contract](docs/SUPPORT_MATRIX.md) and
+> [Disclaimer](#disclaimer). The development package remains unreleased.
 
 Current release: **0.9.7** (project migration of fields, records, pages,
 components and packages with undo and redo; PeopleCode completion from the
@@ -136,7 +137,7 @@ definitions, outages or any other damage.
 ## 1.0 support qualification
 
 The primary qualification profile is **Oracle / PeopleTools 8.62.09**, with
-**Linux x64 and Windows x64** core clients. Qualification is in progress;
+**Linux x64 and Windows x64** core clients. The bounded core is ready for 1.0;
 [the support contract](docs/SUPPORT_MATRIX.md) separates core scope from
 completed native/installed evidence, preview features and planned workflows.
 Settings and the MCP capability catalog expose the same release-support model.
@@ -144,7 +145,7 @@ Run and Monitor remains preview with Low-priority native acceptance deferred.
 
 ## What works now
 
-Goal long-term: replace Application Designer. **Today it reads many common definition types and edits the supported kinds below** -- PeopleCode, records, fields, pages, components, App Engine, menus, Component Interfaces, message channels, SQL, HTML, style sheets, translates, projects and a bounded PS Query workflow. Saving is experimental. The tables distinguish working editors from read-only viewers and features still planned.
+Goal long-term: replace Application Designer. **Today it reads many common definition types and edits the supported kinds below** -- PeopleCode, records, fields, pages, components, App Engine, menus, Component Interfaces, message channels, SQL, HTML, style sheets, translates, projects and a bounded PS Query workflow. The support contract distinguishes the qualified core from preview workflows. The tables distinguish working editors from read-only viewers and features still planned.
 
 In **0.9.2**, File Layouts open in a File Layout Designer and save as App
 Designer saves them; Build Requests turn attached documents into a reviewed
