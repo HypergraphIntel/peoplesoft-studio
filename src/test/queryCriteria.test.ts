@@ -132,6 +132,17 @@ test('native aggregates, HAVING and DISTINCT replay qag01-qag05', () => {
   assert.throws(()=>applyQueryOp(agg,{kind:'having',criteria:[{field:'ESTABID',operator:'equal',value:{constant:'A'}}]},records.AAP_YEAR.fields,all),/aggregated field/);
   assert.throws(()=>applyQueryOp(agg,{kind:'aggregate',field:'FEMALE_GOAL',function:'none'},records.AAP_YEAR.fields,all),/HAVING criterion uses/);
 });
+test('native date aggregate replays qag06: Max on START_DT; a WHERE criterion on it is refused', () => {
+  const view=build('ZZ_QRY_STUDIO_DTAGG','AAP_YEAR',[{kind:'select',field:'ESTABID',selected:true},{kind:'select',field:'START_DT',selected:true},
+    {kind:'aggregate',field:'START_DT',function:'max'},{kind:'properties',description:'Date aggregate calibration',comments:''}]);
+  compare(view,snapshot('qag06-date-max','after'),undefined,'qag06');
+  assert.throws(()=>applyQueryOp(view,{kind:'aggregate',field:'START_DT',function:'sum'},records.AAP_YEAR.fields,all),/dates: min and max/);
+  assert.throws(()=>applyQueryOp(view,{kind:'criteria',criteria:[{field:'START_DT',operator:'greater',value:{constant:'2000-01-01'}}]},records.AAP_YEAR.fields,all),/aggregated field/);
+  assert.throws(()=>applyQueryOp(view,{kind:'having',criteria:[{field:'START_DT',operator:'greater',value:{constant:'2000-01-01'}}]},records.AAP_YEAR.fields,all),/date aggregates/);
+  const dated=applyQueryOp(applyQueryOp(view,{kind:'aggregate',field:'START_DT',function:'none'},records.AAP_YEAR.fields,all),
+    {kind:'criteria',criteria:[{field:'START_DT',operator:'greater',value:{constant:'2000-01-01'}}]},records.AAP_YEAR.fields,all);
+  assert.throws(()=>applyQueryOp(dated,{kind:'aggregate',field:'START_DT',function:'max'},records.AAP_YEAR.fields,all),/WHERE criterion uses this field/);
+});
 test('native HAVING OR replays qhv01: COMBTYPE 5', () => {
   const before=snapshot('qhv01-having-or','before'), after=snapshot('qhv01-having-or','after');
   const having: QueryCriterion[]=[{field:'FEMALE_GOAL',operator:'notLess',value:{constant:'0'}},{field:'FEMALE_GOAL',operator:'equal',logical:'OR',value:{constant:'0'}}];

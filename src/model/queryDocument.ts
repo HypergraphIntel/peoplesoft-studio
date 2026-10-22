@@ -222,7 +222,9 @@ export function applyQueryOp(source: QueryView, op: QueryOp, metadata: Record<st
     case 'aggregate': {
       // qry04-qry07, qag01-qag02: Windows Query's Aggregate sets TTLTYPE only.
       if (!n(f!.COLUMNNUM) || n(f!.SELNUM)!==1) throw new Error('Aggregate a selected top-level field.');
-      if (info!.type===4 || n(f!.XLATTYPE)!==1) throw new QueryUnsupportedError('Aggregates are calibrated for character and number fields without translates.');
+      // qag06: a date takes Min or Max (Windows Query disables Sum; Count and Average are not calibrated).
+      if (info!.type===4 && !['none','min','max'].includes(op.function) || n(f!.XLATTYPE)!==1) throw new QueryUnsupportedError('Aggregates are calibrated for character and number fields (dates: min and max) without translates.');
+      if (op.function!=='none' && view.criteria.some(c=>!isHaving(c) && n(c.LCRTSELNUM)===1 && n(c.LCRTFLDNUM)===n(f!.FLDNUM))) throw new QueryUnsupportedError('A WHERE criterion uses this field; Windows Query would aggregate it into invalid SQL.');
       if (op.function==='none' && view.criteria.some(c=>isHaving(c) && n(c.LCRTSELNUM)===1 && n(c.LCRTFLDNUM)===n(f!.FLDNUM))) throw new Error('A HAVING criterion uses this aggregate; change it first.');
       f!.TTLTYPE=QUERY_AGGREGATE_TYPES[op.function]; break;
     }
@@ -451,6 +453,8 @@ function setCriteria(view: QueryView, specs: QueryCriterion[], meta: Meta, sel: 
       if (combine==='having' && (sub || exists || dated)) throw new QueryUnsupportedError('HAVING criteria compare an aggregate with a value.');
       const left=spec.field ? fieldRow(view,spec.field,meta,1,at) : undefined, info=spec.field ? locate(view,spec.field,meta,at).info! : undefined;
       if (combine==='having' && n(left!.TTLTYPE)===1) throw new Error(`${spec.field}: a HAVING criterion is on an aggregated field.`);
+      if (combine==='having' && info!.type===4) throw new QueryUnsupportedError('HAVING criteria on date aggregates are not calibrated.');
+      if (combine==='where' && left && n(left.SELNUM)===1 && n(left.TTLTYPE)!==1) throw new QueryUnsupportedError(`${spec.field}: a WHERE criterion on an aggregated field is not valid SQL; use a HAVING criterion.`);
       if ((dated && !none) !== ('currentDate' in (spec.value ?? {}))) throw new QueryUnsupportedError('Effective date criteria compare EFFDT with the current date (First / Last Eff Date take no value); other current-date comparisons are not calibrated.');
       if (dated && (s(locate(view,spec.field!,meta,at).field)!=='EFFDT' || info!.type!==4)) throw new Error('An effective date criterion is on a record\'s EFFDT.');
       if (none ? spec.value || spec.value2 : !spec.value || !!spec.value2!==twoSided) throw new Error(`${spec.field ?? spec.operator} ${spec.operator}: wrong number of operands.`);

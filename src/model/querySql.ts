@@ -97,7 +97,7 @@ export function compileQuerySql(view: QueryView, context: QuerySqlContext): Quer
     }
     const name = identifier(field.FIELDNAME);
     if (![0,2,4].includes(typeOf(field) ?? -1)) refuse(`${name}: execution is calibrated for character, number and date fields.`);
-    if (ttl !== 1 && (typeOf(field) === 4 || xlat !== 1 || typeOfSelect(field.SELNUM) === 2)) refuse('Aggregates are calibrated for character and number fields without translates.');
+    if (ttl !== 1 && (typeOf(field) === 4 && ![4,5].includes(ttl) || xlat !== 1 || typeOfSelect(field.SELNUM) === 2)) refuse('Aggregates are calibrated for character and number fields (dates: Min and Max) without translates.');
     if (xlat !== 1 && (typeOf(field) !== 0 || number(field.SELNUM) !== 1 || recordRows(1).length !== 1 || !number(field.COLUMNNUM)
       || !(number(field.XLATEXPRTYPE) === 6 && !number(field.XLATFLDNUM) || number(field.XLATEXPRTYPE) === 2 && typeOf(fieldAt(field.SELNUM,field.XLATFLDNUM)) === 4))) refuse('This translate shape is not calibrated.');
   }
@@ -115,7 +115,8 @@ export function compileQuerySql(view: QueryView, context: QuerySqlContext): Quer
     const columns = fields.filter(f => number(f.COLUMNNUM) > 0).sort((a,b) => number(a.COLUMNNUM)-number(b.COLUMNNUM));
     if (!columns.length) refuse('Select at least one output field.');
     if (columns.some((f,i) => number(f.COLUMNNUM) !== i+1)) refuse('Output column positions must be consecutive.');
-    const aggregated = (field: Row) => `${AGGREGATES[number(field.TTLTYPE)]}( ${rawSql(field)})`;
+    // qag06: a date's aggregate wraps its output form, MAX( TO_CHAR(A.START_DT,'YYYY-MM-DD')).
+    const aggregated = (field: Row) => `${AGGREGATES[number(field.TTLTYPE)]}( ${typeOf(field) === 4 ? `TO_CHAR(${rawSql(field)},'YYYY-MM-DD')` : rawSql(field)})`;
     const columnSql = (field: Row) => {
       if (number(field.FLDEXPNUM)) return detokenized(expressionOf(field.FLDEXPNUM).EXPRESSIONTEXT);
       // qxl01/qxl02: the translate join's alias is the record alias, the column number and X.
@@ -138,7 +139,9 @@ export function compileQuerySql(view: QueryView, context: QuerySqlContext): Quer
         || (exists ? number(c.LCRTSELNUM) || number(c.LCRTFLDNUM) : number(c.LCRTSELNUM) !== sel)) refuse('This criterion shape is not calibrated.');
       const field = exists ? undefined : fieldAt(c.LCRTSELNUM,c.LCRTFLDNUM), type = field && typeOf(field);
       if (field && number(field.FLDEXPNUM)) refuse('Criteria on expression columns are not calibrated.');
-      if (isHaving && (!field || number(field.TTLTYPE) === 1 || number(field.TTLTYPE) === 3 && type !== 2)) refuse('HAVING criteria are calibrated on SUM, MIN, MAX, AVG and numeric COUNT aggregates.');
+      if (isHaving && (!field || number(field.TTLTYPE) === 1 || number(field.TTLTYPE) === 3 && type !== 2 || type === 4)) refuse('HAVING criteria are calibrated on SUM, MIN, MAX, AVG and numeric COUNT aggregates of character and number fields.');
+      // Windows Query aggregates a WHERE criterion's field too (MAX( A.START_DT) > ... in WHERE), which Oracle rejects.
+      if (!isHaving && field && number(field.TTLTYPE) !== 1) refuse('A WHERE criterion on an aggregated field is not valid SQL; use a HAVING criterion.');
       const left = field ? (isHaving ? aggregated(field) : rawSql(field)) : '';
       const expression = (side: 'R1'|'R2') => {
         const expr = expressionOf(c[`${side}CRTEXPNUM`]);
