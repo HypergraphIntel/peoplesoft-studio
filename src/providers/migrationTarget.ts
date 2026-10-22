@@ -1,3 +1,4 @@
+import { channelDocumentFor } from './channelMigration.js';
 import { queryView, querySnapshot } from '../changeReview/query.js';
 import { checkMenuMigrationUpdate } from './menuMigration.js';
 import { migrationHash } from '../migrationPackage.js';
@@ -75,6 +76,11 @@ export async function databaseMigrationTarget(provider: DatabaseProvider, operat
           await provider.createPageFromMigration({ data: asset.data, operatorId, dryRun: true, expectedToken: token });
         } else if (asset.kind === 'component') {
           await provider.createComponentFromMigration({ data: asset.data, operatorId, dryRun: true, expectedToken: token });
+        } else if (asset.kind === 'channel') {
+          const live = await provider.readChannelDocument(asset.data.name);
+          if ((live?.token ?? 'absent') !== token) throw new Error('Message channel changed after preview.');
+          const base = live?.doc ?? await provider.newChannelDocument(asset.data.name);
+          await provider.saveChannelDocument({ doc: channelDocumentFor(base, asset.data), openedToken: live?.token ?? 'absent', operatorId, dryRun: true });
         } else if (asset.kind === 'package') {
           const live = await provider.readPackageForMigration(asset.data.name);
           for (const path of live?.data.packages ?? []) if (!asset.data.packages.includes(path)) errors.push(`Target subpackage ${asset.data.name}:${path} is absent from the package; migration never deletes subpackages.`);
@@ -190,6 +196,11 @@ export async function databaseMigrationTarget(provider: DatabaseProvider, operat
         const { description = '', comments = '', ownerId = '' } = asset.data, now = live!.data;
         if (description !== (now.description ?? '') || comments !== (now.comments ?? '') || ownerId !== (now.ownerId ?? ''))
           await provider.savePackageProperties({ root, openedVersion: live!.version, description, comments, ownerId, operatorId });
+      } else if (asset.kind === 'channel') {
+        const live = await provider.readChannelDocument(asset.data.name);
+        if ((live?.token ?? 'absent') !== token) throw new Error(asset.data.name + ': message channel changed after preview.');
+        const base = live?.doc ?? await provider.newChannelDocument(asset.data.name);
+        await provider.saveChannelDocument({ doc: channelDocumentFor(base, asset.data), openedToken: live?.token ?? 'absent', operatorId });
       } else {
         for (const section of asset.data.sections) for (const variant of section.variants) for (const step of variant.steps) {
           for (const action of step.actions) if (action.type === 'P' && action.peopleCode) {
@@ -231,6 +242,7 @@ export async function readMigrationAsset(provider: DatabaseProvider, key: import
   }
   if (key.type===DefinitionType.Query) return provider.readQueryForMigration(key);
   if (key.type===DefinitionType.Menu) return provider.readMenuForMigration(key.parts[0]);
+  if (key.type === DefinitionType.MessageChannel) return provider.readChannelForMigration(key.parts[0]);
   if (key.type === DefinitionType.Page) return provider.readPageForMigration(key.parts[0]);
   if (key.type === DefinitionType.Component) return provider.readComponentForMigration(key.parts[0], (key.parts[1] || 'GBL').trim());
   if (key.type === DefinitionType.ApplicationPackage) { const pkg = await provider.readPackageForMigration(key.parts[0]); return pkg && { data: pkg.data, token: pkg.token }; }

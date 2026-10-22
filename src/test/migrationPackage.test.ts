@@ -393,7 +393,9 @@ test('SQL Table user indexes and SubRecord definitions export; index order, DDL 
   const sub = await exportMigrationPackage(reader(3, []), 'ZZ_P');
   assert.equal(sub.assets.find(a => a.kind === 'record')?.data.name, 'ZZ_T');
   await assert.rejects(exportMigrationPackage(reader(2, [index('A', ['ZZ_B'])]), 'ZZ_P'), /only an SQL Table/);
-  await assert.rejects(exportMigrationPackage({ ...reader(0, []), readRecordLayout: async () => layout(0, ['_', '0']) as never }, 'ZZ_P'), /alternate-key/);
+  // Alternate search key indexes '0'-'9' follow from the fields' Alt Search Key settings and travel with them (the target writer derives them, r55).
+  await exportMigrationPackage({ ...reader(0, []), readRecordLayout: async () => layout(0, ['_', '0']) as never }, 'ZZ_P');
+  await assert.rejects(exportMigrationPackage({ ...reader(0, []), readRecordLayout: async () => layout(0, ['_', 'Q']) as never }, 'ZZ_P'), /unread indexes/);
   const { checksum: _, ...body } = pkg, rewrite = (indexes: unknown) => { const next = { ...body, assets: body.assets.map(a => a.kind === 'record' ? { ...a, data: { ...a.data, indexes } } : a) }; return () => parseMigrationPackage(JSON.stringify({ ...next, checksum: migrationHash(next) })); };
   assert.throws(rewrite([index('B', ['ZZ_A']), index('A', ['ZZ_B'])]), /INDEXID order/);
   assert.throws(rewrite([index('A', ['ZZ_B'], { DDLCOUNT: 2 })]), /custom DDL/);

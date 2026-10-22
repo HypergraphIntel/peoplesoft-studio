@@ -31,7 +31,8 @@
   conflicts, partial failure with reconciled continuation, undo and redo.
   Promotion found and fixed: project members created by their parent asset,
   App Engine SQL references as requirements, and undo of records/SQL used by
-  a program deleted in the same undo.
+  a program deleted in the same undo. Migration now also carries alternate
+  search keys, Oracle In-Memory and message channels.
 - **Page writer corrections from App Designer captures (ps01–ps04).** Related
   Field references (ASSOCFIELDNUM) now follow their control through deletes,
   inserts and reorders, and turn off when the control is deleted, as App

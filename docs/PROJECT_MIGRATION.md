@@ -191,7 +191,7 @@ Corrections found on separate databases (they did not show on one database):
 `promoteProject`, ReviewService and database adapters between HRDMO and HRDEV,
 two separate PeopleTools 8.62.09 databases (cloned PDBs HRDMO and HRDEV in
 container CDBHCM, same PeopleSoft GUID). Approval uses the trusted service test
-API, not the installed UI. Six checks:
+API, not the installed UI. Eight checks:
 
 1. Promoting to the same environment (HRDMO reached through another
    connection string) is refused before anything is staged.
@@ -208,6 +208,29 @@ API, not the installed UI. Six checks:
 6. An injected writer failure after five definitions committed leaves
    PARTIALLY_APPLIED; the failed outcome is reconciled from live state, the
    remaining work is prepared, freshly approved and completes exactly.
+
+7. An SQL Table with alternate search keys and Oracle In-Memory (Selective
+   Fields), ZZ_PCODE_LAB_R6 with its 13 fields, promotes; its six-table record
+   checkpoint on HRDEV equals HRDMO's (key and alternate-key indexes,
+   AUXFLAGMASK, field In-Memory marks); undo removes it.
+8. A message channel (ZZ_CHNL_E2E4) promotes with its properties and stored
+   partition fields exactly; undo deletes it.
+
+### Broader shapes added with promotion
+
+- **Alternate search keys:** an SQL Table's indexes '0'–'9' export; the
+  target record writer derives them from the fields' Alt Search Key settings
+  (r55) and refuses stored ones made by hand. Other unread indexes still
+  refuse.
+- **Oracle In-Memory:** an SQL Table's All/Selective Fields setting travels as
+  a record property (`inMemory`) with the fields' marks; other auxiliary
+  record flags still refuse.
+- **Message channels:** properties and stored partition fields (PSSUBCHNL).
+  Messages are their own definitions; without them in the target, App
+  Designer offers no partition fields and drops the stored ones when it next
+  opens the channel. Node rows (environment specific) and translations
+  refuse. Undo deletes the channel (rollback-previewed) unless messages name
+  it.
 
 Cleanup removed every promoted definition, tombstone and project from HRDEV;
 its ZZ_ counts equal the starting ones. Installed UI promotion between two

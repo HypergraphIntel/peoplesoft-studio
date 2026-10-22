@@ -48,6 +48,7 @@ import { projectItemFor } from '../model/projectItems.js';
 import type { UserIndexRows } from './recordWriter.js';
 import { readComponentForMigration as readComponentMigration, createComponentFromMigration as createComponentMigration, deleteComponentForMigration as deleteComponentMigration, type ComponentMigrationData } from './componentMigration.js';
 import { readPageForMigration as readPageMigration, createPageFromMigration as createPageMigration, deletePageForMigration as deletePageMigration, type PageMigrationData, type ProposedDeletions } from './pageMigration.js';
+import { portableChannel, type ChannelMigrationData } from './channelMigration.js';
 import { readClassScope, readPackageScope, writeClassChange, writePackageChange, classSource, type LifecycleRead, type LifecycleScope } from './classLifecycle.js';
 import { createSubpackage as createSubpackageRow, savePackageProperties as savePackagePropertyRows, deletePackage as deletePackageRows, deleteClass as deleteClassRows, type SubpackageCreateRequest, type PackagePropertiesRequest } from './packageWriter.js';
 import { readApplicationPackage } from './packageReader.js';
@@ -3189,6 +3190,12 @@ export class DatabaseProvider implements DefinitionProvider {
     });
   }
 
+  /** A message channel as a migration carries it (channelMigration.ts); node or translation rows refuse. */
+  async readChannelForMigration(name: string): Promise<{ data: ChannelMigrationData; token: string } | undefined> {
+    const read = await this.readChannelDocument(name);
+    return read && { data: portableChannel(read.doc), token: read.token };
+  }
+
   /** File > New > Message Channel: App Designer's defaults, with the messages already naming the name and their fields. */
   async newChannelDocument(name: string): Promise<ChannelDocument> {
     const { messages, candidates } = await this.withConnection((c) => readChannelContext(c, name));
@@ -3204,10 +3211,11 @@ export class DatabaseProvider implements DefinitionProvider {
     return result;
   }
 
-  async deleteChannelDefinition(name: string, token: string, operatorId: string): Promise<void> {
-    await this.guard(makeKey(DefinitionType.MessageChannel, name), 'delete');
+  async deleteChannelDefinition(name: string, token: string, operatorId: string, dryRun = false): Promise<void> {
+    if (!dryRun) await this.guard(makeKey(DefinitionType.MessageChannel, name), 'delete');
     const types = this.types;
-    await this.withConnection((c) => deleteChannel(c, types, name, token, operatorId));
+    await this.withConnection((c) => deleteChannel(c, types, name, token, operatorId, dryRun));
+    if (dryRun) return;
     const after = await this.withConnection((c) => readStoredChannel(c, types, name, false));
     if (after.exists) throw new ProviderError(`After COMMIT ${name} still exists.`);
   }

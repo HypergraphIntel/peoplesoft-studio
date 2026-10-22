@@ -9,13 +9,14 @@ import { pcmProgKeyParts, PEOPLECODE_OBJECTIDS } from './model/peopleCodeKeys.js
 import { packageAddress } from './model/appPackages.js';
 import { checkedPageMigration, pageRequirements, type PageMigrationData } from './providers/pageMigration.js';
 import { checkedComponentMigration, componentRequirements, type ComponentMigrationData } from './providers/componentMigration.js';
+import { channelMigrationSchema, type ChannelMigrationData } from './providers/channelMigration.js';
 import { createHash } from 'node:crypto';
 import * as z from 'zod/v4';
 import { DefinitionType, makeKey, type DefinitionKey } from './model/definitions.js';
 import type { FieldDefinition } from './model/fieldDefinition.js';
-import { FieldType, RecordType } from './model/record.js';
+import { FieldType, RecordFlag, RecordType } from './model/record.js';
 import type { RecordLayout } from './model/recordLayout.js';
-import { EDITABLE_USE_BITS, EDITABLE_USE2_BITS, KNOWN_PAGE_CONTROLS, type RecordEditField, type RecordPropertyEdits, type RecordTypeEdits } from './model/recordEdit.js';
+import { EDITABLE_USE_BITS, EDITABLE_USE2_BITS, KNOWN_PAGE_CONTROLS, inMemoryMode, type RecordEditField, type RecordPropertyEdits, type RecordTypeEdits } from './model/recordEdit.js';
 import type { AeDocument } from './model/aeDocument.js';
 import { validateAppEngine } from './model/aeValidation.js';
 import { peopleCodeKeyParts } from './model/appEngine.js';
@@ -49,7 +50,8 @@ export type MigrationAsset =
   | { kind: 'peoplecode'; key: DefinitionKey; data: { name: string; text: string } }
   | { kind: 'package'; key: DefinitionKey; data: PackageMigrationData }
   | { kind: 'page'; key: DefinitionKey; data: PageMigrationData }
-  | { kind: 'component'; key: DefinitionKey; data: ComponentMigrationData };
+  | { kind: 'component'; key: DefinitionKey; data: ComponentMigrationData }
+  | { kind: 'channel'; key: DefinitionKey; data: ChannelMigrationData };
 /**
  * An Application Package root, its subpackage paths ('SUB1', 'SUB1:SUB2') and the root's Package Properties when not
  * blank; its classes travel as PeopleCode assets.
@@ -78,6 +80,7 @@ export interface MigrationPackageReader {
   readTranslatesForMigration?(fieldName: string): Promise<{ items: TranslateValue[] }>;
   readQueryForMigration?(key: DefinitionKey): Promise<{ data: { name:string; owner:string; view:Json }; token:string } | undefined>;
   readMenuForMigration?(name:string):Promise<{data:MenuMigrationData;token:string}|undefined>;
+  readChannelForMigration?(name: string): Promise<{ data: ChannelMigrationData; token: string } | undefined>;
   readRecordPeopleCodeForMigration?(name: string): Promise<DefinitionKey[]>;
   readRecordIndexesForMigration?(name: string): Promise<UserIndexRows[]>;
   readContentForMigration?(key: DefinitionKey): Promise<ContentMigrationRead | undefined>;
@@ -130,6 +133,8 @@ export function assetRequirements(asset: MigrationAsset): DefinitionKey[] {
     else if (asset.key.type === DefinitionType.ApplicationClassPeopleCode) keys.push(makeKey(DefinitionType.ApplicationPackage, p[0]));
     else if (asset.key.type === DefinitionType.MenuPeopleCode) keys.push(makeKey(DefinitionType.Menu, p[0]));
     else if (asset.key.type === DefinitionType.ComponentInterfacePeopleCode) keys.push(makeKey(DefinitionType.ComponentInterface, p[0]));
+  } else if (asset.kind === 'channel') {
+    for (const field of asset.data.partitions) keys.push(makeKey(DefinitionType.Field, field));
   } else if (asset.kind === 'page') {
     keys.push(...pageRequirements(asset.data));
   } else if (asset.kind === 'component') {
@@ -198,7 +203,13 @@ export function portableRecord(layout: RecordLayout, includePeopleCode = false, 
   if (![RecordType.Table, RecordType.DerivedWork, RecordType.Subrecord].includes(layout.recordType)) throw new Error(`${layout.name}: migration supports SQL Table, Derived/Work and SubRecord records.`);
   if (layout.recordType === RecordType.Subrecord && layout.fields.some(f => f.isSubrecord)) throw new Error(`${layout.name}: nested subrecords are not migrated yet.`);
   const userIds = indexes.map(ix => String(ix.index.INDEXID).trim());
-  if (layout.auxFlagMask || layout.properties?.auxFlagMask || layout.indexIds?.some(id => id !== '_' && !userIds.includes(id))) throw new Error(`${layout.name}: auxiliary flags and alternate-key or unread indexes are not supported by migration.`);
+  // An SQL Table's alternate search key indexes '0'-'9' follow from its fields' Alt Search Key settings: the target's record
+  // writer derives them again (r55) and refuses a record whose stored ones were made by hand.
+  const derivedAltKey = (id: string) => layout.recordType === RecordType.Table && /^[0-9]$/.test(id);
+  // Oracle In-Memory (r65-r72) is the one auxiliary setting migration carries: the record writer sets it with its fields' marks.
+  const aux = Number(layout.auxFlagMask || layout.properties?.auxFlagMask || 0), inMemoryBits = RecordFlag.InMemoryAllFields | RecordFlag.InMemorySelectiveFields;
+  if (aux & ~inMemoryBits || (aux && layout.recordType !== RecordType.Table)) throw new Error(`${layout.name}: auxiliary flags other than Oracle In-Memory on an SQL Table are not supported by migration.`);
+  if (layout.indexIds?.some(id => id !== '_' && !userIds.includes(id) && !derivedAltKey(id))) throw new Error(`${layout.name}: unread indexes are not supported by migration.`);
   if (indexes.length && layout.recordType !== RecordType.Table) throw new Error(`${layout.name}: only an SQL Table has user-defined indexes.`);
   if (layout.properties?.optTrigFlag && layout.properties.optTrigFlag !== 'N') throw new Error(`${layout.name}: unsupported record trigger setting.`);
   // Subrecord rows: as App Designer inserts them into a Derived/Work record (r53), carrying no settings of their own.
@@ -216,6 +227,7 @@ export function portableRecord(layout: RecordLayout, includePeopleCode = false, 
     'querySecurityRecord', 'analyticDeleteRecord', 'auditRecord', 'systemIdField', 'timestampField', 'recUse'] as const) {
     Object.assign(properties, { [key]: p[key] });
   }
+  if (aux) properties.inMemory = inMemoryMode(aux);
   return {
     name: layout.name, recordType: layout.recordType,
     fields: layout.fields.map(field => ({
@@ -242,7 +254,8 @@ const propertySchema = z.object({
   description: z.string().optional(), definition: z.string().optional(), ownerId: z.string().optional(),
   setControlField: z.string().optional(), parentRecord: z.string().optional(), relatedLanguageRecord: z.string().optional(),
   querySecurityRecord: z.string().optional(), analyticDeleteRecord: z.string().optional(), auditRecord: z.string().optional(),
-  systemIdField: z.string().optional(), timestampField: z.string().optional(), recUse: z.number().int().optional()
+  systemIdField: z.string().optional(), timestampField: z.string().optional(), recUse: z.number().int().optional(),
+  inMemory: z.enum(['all', 'selective']).optional()
 }).strict();
 const recordSchema = z.object({
   name, recordType: z.union([z.literal(0), z.literal(2), z.literal(3)]),
@@ -268,6 +281,7 @@ const querySchema = z.custom<Json>(value => {
 }, 'Unsupported Query migration snapshot');
 const assetSchema = z.discriminatedUnion('kind', [
   z.object({kind:z.literal('menu'),key:keySchema,data:menuMigrationSchema}).strict(),
+  z.object({ kind: z.literal('channel'), key: keySchema, data: channelMigrationSchema }).strict(),
   z.object({ kind:z.literal('query'), key:keySchema, data:z.object({ name, owner:z.string().max(30), view:querySchema }).strict() }).strict(),
   z.object({ kind: z.literal('html'), key: keySchema, data: textSchema }).strict(),
   z.object({ kind: z.literal('stylesheet'), key: keySchema, data: textSchema }).strict(),
@@ -297,7 +311,7 @@ export function parseMigrationPackage(text: string): StudioMigrationPackage {
   for (const asset of parsed.assets) {
     const expectedType = { field: DefinitionType.Field, record: DefinitionType.Record, sql: DefinitionType.SqlDefinition, ae: DefinitionType.AppEngineProgram,
       html: DefinitionType.HtmlDefinition, stylesheet: DefinitionType.StyleSheet, query: DefinitionType.Query, menu:DefinitionType.Menu, peoplecode: asset.key.type,
-      package: DefinitionType.ApplicationPackage, page: DefinitionType.Page, component: DefinitionType.Component }[asset.kind];
+      package: DefinitionType.ApplicationPackage, page: DefinitionType.Page, component: DefinitionType.Component, channel: DefinitionType.MessageChannel }[asset.kind];
     if (asset.kind === 'query') {
       const view=queryView(asset.data.view);
       if (asset.key.type!==DefinitionType.Query || asset.key.parts.length>2 || asset.data.name!==asset.key.parts[0] || asset.data.owner!==asset.data.owner.trim() || asset.data.owner!==(asset.key.parts[1]??'') || String(view.query.QRYNAME).trim()!==asset.data.name || String(view.query.OPRID).trim()!==asset.data.owner) throw new Error('Query migration identity does not match payload.');
@@ -440,6 +454,11 @@ export async function exportMigrationPackage(source: MigrationPackageReader, pro
       const page = await source.readPageForMigration(assetKey.parts[0]);
       if (!page) throw new Error('Page not found: ' + assetKey.parts[0]);
       asset = { kind: 'page', key: assetKey, data: page.data };
+    } else if (type === DefinitionType.MessageChannel) {
+      if (!source.readChannelForMigration) throw new Error('Source cannot read the complete message channel scope.');
+      const channel = await source.readChannelForMigration(assetKey.parts[0]);
+      if (!channel) throw new Error('Message channel not found: ' + assetKey.parts[0]);
+      asset = { kind: 'channel', key: assetKey, data: channel.data };
     } else if (type===DefinitionType.Menu) {
       if(!source.readMenuForMigration)throw Error('Source cannot read complete menu migration scope.');
       const menu=await source.readMenuForMigration(assetKey.parts[0]);if(!menu)throw Error('Menu not found: '+assetKey.parts[0]);
@@ -532,7 +551,7 @@ export async function previewMigrationImport(pkg: StudioMigrationPackage, target
   plan.blockers.push(...await target.validateMembers?.(pkg.members)??[]);
   if (target.toolsRelease !== pkg.toolsRelease) plan.blockers.push('Source and target PeopleTools release families differ.');
   for (const key of pkg.requirements) if (!await target.exists(key)) plan.blockers.push('Required definition missing: ' + key.parts.join('.'));
-  const kinds=['field', 'record', 'sql', 'html', 'stylesheet', 'ae', 'page', 'component', 'menu', 'package', 'peoplecode', 'query'];
+  const kinds=['field', 'channel', 'record', 'sql', 'html', 'stylesheet', 'ae', 'page', 'component', 'menu', 'package', 'peoplecode', 'query'];
   const pending = [...pkg.assets].sort((a, b) => kinds.indexOf(a.kind) - kinds.indexOf(b.kind));
   const ordered: MigrationAsset[] = [];
   while (pending.length) {

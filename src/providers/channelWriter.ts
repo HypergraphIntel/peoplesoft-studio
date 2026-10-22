@@ -385,7 +385,7 @@ export async function verifyChannelSave(c: Connection, oracledb: DbTypes, result
   if (channelToken(await readStoredChannel(c, oracledb, result.plan.name, false)) !== result.token) throw new ChannelSaveRefusedError('After COMMIT the message channel is not what was written.');
 }
 
-export async function deleteChannel(c: Connection, oracledb: DbTypes, name: string, openedToken: string, operatorId: string): Promise<{ counters: Counters }> {
+export async function deleteChannel(c: Connection, oracledb: DbTypes, name: string, openedToken: string, operatorId: string, dryRun = false): Promise<{ counters: Counters }> {
   try {
     await prepare(c, operatorId, name);
     const stored = await readStoredChannel(c, oracledb, name, true);
@@ -394,7 +394,7 @@ export async function deleteChannel(c: Connection, oracledb: DbTypes, name: stri
     const plan = planChannelDelete(stored, await readChannelCounters(c, true));
     await run(c, plan.statements);
     if ((await readStoredChannel(c, oracledb, name, false)).exists) throw new ChannelSaveRefusedError(`${name} still has rows after the delete.`);
-    await c.commit();
+    if (dryRun) await c.rollback(); else await c.commit();
     return { counters: plan.counters };
   } catch (error) {
     await c.rollback().catch(() => { /* the original error matters more */ });

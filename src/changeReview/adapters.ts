@@ -575,7 +575,7 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
                 write:(e,key,after,before)=>query.write(e,mapped(key),value(key,after),{value:value(key,before.value),token:before.token})};
         }
         // Undoing a migration creation uses the calibrated deletion writers; fields, pages, components and packages have none yet.
-        const deletable = (key: Json) => ['record', 'ae', 'menu', 'peoplecode', 'field', 'page', 'component', 'package'].includes(kind) && !!migrationReviewKey(key);
+        const deletable = (key: Json) => ['record', 'ae', 'menu', 'peoplecode', 'field', 'page', 'component', 'package', 'channel'].includes(kind) && !!migrationReviewKey(key);
         async function migrationDelete(p: DatabaseProvider, k: DefinitionKey, operator: string, token: string, dryRun: boolean, context?: ReviewValidationContext) {
             // A rollback preview may assume what the same inverse deletes first (projects before members, Record PeopleCode
             // before its record); application runs each writer's real reference checks after those deletions.
@@ -605,6 +605,13 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
                 if (await p.menuGrantCount(k.parts[0])) throw new Error('Permission lists grant this menu; removing those grants needs a wider review.');
                 if ((await listedElsewhere()).length) throw new Error('A project still lists this menu.');
                 await p.deleteMenuDefinition(k.parts[0], live.writerToken, operator, dryRun);
+            } else if (kind === 'channel') {
+                const live = await p.readChannelDocument(k.parts[0]);
+                if (!live || live.token !== token) throw new Error('Message channel changed before its deletion.');
+                // Messages are their own definitions: undoing a channel's creation never leaves them naming nothing.
+                if (live.doc.messages.length) throw new Error('Messages still name this channel; deleting it needs a wider review.');
+                if ((await listedElsewhere()).length) throw new Error('A project still lists this channel.');
+                await p.deleteChannelDefinition(k.parts[0], live.token, operator, dryRun);
             } else if (kind === 'field') {
                 await p.deleteFieldDefinition({ name: k.parts[0], openedVersion: Number(token.split(':')[0]), operatorId: operator, dryRun, ...assumptions });
             } else if (kind === 'page') {
@@ -737,5 +744,5 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
             throw new Error('A connected database is required.');
         return { connection: p.id, label: p.displayName, identity: await p.changeReviewIdentity() };
     }
-    return { adapters: [textDefinition('sql'), textDefinition('html'), textDefinition('stylesheet'), migrationProject, ...(['field', 'record', 'sql', 'html', 'stylesheet', 'ae', 'peoplecode', 'query','menu','package','page','component'] as const).map(migration), sql, content('html', DefinitionType.HtmlDefinition), content('stylesheet', DefinitionType.StyleSheet), process, query, peoplecode, page, structuredHeader('record'), structuredHeader('ae'), structuredCreation('record'), structuredCreation('ae'), projectCreate, ibHeader('service'), ibHeader('operation'),ibDefinition('service'),ibDefinition('operation'), lifecycle('class'), lifecycle('package')], environment, adapterHash: hash };
+    return { adapters: [textDefinition('sql'), textDefinition('html'), textDefinition('stylesheet'), migrationProject, ...(['field', 'record', 'sql', 'html', 'stylesheet', 'ae', 'peoplecode', 'query','menu','package','page','component','channel'] as const).map(migration), sql, content('html', DefinitionType.HtmlDefinition), content('stylesheet', DefinitionType.StyleSheet), process, query, peoplecode, page, structuredHeader('record'), structuredHeader('ae'), structuredCreation('record'), structuredCreation('ae'), projectCreate, ibHeader('service'), ibHeader('operation'),ibDefinition('service'),ibDefinition('operation'), lifecycle('class'), lifecycle('package')], environment, adapterHash: hash };
 }

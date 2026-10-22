@@ -22,8 +22,9 @@ import { DefinitionType, makeKey } from '../../src/model/definitions.js';
 import { setWriteNamePrefix } from '../../src/providers/writeScope.js';
 import { setWriteGuard, writeOrigin } from '../../src/providers/writeGuard.js';
 import { isReviewedWrite } from '../../src/changeReview/authorization.js';
-import { readMigrationAsset } from '../../src/providers/migrationTarget.js';
-import { migrationHash } from '../../src/migrationPackage.js';
+import { readMigrationAsset, databaseMigrationTarget } from '../../src/providers/migrationTarget.js';
+import { migrationHash, exportMigrationPackage, previewMigrationImport } from '../../src/migrationPackage.js';
+import { stageMigrationImport } from '../../src/changeReview/migration.js';
 import { ReviewService } from '../../src/changeReview/service.js'; import { ReviewStore } from '../../src/changeReview/store.js';
 import { promoteProject } from '../../src/changeReview/promotion.js';
 import type { Workspace } from '../../src/workspace.js';
@@ -121,6 +122,38 @@ try {
     await exact(inv.package.assets); assert.ok(await tgt.projectExists('ZZ_RPT_INVENTORY'));
     assert.equal((await promoteProject(service, src, 'ZZ_RPT_INVENTORY', tgt, operatorId)).staged, undefined, 'nothing left to promote');
   });
+  // A broader shape: an SQL Table with alternate search keys and Oracle In-Memory (Selective Fields), carried by its field settings.
+  const r6 = makeKey(DefinitionType.Record, 'ZZ_PCODE_LAB_R6'), r6Layout = (await src.readRecordLayout(r6))!;
+  const r6Keys = [r6, ...r6Layout.fields.map(f => makeKey(DefinitionType.Field, f.name))];
+  const r6Package = await exportMigrationPackage(Object.assign(Object.create(src), { listProjectItems: async () => r6Keys.map(key => ({ key, name: key.parts.join('.') })) }), 'ZZ_R6_PRJ');
+  for (const a of r6Package.assets) promoted.add(a.kind + ':' + a.data.name); promoted.add('project:ZZ_R6_PRJ');
+  await check('an SQL Table with alternate search keys and Oracle In-Memory promotes; its six-table checkpoint equals the source\'s; undo removes it', async () => {
+    const backend = await databaseMigrationTarget(tgt, operatorId), plan = await previewMigrationImport(r6Package, backend);
+    assert.deepEqual(plan.blockers, []);
+    const staged = (await stageMigrationImport(service, tgt.id, r6Package, plan, backend, tgt))!;
+    const applied = await approveApply(staged.id); assert.equal(applied.status, 'APPLIED', JSON.stringify(applied.journal.at(-1)));
+    const a = await src.readStructuredForReview('record', 'ZZ_PCODE_LAB_R6'), b = await tgt.readStructuredForReview('record', 'ZZ_PCODE_LAB_R6');
+    const portable = (v: any) => ({ ...v.tables, PSRECTBLSPC: v.tables.PSRECTBLSPC.map((r: any) => ({ ...r, DBNAME: '(database)' })) });
+    assert.deepEqual(portable(b.value), portable(a.value), 'record, fields, alternate-key indexes and In-Memory flags equal the source');
+    report.alternateKeys = { indexes: b.value.tables.PSINDEXDEFN.map((r: any) => String(r.INDEXID).trim()), auxFlagMask: b.value.tables.PSRECDEFN[0].AUXFLAGMASK };
+    const undo = await service.reverse(staged.id); const undone = await approveApply(undo.id, true); assert.equal(undone.status, 'APPLIED', JSON.stringify(undone.journal.at(-1)));
+    assert.equal(await tgt.readRecordLayout(r6), undefined);
+  });
+  // A message channel (Properties and partition fields); messages travel as their own definitions.
+  const chnl = makeKey(DefinitionType.MessageChannel, 'ZZ_CHNL_E2E4'), chnlData = (await src.readChannelForMigration('ZZ_CHNL_E2E4'))!.data;
+  const chnlKeys = [chnl, ...chnlData.partitions.filter(f => f.startsWith('ZZ')).map(f => makeKey(DefinitionType.Field, f))];
+  const chnlPackage = await exportMigrationPackage(Object.assign(Object.create(src), { listProjectItems: async () => chnlKeys.map(key => ({ key, name: key.parts.join('.') })) }), 'ZZ_CHNL_PRJ');
+  for (const a of chnlPackage.assets) promoted.add(a.kind + ':' + a.data.name); promoted.add('project:ZZ_CHNL_PRJ'); promoted.add('channel:ZZ_CHNL_E2E4');
+  await check('a message channel promotes with its properties and partition fields exactly, and undo deletes it', async () => {
+    const backend = await databaseMigrationTarget(tgt, operatorId), plan = await previewMigrationImport(chnlPackage, backend);
+    assert.deepEqual(plan.blockers, []);
+    const staged = (await stageMigrationImport(service, tgt.id, chnlPackage, plan, backend, tgt))!;
+    const applied = await approveApply(staged.id); assert.equal(applied.status, 'APPLIED', JSON.stringify(applied.journal.at(-1)));
+    assert.equal(migrationHash((await tgt.readChannelForMigration('ZZ_CHNL_E2E4'))!.data), migrationHash(chnlData));
+    report.channel = { partitions: chnlData.partitions, status: chnlData.status, thruput: chnlData.thruput };
+    const undo = await service.reverse(staged.id); const undone = await approveApply(undo.id, true); assert.equal(undone.status, 'APPLIED', JSON.stringify(undone.journal.at(-1)));
+    assert.equal(await tgt.readChannelDocument('ZZ_CHNL_E2E4'), undefined);
+  });
 } catch (error) { failure = error; } finally {
   // Remove every promoted definition, its PeopleCode/SQL and tombstones, and the projects from HRDEV.
   await tgt['withConnection'](async (c: any) => {
@@ -133,7 +166,8 @@ try {
       for (const t of ['PSPCMTXT', 'PSPCMNAME', 'PSPCMPROG', 'PSPCMPROGDEL']) await c.execute(`DELETE FROM ${t} WHERE OBJECTID1 = 66 AND OBJECTVALUE1 = :n`, { n });
     }
     for (const n of names.filter(n => promoted.has('sql:' + n))) for (const t of ['PSSQLTEXTDEFN', 'PSSQLHASH', 'PSSQLDESCR', 'PSSQLDEFN', 'PSSQLDEL']) await c.execute(`DELETE FROM ${t} WHERE SQLID = :n`, { n });
-    for (const n of ['ZZ_RF_PRJ', 'ZZ_RPT_INVENTORY']) for (const t of ['PSPROJECTITEM', 'PSPROJECTDEFN', 'PSPROJECTDEL']) await c.execute(`DELETE FROM ${t} WHERE PROJECTNAME = :n`, { n });
+    for (const t of ['PSSUBCHNL', 'PSCHNLNODE', 'PSCHNLDEFNLANG', 'PSCHNLDEFN', 'PSCHNLDEL']) await c.execute(`DELETE FROM ${t} WHERE CHNLNAME = 'ZZ_CHNL_E2E4'`).catch(() => {});
+    for (const n of ['ZZ_RF_PRJ', 'ZZ_RPT_INVENTORY', 'ZZ_R6_PRJ', 'ZZ_CHNL_PRJ']) for (const t of ['PSPROJECTITEM', 'PSPROJECTDEFN', 'PSPROJECTDEL']) await c.execute(`DELETE FROM ${t} WHERE PROJECTNAME = :n`, { n });
     await c.commit();
   });
   report.cleanup = { start: startCounts, end: await counts() };

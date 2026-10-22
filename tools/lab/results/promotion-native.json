@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-22T21:03:08.300Z",
+  "checkedAt": "2026-10-22T21:23:54.320Z",
   "source": "HRDMO (PDB HRDMO, CDB CDBHCM)",
   "target": "HRDEV (PDB HRDEV, CDB CDBHCM)",
   "scope": "promotion between two separate Oracle PeopleTools 8.62.09 databases (cloned PDBs in one container, same PeopleSoft GUID); production promoteProject + ReviewService + database adapters; trusted service test approval, not installed UI",
@@ -9,7 +9,9 @@
     "ZZ_RF_PRJ (record, SQL, App Engine) stages on HRDEV, applies, and reads back exactly as exported from HRDMO",
     "the applied promotion undoes on HRDEV (destructive approval) and redoes exactly",
     "a target change made after approval stops the application before any write (no partial overwrite), and a target field of another type blocks promotion explicitly",
-    "a writer failure after earlier definitions committed leaves PARTIALLY_APPLIED; the remaining work is prepared, freshly approved and completes exactly"
+    "a writer failure after earlier definitions committed leaves PARTIALLY_APPLIED; the remaining work is prepared, freshly approved and completes exactly",
+    "an SQL Table with alternate search keys and Oracle In-Memory promotes; its six-table checkpoint equals the source's; undo removes it",
+    "a message channel promotes with its properties and partition fields exactly, and undo deletes it"
   ],
   "prerequisiteBlockers": [
     "Required definition missing: ZZ_XA8_F2",
@@ -43,6 +45,22 @@
       "PENDING",
       "PENDING"
     ]
+  },
+  "alternateKeys": {
+    "indexes": [
+      "0",
+      "1",
+      "_"
+    ],
+    "auxFlagMask": 536870912
+  },
+  "channel": {
+    "partitions": [
+      "PUBLISHER",
+      "ZZ_PCODE_LAB_KEY"
+    ],
+    "status": 1,
+    "thruput": 2
   },
   "cleanup": {
     "start": {
