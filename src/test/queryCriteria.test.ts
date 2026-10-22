@@ -171,6 +171,21 @@ test('native translates and base effective dating replay qxl01-qxl02', () => {
   assert.throws(()=>applyQueryOp(before,{kind:'translate',field:'ESTABID',value:'short'},estab,all),/translate field/);
   assert.throws(()=>applyQueryOp(before,{kind:'select',field:'EFF_STATUS',selected:false},estab,all),/translate or aggregate/);
 });
+test('native effective-date operators replay qed01-qed06: the EFFDT criterion changes operator in place', () => {
+  const cases: Array<[string,QueryCriterion]>=[['qed01-effdt-ge',{field:'EFFDT',operator:'effectiveDateNotLess',value:{currentDate:true}}],
+    ['qed02-effdt-lt',{field:'EFFDT',operator:'effectiveDateLess',value:{currentDate:true}}],['qed03-effdt-gt',{field:'EFFDT',operator:'effectiveDateGreater',value:{currentDate:true}}],
+    ['qed04-effdt-first',{field:'EFFDT',operator:'firstEffectiveDate'}],['qed05-effdt-last',{field:'EFFDT',operator:'lastEffectiveDate'}],
+    ['qed06-effdt-le-restore',{field:'EFFDT',operator:'effectiveDate',value:{currentDate:true}}]];
+  for (const [name,criterion] of cases) {
+    const before=snapshot(name,'before'), after=snapshot(name,'after');
+    compare(applyQueryOp(before,{kind:'criteria',criteria:[criterion]},estab,all),after,before,name);
+    assert.deepEqual(describeQueryCriteria(after).criteria,[criterion],name);
+  }
+  const before=snapshot('qed01-effdt-ge','before');
+  assert.throws(()=>applyQueryOp(before,{kind:'criteria',criteria:[{field:'EFFDT',operator:'firstEffectiveDate',value:{currentDate:true}}]},estab,all),/current date|operands/);
+  assert.throws(()=>applyQueryOp(before,{kind:'criteria',criteria:[{field:'EFFDT',operator:'effectiveDateLess',value:{constant:'2020-01-01'}}]},estab,all),/current date/);
+  assert.throws(()=>applyQueryOp(before,{kind:'criteria',criteria:[{field:'ESTABID',operator:'lastEffectiveDate'}]},estab,all),/EFFDT/);
+});
 test('every native capture round-trips: its described criteria replace themselves exactly', () => {
   const metaOf=(view: QueryView)=>all[String(view.records[0].RECNAME)].fields;
   for (const name of ['qcr10-field','qnm04-number-prompt','qjn02-criterion-after-join','qjn04-related-join','qag05-where-and-having','qex03-expression-criterion','qsq02-exists','qxl01-translate','qun01-union']) {

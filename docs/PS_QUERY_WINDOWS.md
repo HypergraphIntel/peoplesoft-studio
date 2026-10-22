@@ -286,13 +286,21 @@ statement (whitespace aside) and the replay tests reproduce every row.
 | qun01-union | AAP_TBL ESTABID union AAP_YEAR ESTABID | select 2 SELECTTYPE 3 PARENTSELNUM 1, alias B; `... UNION SELECT B.ESTABID FROM PS_AAP_YEAR B` |
 | qxl01-translate | ESTAB_TBL (effective-dated), EFF_STATUS translate Long, effective date Field EFFDT | a new effective-dated query starts with `A.EFFDT Eff Date <= Current Date` on a hidden EFFDT (FLDNUM 1); XLATTYPE 3, XLATEXPRTYPE 2, XLATFLDNUM 1 (counts as a use); `LEFT OUTER JOIN PSXLATITEM A2X` (record alias, column number, X) with an effective-date clause |
 | qxl02-short-current | Short, Current Date | XLATTYPE 2, XLATEXPRTYPE 6; SQL joins a derived `( SELECT * FROM PSXLATITEM TA ... TB.EFFDT <= TO_DATE(TO_CHAR(SYSDATE,...)) ) A2X` |
+| qed01-effdt-ge | `_XLAT2`'s EFFDT criterion to Eff Date >= Current Date | CONDTYPE 21, EXPRTYPE 6; `A.EFFDT = (SELECT MIN(A_ED.EFFDT) ... AND A_ED.EFFDT >= SYSDATE)` |
+| qed02-effdt-lt | Eff Date < | CONDTYPE 22, EXPRTYPE 6; MAX, `A_ED.EFFDT < SYSDATE` |
+| qed03-effdt-gt | Eff Date > | CONDTYPE 23, EXPRTYPE 6; MIN, `A_ED.EFFDT > SYSDATE` |
+| qed04-effdt-first | First Eff Date | CONDTYPE 24, EXPRTYPE 0 (no operand); MIN with no date bound |
+| qed05-effdt-last | Last Eff Date | CONDTYPE 25, EXPRTYPE 0; MAX with no date bound |
+| qed06-effdt-le-restore | back to Eff Date <= | CONDTYPE 20, EXPRTYPE 6; the criterion keeps CRTNUM 1 and the EFFDT field stays USECOUNT 0 throughout |
 
 Rules these establish: aliases continue across selects (the next letter after
 every alias in use); expression numbering keeps every expression still used in
 its old order and appends new ones; WHERE effective dating on the select's own
 first record is unparenthesized, a joined record's is parenthesized; with the
 translated column unselected (not saved) Windows shows the base record's
-effective-date criterion alone.
+effective-date criterion alone. An effective-date criterion of any operator is
+not a use of EFFDT (USECOUNT 0, qed01-qed06); the operators that bound against
+the current date take Current Date (EXPRTYPE 6), First and Last take none.
 
 ### Native acceptance
 
@@ -351,7 +359,8 @@ translates, subqueries or unions, and security records keyed by OPRCLASS or
 ROWSECCLASS, remain refused. Refused: nested subqueries, subqueries together with
 unions, effective-dated subquery or union records, HAVING OR, aggregates on
 date columns, criteria on expression columns, and the remaining Windows options
-(Eff Date >=, tree prompts, Effective Seq, expression translate dates).
+(tree prompts, Effective Seq, effective-date operands other than Current Date,
+expression translate dates).
 
 Delete is a review-only Change Review operation on 8.62 (PSQRYDEL marker at the
 next QDM version, checked against project membership and stored source

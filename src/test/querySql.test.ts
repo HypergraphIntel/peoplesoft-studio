@@ -114,6 +114,25 @@ test('aggregate, expression, subquery, union and translate SQL matches Windows Q
   assert.throws(() => compileQuerySql({...snapshot('qun01-union'),fields:snapshot('qun01-union').fields.map(f => Number(f.SELNUM) === 2 ? {...f,COLUMNNUM:0} : f)},{...aapTbl,joined:{AAP_YEAR:year}}),/output field/);
 });
 
+// ZZ_QRY_STUDIO_XLAT2 (ESTAB_TBL, short translation as of the current date) saved by Windows Query with each effective-date
+// operator; the WHERE clause is the SQL tab's.
+test('effective-date operators match Windows Query: MAX/MIN against SYSDATE, First/Last unbounded (qed01-qed05)', () => {
+  const normalize = (sql: string) => sql.replace(/\s+/g, ' ').replace(/, /g, ',').replace(/\( /g, '(').replace(/ \)/g, ')').trim();
+  const estab: QuerySqlContext = {record:'ESTAB_TBL',table:'PS_ESTAB_TBL',recordType:0,querySecurityRecord:'',fields:{ESTABID:{type:0},EFFDT:{type:4},EFF_STATUS:{type:0}},keys:['ESTABID','EFFDT']};
+  const where = (aggregate: string, bound: string) => `WHERE ( A.EFFDT = (SELECT ${aggregate}(A_ED.EFFDT) FROM PS_ESTAB_TBL A_ED WHERE A.ESTABID = A_ED.ESTABID${bound ? ` AND A_ED.EFFDT ${bound} SYSDATE` : ''}))`;
+  const cases: Array<[string,string,string]> = [['qed01-effdt-ge','MIN','>='],['qed02-effdt-lt','MAX','<'],['qed03-effdt-gt','MIN','>'],['qed04-effdt-first','MIN',''],['qed05-effdt-last','MAX','']];
+  for (const [name,aggregate,bound] of cases) {
+    const sql = normalize(compileQuerySql(snapshot(name),estab).sql);
+    assert.ok(sql.startsWith('SELECT A.ESTABID,A2X.XLATSHORTNAME FROM PS_ESTAB_TBL A LEFT OUTER JOIN'),name);
+    assert.ok(sql.endsWith(normalize(where(aggregate,bound))),`${name}: ${sql}`);
+  }
+  // A bounded operator carries the Current Date operand (EXPRTYPE 6); First / Last none.
+  const first = snapshot('qed04-effdt-first');
+  assert.throws(() => compileQuerySql({...first,criteria:first.criteria.map(c => ({...c,EXPRTYPE:'6'}))},estab),/Effective dating/);
+  const ge = snapshot('qed01-effdt-ge');
+  assert.throws(() => compileQuerySql({...ge,criteria:ge.criteria.map(c => ({...c,EXPRTYPE:'0'}))},estab),/Effective dating/);
+});
+
 // Windows Query's SQL tab for the delivered HRDMO queries QA_QI_CNTRTACTLS (CONTRACT, security EMPLMT_SRCH_QRY) and
 // QA_Q_DB_FY2000 (DEPT_BUDGET, security DEPT_SRCH_QRY), opened as operator JARED.
 test('row-security SQL matches Windows Query: the security record joins on its shared keys, then OPRID, then the criteria (qrs01, qrs02)', () => {

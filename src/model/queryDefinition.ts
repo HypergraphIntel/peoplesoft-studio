@@ -21,7 +21,7 @@ const stamp = (r: Row) => str(r.LASTUPD) || str(r.LASTUPDDTTM);
 export const CONDITIONS: Readonly<Record<number, string>> = {
   1: 'none', 2: 'equal to', 3: 'not equal to', 4: 'greater than', 5: 'not greater than', 6: 'less than', 7: 'not less than',
   8: 'in list', 9: 'not in list', 10: 'between', 11: 'not between', 12: 'exists', 13: 'does not exist', 14: 'like', 15: 'not like',
-  16: 'is null', 17: 'is not null', 20: 'Eff Date <=', 21: 'Eff Date >='
+  16: 'is null', 17: 'is not null', 20: 'Eff Date <=', 21: 'Eff Date >=', 22: 'Eff Date <', 23: 'Eff Date >', 24: 'First Eff Date', 25: 'Last Eff Date'
 };
 
 /** PSQRYCRITERIA.COMBTYPE: 3 opens the criteria (2,606 of 2,606 rows are first), then 1 AND, 2 OR; HAVING criteria follow, 6 first then 4 AND (qag03, qag05). */

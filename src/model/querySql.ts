@@ -41,6 +41,8 @@ const quoted=(v: unknown)=>`'${String(v ?? '').replace(/'/g, "''")}'`;
 const LIST=/^\('(?:[^']|'')*'(?:,'(?:[^']|'')*')*\)$/;
 
 const AGGREGATES: Readonly<Record<number,string>>={2:'SUM',3:'COUNT',4:'MIN',5:'MAX',6:'AVG'};
+/** Windows Query's effective-date operators (qed01-qed06): CONDTYPE -> the row aggregate and its bound against SYSDATE. */
+const EFFECTIVE_DATING: Readonly<Record<number,[string,string]>>={20:['MAX','<='],21:['MIN','>='],22:['MAX','<'],23:['MIN','>'],24:['MIN',''],25:['MAX','']};
 const TOKEN=/ :%(\d+)\.(\d+)/g;
 const SYSDATE_DAY="TO_DATE(TO_CHAR(SYSDATE,'YYYY-MM-DD'),'YYYY-MM-DD')";
 
@@ -131,7 +133,7 @@ export function compileQuerySql(view: QueryView, context: QuerySqlContext): Quer
     const criterionSql = (c: Row, i: number, isHaving: boolean) => {
       const cond = number(c.CONDTYPE), exprtype = number(c.EXPRTYPE), negation = text(c.NEGATION), comb = number(c.COMBTYPE);
       const exists = cond === 12 || cond === 13;
-      if (number(c.CRTNUM) !== criteria.indexOf(c)+1 || !(cond in OPERATORS || exists) || negation && negation !== 'N'
+      if (number(c.CRTNUM) !== criteria.indexOf(c)+1 || !(cond in OPERATORS || exists || cond in EFFECTIVE_DATING) || negation && negation !== 'N'
         || (isHaving ? (i ? comb !== 4 : comb !== 6) : ![1,2,3].includes(comb) || (i ? comb === 3 : comb !== 3))
         || (exists ? number(c.LCRTSELNUM) || number(c.LCRTFLDNUM) : number(c.LCRTSELNUM) !== sel)) refuse('This criterion shape is not calibrated.');
       const field = exists ? undefined : fieldAt(c.LCRTSELNUM,c.LCRTFLDNUM), type = field && typeOf(field);
@@ -156,14 +158,17 @@ export function compileQuerySql(view: QueryView, context: QuerySqlContext): Quer
         if (exprtype !== 4 || isHaving) refuse('Exists takes a subquery.');
         return `${'( '.repeat(number(c.LPARENLVL))}${negation ? 'NOT ' : ''}${cond === 13 ? 'NOT ' : ''}EXISTS ${subquery()}${')'.repeat(number(c.RPARENLVL))}`;
       }
-      if (cond === 20) {
+      if (EFFECTIVE_DATING[cond]) {
         // qjn04, qxl01: Eff Date <= Current Date is the latest row at or before SYSDATE for the other keys;
         // the select's own first record's is unparenthesized (qxl01), a joined record's parenthesized (qjn04).
+        // qed01-qed05: >= and > take the earliest row from SYSDATE on (MIN), < the latest before it; First / Last
+        // Eff Date (no operand) the earliest / latest row of all.
+        const [aggregate, bound] = EFFECTIVE_DATING[cond], operandType = bound ? 6 : 0;
         const src = sourceOf(field!.SELNUM,field!.FLDRCDNUM), keys = src.ctx.keys ?? refuse('Record keys are needed for effective dating.');
-        if (exprtype !== 6 || negation || isHaving || number(c.LPARENLVL) || number(c.RPARENLVL) || text(field!.FIELDNAME) !== 'EFFDT' || !keys.includes('EFFDT') || keys.includes('EFFSEQ'))
-          refuse('Only EFFDT <= current date effective dating is calibrated.');
+        if (exprtype !== operandType || negation || isHaving || number(c.LPARENLVL) || number(c.RPARENLVL) || text(field!.FIELDNAME) !== 'EFFDT' || !keys.includes('EFFDT') || keys.includes('EFFSEQ'))
+          refuse('Effective dating is calibrated on EFFDT against the current date (or First / Last), without Effective Seq.');
         const ed = `${src.alias}_ED`, others = keys.filter(k => k !== 'EFFDT').map(k => `${src.alias}.${identifier(k)} = ${ed}.${identifier(k)}`);
-        const body = `${src.alias}.EFFDT =\n        (SELECT MAX(${ed}.EFFDT) FROM ${src.table} ${ed}\n        WHERE ${[...others, `${ed}.EFFDT <= SYSDATE`].join('\n          AND ')})`;
+        const body = `${src.alias}.EFFDT =\n        (SELECT ${aggregate}(${ed}.EFFDT) FROM ${src.table} ${ed}\n        WHERE ${[...others, ...(bound ? [`${ed}.EFFDT ${bound} SYSDATE`] : [])].join('\n          AND ')})`;
         return number(src.record.RCDNUM) === 1 ? body : `( ${body} )`;
       }
       let right = '';

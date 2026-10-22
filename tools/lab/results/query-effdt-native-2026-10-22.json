@@ -1,0 +1,45 @@
+{
+  "at": "2026-10-22T21:48:10.663Z",
+  "mode": "dry",
+  "database": "HRDMO",
+  "owner": "JARED",
+  "queries": [
+    {
+      "name": "ZZ_QRY_STUDIO_ED20",
+      "operator": "effectiveDate",
+      "sql": "SELECT A.ESTABID\nFROM PS_ESTAB_TBL A\nWHERE ( A.EFFDT =\n        (SELECT MAX(A_ED.EFFDT) FROM PS_ESTAB_TBL A_ED\n        WHERE A.ESTABID = A_ED.ESTABID\n          AND A_ED.EFFDT <= SYSDATE))",
+      "rowCount": 68
+    },
+    {
+      "name": "ZZ_QRY_STUDIO_ED21",
+      "operator": "effectiveDateNotLess",
+      "sql": "SELECT A.ESTABID\nFROM PS_ESTAB_TBL A\nWHERE ( A.EFFDT =\n        (SELECT MIN(A_ED.EFFDT) FROM PS_ESTAB_TBL A_ED\n        WHERE A.ESTABID = A_ED.ESTABID\n          AND A_ED.EFFDT >= SYSDATE))",
+      "rowCount": 1
+    },
+    {
+      "name": "ZZ_QRY_STUDIO_ED22",
+      "operator": "effectiveDateLess",
+      "sql": "SELECT A.ESTABID\nFROM PS_ESTAB_TBL A\nWHERE ( A.EFFDT =\n        (SELECT MAX(A_ED.EFFDT) FROM PS_ESTAB_TBL A_ED\n        WHERE A.ESTABID = A_ED.ESTABID\n          AND A_ED.EFFDT < SYSDATE))",
+      "rowCount": 68
+    },
+    {
+      "name": "ZZ_QRY_STUDIO_ED23",
+      "operator": "effectiveDateGreater",
+      "sql": "SELECT A.ESTABID\nFROM PS_ESTAB_TBL A\nWHERE ( A.EFFDT =\n        (SELECT MIN(A_ED.EFFDT) FROM PS_ESTAB_TBL A_ED\n        WHERE A.ESTABID = A_ED.ESTABID\n          AND A_ED.EFFDT > SYSDATE))",
+      "rowCount": 1
+    },
+    {
+      "name": "ZZ_QRY_STUDIO_ED24",
+      "operator": "firstEffectiveDate",
+      "sql": "SELECT A.ESTABID\nFROM PS_ESTAB_TBL A\nWHERE ( A.EFFDT =\n        (SELECT MIN(A_ED.EFFDT) FROM PS_ESTAB_TBL A_ED\n        WHERE A.ESTABID = A_ED.ESTABID))",
+      "rowCount": 68
+    },
+    {
+      "name": "ZZ_QRY_STUDIO_ED25",
+      "operator": "lastEffectiveDate",
+      "sql": "SELECT A.ESTABID\nFROM PS_ESTAB_TBL A\nWHERE ( A.EFFDT =\n        (SELECT MAX(A_ED.EFFDT) FROM PS_ESTAB_TBL A_ED\n        WHERE A.ESTABID = A_ED.ESTABID))",
+      "rowCount": 68
+    }
+  ],
+  "passed": true
+}

@@ -5,7 +5,7 @@ import { z } from 'zod';
 /**
  * Field operations calibrated with Windows Query saves qry01–qry13; typed criteria with qcr01–qcr10
  * and qnm01–qnm04; joins qjn01–qjn04; aggregates, HAVING and DISTINCT qag01–qag05; expressions
- * qex01–qex03; subqueries qsq01–qsq02; unions qun01; translates and base effective dating qxl01–qxl02.
+ * qex01–qex03; subqueries qsq01–qsq02; unions qun01; translates and base effective dating qxl01–qxl02; effective-date operators qed01–qed06.
  */
 export interface QueryFieldInfo {
   type: number;
@@ -35,7 +35,10 @@ export type QueryOp =
   | { kind: 'properties'; description: string; comments: string };
 /** PSQRYCRITERIA.CONDTYPE for each Windows Query operator (CONDITIONS in queryDefinition.ts). */
 export const QUERY_OPERATORS={equal:2,notEqual:3,greater:4,notGreater:5,less:6,notLess:7,inList:8,notInList:9,
-  between:10,notBetween:11,exists:12,notExists:13,like:14,notLike:15,isNull:16,isNotNull:17,effectiveDate:20} as const;
+  between:10,notBetween:11,exists:12,notExists:13,like:14,notLike:15,isNull:16,isNotNull:17,effectiveDate:20,
+  // qed01-qed05: Eff Date >=, <, > against the current date; First / Last Eff Date take no operand.
+  effectiveDateNotLess:21,effectiveDateLess:22,effectiveDateGreater:23,firstEffectiveDate:24,lastEffectiveDate:25} as const;
+const effectiveDating=(cond: number)=>cond>=20 && cond<=25;
 /** PSQRYFIELD.TTLTYPE (qry04–qry07, qag01–qag02). */
 export const QUERY_AGGREGATE_TYPES={none:1,sum:2,count:3,min:4,max:5,average:6} as const;
 export type QueryAggregate=keyof typeof QUERY_AGGREGATE_TYPES;
@@ -134,7 +137,7 @@ function references(view: QueryView): void {
   const uses: Array<[unknown,unknown]>=[];
   const recordOf=(sel: unknown, fld: unknown)=>n(fieldAt(view,sel,fld)?.FLDRCDNUM);
   for (const c of view.criteria) {
-    if ([20,21].includes(n(c.CONDTYPE))) continue;
+    if (effectiveDating(n(c.CONDTYPE))) continue; // qxl02, qed01-qed06: effective-date criteria are not uses.
     // qcr10: a field compared on the right counts as a use too. A join criterion (fields of two
     // records of one select, qjn01) does not; a correlated subquery criterion does (qsq02).
     if (n(c.EXPRTYPE)===2 && n(c.R1CRTSELNUM)===n(c.LCRTSELNUM) && recordOf(c.LCRTSELNUM,c.LCRTFLDNUM)!==recordOf(c.R1CRTSELNUM,c.R1CRTFLDNUM)) continue;
@@ -227,7 +230,7 @@ export function applyQueryOp(source: QueryView, op: QueryOp, metadata: Record<st
     case 'clearCriteria': {
       if (view.selects.length>1) throw new QueryUnsupportedError('Clear the criteria of a query with subqueries or unions with a criteria operation.');
       const expressions=new Set(view.criteria.map(c=>n(c.R1CRTEXPNUM)));
-      view.criteria=view.criteria.filter(c=>n(c.QRYOJSELNUM) || n(c.CONDTYPE)===20);
+      view.criteria=view.criteria.filter(c=>n(c.QRYOJSELNUM) || effectiveDating(n(c.CONDTYPE)));
       if (view.criteria.length) throw new QueryUnsupportedError('Join and effective-date criteria stay; replace the criteria with a criteria operation.');
       view.expressions=view.expressions.filter(e=>!expressions.has(n(e.EXPNUM)));
       references(view); break;
@@ -439,8 +442,8 @@ function setCriteria(view: QueryView, specs: QueryCriterion[], meta: Meta, sel: 
   let subIndex=0;
   const build=(list: QueryCriterion[], at: number, before: Row[], combine: 'where'|'having', lead=0): Row[]=>{
     const rows=list.map((spec,i)=>{
-      const cond=QUERY_OPERATORS[spec.operator], twoSided=cond===10 || cond===11, list=cond===8 || cond===9, none=cond===16 || cond===17;
-      const like=cond===14 || cond===15, dated=cond===20, exists=cond===12 || cond===13, prior=before[i];
+      const cond=QUERY_OPERATORS[spec.operator], twoSided=cond===10 || cond===11, list=cond===8 || cond===9, none=[16,17,24,25].includes(cond);
+      const like=cond===14 || cond===15, dated=effectiveDating(cond), exists=cond===12 || cond===13, prior=before[i];
       const sub=spec.value && 'subquery' in spec.value;
       if (exists !== !spec.field) throw new Error(exists ? 'Exists takes no field.' : 'A criterion names its field.');
       if (exists && !sub) throw new Error('Exists takes a subquery.');
@@ -448,7 +451,7 @@ function setCriteria(view: QueryView, specs: QueryCriterion[], meta: Meta, sel: 
       if (combine==='having' && (sub || exists || dated)) throw new QueryUnsupportedError('HAVING criteria compare an aggregate with a value.');
       const left=spec.field ? fieldRow(view,spec.field,meta,1,at) : undefined, info=spec.field ? locate(view,spec.field,meta,at).info! : undefined;
       if (combine==='having' && n(left!.TTLTYPE)===1) throw new Error(`${spec.field}: a HAVING criterion is on an aggregated field.`);
-      if (dated !== ('currentDate' in (spec.value ?? {}))) throw new QueryUnsupportedError('Effective date criteria are calibrated as EFFDT <= current date only.');
+      if ((dated && !none) !== ('currentDate' in (spec.value ?? {}))) throw new QueryUnsupportedError('Effective date criteria compare EFFDT with the current date (First / Last Eff Date take no value); other current-date comparisons are not calibrated.');
       if (dated && (s(locate(view,spec.field!,meta,at).field)!=='EFFDT' || info!.type!==4)) throw new Error('An effective date criterion is on a record\'s EFFDT.');
       if (none ? spec.value || spec.value2 : !spec.value || !!spec.value2!==twoSided) throw new Error(`${spec.field ?? spec.operator} ${spec.operator}: wrong number of operands.`);
       if (info && info.type!==0 && (list && !sub || twoSided || like)) throw new QueryUnsupportedError(`${spec.operator} is calibrated for character fields only.`);

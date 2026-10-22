@@ -108,7 +108,11 @@ operands `constant`, `field`, `prompt`, `list`, `currentDate`, `expression` or
 `subquery` `{record, field, criteria}` (inside it an unaliased field is the
 subquery's record; `A.FIELD` correlates). Authoring is calibrated for Oracle
 PeopleTools 8.62.09 and 8.61.15 (8.61.15: one record, character fields and at
-most one equal-to constant/prompt criterion). Row-security SQL, nested
+most one equal-to constant/prompt criterion). Effective dating on a record's
+EFFDT uses `effectiveDate` (<=), `effectiveDateNotLess` (>=),
+`effectiveDateLess` (<) or `effectiveDateGreater` (>) with `currentDate`, or
+`firstEffectiveDate` / `lastEffectiveDate` with no operand. Row security
+combined with joins, translates, subqueries or unions, nested
 subqueries, subqueries with unions, effective-dated subquery and union records
 and HAVING OR remain refused; see docs/PS_QUERY_WINDOWS.md.
 
