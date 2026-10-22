@@ -37,6 +37,11 @@ can share one Change Set, one inverse and one redo. Queue:
    operator JARED); Promote Project ZZ_RF_PRJ from HRDMO; approve and apply on
    HRDEV; undo.
 
+## Candidate
+
+`peoplesoft-studio.vsix` built by `npm run package` at c5637317 (full verify passed), SHA-256
+`576795570ea6f3b3b18f1001b3551e84495562dc9855b09095855af001558067`. Rebuild if later commits land before the session.
+
 ## Next action
 
 Everything left needs the developer (passwords, sign-ins, spec approval, installed clicks). Run
