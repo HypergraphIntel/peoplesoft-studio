@@ -659,7 +659,7 @@ async function until(test:()=>Promise<boolean>){for(let n=0;n<2000;n++){if(await
 // Sequential fixture steps also await the host's action flag and released lock.
 // This does not retry requests or alter the intentional concurrent/stale tests.
 async function settledReview(test:()=>Promise<boolean>){
- await until(async()=>!reviewUi.applying&&!require('node:fs').existsSync(join(reviewRoot,'writer.lock'))&&await test());
+ await until(async()=>await test()&&!reviewUi.applying&&!require('node:fs').existsSync(join(reviewRoot,'writer.lock')));
 }
 
 // Store publication can precede the UI handler's final idle render. A user
