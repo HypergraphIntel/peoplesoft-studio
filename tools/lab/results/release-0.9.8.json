@@ -50,7 +50,24 @@
       "checks": 70,
       "kind": "fixture-backed production HTTP MCP; no live database",
       "logSha256": "7f5d85d1b2ff34e66e68340d726b49d472d23e9f823be29054edc0823457298c",
-      "fixtureSynchronization": "Sequential store-state waits also require the host action flag to clear and the writer lock to be released before continuing. Successful MCP journey steps use the same completion boundary. No request is retried; explicit concurrent, stale and expected-refusal checks retain their assertions and behavior. Product locking and writer gates are unchanged."
+      "fixtureSynchronization": "Sequential store-state waits require the host action flag to clear and the writer lock to be released after reading the expected state. Successful MCP journey steps use the same boundary. Rendered positive clicks require the selected Change Set current review token and an enabled idle form. No request is retried; intentional concurrent, stale and refusal tests retain their assertions. Product locking and writer gates are unchanged.",
+      "additionalRepeatedRuns": [
+        {
+          "checks": 70,
+          "passed": true,
+          "logSha256": "7f5d85d1b2ff34e66e68340d726b49d472d23e9f823be29054edc0823457298c"
+        },
+        {
+          "checks": 70,
+          "passed": true,
+          "logSha256": "7f5d85d1b2ff34e66e68340d726b49d472d23e9f823be29054edc0823457298c"
+        },
+        {
+          "checks": 70,
+          "passed": true,
+          "logSha256": "7f5d85d1b2ff34e66e68340d726b49d472d23e9f823be29054edc0823457298c"
+        }
+      ]
     }
   },
   "previewBoundary": "Run and Monitor native acceptance remains Low priority; 1.5 and 2.0 expansions retain their documented targets."

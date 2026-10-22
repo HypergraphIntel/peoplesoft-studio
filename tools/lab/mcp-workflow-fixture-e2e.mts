@@ -659,18 +659,30 @@ async function until(test:()=>Promise<boolean>){for(let n=0;n<2000;n++){if(await
 // Sequential fixture steps also await the host's action flag and released lock.
 // This does not retry requests or alter the intentional concurrent/stale tests.
 async function settledReview(test:()=>Promise<boolean>){
- await until(async()=>await test()&&!reviewUi.applying&&!require('node:fs').existsSync(join(reviewRoot,'writer.lock')));
+ try { await until(async()=>await test()&&!reviewUi.applying&&!require('node:fs').existsSync(join(reviewRoot,'writer.lock'))); }
+ catch(error){
+  const selected=reviewUi.selected,state=selected?await reviewService.store.get(selected):undefined;
+  throw new Error('Review journey did not complete: '+JSON.stringify({selected,status:state?.status,message:reviewUi.message,applying:reviewUi.applying,locked:require('node:fs').existsSync(join(reviewRoot,'writer.lock'))}),{cause:error});
+ }
 }
 
 // Store publication can precede the UI handler's final idle render. A user
 // cannot click a disabled busy form; legal fixture actions wait for that same boundary.
 async function readyRenderedReview(page:any,action:string,destructive=false){
- await until(async()=>{
-  const html=page.webview.html;
+ const selected=reviewUi.selected;
+ let readyHtml='';
+ await settledReview(async()=>{
+  const state=await reviewService.store.get(selected),html=page.webview.html;
   const button=[...html.matchAll(/<button\b([^>]*)>/g)].find(m=>m[1].includes(`data-action="${action}"`));
-  return !!button&&!/\bdisabled\b/.test(button[1])&&!html.includes('aria-busy="true"');
+  const currentToken=require('./src/changeReview/model.ts').reviewStateToken(state);
+  const ready=!!button&&!/\bdisabled\b/.test(button[1])
+   &&html.includes(`data-review-token="${currentToken}"`)&&!html.includes('aria-busy="true"');
+  if(ready)readyHtml=html;
+  return ready;
  });
- return clickRenderedReview(page.webview.html,action,destructive);
+ const message=clickRenderedReview(readyHtml,action,destructive);
+ assert.equal(message.id,selected,'The rendered action must target the selected Change Set.');
+ return message;
 }
 
 // Evaluate the actual rendered webview script with a minimal DOM: capture its exact click payload,
