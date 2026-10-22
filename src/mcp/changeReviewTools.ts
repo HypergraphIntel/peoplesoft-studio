@@ -3,7 +3,11 @@ import * as z from 'zod/v4';
 import { ReviewService } from '../changeReview/service.js';
 import { canonical, type Json } from '../changeReview/model.js';
 import { jsonResult } from './tools.js';
-import { READ_ONLY, WRITE } from './writeTools.js';
+import { READ_ONLY, WRITE, writable, type McpWriteHost } from './writeTools.js';
+import { requireProvider } from './tools.js';
+import { DatabaseProvider } from '../providers/database.js';
+import { promoteProject } from '../changeReview/promotion.js';
+import type { Workspace } from '../workspace.js';
 const id = z.string().uuid();
 export function registerChangeReviewTools(server: McpServer, service: ReviewService): void {
     server.registerTool('psft_prepare_remaining_work', { description: 'Prepare untouched previously approved objects from a reconciled partial application as a new local proposal. Unknown outcomes and drift block preparation. Confirmed writes become live-checked prerequisites. Fresh plan/object approval is required; no PeopleSoft writes or automatic replay. Returns an existing active follow-up on duplicate requests. Reconciled interrupted reversals retain their complete forward-source lineage in a fresh continuation. Unknown manual-save outcomes require inspection.', inputSchema: z.object({ changeSetId: id }).strict(), annotations: WRITE }, async ({ changeSetId }) => jsonResult(await service.prepareRemaining(changeSetId)));
@@ -22,4 +26,26 @@ export function registerChangeReviewTools(server: McpServer, service: ReviewServ
     });
     server.registerTool('psft_prepare_revert', { description: 'Prepare a dependency-aware reverse Change Set only after live revision/token checks. No writes or approval. Reversing creation is refused without a calibrated deletion adapter.', inputSchema: z.object({ changeSetId: id }).strict(), annotations: WRITE }, async ({ changeSetId }) => jsonResult(await service.reverse(changeSetId)));
     server.registerTool('psft_prepare_redo', { description: 'Prepare a new forward proposal by reversing a verified reversal. Revalidates live state; never reuses an old approval.', inputSchema: z.object({ changeSetId: id }).strict(), annotations: WRITE }, async ({ changeSetId }) => { return jsonResult(await service.redo(changeSetId)); });
+}
+
+/**
+ * Promote a project between two environments through Change Review (V15-2): export from the source, preview against a
+ * different target, stage and validate there. The developer approves and applies in the target's review workspace.
+ */
+export function registerPromotionTool(server: McpServer, service: ReviewService, workspace: Workspace, host: (() => McpWriteHost | undefined) | undefined): void {
+    server.registerTool('psft_project_promote', {
+        description: 'Promote a project from one environment to another (Oracle): exports the project as a Studio migration package from sourceConnection (read only), refuses a target that is the same environment (database, container, schema, PeopleSoft GUID), previews the import against targetConnection and, when nothing blocks, stages every changed definition and the project membership into one Change Set on the target and validates it. Returns the preview (creates/updates, missing prerequisites, release blockers) and REVIEW_REQUIRED; nothing is written until the developer approves and applies, and the applied promotion has undo and redo. Physical DDL and application data are not promoted.',
+        inputSchema: z.object({ sourceConnection: z.string().min(1), project: z.string().min(1), targetConnection: z.string().min(1) }).strict(), annotations: WRITE
+    }, async ({ sourceConnection, project, targetConnection }) => {
+        const writeHost = host?.();
+        if (!writeHost) throw new Error('Promotion requires an enabled write host.');
+        const source = await requireProvider(workspace, sourceConnection);
+        if (!(source instanceof DatabaseProvider) || source.platform !== 'oracle') throw new Error('The promotion source must be an Oracle database connection.');
+        const gate = await writable(workspace, writeHost, targetConnection, project.trim().toUpperCase());
+        if (gate.provider.platform !== 'oracle') throw new Error('The promotion target must be an Oracle database connection with Change Review.');
+        const result = await promoteProject(service, source, project.trim().toUpperCase(), gate.provider, gate.operatorId);
+        const changes = result.plan.changes.map(c => ({ kind: c.asset.kind, name: c.asset.data.name, action: c.action }));
+        if (!result.staged) return jsonResult({ status: result.plan.blockers.length ? 'BLOCKED' : 'UNCHANGED', blockers: result.plan.blockers, changes, persisted: false });
+        return jsonResult({ status: 'REVIEW_REQUIRED', changeSetId: result.staged.id, revision: result.staged.revision, setStatus: result.staged.status, changes, persisted: false, command: 'psft.changeReview.open' });
+    });
 }

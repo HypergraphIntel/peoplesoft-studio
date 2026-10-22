@@ -27,5 +27,5 @@ test('catalog routes resolve to registered tools, filters compose and unknown ty
   for (const match of JSON.stringify(capabilityCatalog()).matchAll(/psft_[a-z_]+/g)) assert.ok(registered.has(match[0]), match[0]);
   assert.equal(capabilityCatalog({ kind: 'definition', type: DefinitionType.Query, query: 'prompt' }, true).entries.length, 1);
   assert.equal(capabilityCatalog({ type: 99999 }).entries.length, 0);
-  assert.equal(capabilityCatalog({ kind: 'dataMigration' }).entries.length, 3);
+  assert.equal(capabilityCatalog({ kind: 'dataMigration' }).entries.length, 4);
 });

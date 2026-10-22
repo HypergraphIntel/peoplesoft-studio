@@ -616,6 +616,12 @@
         "icon": "$(import)"
       },
       {
+        "command": "psft.project.promote",
+        "title": "Promote Project to Another Environment...",
+        "category": "PeopleSoft",
+        "icon": "$(cloud-upload)"
+      },
+      {
         "command": "psft.administration.messages",
         "title": "Message Catalog",
         "category": "PeopleSoft"
@@ -1217,6 +1223,10 @@
         {
           "command": "psft.project.exportMigration",
           "group": "2_package@1"
+        },
+        {
+          "command": "psft.project.promote",
+          "group": "2_package@2"
         }
       ],
       "psft.discovery.knowledge": [

@@ -1,5 +1,5 @@
 import { databaseMigrationTarget, readMigrationAsset } from '../providers/migrationTarget.js';
-import { assetRequirements, type MigrationAsset } from '../migrationPackage.js';
+import { assetRequirements, containedMemberKeys, type MigrationAsset } from '../migrationPackage.js';
 import { migrationAdapter, migrationReviewKey, reviewedMigrationAsset, migrationJson, readMigrationProject } from './migration.js';
 import type { Snapshot } from './model.js';
 import { prepareSourceForSave } from '../peoplecode/writeback/savePlan.js';
@@ -253,7 +253,8 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
                 const dependencies=context?.phase==='proposal'?context.dependencies:[];
                 await p.writeTextDefinitionForReview({kind,name:k.parts[0],after:data,operatorId:operator,expectedSnapshotToken:live.token,expectedAfterHash:hash(after),allowDeletedBaseline:true,dryRun:true,
                     proposedProjectDeletions:dependencies.filter(d=>['project-create','migration-project'].includes(d.adapter)&&d.after===null&&typeof d.key==='string').map(d=>d.key as string),
-                    proposedAeDeletions:dependencies.filter(d=>d.adapter==='ae-create'&&d.after===null&&typeof d.key==='string').map(d=>d.key as string),
+                    // An App Engine program deleted first by the same inverse (created alone or by a migration) no longer uses this text.
+                    proposedAeDeletions:dependencies.filter(d=>(d.adapter==='ae-create'&&typeof d.key==='string'||d.adapter==='migration-ae')&&d.after===null).map(d=>typeof d.key==='string'?d.key:migrationReviewKey(d.key).parts[0]),
                     proposedTextDeletions:dependencies.flatMap(d=>{const family=d.adapter.replace(/-definition$/,'').replace(/^migration-/,'');if(d.after!==null||!['sql','html','stylesheet'].includes(family)||!(/-definition$/.test(d.adapter)||d.adapter.startsWith('migration-')))return [];return [{kind:family as TextDefinitionKind,name:typeof d.key==='string'?d.key:migrationReviewKey(d.key).parts[0]}];})});
                 return [];
             }catch(error){return [error instanceof Error?error.message:String(error)];}},
@@ -589,8 +590,10 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
             const listedElsewhere = async () => (await p.projectsListing(k)).filter(n => !projects.includes(n));
             if (kind === 'record') {
                 const snapshot = await p.readStructuredCreationForReview('record', k.parts[0], true);
+                const programs = named('migration-ae').map(r => r.parts[0]);
                 await p.deleteRecord({ recname: k.parts[0], openedVersion: Number(token), operatorId: operator, expectedSnapshotToken: snapshot.token, dryRun,
                     ...(projects.length ? { proposedProjectDeletions: projects } : {}), ...(codes.length ? { proposedPeopleCodeDeletions: codes } : {}),
+                    ...(programs.length ? { proposedAeDeletions: programs } : {}),
                     ...(proposed.pages.length ? { proposedPageDeletions: proposed.pages } : {}), ...(proposed.components.length ? { proposedComponentDeletions: proposed.components.map(([n]) => n) } : {}) });
             } else if (kind === 'ae') {
                 const snapshot = await p.readStructuredCreationForReview('ae', k.parts[0], true);
@@ -689,7 +692,11 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
                 const name = projectReviewName(key);
                 if(before===null||after===null){
                     const {p,operator}=await authorize(e,projectCreateKey(key)),live=await p.readProjectCreationForReview(name,true);
-                    const proposed=context?.phase==='proposal'?context.dependencies.filter(d=>d.adapter.startsWith('migration-')&&d.adapter!=='migration-project'&&d.after!==null).map(d=>migrationReviewKey(d.key)):[];
+                    // A proposed asset brings its contained members too: an App Engine program's sections and PeopleCode, a menu's ItemSelected programs, a package's subpackages.
+                    const proposed=context?.phase==='proposal'?context.dependencies.filter(d=>d.adapter.startsWith('migration-')&&d.adapter!=='migration-project'&&d.after!==null).flatMap(d=>{
+                        const asset=reviewedMigrationAsset(d.adapter.slice('migration-'.length) as MigrationAsset['kind'],d.key,d.after as Json);
+                        return [migrationReviewKey(d.key),...containedMemberKeys(asset)];
+                    }):[];
                     await p.writeProjectForReview({name,operatorId:operator,items:after===null?null:migrationMembers(after,name),mode:'members',expectedSnapshotToken:live.token,expectedAfterHash:hash(after),dryRun:true,allowDeletedBaseline:true,proposed});return [];
                 }
                 migrationMembers(after, name);

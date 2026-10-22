@@ -1,0 +1,63 @@
+{
+  "checkedAt": "2026-10-22T21:03:08.300Z",
+  "source": "HRDMO (PDB HRDMO, CDB CDBHCM)",
+  "target": "HRDEV (PDB HRDEV, CDB CDBHCM)",
+  "scope": "promotion between two separate Oracle PeopleTools 8.62.09 databases (cloned PDBs in one container, same PeopleSoft GUID); production promoteProject + ReviewService + database adapters; trusted service test approval, not installed UI",
+  "checks": [
+    "promotion to the same environment (HRDMO reached through another connection) is refused before anything is read or staged",
+    "missing target prerequisites block the promotion of ZZ_XA8_PRJ; nothing is staged or written",
+    "ZZ_RF_PRJ (record, SQL, App Engine) stages on HRDEV, applies, and reads back exactly as exported from HRDMO",
+    "the applied promotion undoes on HRDEV (destructive approval) and redoes exactly",
+    "a target change made after approval stops the application before any write (no partial overwrite), and a target field of another type blocks promotion explicitly",
+    "a writer failure after earlier definitions committed leaves PARTIALLY_APPLIED; the remaining work is prepared, freshly approved and completes exactly"
+  ],
+  "prerequisiteBlockers": [
+    "Required definition missing: ZZ_XA8_F2",
+    "Required definition missing: ZZ_XA8_F3",
+    "Required definition missing: ZZ_XA8_PKG",
+    "New class ZZ_XA8_PKG:Greeter needs its Application Package in the target or the migration."
+  ],
+  "conflict": {
+    "status": "CONFLICTED",
+    "verified": 0
+  },
+  "typeConflict": [
+    "Migration cannot change a field type."
+  ],
+  "partial": {
+    "status": "PARTIALLY_APPLIED",
+    "verified": 5,
+    "pending": 3,
+    "injected": true
+  },
+  "reconciled": {
+    "status": "PARTIALLY_APPLIED",
+    "objects": [
+      "VERIFIED",
+      "VERIFIED",
+      "VERIFIED",
+      "VERIFIED",
+      "VERIFIED",
+      "PENDING",
+      "PENDING",
+      "PENDING",
+      "PENDING"
+    ]
+  },
+  "cleanup": {
+    "start": {
+      "R": 18,
+      "F": 0,
+      "S": 18,
+      "A": 0,
+      "J": 0
+    },
+    "end": {
+      "R": 18,
+      "F": 0,
+      "S": 18,
+      "A": 0,
+      "J": 0
+    }
+  }
+}

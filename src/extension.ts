@@ -1,5 +1,6 @@
 import {ProcessRuntimeController} from './processRuntime/controller.js';
 import { stageMigrationImport } from './changeReview/migration.js';
+import { promoteProject } from './changeReview/promotion.js';
 import { deserializeRecentProjects, RECENT_PROJECTS_KEY } from './model/recentProjects.js';
 import { isMissingProjectDefinition, missingProjectDefinitionMessage } from './model/projectOpening.js';
 import { PROPERTIES_SPECS } from './model/properties.js';
@@ -846,6 +847,42 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         await reviewService.validate(proposal.id);
         await reviewWorkspace!.show(proposal.id);
         vscode.window.showInformationMessage(`Migration staged for ${target.displayName}: review and approve the exact target changes in Change Review.`);
+      });
+    }),
+
+    // Promotion between environments (V15-2): export, preview and stage on another connection without a package file.
+    vscode.commands.registerCommand('psft.project.promote', async (node?: unknown) => {
+      await withError('Promote Project', async () => {
+        const n = node as { kind?: string; provider?: DefinitionProvider; project?: { name: string } } | undefined;
+        const source = n?.kind === 'project' && n.provider ? n.provider : workspace.activeProviders.find(p => p.isConnected);
+        if (!(source instanceof DatabaseProvider) || source.platform !== 'oracle') {
+          vscode.window.showInformationMessage('Connect an Oracle database to promote one of its projects.');
+          return;
+        }
+        const project = n?.project?.name ?? (await vscode.window.showQuickPick(
+          (await source.listProjects()).map(p => ({ label: p.name, description: p.description })), { title: `Promote which project of ${source.displayName}?` }))?.label;
+        if (!project) return;
+        const targetConfig = (await vscode.window.showQuickPick(workspace.connections.filter(c => c.kind !== 'projectFile' && providerId(c) !== source.id)
+          .map(config => ({ label: config.name, config })), { title: `Promote ${project} into which environment?` }))?.config;
+        if (!targetConfig) return;
+        const target = await workspace.require(providerId(targetConfig));
+        const operatorId = targetConfig.peoplesoftOperatorId?.trim();
+        if (!(target instanceof DatabaseProvider) || !workspace.isWritable(target.id) || !operatorId) {
+          vscode.window.showInformationMessage('Promotion requires a Writable Oracle target connection with a PeopleSoft Operator ID.');
+          return;
+        }
+        const result = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Promoting ${project} to ${target.displayName}` },
+          () => promoteProject(reviewService, source, project, target, operatorId));
+        const content = JSON.stringify({ project, source: source.displayName, target: target.displayName, ...result.plan, package: undefined,
+          notes: ['Every change is staged into Change Review on the target; nothing is written until you approve and apply there.',
+            'SQL record metadata does not build physical tables or move application data.'] }, null, 2);
+        await vscode.window.showTextDocument(await vscode.workspace.openTextDocument({ content, language: 'json' }), { preview: false });
+        if (!result.staged) {
+          vscode.window.showInformationMessage(result.plan.blockers.length ? `Promotion of ${project} is blocked: see the preview.` : `${target.displayName} already matches ${project}.`);
+          return;
+        }
+        await reviewWorkspace!.show(result.staged.id);
+        vscode.window.showInformationMessage(`Promotion staged for ${target.displayName}: review and approve the exact target changes in Change Review.`);
       });
     }),
 

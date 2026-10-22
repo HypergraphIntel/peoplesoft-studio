@@ -24,6 +24,14 @@
   `psft_delete_application_class` and `psft_delete_package` stage deletions
   with destructive consent. Undo re-creates deleted classes (PeopleCode
   recompiled exactly) and packages with their subpackages and properties.
+- **Promotion between environments (V15-2).** Promote Project to Another
+  Environment… and `psft_project_promote` export, preview and stage a project
+  into Change Review on a different Oracle environment; packages record their
+  source environment. Verified natively HRDMO → HRDEV: prerequisites,
+  conflicts, partial failure with reconciled continuation, undo and redo.
+  Promotion found and fixed: project members created by their parent asset,
+  App Engine SQL references as requirements, and undo of records/SQL used by
+  a program deleted in the same undo.
 - **Page writer corrections from App Designer captures (ps01–ps04).** Related
   Field references (ASSOCFIELDNUM) now follow their control through deletes,
   inserts and reorders, and turn off when the control is deleted, as App

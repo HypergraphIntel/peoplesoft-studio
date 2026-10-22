@@ -21,13 +21,14 @@ test('orientation distinguishes Data Mover templates, planned Workbench and defi
   const reference = studioReference();
   const entries = reference.dataMigrationTools as { label: string; studioStatus: string; command?: string; tools: string[]; limitation: string }[];
   assert.deepEqual(entries.map(entry => [entry.label, entry.studioStatus]), [
-    ['Data Mover Scripts', 'AVAILABLE'], ['Import Migration Package…', 'AVAILABLE'], ['Data Migration Workbench', 'PLANNED']
+    ['Data Mover Scripts', 'AVAILABLE'], ['Import Migration Package…', 'AVAILABLE'], ['Promote Project to Another Environment…', 'AVAILABLE'], ['Data Migration Workbench', 'PLANNED']
   ]);
   assert.equal(entries[0].command, 'psft.dataMover.newScript');
   assert.match(entries[0].limitation, /RichardWood\.peoplesoft-datamover/);
   assert.match(entries[0].limitation, /No Data Mover execution or MCP authoring tool/);
+  // Promotion stages into Change Review through its MCP tool; nothing in this list applies changes.
   for (const entry of entries) {
-    assert.deepEqual(entry.tools, []);
+    assert.deepEqual(entry.tools, entry.label.startsWith('Promote') ? ['psft_project_promote'] : []);
   }
   assert.match(reference.projectMigration.limits, /No MCP import\/apply tool/);
   assert.ok(reference.definitionTypes.some(type => type.mcpAccess.startsWith('Not in')));

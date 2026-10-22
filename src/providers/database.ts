@@ -263,6 +263,21 @@ export class DatabaseProvider implements DefinitionProvider {
   get schema(): string | undefined { return this.pool?.schema; }
 
   /** Re-read for every review preflight; a friendly connection name is not an environment identity. */
+  /**
+   * The environment itself, independent of how it is reached: database unique name, container (PDB), schema, PeopleSoft
+   * GUID (PSOPTIONS) and release. Clones share a GUID; a cloned PDB still differs by container. No address or credentials.
+   */
+  async environmentFingerprint(): Promise<string> {
+    if (this.platform !== 'oracle') throw new ProviderError('Environment fingerprints are calibrated on Oracle only.');
+    return this.withConnection(async c => {
+      const [r] = (await c.execute<{ D: string; C: string; S: string; G: string; T: string }>(
+        "SELECT SYS_CONTEXT('USERENV','DB_UNIQUE_NAME') AS D, SYS_CONTEXT('USERENV','CON_NAME') AS C, SYS_CONTEXT('USERENV','CURRENT_SCHEMA') AS S, (SELECT GUID FROM PSOPTIONS) AS G, (SELECT TOOLSREL || '.' || TO_CHAR(PTPATCHREL) FROM PSSTATUS) AS T FROM DUAL"
+      )).rows ?? [];
+      if (!r?.D?.trim() || !r?.S?.trim()) throw new ProviderError('Database/schema identity could not be established.');
+      return createHash('sha256').update(JSON.stringify(['psft-environment/1', r.D.trim(), String(r.C ?? '').trim(), r.S.trim(), String(r.G ?? '').trim(), String(r.T ?? '').trim()])).digest('hex');
+    });
+  }
+
   async changeReviewIdentity(): Promise<string> {
     if (this.platform !== 'oracle') throw new ProviderError('Reviewed application requires a calibrated Oracle environment identity.');
     return this.withConnection(async c => {

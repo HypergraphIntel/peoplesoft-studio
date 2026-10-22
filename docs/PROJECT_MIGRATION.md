@@ -156,3 +156,60 @@ Reverting an applied migration prepares an unapproved inverse in Change Review: 
 Anything still using a definition outside the inverse refuses: pages, components, menus, content references, projects, records, other PeopleCode naming a package, and any row in the roughly 130 tables with a PACKAGEROOT column. [Four native checks](../tools/lab/results/migration-reversal-native-2026-10-20.json) (`tools/lab/migration-reversal-native.mts`) import a field with translate values, a record using it with Record PeopleCode, an AE program, a menu with ItemSelected PeopleCode, a page, a component listing that page, a package with a class and their project, then undo all ten in one destructive inverse (tombstones verified) and redo them exactly. The captures are frozen by `src/test/migrationCaptureProtocol.test.ts`.
 
 The undo/redo workflow also passed in a separately installed candidate build: the Import command, rendered Approve and apply, rendered destructive inverse and redo, for a field with translate values, a page, a component listing it and a package with a class ([installed report](../tools/lab/results/migration-installed-2026-10-21.json)).
+
+## Promotion between environments (1.5, V15-2)
+
+**Promote Project to Another Environment…** (project context menu and Data
+Migration Tools) and the MCP tool `psft_project_promote` combine export,
+preview and staging without a package file: the project is exported from the
+source connection (read only), a target that is the same environment is
+refused, the import is previewed against the target and, when nothing blocks,
+every changed definition and the project membership are staged into one
+Change Set on the target and validated. Approval, application, undo and redo
+are the migration's own (above). Packages now record their source environment
+(`source.environment`: a digest of database unique name, container, schema,
+PeopleSoft GUID and release; no address or credentials). Cloned PDBs share a
+GUID and still differ by container.
+
+Corrections found on separate databases (they did not show on one database):
+
+- A project's AE section and AE PeopleCode members, menu ItemSelected programs
+  and subpackages are created by their parent asset in the same promotion;
+  project validation now credits them (`containedMemberKeys`).
+- An App Engine program requires the SQL definitions it names (`SQL.NAME` in
+  its PeopleCode, `%SQL(NAME)` in its actions' SQL): the target must have them
+  or the promotion carry them, and undo deletes the program before them.
+- Undoing a promotion deletes a record or SQL used by a program the same undo
+  deletes: their deletion previews assume that program's deletion
+  (`proposedAeDeletions` from `migration-ae`), as App Designer would see it
+  after the program is gone.
+
+### Native acceptance: HRDMO → HRDEV
+
+`tools/lab/promotion-native.mts`
+([report](../tools/lab/results/promotion-native.json)) runs the production
+`promoteProject`, ReviewService and database adapters between HRDMO and HRDEV,
+two separate PeopleTools 8.62.09 databases (cloned PDBs HRDMO and HRDEV in
+container CDBHCM, same PeopleSoft GUID). Approval uses the trusted service test
+API, not the installed UI. Six checks:
+
+1. Promoting to the same environment (HRDMO reached through another
+   connection string) is refused before anything is staged.
+2. Missing target prerequisites (ZZ_XA8_PRJ: two fields and a package) block
+   the promotion; nothing is staged or written.
+3. ZZ_RF_PRJ (record, SQL, App Engine with PeopleCode naming the SQL) stages on
+   HRDEV, applies, and every definition reads back exactly as exported from
+   HRDMO; promoting again changes nothing.
+4. The applied promotion undoes on HRDEV with destructive approval (program
+   before its record and SQL) and redoes exactly.
+5. A target definition created after approval stops the application before
+   any write (CONFLICTED, zero applied, no overwrite); a target field of
+   another type then blocks promotion explicitly.
+6. An injected writer failure after five definitions committed leaves
+   PARTIALLY_APPLIED; the failed outcome is reconciled from live state, the
+   remaining work is prepared, freshly approved and completes exactly.
+
+Cleanup removed every promoted definition, tombstone and project from HRDEV;
+its ZZ_ counts equal the starting ones. Installed UI promotion between two
+configured connections remains part of the batched installed acceptance.
+Cross-platform promotion (SQL Server, DB2) is a 2.0 target.

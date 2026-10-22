@@ -1,6 +1,6 @@
 import {registerProcessRuntimeTools} from './processRuntimeTools.js';
 import type { ReviewService } from '../changeReview/service.js';
-import { registerChangeReviewTools } from './changeReviewTools.js';
+import { registerChangeReviewTools, registerPromotionTool } from './changeReviewTools.js';
 import { routeReviewedMutations, REVIEWED_MUTATION_TOOLS } from './reviewRouting.js';
 import * as z from 'zod/v4';
 import { capabilityCatalog } from './capabilityCatalog.js';
@@ -210,6 +210,7 @@ export async function startPeopleSoftMcpServer(
         if (options.reviewService) {
           routeReviewedMutations(server, options.reviewService, workspace, options.writeHost);
           registerChangeReviewTools(server, options.reviewService);
+          registerPromotionTool(server, options.reviewService, workspace, options.writeHost);
         }
 
         server.registerTool('psft_studio_reference', {

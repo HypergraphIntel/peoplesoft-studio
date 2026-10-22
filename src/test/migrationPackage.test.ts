@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { makeKey, DefinitionType } from '../model/definitions.js';
 import { documentFromSpec } from '../model/aeSpec.js';
-import { exportMigrationPackage, parseMigrationPackage, previewMigrationImport, applyMigrationImport, migrationHash, assetRequirements,
+import { exportMigrationPackage, parseMigrationPackage, previewMigrationImport, applyMigrationImport, migrationHash, assetRequirements, containedMemberKeys,
   type MigrationPackageReader, type MigrationTarget, type MigrationAsset } from '../migrationPackage.js';
 import { PAGE_SNAPSHOT_TABLES } from '../providers/pageSnapshot.js';
 
@@ -398,4 +398,24 @@ test('SQL Table user indexes and SubRecord definitions export; index order, DDL 
   assert.throws(rewrite([index('B', ['ZZ_A']), index('A', ['ZZ_B'])]), /INDEXID order/);
   assert.throws(rewrite([index('A', ['ZZ_B'], { DDLCOUNT: 2 })]), /custom DDL/);
   assert.throws(rewrite([index('A', ['ZZ_MISSING'])]), /record's fields/);
+});
+
+test('an App Engine asset requires the SQL definitions it names and brings its sections and PeopleCode as project members', () => {
+  const doc = documentFromSpec({ program: 'ZZ_PROMO', sections: [{ name: 'MAIN', steps: [
+    { name: 'Rows', actions: [{ type: 'PeopleCode', peopleCode: 'Local SQL &s = CreateSQL(SQL.ZZ_PROMO_ROWS);\n' }] },
+    { name: 'Upd', actions: [{ type: 'SQL', sql: '%SQL(ZZ_PROMO_UPD, 1)' }] }] }] });
+  const asset = { kind: 'ae', key: makeKey(DefinitionType.AppEngineProgram, 'ZZ_PROMO'), data: doc } as MigrationAsset;
+  const sql = assetRequirements(asset).filter(k => k.type === DefinitionType.SqlDefinition).map(k => k.parts.join('.')).sort();
+  assert.deepEqual(sql, ['ZZ_PROMO_ROWS.0', 'ZZ_PROMO_UPD.0']);
+  const members = containedMemberKeys(asset).map(k => k.type + ':' + k.parts.join('.'));
+  assert.ok(members.includes(DefinitionType.AppEngineSection + ':ZZ_PROMO.MAIN'));
+  assert.ok(members.some(m => m.startsWith(DefinitionType.AppEnginePeopleCode + ':ZZ_PROMO.MAIN.') && m.endsWith('.Rows.OnExecute')));
+  assert.equal(members.filter(m => m.endsWith('.Upd.OnExecute')).length, 0, 'a SQL step has no PeopleCode member');
+});
+
+test('a migration package records its source environment when the reader can name it, and still parses without one', async () => {
+  const pkg = parseMigrationPackage(JSON.stringify((() => { const body = { format: 'psft-migration/1', project: 'ZZ_P', toolsRelease: '8.62', members: [], assets: [], requirements: [], source: { environment: 'a'.repeat(64) } };
+    return { ...body, checksum: migrationHash(body) }; })()));
+  assert.equal(pkg.source?.environment, 'a'.repeat(64));
+  assert.throws(() => parseMigrationPackage(JSON.stringify({ ...pkg, source: { environment: 'x' } })));
 });

@@ -62,9 +62,13 @@ export interface StudioMigrationPackage {
   members: DefinitionKey[];
   assets: MigrationAsset[];
   requirements: DefinitionKey[];
+  /** The exporting environment (database, container, schema, PeopleSoft GUID and release), when its reader records one. */
+  source?: { environment: string };
   checksum: string;
 }
 export interface MigrationPackageReader {
+  /** A digest of the database, container, schema, PeopleSoft GUID and release this reader reads (no address or credentials). */
+  environmentFingerprint?(): Promise<string>;
   listProjectItems(project: string): Promise<DefinitionSummary[]>;
   readField(key: DefinitionKey): Promise<FieldDefinition | undefined>;
   readRecordLayout(key: DefinitionKey): Promise<RecordLayout | undefined>;
@@ -133,6 +137,13 @@ export function assetRequirements(asset: MigrationAsset): DefinitionKey[] {
   } else if (asset.kind === 'ae') {
     for (const state of asset.data.stateRecords) record(state.record);
     for (const table of asset.data.tempTables) record(table);
+    // SQL definitions the program names: SQL.NAME in its PeopleCode, %SQL(NAME) in its actions' SQL (not its own action SQL).
+    const sql = new Set<string>();
+    for (const section of asset.data.sections) for (const variant of section.variants) for (const step of variant.steps) for (const action of step.actions) {
+      for (const m of (action.peopleCode ?? '').matchAll(/\bSQL\.([A-Za-z][A-Za-z0-9_]{0,29})\b/g)) sql.add(m[1].toUpperCase());
+      for (const m of (action.text ?? '').matchAll(/%SQL\(\s*([A-Za-z][A-Za-z0-9_]{0,29})/gi)) sql.add(m[1].toUpperCase());
+    }
+    for (const name of sql) keys.push(makeKey(DefinitionType.SqlDefinition, name, '0'));
     for (const section of asset.data.sections) for (const variant of section.variants) for (const step of variant.steps) {
       if (step.actions.some(a => a.type === 'C') && !step.dynamic && step.doProgram) keys.push(makeKey(DefinitionType.AppEngineProgram, step.doProgram));
     }
@@ -274,7 +285,8 @@ const assetSchema = z.discriminatedUnion('kind', [
 const packageSchema = z.object({
   format: z.literal('psft-migration/1'), project: name, toolsRelease: z.string().regex(/^8\.\d{2}$/),
   members: z.array(keySchema).max(10000), assets: z.array(assetSchema).max(10000),
-  requirements: z.array(keySchema).max(10000), checksum: z.string().regex(/^[0-9a-f]{64}$/)
+  requirements: z.array(keySchema).max(10000), source: z.object({ environment: z.string().regex(/^[0-9a-f]{64}$/) }).strict().optional(),
+  checksum: z.string().regex(/^[0-9a-f]{64}$/)
 }).strict();
 
 export function parseMigrationPackage(text: string): StudioMigrationPackage {
@@ -354,14 +366,7 @@ export function parseMigrationPackage(text: string): StudioMigrationPackage {
     if ([DefinitionType.AppEngineSection, DefinitionType.AppEnginePeopleCode].includes(member.type)) {
       const asset = parsed.assets.find(a => a.kind === 'ae' && a.data.name === member.parts[0]);
       if (!asset || asset.kind !== 'ae') throw new Error('AE parent missing.');
-      const keys: DefinitionKey[] = [];
-      for (const section of asset.data.sections) {
-        keys.push(makeKey(DefinitionType.AppEngineSection, asset.data.name, section.name));
-        for (const variant of section.variants) for (const step of variant.steps) {
-          const parts = peopleCodeKeyParts(asset.data.name, section.name, variant, step.name);
-          if (parts && step.actions.some(a => a.type === 'P')) keys.push(makeKey(DefinitionType.AppEnginePeopleCode, ...parts));
-        }
-      }
+      const keys = containedMemberKeys(asset);
       if (!keys.some(k => projectKeyIdentity(k) === projectKeyIdentity(member))) throw new Error('AE project member has no section or PeopleCode action in the package.');
     }
   }
@@ -376,6 +381,30 @@ export function parseMigrationPackage(text: string): StudioMigrationPackage {
     if (!seen.has(id) && !declared.has(id)) throw new Error('Required dependency was omitted from the package: ' + dependency.parts.join('.'));
   }
   return JSON.parse(migrationCanonical(parsed)) as StudioMigrationPackage;
+}
+
+/**
+ * The project members an asset brings into being besides itself: an App Engine program's sections and PeopleCode
+ * actions, a menu's ItemSelected programs, a package's subpackages (PSPACKAGEDEFN keys as projects list them).
+ */
+export function containedMemberKeys(asset: MigrationAsset): DefinitionKey[] {
+  const keys: DefinitionKey[] = [];
+  if (asset.kind === 'ae') for (const section of asset.data.sections) {
+    keys.push(makeKey(DefinitionType.AppEngineSection, asset.data.name, section.name));
+    for (const variant of section.variants) for (const step of variant.steps) {
+      const parts = peopleCodeKeyParts(asset.data.name, section.name, variant, step.name);
+      if (parts && step.actions.some(a => a.type === 'P')) keys.push(makeKey(DefinitionType.AppEnginePeopleCode, ...parts));
+    }
+  }
+  if (asset.kind === 'menu') for (const bar of asset.data.bars) for (const item of bar.items) if (item.peopleCode) keys.push(makeKey(DefinitionType.MenuPeopleCode, asset.data.name, bar.name, item.name, 'ItemSelected'));
+  if (asset.kind === 'package') {
+    keys.push(makeKey(DefinitionType.ApplicationPackage, asset.data.name, asset.data.name, '.'));
+    for (const path of asset.data.packages) {
+      const segments = path.split(':');
+      keys.push(makeKey(DefinitionType.ApplicationPackage, segments.at(-1)!, asset.data.name, segments.length === 1 ? ':' : segments.slice(0, -1).join(':')));
+    }
+  }
+  return keys;
 }
 
 export async function exportMigrationPackage(source: MigrationPackageReader, project: string): Promise<StudioMigrationPackage> {
@@ -472,7 +501,8 @@ export async function exportMigrationPackage(source: MigrationPackageReader, pro
   const require = (key: DefinitionKey) => { if (!assets.has(projectKeyIdentity(key))) requirements.set(projectKeyIdentity(key), key); };
   for (const asset of assets.values()) for (const key of assetRequirements(asset)) require(key);
   const body = { format: 'psft-migration/1' as const, project, toolsRelease: (await source.readEnvironment()).toolsRelease,
-    members: items.map(item => item.key), assets: [...assets.values()], requirements: [...requirements.values()] };
+    members: items.map(item => item.key), assets: [...assets.values()], requirements: [...requirements.values()],
+    ...(source.environmentFingerprint ? { source: { environment: await source.environmentFingerprint() } } : {}) };
   return parseMigrationPackage(JSON.stringify({ ...body, checksum: migrationHash(body) }));
 }
 

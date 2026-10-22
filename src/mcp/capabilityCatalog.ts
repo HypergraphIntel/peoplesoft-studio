@@ -65,7 +65,7 @@ const familyRoutes: Partial<Record<D, Partial<Record<Operation, string[]>>>> = {
   [D.TranslateValue]: { edit: ['psft_edit_translate'] },
   [D.Page]: { read: ['psft_get_page_layout', 'psft_get_page_structure'], create: ['psft_page_create'], edit: ['psft_edit_page'] },
   [D.Component]: { read: ['psft_get_component', 'psft_get_component_structure'], create: ['psft_component_create'], edit: ['psft_component_edit'] },
-  [D.Project]: { create: ['psft_create_project'], edit: ['psft_add_to_project'], migrate: ['psft_project_related', 'psft_project_migration_review', 'psft_project_export_migration', 'psft_project_preview_migration'] },
+  [D.Project]: { create: ['psft_create_project'], edit: ['psft_add_to_project'], migrate: ['psft_project_related', 'psft_project_migration_review', 'psft_project_export_migration', 'psft_project_preview_migration', 'psft_project_promote'] },
   [D.ApplicationPackage]: { create: ['psft_create_package'], read: ['psft_list_children'], delete: ['psft_delete_package'] },
   [D.Query]: { search: ['psft_query_list'], read: ['psft_query_get'], create: ['psft_query_create'], edit: ['psft_query_save'], copy: ['psft_query_copy'], rename: ['psft_query_rename'], delete: ['psft_query_delete'], validate: ['psft_query_prepare'], execute: ['psft_query_run'] },
   [D.ProcessDefinition]: { read: ['psft_process_get'], create: ['psft_process_create'], edit: ['psft_process_save'], execute: ['psft_process_prepare_run', 'psft_process_submit_run'] },
