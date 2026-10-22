@@ -1,0 +1,62 @@
+{
+  "checkedAt": "2026-10-22T19:48:27.010Z",
+  "connection": "HRDMO",
+  "mode": "apply/inverse/redo in one native transaction, rolled back; commit suppressed; nothing persisted",
+  "page": {
+    "page": "ZZ_JOB_DATA1",
+    "deleted": [
+      123
+    ],
+    "added": [
+      157
+    ],
+    "movedLast": 112,
+    "maxPnlFldId": [
+      156,
+      157,
+      156,
+      157
+    ],
+    "inverseEqualsCheckpoint": true,
+    "redoEqualsAfterImage": true,
+    "versions": [
+      80,
+      778,
+      779,
+      780
+    ]
+  },
+  "record": {
+    "record": "ZZ_RPT_LINE",
+    "fields": [
+      [
+        "RECTYPE",
+        "ZZ_RPT_LABEL",
+        "ZZ_RPT_COUNT"
+      ],
+      [
+        "DESCR",
+        "RECTYPE",
+        "ZZ_RPT_LABEL"
+      ],
+      [
+        "RECTYPE",
+        "ZZ_RPT_LABEL",
+        "ZZ_RPT_COUNT"
+      ],
+      [
+        "DESCR",
+        "RECTYPE",
+        "ZZ_RPT_LABEL"
+      ]
+    ],
+    "inverseEqualsCheckpoint": true,
+    "redoEqualsAfterImage": true
+  },
+  "commitsSuppressed": 6,
+  "persisted": false,
+  "notVerified": [
+    "developer-approved application through the installed review UI",
+    "App Designer reopen after a returned MAXPNLFLDID"
+  ]
+}

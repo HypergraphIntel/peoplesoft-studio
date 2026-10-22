@@ -114,4 +114,7 @@ stage/apply/inverse/redo through the rendered review); HRDMO rollback previews
 insert/move/removal and ZZ_FL_REC_A insert/removal/list-box change each
 reproduced exactly by the rebuilt edit; removals refused for ZZ_PCODE_LAB_R2
 (Record Field PeopleCode) and ZZ_PCODE_LAB_R7 (page controls); all tokens
-unchanged.
+unchanged. In one rolled-back native transaction
+(`tools/lab/structural-cycle-native.mts`), ZZ_RPT_LINE insert DESCR first +
+remove ZZ_RPT_COUNT, the rebuilt inverse (ZZ_RPT_COUNT from its own row) equals
+the checkpoint exactly and redo equals the after-image; nothing persisted.

@@ -274,3 +274,12 @@ captured, so a save that would move its target is refused.
   Edit Box rebind are each reproduced exactly by the rebuilt typed request,
   with all 13 Related Fields still naming Display Control Fields. Every
   preview rolled back; the page token is unchanged.
+- Native apply/inverse/redo in one rolled-back transaction
+  (`tools/lab/structural-cycle-native.mts`,
+  `tools/lab/results/structural-cycle-native.json`): the writers run their
+  real DML, verification and counters on HRDMO with commit suppressed. On
+  ZZ_JOB_DATA1, delete 123 + add a Static Text + move 112 last, then the
+  review-rebuilt inverse equals the checkpoint exactly (123 restored under its
+  id, MAXPNLFLDID 157 → 156) and redo equals the after-image (157 again). The
+  final rollback leaves the page token unchanged. This is native writer
+  evidence, not installed developer-approved application.
