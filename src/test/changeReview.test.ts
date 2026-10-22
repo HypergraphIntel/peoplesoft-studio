@@ -980,14 +980,16 @@ test('only bounded header edits stage; a structural Record or App Engine edit ta
     assert.equal(isHeaderOnlyRequest('ae', [null]), false);
 });
 
-test('only bounded Page edits stage; inserting or deleting a control takes the legacy write path', () => {
+test('bounded Page edits stage, structural ones included; other properties, a Tree insert and saveInvalid take the legacy write path', () => {
     assert.equal(isStageablePageRequest([{ op: 'move', id: 3, left: 10, top: 20 }], undefined), true);
     assert.equal(isStageablePageRequest([{ op: 'set_use', id: 3, displayOnly: true }], undefined), true);
     assert.equal(isStageablePageRequest([{ op: 'set_properties', description: 'Setup', comments: 'why' }], undefined), true);
-
-    // A grid column is an inserted control, so it is not stageable.
-    assert.equal(isStageablePageRequest([{ op: 'add', kind: 'editBox', left: 0, top: 0, intoGrid: 5 }], undefined), false);
-    assert.equal(isStageablePageRequest([{ op: 'delete', id: 1 }], undefined), false);
+    // Inserted (a grid column too) and deleted controls, the tab order and an Edit Box rebind stage exact native proposals.
+    assert.equal(isStageablePageRequest([{ op: 'add', kind: 'editBox', left: 0, top: 0, intoGrid: 5 }], undefined), true);
+    assert.equal(isStageablePageRequest([{ op: 'delete', id: 1 }], undefined), true);
+    assert.equal(isStageablePageRequest([{ op: 'set_order', order: [2, 1] }, { op: 'set_binding', id: 1, record: 'R', field: 'F' }], undefined), true);
+    // A Tree's restoration is not supported, so its insert is not stageable.
+    assert.equal(isStageablePageRequest([{ op: 'add', kind: 'tree', left: 0, top: 0 }], undefined), false);
     // set_properties carrying more than description/comments, and saveInvalid, are not stageable.
     assert.equal(isStageablePageRequest([{ op: 'set_properties', fluidPage: true }], undefined), false);
     assert.equal(isStageablePageRequest([{ op: 'move', id: 3, left: 0, top: 0 }], true), false);

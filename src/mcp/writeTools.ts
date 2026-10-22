@@ -7,7 +7,7 @@ import { DefinitionType, displayName, type DefinitionKey } from '../model/defini
 import { FieldType, RecordType } from '../model/record.js';
 import { layoutEditRefusal } from '../model/recordEdit.js';
 import { applyRecordOperations, type RecordOperation } from '../model/recordOperations.js';
-import { applyPageOperations, pageLayoutForAgent, type PageOperation } from '../model/pageOperations.js';
+import { applyPageOperations, pageLayoutForAgent, resolvePageBindings, type PageOperation } from '../model/pageOperations.js';
 import { buildPageLayout } from '../model/pageLayout.js';
 import { NEW_PAGE, PAGE_NAME } from '../providers/pageWriter.js';
 import { DatabaseProvider } from '../providers/database.js';
@@ -126,6 +126,8 @@ const pageOperation = z.discriminatedUnion('op', [
   z.object({ op: z.literal('set_use'), id: z.number().int(), displayOnly: z.boolean().optional(), invisible: z.boolean().optional(),
     deferProc: z.boolean().optional().describe('Allow Deferred Processing. false makes the field fire FieldChange when the user leaves it, rather than on the next server trip -- use it on a field whose FieldChange enables or fills others.') }),
   z.object({ op: z.literal('delete'), id: z.number().int() }),
+  z.object({ op: z.literal('set_binding'), id: z.number().int(), record: z.string().min(1), field: z.string().min(1) })
+    .describe('An Edit Box\'s Record Name / Field Name: the field must be on the record; its default label (an RFT label\'s text) and format family come with it, as App Designer rebinds.'),
   z.object({ op: z.literal('set_occurs_level'), id: z.number().int(), level: z.number().int().min(1).max(3) })
     .describe('A Scroll Bar / Grid / Scroll Area\'s Occurs Level: the controls after it in tab order are at it, up to the next scroll or Set to Level rule.'),
   z.object({ op: z.literal('set_level'), id: z.number().int(), level: z.number().int().min(0).max(2).nullable() })
@@ -322,7 +324,8 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
     const { layout } = await gate.provider.readPageLayout(key);
     if (expectedVersion !== undefined && expectedVersion !== layout.version) throw new Error('The page changed since it was read; reopen the page before previewing or saving.');
     if (dryRun && host.hasUnsavedEditor(gate.provider.id, key)) throw new Error('The page has unsaved editor changes; save or discard them before previewing the database definition.');
-    const { controls, properties, order } = applyPageOperations(layout, operations as PageOperation[]);
+    const { controls, properties, order } = applyPageOperations(layout, operations as PageOperation[],
+      await resolvePageBindings(operations as PageOperation[], (record, field) => gate.provider.pageFieldBinding(record, field)));
     if (!dryRun) await approve(host, gate, key, `edit page ${key.parts[0]}`,
       `${operations.length} change${operations.length === 1 ? '' : 's'}:\n${operations.map((o) => describeOperation(o)).join('\n')}`);
     const r = await gate.provider.savePage({ pnlName: key.parts[0], openedVersion: layout.version, operatorId: gate.operatorId, controls, properties,

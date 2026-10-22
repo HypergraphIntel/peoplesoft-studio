@@ -1,0 +1,68 @@
+{
+  "checkedAt": "2026-10-22T19:37:28.649Z",
+  "connection": "HRDMO",
+  "page": "ZZ_JOB_DATA1",
+  "mode": "native rollback previews only; no commit, stage, approval or apply",
+  "baselineVersion": 80,
+  "baselineToken": "51f336e609e445a9086da1dfd66d2a0c506ea16ebd5b2cded3c5d37bd5caa45a",
+  "cases": [
+    {
+      "case": "delete 123",
+      "inserted": [],
+      "deleted": [
+        123
+      ],
+      "maxPnlFldId": [
+        156,
+        156
+      ],
+      "reproduced": true,
+      "appDesignerPs01": "all 88 PSPNLFIELD rows equal App Designer's after-image (every column but PNLNAME)"
+    },
+    {
+      "case": "delete Related Control Field 7",
+      "refused": "(15,22) More than one data record in scroll, as App Designer (ps02)"
+    },
+    {
+      "case": "add static text at (28,64)",
+      "inserted": [
+        157
+      ],
+      "deleted": [],
+      "maxPnlFldId": [
+        156,
+        157
+      ],
+      "reproduced": true,
+      "relatedFieldsKeptTargets": 13
+    },
+    {
+      "case": "move 123 to the end of the tab order",
+      "inserted": [],
+      "deleted": [],
+      "maxPnlFldId": [
+        156,
+        156
+      ],
+      "reproduced": true,
+      "relatedFieldsKeptTargets": 13
+    },
+    {
+      "case": "rebind Edit Box 2 (JOB.EFFSEQ) to JOB.EMPL_RCD",
+      "inserted": [],
+      "deleted": [],
+      "maxPnlFldId": [
+        156,
+        156
+      ],
+      "reproduced": true,
+      "relatedFieldsKeptTargets": 13
+    }
+  ],
+  "endToken": "51f336e609e445a9086da1dfd66d2a0c506ea16ebd5b2cded3c5d37bd5caa45a",
+  "nativeScopedContentAndTokenUnchanged": true,
+  "notVerified": [
+    "developer-approved apply/inverse/redo in the installed build",
+    "App Designer reopen of a page whose MAXPNLFLDID was returned"
+  ]
+}

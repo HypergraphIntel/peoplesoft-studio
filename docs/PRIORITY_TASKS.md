@@ -19,7 +19,7 @@ The qualified core ships in [release 0.9.8](releases/0.9.8.md) on `main`.
 
 | Target | Priority | Next work | Why it matters |
 | --- | --- | --- | --- |
-| 1.5 / V15-1 | Highest next big win | Structural Page Change Review: insert/delete/rebind/order with native persisted-ID mapping and exact apply/inverse/redo | Makes larger reviewed UI changes possible through one durable workflow |
+| 1.5 / V15-1 | Highest next big win | Structural Page Change Review: insert/delete/rebind/order with native persisted-ID mapping and exact apply/inverse/redo. **Page part implemented** (fixture + HRDMO rollback previews; [PAGE_ADAPTER.md](change-review/PAGE_ADAPTER.md#structural-page-review-v15-1)); installed developer acceptance pending. Record/field, AE structural and package/class lifecycle follow | Makes larger reviewed UI changes possible through one durable workflow |
 | 1.5 / V15-2 | High | Promotion between separate Oracle environments | Turns the bounded package workflow into verified delivery across environments |
 | 1.5 / V15-3 | High | Representative business application acceptance and native Windows AI Build handoff | Proves real requirements-to-application behavior beyond current synthetic/Linux evidence |
 | 1.5 / V15-4 | Normal | Broader Query release/family and language/editor coverage | Expands the currently calibrated contract without protected regressions |

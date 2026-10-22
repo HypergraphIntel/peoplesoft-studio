@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { buildPageLayout, controlShape } from '../model/pageLayout.js';
 import type { PageView, Row } from '../model/uiDefinitions.js';
 import { renderPageHtml } from '../editors/pageHtml.js';
-import { applyPageOperations, pageLayoutForAgent } from '../model/pageOperations.js';
+import { applyPageOperations, pageLayoutForAgent, resolvePageBindings } from '../model/pageOperations.js';
 
 const field = (over: Partial<Record<string, unknown>>): Row => ({
   FIELDNUM: 1, OCCURSLEVEL: 0, FIELDTYPE: 4, FIELDUSE: 0, LBLTYPE: 3, LBLTEXT: '', RECNAME: ' ', FIELDNAME: ' ',
@@ -230,4 +230,14 @@ test('a grid\'s columns -- the (0, 0) controls after it -- are drawn inside it, 
   // A control after the grid but placed elsewhere is in its scroll, not a column.
   assert.equal(button.gridColumnOf, undefined);
   assert.equal(button.rect.left, 500);
+});
+
+test('set_binding rebinds an Edit Box with its field\'s default label and format family, clearing the Display Name (eb77, eb79)', async () => {
+  const layout = buildPageLayout('P', view([field({ FIELDTYPE: 4, LBLTYPE: 2, LBLTEXT: 'Old', RECNAME: 'R1', FIELDNAME: 'F1' }), field({ PNLFLDID: 2, FIELDNUM: 2, FIELDTYPE: 5 })]));
+  const ops = [{ op: 'set_binding' as const, id: 1, record: 'derived_address', field: 'postal' }];
+  const bindings = await resolvePageBindings(ops, async (r, f) => (r === 'DERIVED_ADDRESS' && f === 'POSTAL' ? { labelId: 'POSTAL', shortName: 'Postal', longName: 'Postal Code', formatFamily: 'POSTAL_CODE' } : undefined));
+  const [c] = applyPageOperations(layout, ops, bindings).controls;
+  assert.deepEqual([c.recName, c.fieldName, c.labelId, c.lblText, c.formatFamily, c.displayFormatName], ['DERIVED_ADDRESS', 'POSTAL', 'POSTAL', 'Postal', 'POSTAL_CODE', '']);
+  await assert.rejects(resolvePageBindings([{ op: 'set_binding', id: 1, record: 'R', field: 'NOPE' }], async () => undefined), /not a field on record R/);
+  assert.throws(() => applyPageOperations(layout, [{ op: 'set_binding', id: 2, record: 'derived_address', field: 'postal' }], bindings), /only an Edit Box can be rebound/);
 });

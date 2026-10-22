@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- **Structural Page Change Review (1.5, V15-1).** `psft_edit_page` now stages
+  inserted and deleted controls, tab order and a new `set_binding` (Edit Box
+  rebind with its field's default label and format family) as exact native
+  proposals. Review records the ids the writer assigns; undo restores deleted
+  controls under their own ids and returns MAXPNLFLDID after removing added
+  ones; redo restores the reviewed controls. Deletes of controls that
+  translations or configurator rows still name are refused. Installed
+  developer acceptance is pending.
+- **Page writer corrections from App Designer captures (ps01–ps04).** Related
+  Field references (ASSOCFIELDNUM) now follow their control through deletes,
+  inserts and reorders, and turn off when the control is deleted, as App
+  Designer does; an added control's tab place no longer jumps past a scroll
+  just below it or before a higher control at the right.
+
 ## 0.9.8 — October 22, 2026
 
 See the [release notes](docs/releases/0.9.8.md) for scope and qualification evidence.

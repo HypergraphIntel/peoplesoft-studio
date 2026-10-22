@@ -1360,6 +1360,18 @@ export class DatabaseProvider implements DefinitionProvider {
     });
   }
 
+  /**
+   * What an Edit Box rebound to a record field takes from it (eb77, eb79): the field's default label (LABEL_ID and its
+   * short / long names, for an RFT label) and format family. Undefined when the field is not on the record.
+   */
+  async pageFieldBinding(record: string, field: string): Promise<{ labelId: string; shortName: string; longName: string; formatFamily: string } | undefined> {
+    const onRecord = await this.withConnection(async (c) => ((await c.execute<{ N: number }>(
+      `SELECT COUNT(*) AS N FROM PSRECFIELDDB WHERE RECNAME = :r AND FIELDNAME = :f`, { r: record.trim().toUpperCase(), f: field.trim().toUpperCase() })).rows ?? [])[0]);
+    if (!Number(onRecord?.N)) return undefined;
+    const labels = await this.fieldLabels(field), label = labels.find((l) => l.isDefault) ?? labels[0];
+    return { labelId: label?.labelId ?? '', shortName: label?.shortName ?? '', longName: label?.longName ?? '', formatFamily: (await this.editBoxField(record, field)).formatFamily };
+  }
+
   /** The Popup Pages (PSPNLDEFN.PNLTYPE 3): an Edit Box's Mouse Over Popup page list (eb39). */
   async popupPages(): Promise<string[]> {
     return this.withConnection(async (c) => ((await c.execute<{ N: string }>(`SELECT PNLNAME AS N FROM PSPNLDEFN WHERE PNLTYPE = 3 ORDER BY PNLNAME`)).rows ?? [])

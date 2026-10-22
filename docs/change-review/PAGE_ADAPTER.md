@@ -1,13 +1,15 @@
 # Bounded Page review adapter — development
 
-The Oracle `page` adapter supports existing-control move/resize, label/use and
-Page description/comments. Normal `psft_edit_page` calls stage those operations
-when Change Review is enabled. They return REVIEW_REQUIRED/persisted=false;
+The Oracle `page` adapter supports existing-control move/resize, label/use,
+Page description/comments and — since the V15-1 structural work — inserted and
+deleted controls, the tab order (`set_order`) and an Edit Box's record field
+(`set_binding`). Normal `psft_edit_page` calls stage those operations when
+Change Review is enabled. They return REVIEW_REQUIRED/persisted=false;
 developer approval/application remain in the persistent review workspace.
+See [Structural Page review](#structural-page-review-v15-1) below.
 
-Page/control creation/deletion, copy/paste, tab-order/scroll-level edits,
-binding changes, other Page properties and `saveInvalid` are refused on this
-staging path. Servers without Change Review and other platforms retain their
+Page creation/deletion, copy/paste, a Tree's insert, scroll-level edits, other
+control or Page properties and `saveInvalid` are refused on this staging path. Servers without Change Review and other platforms retain their
 legacy routes. Explicit `dryRun` keeps the broader existing rollback-preview
 path; a preview is not approval to apply it.
 
@@ -176,3 +178,99 @@ live MATCHES_RECORDED and independent description readback. The timeline
 correctly marks the forward revision GAP after the unrecorded external edit,
 then MATCHES_PREVIOUS for the inverse and redo. Inserted controls and other
 structure remain outside this result.
+
+
+## Structural Page review (V15-1)
+
+Development state as of October 22, 2026: implemented, unit/transaction tested,
+production HTTP/UI fixture verified (71 checks) and native rollback-preview
+verified on HRDMO. Developer-approved installed apply/inverse/redo and an
+App Designer reopen after a returned high-water mark are still pending.
+
+### Native identity: the writer assigns, the review records
+
+Staging runs the editor's whole save in rollback mode. The writer gives an
+added control `MAXPNLFLDID + 1` and its App Designer tab place, re-derives
+levels and renumbers Related Field references; the staged after-image carries
+those assigned positive ids. Application reruns the same writer under the
+locked baseline token, so the ids cannot differ; post-commit readback requires
+the whole scoped image to equal the approved one. No negative or provisional
+id survives into a proposal.
+
+### Typed reconstruction
+
+`requestForPageSnapshot(before, after)` rebuilds a typed editor request:
+
+- **Surviving controls:** mandatory geometry/label/use, plus every column the
+  writer edits from an editor field (`reviewedControlFields`) that differs,
+  an HTML Area's Constant, and a scroll's or Set to Level rule's own level.
+- **Deleted controls:** omitted from the request (the writer deletes their
+  rows in every per-control table).
+- **Inserted controls:** a `restore` of their own reviewed rows in the nine
+  per-control tables (PSPNLFIELD, PSPNLFIELDEXT, PSPNLHTMLAREA, PSPNLHTMLLANG,
+  PSPTPNLRTEDITOR, PSPNLCNTRLDATA, PSPNLBTNDATA, PSPNLACEGRDDATA,
+  PSPNLACEGRDAXIS), under their native id. The writer refuses restored rows
+  for another page or id, a second row, a missing PSPNLFIELDEXT or a Tree
+  (PSPNLTREECTRL is keyed by tab place). FIELDNUM, OCCURSLEVEL and a grid's
+  GRDCOLUMNCOUNT are assigned by the save, as for any insert.
+- **Related Fields:** named by identity (`assocTarget`); the writer writes the
+  target's final FIELDNUM − 1.
+- **Order:** the complete after-image tab order; **high-water mark:** the
+  after-image MAXPNLFLDID.
+
+Restoration and an explicit MAXPNLFLDID are accepted only by a snapshot-guarded
+(reviewed) save; an ordinary editor/MCP save refuses them. The forward
+proposal, its typed inverse and redo all pass the same exact native preview
+equivalence before approval and the same full readback after commit.
+
+### Exact inverse
+
+- **Undoing an insert** deletes the added control and returns MAXPNLFLDID to
+  the checkpoint value. The writer refuses a value below a remaining control's
+  id. Because a later add will take a returned id again, the review refuses a
+  delete or a returned id while another definition or translation still names
+  it (`CONTROL_REFERENCES`: PSPNLFIELDLANG, PSPNLBTNLANG, PSPNLCTLDATALNG,
+  PSPNLACTIVEX, PSPTPNLRAWIDGET, PSPNLACEGRDDATA.PROBINSTPNLFLDID, Page Field
+  Configurator, embedded help and HR configurator tables present on the
+  database). These rows are outside the Page snapshot and cannot be
+  checkpointed.
+- **Undoing a delete** re-inserts the control's checkpoint rows under its own
+  id; MAXPNLFLDID never moved.
+- **Undoing a reorder or rebind** replays the checkpoint's order/binding.
+- A deleted Tree has no exact inverse (`reversalRefusal`).
+
+### Native behavior calibrated for this work
+
+Four App Designer saves on ZZ_PG_STRUCT1 (a Save As copy of ZZ_JOB_DATA1 with
+13 Related Fields), `tools/corpus/save-protocol/results/ps01`–`ps04`:
+
+| Capture | App Designer action | Native result |
+|---|---|---|
+| ps01 | Delete a control before the related pairs | Later FIELDNUMs close the gap; every Related Field's ASSOCFIELDNUM follows its control field |
+| ps02 | Delete a Related Control Field | Its Related Field loses 0x10 (FIELDUSE 19 → 3) and ASSOCFIELDNUM 0; the page then fails (15,22) |
+| ps03 | Insert a Static Text near the top | MAXPNLFLDID + 1 at tab place 4 (before the Scroll Area 8 px lower, after a hidden field 16 px higher at the far right); references move +1 |
+| ps04 | Order tab move | References follow their controls |
+
+These corrected two writer defects in the legacy path as well: references were
+not renumbered on delete/insert/reorder, and the tab-place rule misplaced an
+add above a scroll or below a higher control to its right. Twenty-two earlier
+insert captures still replay exactly. A Group Box Header Extension
+(PTGBRELACTFLD) also names a control by FIELDNUM; its renumbering is not
+captured, so a save that would move its target is refused.
+
+### Evidence
+
+- Unit: `pageWriter.test.ts` replays ps01–ps04 and a restoration/undo plan;
+  `pageWriterTransaction.test.ts` runs insert/delete/order forward,
+  checkpoint inverse (restored id and HTML row, returned MAXPNLFLDID) and redo
+  through the writer and snapshot reader.
+- HTTP/UI fixture: insert stage/approve/apply, inverse, redo and delete
+  apply/inverse through the rendered review UI.
+- Native rollback previews (`tools/lab/page-structure-native-preview.mts`,
+  `tools/lab/results/page-structure-native-preview.json`): on HRDMO
+  ZZ_JOB_DATA1 the writer's delete of control 123 equals App Designer's ps01
+  after-image in all 88 PSPNLFIELD rows, every column; deleting Related Control
+  Field 7 is refused with (15,22); an added Static Text, a tab order move and an
+  Edit Box rebind are each reproduced exactly by the rebuilt typed request,
+  with all 13 Related Fields still naming Display Control Fields. Every
+  preview rolled back; the page token is unchanged.

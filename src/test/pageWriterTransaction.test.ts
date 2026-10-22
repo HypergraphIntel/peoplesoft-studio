@@ -152,3 +152,59 @@ test('Page projection accepts native SECUREINVISIBLE character flags without coe
     after.tables.PSPNLFIELD[0].FIELDLEFT = '360';
     assert.throws(() => requestForPageSnapshot('ZZ_PREVIEW_PAGE', before.value, after, 7, 'JARED'), /FIELDLEFT/);
 });
+
+const field = (id: number, num: number, top: number, extra: Record<string, unknown> = {}) => ({ PNLNAME: 'ZZ_PREVIEW_PAGE', PNLFLDID: id, FIELDNUM: num, FIELDTYPE: 0,
+    FIELDLEFT: 10, FIELDTOP: top, FIELDRIGHT: 0, FIELDBOTTOM: 0, EDITLBLLEFT: 0, EDITLBLTOP: 0, EDITLBLRIGHT: 0, EDITLBLBOTTOM: 0, FIELDSIZETYPE: 0,
+    LBLTYPE: 1, LBLTEXT: 'Text ' + id, FIELDUSE: 0, SECUREINVISIBLE: '0', OCCURSLEVEL: 0, RECNAME: ' ', FIELDNAME: ' ', ASSOCFIELDNUM: 0, DSPLFORMAT: 1, ...extra });
+const extRow = (id: number) => ({ PNLNAME: 'ZZ_PREVIEW_PAGE', PNLFLDID: id, FFSTYLELONG: ' ', PARENTPNLFLDID: 'ZZ_PREVIEW_PAGE$0', PAGEPNLFLDID: 'ZZ_PREVIEW_PAGE$0' });
+const structural = () => pageTransaction({ PSPNLFIELD: [field(1, 1, 20), field(2, 2, 60), field(3, 3, 100)], PSPNLFIELDEXT: [extRow(1), extRow(2), extRow(3)],
+    PSPNLHTMLAREA: [{ PNLNAME: 'ZZ_PREVIEW_PAGE', PNLFLDID: 2, HTMLAREA: '<b>kept with its control</b>' }] });
+
+test('structural Page review: insert/delete/order reproduce exactly, and the checkpoint inverse and redo restore ids, rows and the high-water mark', async () => {
+    const f = structural();
+    const add = { pnlFldId: -1, fieldLeft: 10, fieldTop: 40, fieldRight: 0, fieldBottom: 0, editLblLeft: 0, editLblTop: 0, editLblRight: 0, editLblBottom: 0,
+        fieldSizeType: 0, lblType: 1, lblText: 'Added', fieldUse: 0, secureInvisible: 0, add: { kind: 'staticText' as const, recName: '', fieldName: '' } };
+    const start = await readPageSnapshot(f.connection, ADAPTER_TYPES, 'ZZ_PREVIEW_PAGE');
+    const base = requestForPageSnapshot('ZZ_PREVIEW_PAGE', start.value, start.value, 7, 'JARED');
+    // Delete control 2 (and its HTML row with it), add a Static Text between 1 and 3, and put 3 first.
+    const preview = await savePage(f.connection, { pnlName: 'ZZ_PREVIEW_PAGE', openedVersion: 7, operatorId: 'JARED',
+        controls: [...base.controls.filter(c => c.pnlFldId !== 2), add], order: [3, 1], dryRun: true, captureSnapshots: true }, ADAPTER_TYPES);
+    const { before, after } = preview.snapshots!;
+    assert.deepEqual(after.value.tables.PSPNLFIELD.map(r => [r.PNLFLDID, r.FIELDNUM]).sort(), [[1, 2], [3, 1], [4, 3]]);
+    assert.equal(after.value.tables.PSPNLDEFN[0].MAXPNLFLDID, 4);
+    assert.deepEqual(after.value.tables.PSPNLHTMLAREA, []);
+    assert.deepEqual(f.state(), f.initial);
+    // Review validation: the typed request rebuilt from the snapshots reproduces the whole after-image.
+    const forward = requestForPageSnapshot('ZZ_PREVIEW_PAGE', before.value, after.value, 7, 'JARED');
+    assert.ok(forward.controls.find(c => c.pnlFldId === 4)?.restore?.PSPNLFIELD);
+    const replay = await savePage(f.connection, { ...forward, dryRun: true, captureSnapshots: true, expectedSnapshotToken: before.token }, ADAPTER_TYPES);
+    assert.equal(replay.snapshots!.after.hash, after.hash);
+    await savePage(f.connection, { ...forward, expectedSnapshotToken: before.token }, ADAPTER_TYPES);
+    const applied = await readPageSnapshot(f.connection, ADAPTER_TYPES, 'ZZ_PREVIEW_PAGE');
+    assert.equal(applied.hash, after.hash);
+    // Checkpoint inverse: control 2 and its HTML row come back under id 2; the added 4 goes and MAXPNLFLDID returns to 3.
+    const inverse = requestForPageSnapshot('ZZ_PREVIEW_PAGE', applied.value, before.value, applied.version, 'JARED');
+    await savePage(f.connection, { ...inverse, expectedSnapshotToken: applied.token }, ADAPTER_TYPES);
+    const restored = await readPageSnapshot(f.connection, ADAPTER_TYPES, 'ZZ_PREVIEW_PAGE');
+    assert.equal(restored.hash, before.hash, 'the checkpoint is restored exactly');
+    assert.equal(f.state().page.MAXPNLFLDID, 3);
+    // Redo: the added control returns under its reviewed id 4.
+    const redo = requestForPageSnapshot('ZZ_PREVIEW_PAGE', restored.value, after.value, restored.version, 'JARED');
+    await savePage(f.connection, { ...redo, expectedSnapshotToken: restored.token }, ADAPTER_TYPES);
+    assert.equal((await readPageSnapshot(f.connection, ADAPTER_TYPES, 'ZZ_PREVIEW_PAGE')).hash, after.hash);
+});
+
+test('restoring rows or lowering MAXPNLFLDID is refused outside a reviewed snapshot-guarded save', async () => {
+    const f = structural();
+    const start = await readPageSnapshot(f.connection, ADAPTER_TYPES, 'ZZ_PREVIEW_PAGE');
+    const without = structuredClone(start.value);
+    without.tables.PSPNLFIELD = without.tables.PSPNLFIELD.filter(r => r.PNLFLDID !== 3);
+    without.tables.PSPNLFIELDEXT = without.tables.PSPNLFIELDEXT.filter(r => r.PNLFLDID !== 3);
+    // Releasing id 3 by lowering the high-water mark needs the guard.
+    const lower = requestForPageSnapshot('ZZ_PREVIEW_PAGE', start.value, { ...without, tables: { ...without.tables, PSPNLDEFN: [{ ...without.tables.PSPNLDEFN[0], MAXPNLFLDID: 2 }] } }, 7, 'JARED');
+    await assert.rejects(savePage(f.connection, lower), /only done by a reviewed/);
+    // A plain manual save built from snapshots without structural change remains an ordinary save.
+    const same = requestForPageSnapshot('ZZ_PREVIEW_PAGE', start.value, start.value, 7, 'JARED');
+    await savePage(f.connection, { ...same, properties: { description: 'Manual', comments: '' } });
+    assert.equal(f.state().page.DESCR, 'Manual');
+});

@@ -95,7 +95,7 @@ test('a delete removes the row and renumbers the survivors (08-delete shape)', (
 test('no change yields no updates', () => {
   const stored = [control({ pnlFldId: 1, fieldNum: 1 })];
   const { checked, ...plan } = planPageSave(stored, [edit(stored[0])]);
-  assert.deepEqual(plan, { deletes: [], updates: [], extUpdates: [], inserts: [], htmlWrites: [], richTextWrites: [], fieldCount: 1, maxPnlFldId: 1, treeRekeys: [], treeDeletes: [] });
+  assert.deepEqual(plan, { deletes: [], updates: [], extUpdates: [], inserts: [], htmlWrites: [], richTextWrites: [], fieldCount: 1, maxPnlFldId: 1, naturalMaxPnlFldId: 1, treeRekeys: [], treeDeletes: [] });
   assert.equal(checked.length, 1);
 });
 
@@ -286,7 +286,7 @@ const asStored = (r: Row): StoredControl => ({
   fieldLeft: Number(r.FIELDLEFT), fieldTop: Number(r.FIELDTOP), fieldRight: Number(r.FIELDRIGHT), fieldBottom: Number(r.FIELDBOTTOM),
   editLblLeft: Number(r.EDITLBLLEFT), editLblTop: Number(r.EDITLBLTOP), editLblRight: Number(r.EDITLBLRIGHT), editLblBottom: Number(r.EDITLBLBOTTOM),
   fieldSizeType: Number(r.FIELDSIZETYPE), lblType: Number(r.LBLTYPE), lblText: String(r.LBLTEXT ?? ''), fieldUse: Number(r.FIELDUSE), secureInvisible: Number(r.SECUREINVISIBLE),
-  occursLevel: Number(r.OCCURSLEVEL ?? 0), recName: String(r.RECNAME ?? ''), fieldName: String(r.FIELDNAME ?? '')
+  occursLevel: Number(r.OCCURSLEVEL ?? 0), recName: String(r.RECNAME ?? ''), fieldName: String(r.FIELDNAME ?? ''), assocFieldNum: Number(r.ASSOCFIELDNUM ?? 0)
 });
 /** What the editor sends for a pasted copy of `src` that App Designer stored as `row`: an auto-sized 0 corner stays 0 in the editor. */
 const pasted = (src: Row, row: Row, page = 'ZZ_PCODE_LAB_PG'): EditedControl => {
@@ -893,4 +893,68 @@ test('a second grid on a new page goes after the first grid\'s columns, not betw
   assert.deepEqual(placed.map((c) => c.add!.fieldName || c.add!.recName), ['KEYF', 'A', 'A1', 'A2', 'B', 'B1']);
   assert.equal(placed[1].grdColumnCount, 2, 'the first grid keeps both its columns');
   assert.equal(placed[4].grdColumnCount, 1, 'the second grid counts only its own');
+});
+
+/** A capture's PSPNLFIELD updates as App Designer wrote them, by PNLFLDID (numbers as numbers). */
+function capturedUpdates(capture: string): Map<number, Record<string, number | string>> {
+  const delta = JSON.parse(readFileSync(join(process.cwd(), 'tools/corpus/save-protocol/results', capture, 'delta.json'), 'utf8')).watch.PSPNLFIELD;
+  return new Map(delta.updated.map((u: { key: { PNLFLDID: string }; changes: Record<string, { after: string }> }) => [Number(u.key.PNLFLDID),
+    Object.fromEntries(Object.entries(u.changes).map(([k, v]) => [k, /^-?\d+$/.test(v.after) ? Number(v.after) : v.after]))]));
+}
+const planned = (updates: Array<{ pnlFldId: number; columns: Record<string, number | string> }>) => new Map(updates.map((u) => [u.pnlFldId, u.columns]));
+const struct = (capture: string, phase: 'before' | 'after') => captureRows(capture, phase, 'PSPNLFIELD', 'ZZ_PG_STRUCT1');
+
+test('Related Fields keep their Related Control Field through a delete before it (ps01)', () => {
+  const before = struct('ps01-delete-before-related', 'before').map(asStored);
+  const plan = planPageSave(before, before.filter((c) => c.pnlFldId !== 123).map(edit), 156, undefined, 'ZZ_PG_STRUCT1');
+  assert.deepEqual(plan.deletes, [123]);
+  assert.deepEqual(planned(plan.updates), capturedUpdates('ps01-delete-before-related'));
+});
+
+test('deleting a Related Control Field turns its related field off, ASSOCFIELDNUM 0 (ps02)', () => {
+  const before = struct('ps02-delete-control-field', 'before').map(asStored);
+  const plan = planPageSave(before, before.filter((c) => c.pnlFldId !== 7).map(edit), 156, undefined, 'ZZ_PG_STRUCT1');
+  assert.deepEqual(planned(plan.updates).get(29), { FIELDNUM: 24, FIELDUSE: 3, ASSOCFIELDNUM: 0 });
+  assert.deepEqual(planned(plan.updates), capturedUpdates('ps02-delete-control-field'));
+});
+
+test('an added control early in tab order moves every later Related Control Field reference (ps03)', () => {
+  const before = struct('ps03-insert-early', 'before').map(asStored);
+  const row = inserted('ps03-insert-early', 'PSPNLFIELD')[0];
+  const add: EditedControl = { pnlFldId: -1, fieldLeft: 28, fieldTop: 64, fieldRight: 0, fieldBottom: 0, editLblLeft: 0, editLblTop: 0, editLblRight: 0, editLblBottom: 0,
+    fieldSizeType: Number(row.FIELDSIZETYPE), lblType: 1, lblText: String(row.LBLTEXT), fieldUse: 0, secureInvisible: 0, add: { kind: 'staticText', recName: '', fieldName: '' } };
+  const plan = planPageSave(before, [...before.map(edit), add], 156, undefined, 'ZZ_PG_STRUCT1');
+  assert.deepEqual(plan.inserts.map((i) => [i.pnlFldId, i.fieldNum]), [[157, Number(row.FIELDNUM)]]);
+  assert.equal(plan.maxPnlFldId, 157);
+  assert.deepEqual(planned(plan.updates), capturedUpdates('ps03-insert-early'));
+});
+
+test('an Order tab move renumbers Related Control Field references with the controls (ps04)', () => {
+  const before = struct('ps04-reorder', 'before').map(asStored);
+  const order = [...struct('ps04-reorder', 'after')].sort((a, b) => Number(a.FIELDNUM) - Number(b.FIELDNUM)).map((r) => Number(r.PNLFLDID));
+  const plan = planPageSave(before, before.map(edit), 157, order, 'ZZ_PG_STRUCT1');
+  assert.deepEqual(planned(plan.updates), capturedUpdates('ps04-reorder'));
+});
+
+test('a reviewed restoration re-inserts a control under its own id at its tab place; MAXPNLFLDID can be set back', () => {
+  const before = struct('ps03-insert-early', 'after').map(asStored);
+  const field = struct('ps03-insert-early', 'after').find((r) => Number(r.PNLFLDID) === 157)!;
+  const ext = captureRows('ps03-insert-early', 'after', 'PSPNLFIELDEXT', 'ZZ_PG_STRUCT1').find((r) => Number(r.PNLFLDID) === 157)!;
+  // Undo the add: delete 157 and lower the high-water mark to its prior 156; the references move back (ps03 in reverse).
+  const undo = planPageSave(before, before.filter((c) => c.pnlFldId !== 157).map(edit), 157, undefined, 'ZZ_PG_STRUCT1', false, 156);
+  assert.equal(undo.maxPnlFldId, 156);
+  const reverse = capturedUpdates('ps03-insert-early');
+  for (const [id, cols] of planned(undo.updates)) assert.equal(cols.FIELDNUM, Number(struct('ps03-insert-early', 'before').find((r) => Number(r.PNLFLDID) === id)!.FIELDNUM), String(id));
+  assert.equal(planned(undo.updates).size, reverse.size);
+  assert.throws(() => planPageSave(before, before.map(edit), 157, undefined, 'ZZ_PG_STRUCT1', false, 156), /below a remaining control/);
+  // Redo: restore 157's own rows at tab place 4 of a page without it.
+  const without = struct('ps03-insert-early', 'before').map(asStored);
+  const order = [...struct('ps03-insert-early', 'after')].sort((a, b) => Number(a.FIELDNUM) - Number(b.FIELDNUM)).map((r) => Number(r.PNLFLDID));
+  const back: EditedControl = { ...edit(asStored(field)), restore: { PSPNLFIELD: [field], PSPNLFIELDEXT: [ext] } };
+  const redo = planPageSave(without, [...without.map(edit), back], 156, order, 'ZZ_PG_STRUCT1', false, 157);
+  assert.deepEqual(redo.inserts.map((i) => [i.pnlFldId, i.fieldNum]), [[157, 4]]);
+  assert.equal(redo.maxPnlFldId, 157);
+  assert.deepEqual(planned(redo.updates), capturedUpdates('ps03-insert-early'));
+  assert.throws(() => planPageSave(without, [...without.map(edit), back], 156, undefined, 'ZZ_PG_STRUCT1'), /complete tab order/);
+  assert.throws(() => planPageSave(before, [...before.map(edit), back], 157, order, 'ZZ_PG_STRUCT1'), /unused id/);
 });

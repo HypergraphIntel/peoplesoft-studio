@@ -41,7 +41,7 @@ export function routeReviewedMutations(server: {
                 : name === 'psft_edit_record' || name === 'psft_ae_edit'
                 ? ' With Change Review on Oracle, only existing-definition description/comments edits stage full preservation snapshots for developer approval/application; Record SQL Table/Derived Work only. A structural operation is not staged: it saves through the legacy per-write confirmation, outside creation review. Proposed dependency validation is limited to new definitions with explicit dependencies. Explicit dryRun retains its documented preview path.'
                 : name === 'psft_edit_page'
-                ? ' With Change Review on Oracle, only existing-control move/resize, label/use and description/comments changes stage proposals. Inserting or deleting a control, and saveInvalid, are not staged: they save through the legacy per-write confirmation. Explicit dryRun keeps the rollback preview path. No Page creation/deletion adapter is implied.'
+                ? ' With Change Review on Oracle, move/resize, label/use, description/comments, inserted and deleted controls (not a Tree insert), set_order and Edit Box set_binding stage exact native proposals; the writer assigns the new controls\' ids and tab places and renumbers Related Field references, and the reviewed after-image is applied exactly. Reversal restores deleted controls under their own ids and returns MAXPNLFLDID after removing added ones; deletes of controls named by translations or configurator rows are refused. Other properties and saveInvalid are not staged: they save through the legacy per-write confirmation. Explicit dryRun keeps the rollback preview path. No Page creation/deletion adapter is implied.'
                 : ' With Change Review enabled on Oracle, supported text, PeopleCode, Process and Query mutations stage a durable proposal and return REVIEW_REQUIRED; they do not persist until the developer applies in VS Code. On Oracle 8.62, portable SQL/HTML/freeform saves use complete metadata checkpoints with guarded creation inverse/redo. Older or nonportable existing edits retain their legacy history scope. A new Application Class is not staged: it saves through the legacy per-write confirmation.') + ' Supply changeSetId to group operations. Unsupported platforms retain legacy gates.',
             inputSchema: schema.extend({ changeSetId: z.string().uuid().optional(), dependsOn: z.array(z.string().uuid()).default([]) }) };
         return register(name, next, async (args, ...rest) => {
@@ -74,7 +74,7 @@ export function routeReviewedMutations(server: {
             // Inserting or deleting a Page control is not stageable; it takes the legacy
             // per-write confirmation rather than being refused, as creation does.
             if (name === 'psft_edit_page' && !isStageablePageRequest(args.operations, args.saveInvalid)) {
-                refuseOutsideSet('An inserted or deleted Page control is not staged; it saves through the legacy per-write confirmation.');
+                refuseOutsideSet('This Page operation (other properties, a Tree insert or saveInvalid) is not staged; it saves through the legacy per-write confirmation.');
                 return callback(args, ...rest);
             }
             if (name === 'psft_create_project') {

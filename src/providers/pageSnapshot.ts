@@ -1,7 +1,8 @@
 import type { DbConnection, DbTypes } from '../db/connection.js';
 import { canonical, differences, hash, privacy, type Difference, type Json } from '../changeReview/model.js';
 import type { ObjectDiffProvider } from '../changeReview/semanticDiff.js';
-import type { EditedControl, PageSaveRequest } from './pageWriter.js';
+import { FIELD_USE_RELATED, RESTORABLE_CONTROL_TABLES, reviewedControlFields, type EditedControl, type PageSaveRequest, type RestoredControlRows } from './pageWriter.js';
+import type { ColumnValues } from './pageControlTemplates.js';
 
 /** Exactly the native tables changed by the current Page writer; not a universal dependency closure. */
 export const PAGE_SNAPSHOT_TABLES = ['PSPNLDEFN', 'PSPNLFIELD', 'PSPNLFIELDEXT', 'PSPNLHTMLAREA', 'PSPNLHTMLLANG',
@@ -75,7 +76,11 @@ export function nativePageSnapshot(value: unknown): NativePageSnapshot {
     return v;
 }
 
-/** Typed editor request only, never SQL row replay. Native preview must prove exact after-state equivalence. */
+/**
+ * The typed editor request that reproduces a reviewed Page change: surviving controls' editor fields, deletions by
+ * omission, inserted controls restored from their own reviewed rows under their native ids, the complete tab order and
+ * the high-water mark. Never SQL row replay of arbitrary input: native preview must prove exact after-state equivalence.
+ */
 export function requestForPageSnapshot(name: string, beforeValue: unknown, afterValue: unknown, version: number, operatorId: string): PageSaveRequest {
     const before = nativePageSnapshot(beforeValue), after = nativePageSnapshot(afterValue);
     for (const snapshot of [before, after]) {
@@ -91,14 +96,16 @@ export function requestForPageSnapshot(name: string, beforeValue: unknown, after
         return map;
     };
     const old = byId(before.tables.PSPNLFIELD), next = byId(after.tables.PSPNLFIELD);
-    if (old.size !== next.size || [...old.keys()].some(id => !next.has(id))) throw new Error('Page review does not support inserting or deleting controls.');
+    const ext = (s: NativePageSnapshot, id: number) => s.tables.PSPNLFIELDEXT.find(r => r.PNLFLDID === id) as ColumnValues | undefined;
     const mapping = { fieldLeft: 'FIELDLEFT', fieldTop: 'FIELDTOP', fieldRight: 'FIELDRIGHT', fieldBottom: 'FIELDBOTTOM',
         editLblLeft: 'EDITLBLLEFT', editLblTop: 'EDITLBLTOP', editLblRight: 'EDITLBLRIGHT', editLblBottom: 'EDITLBLBOTTOM',
         fieldSizeType: 'FIELDSIZETYPE', lblType: 'LBLTYPE', fieldUse: 'FIELDUSE', secureInvisible: 'SECUREINVISIBLE' } as const;
-    const controls = [...old.values()].sort((a, b) => Number(a.FIELDNUM) - Number(b.FIELDNUM)).map(r => {
-        const target = next.get(r.PNLFLDID as number)!;
+    const inOrder = [...next.values()].sort((a, b) => Number(a.FIELDNUM) - Number(b.FIELDNUM));
+    if (inOrder.some((r, i) => r.FIELDNUM !== i + 1)) throw new Error('Page proposal tab order is not a contiguous native FIELDNUM sequence.');
+    const controls = inOrder.map(target => {
+        const id = target.PNLFLDID as number;
         if (target.LBLTEXT !== null && typeof target.LBLTEXT !== 'string') throw new Error('Page control label requires native text.');
-        const c = { pnlFldId: r.PNLFLDID, lblText: target.LBLTEXT ?? '' } as unknown as EditedControl;
+        const c = { pnlFldId: id, lblText: target.LBLTEXT ?? '' } as unknown as EditedControl;
         for (const [key, column] of Object.entries(mapping)) {
             // Oracle 8.62 HRDMO stores SECUREINVISIBLE as a character flag.
             // Match the existing reader/writer's numeric editor model without
@@ -108,11 +115,43 @@ export function requestForPageSnapshot(name: string, beforeValue: unknown, after
             if (typeof value !== 'number' || !Number.isSafeInteger(value)) throw new Error('Page geometry/use requires native integer values: ' + column);
             (c as unknown as Record<string, unknown>)[key] = value;
         }
-        return c;
+        const was = old.get(id);
+        if (!was) {
+            // An inserted (or restored) control: its own reviewed rows, under the id native application assigns it.
+            const restore: RestoredControlRows = {};
+            for (const table of RESTORABLE_CONTROL_TABLES) {
+                const rows = after.tables[table].filter(r => r.PNLFLDID === id);
+                if (rows.length) restore[table] = rows as ColumnValues[];
+            }
+            return { ...c, restore };
+        }
+        const fields = reviewedControlFields({ field: was as ColumnValues, ext: ext(before, id) }, { field: target as ColumnValues, ext: ext(after, id) });
+        const html = (s: NativePageSnapshot) => s.tables.PSPNLHTMLAREA.find(r => r.PNLFLDID === id)?.HTMLAREA ?? null;
+        if (html(before) !== html(after)) fields.htmlConstant = html(after) as string | null;
+        // A Related Field names its Related Control Field by identity: the writer numbers it in the final tab order.
+        if (Number(target.FIELDUSE) & FIELD_USE_RELATED) {
+            const control = inOrder[Number(target.ASSOCFIELDNUM ?? 0)];
+            if (control) { fields.assocTarget = control.PNLFLDID as number; delete fields.assocFieldNum; }
+        }
+        // A scroll's own Occurs Level, and a Set to Level rule's: every other control's level is derived from the tab order.
+        if ([10, 19, 27, 32].includes(Number(target.FIELDTYPE)) || (Number(target.FIELDTYPE) === 23 && Number(target.FIELDUSE) & 0x2)) {
+            if (target.OCCURSLEVEL !== was.OCCURSLEVEL) fields.occursLevel = Number(target.OCCURSLEVEL);
+        }
+        return { ...c, ...fields };
     });
     const head = after.tables.PSPNLDEFN[0];
     if (typeof head.DESCR !== 'string' || head.DESCRLONG !== null && typeof head.DESCRLONG !== 'string') throw new Error('Page description/comments must be native text.');
-    return { pnlName: name, openedVersion: version, operatorId, controls, properties: { description: head.DESCR, comments: head.DESCRLONG ?? '' } };
+    if (typeof head.MAXPNLFLDID !== 'number' || !Number.isSafeInteger(head.MAXPNLFLDID)) throw new Error('Page high-water mark requires a native integer.');
+    return { pnlName: name, openedVersion: version, operatorId, controls, order: inOrder.map(r => r.PNLFLDID as number), maxPnlFldId: head.MAXPNLFLDID,
+        properties: { description: head.DESCR, comments: head.DESCRLONG ?? '' } };
+}
+
+/** Why an applied Page change has no exact typed inverse: a deleted Tree's levels are keyed by its tab place and cannot be restored. */
+export function pageReversalRefusal(beforeValue: unknown, afterValue: unknown): string | undefined {
+    const before = nativePageSnapshot(beforeValue), after = nativePageSnapshot(afterValue);
+    const kept = new Set(after.tables.PSPNLFIELD.map(r => r.PNLFLDID));
+    if (before.tables.PSPNLFIELD.some(r => !kept.has(r.PNLFLDID) && r.FIELDTYPE === 20)) return 'Undoing a deleted Tree is not supported: its levels are keyed by its tab place.';
+    return undefined;
 }
 
 export const nativePageDiff: ObjectDiffProvider = { id: 'page-native', compare(before, after) {

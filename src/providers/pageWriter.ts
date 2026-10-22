@@ -64,6 +64,16 @@ export interface EditedControl {
   add?: NewControl;
   /** Present on a pasted control: the stored control it is a copy of (this page's or another's; c01, c02). */
   copy?: { pnlName: string; pnlFldId: number };
+  /**
+   * Change Review restoration only: a control's complete native rows from a reviewed snapshot, inserted again under
+   * their own PNLFLDID (`pnlFldId`), at the place `order` gives it. Never built from editor or agent input.
+   */
+  restore?: RestoredControlRows;
+  /**
+   * A Related Field's Related Control Field named by its PNLFLDID. The save writes that control's final FIELDNUM - 1 as
+   * ASSOCFIELDNUM (ps01-ps04); absent, the stored or edited ASSOCFIELDNUM names it by its FIELDNUM before the save.
+   */
+  assocTarget?: number;
   /** An added or pasted grid's column count, as the save derives it (planPageSave). */
   grdColumnCount?: number;
   fieldLeft: number;
@@ -196,6 +206,14 @@ export interface EditedControl {
   disableSmartPrompt?: number;
 }
 
+/** The tables holding one control's rows by PNLFLDID, which a reviewed restoration re-inserts (a Tree's levels are keyed by FIELDNUM and are not). */
+export const RESTORABLE_CONTROL_TABLES = ['PSPNLFIELD', 'PSPNLFIELDEXT', 'PSPNLHTMLAREA', 'PSPNLHTMLLANG', 'PSPTPNLRTEDITOR', 'PSPNLCNTRLDATA',
+  'PSPNLBTNDATA', 'PSPNLACEGRDDATA', 'PSPNLACEGRDAXIS'] as const;
+export type RestoredControlRows = { [T in (typeof RESTORABLE_CONTROL_TABLES)[number]]?: ColumnValues[] };
+
+/** PSPNLFIELD.FIELDUSE 0x10: Related Field, its Related Control Field in ASSOCFIELDNUM. */
+export const FIELD_USE_RELATED = 0x10;
+
 /** PSPTPNLRTEDITOR's columns, as the Options tab names them (' ' none). */
 export interface RichTextOptions {
   configSettingsId: string;
@@ -246,6 +264,11 @@ export interface PageSaveRequest {
   captureSnapshots?: boolean;
   /** Additional full-content/version guard, checked under the Page header lock. */
   expectedSnapshotToken?: string;
+  /**
+   * Change Review restoration only: PSPNLDEFN.MAXPNLFLDID after the save, at least every remaining control's PNLFLDID.
+   * Lowering it (undoing an added control) needs the snapshot guard and no other definition naming a released id.
+   */
+  maxPnlFldId?: number;
 }
 
 /**
@@ -513,6 +536,23 @@ const EDITABLE: Array<{ col: string; of: (c: EditedControl) => number | string; 
   { col: 'DISPFMTNAME', of: (c) => nameValue(c.displayFormatName), key: 'displayFormatName' },
 ];
 
+/**
+ * Change Review: the editor fields that reproduce a surviving control's reviewed change from its native before and after
+ * rows -- only columns the save writes from an editor field, and only those that differ. A Related Field's reference is
+ * carried by identity (assocTarget) by the caller. The native preview must still reproduce the whole after-image.
+ */
+export function reviewedControlFields(before: { field: ColumnValues; ext?: ColumnValues }, after: { field: ColumnValues; ext?: ColumnValues }): Partial<EditedControl> {
+  const out: Record<string, unknown> = {};
+  const value = (raw: unknown, key: keyof EditedControl) => (key === 'deferProc' ? Number(raw) !== 0 : typeof raw === 'number' ? raw : String(raw ?? ''));
+  const changed = (a: ColumnValues | undefined, b: ColumnValues | undefined, col: string) => !!a && !!b && String(a[col] ?? '') !== String(b[col] ?? '');
+  for (const { col, key } of EDITABLE) if (key && key !== 'assocFieldNum' && changed(before.field, after.field, col)) out[key] = value(after.field[col], key);
+  if (changed(before.field, after.field, 'ASSOCFIELDNUM')) out.assocFieldNum = Number(after.field.ASSOCFIELDNUM ?? 0);
+  for (const { col, key } of EXT_EDITABLE) if (changed(before.ext, after.ext, col)) out[key] = value(after.ext![col], key);
+  if (changed(before.ext, after.ext, 'FFSTYLELONG')) out.fluidClasses = fluidClassSlots(after.ext!.FFSTYLELONG === null ? null : String(after.ext!.FFSTYLELONG));
+  if (changed(before.ext, after.ext, 'FIELDUSETEMP2')) out.fieldUseTemp2 = Number(after.ext!.FIELDUSETEMP2 ?? 0);
+  return out as Partial<EditedControl>;
+}
+
 /** The stored controls' columns the save plan reads: PSPNLFIELD's, then PSPNLFIELDEXT's (FFSTYLELONG, a CLOB, apart). */
 const STORED_FIELD_COLUMNS = ['PNLFLDID', 'FIELDNUM', 'FIELDTYPE', 'FIELDLEFT', 'FIELDTOP', 'FIELDRIGHT', 'FIELDBOTTOM', 'EDITLBLLEFT', 'EDITLBLTOP',
   'EDITLBLRIGHT', 'EDITLBLBOTTOM', 'FIELDSIZETYPE', 'LBLTYPE', 'LBLTEXT', 'FIELDUSE', 'SECUREINVISIBLE', 'FIELDSTYLE', 'PNLFIELDNAME', 'PTADJHIDDENFIELDS',
@@ -593,6 +633,8 @@ export interface PagePlan {
   fieldCount: number;
   /** PSPNLDEFN.MAXPNLFLDID after the save. */
   maxPnlFldId: number;
+  /** The high-water mark without a reviewed restoration's own value. */
+  naturalMaxPnlFldId: number;
   /** The page as App Designer's checks see it, in the final tab order (each record's type is looked up by savePage). */
   checked: Array<Omit<CheckedControl, 'recType'>>;
   /** Trees whose FIELDNUM moved: their TREECTRLID and PSPNLTREECTRL rows follow it (sp-fresh, sbp-fresh, sb-delete). */
@@ -634,9 +676,13 @@ function reordered(survivors: readonly StoredControl[], order: readonly number[]
  * are not covered. Returns the index in `order` (tab order, first to last) to insert at.
  */
 export const TAB_ROW_BAND = 20;
-export function newControlTabIndex(order: ReadonlyArray<{ fieldLeft: number; fieldTop: number }>, added: { fieldLeft: number; fieldTop: number }): number {
-  const sameRow = (a: { fieldTop: number }, b: { fieldTop: number }) => Math.abs(a.fieldTop - b.fieldTop) <= TAB_ROW_BAND;
-  const atOrBefore = (a: typeof added, b: typeof added) => (sameRow(a, b) ? a.fieldLeft <= b.fieldLeft : a.fieldTop < b.fieldTop);
+export function newControlTabIndex(order: ReadonlyArray<{ fieldLeft: number; fieldTop: number; scroll?: boolean }>, added: { fieldLeft: number; fieldTop: number }): number {
+  // A scroll (Scroll Area, Grid ...) starts its own region: a control dropped above its top goes before it even within the
+  // row band (ps03: Static Text at top 64 before the Scroll Area at 72).
+  const sameRow = (a: { fieldTop: number; scroll?: boolean }, b: { fieldTop: number; scroll?: boolean }) => !a.scroll && !b.scroll && Math.abs(a.fieldTop - b.fieldTop) <= TAB_ROW_BAND;
+  // Anything higher on the page comes before, wherever it is across (ps03: a hidden field 16 px higher at the far right);
+  // the row band only adds controls a little lower down and to the left (18-number-datetime: 20 px lower, left).
+  const atOrBefore = (a: typeof added, b: typeof added) => a.fieldTop < b.fieldTop || (sameRow(a, b) && a.fieldLeft <= b.fieldLeft);
   const before = (a: typeof added, b: typeof added) => (sameRow(a, b) ? a.fieldLeft < b.fieldLeft : a.fieldTop < b.fieldTop);
   let best = -1;
   order.forEach((c, i) => { if (atOrBefore(c, added) && (best < 0 || before(order[best], c))) best = i; });
@@ -657,11 +703,25 @@ export function newScrollTabIndex(order: ReadonlyArray<{ fieldTop: number }>, ad
 }
 
 export function planPageSave(stored: readonly StoredControl[], all: readonly EditedControl[], maxPnlFldId = 0, order?: readonly number[],
-  pnlName = '', fluidPage = false): PagePlan {
-  const added = all.filter((c) => !!c.add || !!c.copy);
-  const controls = all.filter((c) => !c.add && !c.copy);
+  pnlName = '', fluidPage = false, highWater?: number): PagePlan {
+  const restored = all.filter((c) => !!c.restore);
+  const added = all.filter((c) => !c.restore && (!!c.add || !!c.copy));
+  const controls = all.filter((c) => !c.add && !c.copy && !c.restore);
   const edited = new Map(controls.map((c) => [c.pnlFldId, c]));
   const storedById = new Map(stored.map((c) => [c.pnlFldId, c]));
+  // A reviewed restoration re-inserts a control's own rows under its own id, at the place a complete tab order gives it.
+  for (const r of restored) {
+    const row = r.restore!.PSPNLFIELD;
+    if (!Number.isSafeInteger(r.pnlFldId) || r.pnlFldId <= 0 || storedById.has(r.pnlFldId) || restored.filter((x) => x.pnlFldId === r.pnlFldId).length > 1
+      || row?.length !== 1 || Number(row[0].PNLFLDID) !== r.pnlFldId || r.restore!.PSPNLFIELDEXT?.length !== 1) {
+      throw new PageSaveRefusedError(`Restored control ${r.pnlFldId} needs its own unused id and exactly one PSPNLFIELD and PSPNLFIELDEXT row.`);
+    }
+    if (Number(row[0].FIELDTYPE) === TREE) throw new PageSaveRefusedError('Restoring a Tree is not supported: its levels are keyed by tab order.');
+    if (Object.values(r.restore!).some((rows) => rows?.some((x) => String(x.PNLNAME ?? '').trim() !== pnlName || Number(x.PNLFLDID) !== r.pnlFldId))) {
+      throw new PageSaveRefusedError(`Restored control ${r.pnlFldId} has rows of another control or page.`);
+    }
+  }
+  if (restored.length && (added.length || !order)) throw new PageSaveRefusedError('Restored controls are placed by a complete tab order, without other added controls.');
 
   for (const c of controls) {
     if (!storedById.has(c.pnlFldId)) {
@@ -678,14 +738,26 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
   // FIELDNUM is a contiguous 1..N order: the survivors in their stored order, or
   // the Order tab's, with the deleted gaps closed.
   const inStoredOrder = stored.filter((c) => edited.has(c.pnlFldId)).sort((a, b) => a.fieldNum - b.fieldNum);
-  const survivors = order ? reordered(inStoredOrder, order) : inStoredOrder;
+  const restoredById = new Map(restored.map((r) => [r.pnlFldId, r]));
+  const survivors = order ? reordered(inStoredOrder, order.filter((id) => !restoredById.has(id))) : inStoredOrder;
+  if (restored.length && (order!.length !== survivors.length + restored.length || restored.some((r) => !order!.includes(r.pnlFldId)))) {
+    throw new PageSaveRefusedError('The tab order does not list exactly the controls on the page.');
+  }
 
   // New PNLFLDIDs in request order. An added control goes where App Designer puts one: right after
   // the control before it in reading order (newControlTabIndex). A copy of a control on this page goes
   // right after its source (and its earlier copies) in tab order (c02: group box 9 at 13, its copy at
   // 14); copies from elsewhere go last.
   const fresh: Array<{ pnlFldId: number; control: EditedControl }> = added.map((control, i) => ({ pnlFldId: base + i + 1, control }));
-  const final: Array<{ survivor: StoredControl } | { fresh: (typeof fresh)[number] }> = survivors.map((s) => ({ survivor: s }));
+  // A restored control takes its own id and its place in the complete tab order; its type, level and binding are its rows'.
+  const back: Array<{ pnlFldId: number; control: EditedControl }> = restored.map((r) => {
+    const row = r.restore!.PSPNLFIELD![0];
+    return { pnlFldId: r.pnlFldId, control: { ...r, fieldType: Number(row.FIELDTYPE), occursLevel: Number(row.OCCURSLEVEL ?? 0), recName: String(row.RECNAME ?? ''),
+      fieldName: String(row.FIELDNAME ?? ''), assocFieldNum: Number(row.ASSOCFIELDNUM ?? 0) } };
+  });
+  const final: Array<{ survivor: StoredControl } | { fresh: (typeof fresh)[number] }> = restored.length
+    ? order!.map((id) => (restoredById.has(id) ? { fresh: back.find((b) => b.pnlFldId === id)! } : { survivor: storedById.get(id)! }))
+    : survivors.map((s) => ({ survivor: s }));
   const placedAt = (e: (typeof final)[number]): EditedControl => ('survivor' in e ? edited.get(e.survivor.pnlFldId)! : e.fresh.control);
   const typeOf = (e: (typeof final)[number]): number => ('survivor' in e ? Number(e.survivor.fieldType ?? -1)
     : e.fresh.control.add ? NEW_CONTROL_FIELDTYPE[e.fresh.control.add.kind] : Number(e.fresh.control.fieldType ?? -1));
@@ -707,7 +779,7 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
     }
     if (f.control.add && GRID_ONLY.has(f.control.add.kind)) throw new PageSaveRefusedError(`A ${f.control.add.kind} goes only inside a grid, as one of its columns.`);
     if (f.control.add && SCROLL_FIELD_TYPES.has(NEW_CONTROL_FIELDTYPE[f.control.add.kind])) { final.splice(newScrollTabIndex(final.map(placedAt), f.control), 0, { fresh: f }); continue; }
-    if (f.control.add) { final.splice(newControlTabIndex(final.map(placedAt), f.control), 0, { fresh: f }); continue; }
+    if (f.control.add) { final.splice(newControlTabIndex(final.map((e) => ({ ...placedAt(e), scroll: SCROLL_FIELD_TYPES.has(typeOf(e)) })), f.control), 0, { fresh: f }); continue; }
     const src = f.control.copy && f.control.copy.pnlName === pnlName ? f.control.copy.pnlFldId : undefined;
     let at = src === undefined ? -1 : final.findIndex((e) => 'survivor' in e && e.survivor.pnlFldId === src);
     if (at < 0) { final.push({ fresh: f }); continue; }
@@ -715,6 +787,20 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
     final.splice(at + 1, 0, { fresh: f });
   }
   const newFieldNum = new Map(final.map((e, i) => ['survivor' in e ? e.survivor.pnlFldId : e.fresh.pnlFldId, i + 1]));
+  const oldNumToId = new Map(stored.map((c) => [c.fieldNum, c.pnlFldId]));
+  // A Related Field names its Related Control Field by FIELDNUM - 1 (ASSOCFIELDNUM). App Designer keeps it on that
+  // control as deletes, inserts and reorders move it (ps01, ps03, ps04); with the control deleted the field is no
+  // longer related: Related Field off, ASSOCFIELDNUM 0 (ps02). The page's checks see the renumbered references.
+  const related = new Map<number, { use: number; assoc: number }>();
+  for (const s of survivors) {
+    const e = edited.get(s.pnlFldId)!;
+    if (!(Number(e.fieldUse) & FIELD_USE_RELATED)) continue;
+    const target = e.assocTarget ?? oldNumToId.get(Number(e.assocFieldNum ?? s.assocFieldNum ?? 0) + 1);
+    const next = target === undefined ? undefined : newFieldNum.get(target);
+    related.set(s.pnlFldId, next !== undefined ? { use: Number(e.fieldUse), assoc: next - 1 }
+      : target !== undefined && (storedById.has(target) || restoredById.has(target)) ? { use: Number(e.fieldUse) & ~FIELD_USE_RELATED, assoc: 0 }
+        : { use: Number(e.fieldUse), assoc: Number(e.assocFieldNum ?? s.assocFieldNum ?? 0) });
+  }
 
   // Scroll levels: assigned again from the tab order on every save, as App Designer does (pageLevels.ts). A scroll keeps
   // its own Occurs Level (an added one 1, lv03), a Set to Level rule its choice; the rest follow.
@@ -724,8 +810,9 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
     const occursLevel = c.occursLevel ?? s?.occursLevel ?? (c.add ? 1 : 0);
     const recName = c.add ? c.add.recName : c.recName ?? s?.recName ?? '', fieldName = c.add ? c.add.fieldName : c.fieldName ?? s?.fieldName ?? '';
     const a = c.add?.analytic;
-    return { fieldType, occursLevel: Number(occursLevel), fieldUse: Number(c.fieldUse ?? s?.fieldUse ?? 0), recName, fieldName, label: c.lblText ?? '',
-      assocFieldNum: Number(c.assocFieldNum ?? s?.assocFieldNum ?? 0), pnlFldId: 'survivor' in e ? e.survivor.pnlFldId : e.fresh.pnlFldId,
+    const id = 'survivor' in e ? e.survivor.pnlFldId : e.fresh.pnlFldId;
+    return { fieldType, occursLevel: Number(occursLevel), fieldUse: related.get(id)?.use ?? Number(c.fieldUse ?? s?.fieldUse ?? 0), recName, fieldName, label: c.lblText ?? '',
+      assocFieldNum: related.get(id)?.assoc ?? Number(c.assocFieldNum ?? s?.assocFieldNum ?? 0), pnlFldId: id,
       ...(a ? { analytic: { model: a.model, collection: a.collection } } : {}) };
   });
   const levels = occursLevels(levelInput);
@@ -767,6 +854,19 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
     for (const { col, of, key } of EDITABLE) {
       if (key && e[key] === undefined) continue;
       if (of(e) !== of(s)) columns[col] = of(e);
+    }
+    const ref = related.get(s.pnlFldId);
+    if (ref) {
+      for (const [col, value, was] of [['FIELDUSE', ref.use, Number(s.fieldUse)], ['ASSOCFIELDNUM', ref.assoc, Number(s.assocFieldNum ?? 0)]] as const) {
+        if (value !== was) columns[col] = value; else delete columns[col];
+      }
+    }
+    // A Group Box Header Extension names its group box by FIELDNUM - 1 too (PTGBRELACTFLD, gb26/gb27). Its renumbering is
+    // not captured, so a save that would move the named control is refused rather than left pointing elsewhere.
+    const headerTarget = oldNumToId.get(Number(e.headerActionItems ?? s.headerActionItems ?? 0) + 1);
+    if (Number(e.headerActionItems ?? s.headerActionItems ?? 0) > 0 && headerTarget !== undefined
+      && newFieldNum.get(headerTarget) !== storedById.get(headerTarget)!.fieldNum) {
+      throw new PageSaveRefusedError(`Control ${s.pnlFldId}'s Group Box Header Extension names a control this save moves in tab order; that renumbering is not supported.`);
     }
     // PSPNLFIELDEXT: the Fluid tab's classes and FIELDUSETEMP2 bits; a frame's dialog (fr01), or a Static Text's on a
     // Fluid page (st11), writes a blank FFSTYLELONG in five slots.
@@ -819,10 +919,19 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
     if (Object.keys(columns).length > 0) updates.push({ pnlFldId: s.pnlFldId, columns });
   }
 
-  const inserts = fresh.map((f) => ({ pnlFldId: f.pnlFldId, fieldNum: newFieldNum.get(f.pnlFldId)!,
+  const finalIds = [...newFieldNum.keys()];
+  const inserts = [...back, ...fresh].map((f) => ({ pnlFldId: f.pnlFldId, fieldNum: newFieldNum.get(f.pnlFldId)!,
     control: { ...f.control, occursLevel: levelOf.get(f.pnlFldId)!, ...(gridCount.has(f.pnlFldId) ? { grdColumnCount: gridCount.get(f.pnlFldId)! } : {}) } }));
-  return { deletes, updates, extUpdates, inserts, htmlWrites, richTextWrites, fieldCount: controls.length + added.length, maxPnlFldId: base + added.length,
+  return { deletes, updates, extUpdates, inserts, htmlWrites, richTextWrites, fieldCount: controls.length + added.length + restored.length, maxPnlFldId: planHighWater(base + added.length, finalIds, highWater), naturalMaxPnlFldId: planHighWater(base + added.length, finalIds),
     checked: levelInput, treeRekeys, treeDeletes };
+}
+
+/** PSPNLDEFN.MAXPNLFLDID after a save: the high-water mark, or a reviewed restoration's own value, never below a remaining control's id. */
+function planHighWater(natural: number, ids: readonly number[], explicit?: number): number {
+  const top = Math.max(natural, ...ids, 0);
+  if (explicit === undefined) return top;
+  if (!Number.isSafeInteger(explicit) || explicit < Math.max(...ids, 0)) throw new PageSaveRefusedError('MAXPNLFLDID cannot be below a remaining control\'s id.');
+  return explicit;
 }
 
 /**
@@ -995,7 +1104,19 @@ export async function savePage(c: Connection, request: PageSaveRequest, types?: 
     request = { ...request, controls: await Promise.all(request.controls.map((ctl) => placeSubpage(c, ctl))) };
 
     const fluidPage = request.properties?.fluidPage ?? (Number(defn.PNLUSE) & PAGE_USE_FLUID) !== 0;
-    const plan = planPageSave(stored, request.controls, Number(defn.MAXPNLFLDID), request.order, pnlName, fluidPage);
+    const plan = planPageSave(stored, request.controls, Number(defn.MAXPNLFLDID), request.order, pnlName, fluidPage, request.maxPnlFldId);
+    const reviewed = !!(request.expectedSnapshotToken || request.captureSnapshots);
+    if ((request.controls.some((x) => x.restore) || plan.maxPnlFldId !== plan.naturalMaxPnlFldId) && !reviewed) {
+      throw new PageSaveRefusedError('Restoring controls or MAXPNLFLDID is only done by a reviewed snapshot-guarded save.');
+    }
+    // A released id (an undone added control) must not stay named elsewhere before a later add takes it again; nor may a
+    // reviewed delete leave translations or configuration naming the control behind (Change Review cannot checkpoint them).
+    const released = plan.maxPnlFldId < Number(defn.MAXPNLFLDID)
+      ? Array.from({ length: Number(defn.MAXPNLFLDID) - plan.maxPnlFldId }, (_, i) => plan.maxPnlFldId + i + 1) : [];
+    if (reviewed && (plan.deletes.length || released.length)) {
+      const refs = await controlReferences(c, pnlName, [...plan.deletes, ...released]);
+      if (refs.length) throw new PageSaveRefusedError(`Other definitions or translations name these controls (${refs.join(', ')}); a reviewed delete or undo cannot leave them behind.`);
+    }
     // A page made secondary takes its topmost control's top as PANELTOP (u08: 20).
     const tops = request.controls.map((x) => x.fieldTop);
     const props = planPageProperties(defn, request.properties, { minTop: tops.length ? Math.min(...tops) : 0, extent: controlsExtent(request.controls) });
@@ -1153,7 +1274,32 @@ export async function savePage(c: Connection, request: PageSaveRequest, types?: 
  * (PSPNLHTMLAREA), a Rich Text long edit's options (PSPTPNLRTEDITOR), a grid's or scroll area's settings and buttons
  * (PSPNLCNTRLDATA, PSPNLBTNDATA).
  */
-interface ControlRows extends Partial<NewControlDataRows> { field: ColumnValues; ext: ColumnValues; html?: string; richText?: RichTextOptions }
+interface ControlRows extends Partial<NewControlDataRows> { field: ColumnValues; ext: ColumnValues; html?: string; richText?: RichTextOptions; extra?: Array<{ table: string; row: ColumnValues }> }
+
+/**
+ * The definitions and translations naming a page's controls by PNLFLDID outside the Page writer's tables (language rows,
+ * ActiveX/related-action widgets, analytic grid links, embedded help and application configurators), present on this database.
+ */
+export const CONTROL_REFERENCES: ReadonlyArray<readonly [string, string]> = [
+  ['PSPNLFIELDLANG', 'PNLFLDID'], ['PSPNLBTNLANG', 'PNLFLDID'], ['PSPNLCTLDATALNG', 'PNLFLDID'], ['PSPNLACTIVEX', 'PNLFLDID'],
+  ['PSPTPNLRAWIDGET', 'PNLFLDID'], ['PSPTPNLRAWIDGET', 'PTASSOCPNLFLDID'], ['PSPNLACEGRDDATA', 'PROBINSTPNLFLDID'],
+  ['PS_EOCC_CONFIG_CRT', 'PNLFLDID'], ['PS_EOCC_CRT_MAP', 'PNLFLDID'], ['PS_EOEC_EMB_HELP', 'PNLFLDID'], ['PS_EOEC_EMBHLP_EXC', 'PNLFLDID'],
+  ['PS_GVT_TS_FIELDS', 'PNLFLDID'], ['PS_HRTS_CONFIG_CRT', 'PNLFLDID'], ['PS_HRTS_CONFIG_FLD', 'PNLFLDID']
+];
+export async function controlReferences(c: Connection, pnlName: string, ids: readonly number[]): Promise<string[]> {
+  if (!ids.length) return [];
+  const found: string[] = [];
+  for (const [table, col] of CONTROL_REFERENCES) {
+    const have = await tableColumns(c, table);
+    if (!have.has(col) || !have.has('PNLNAME')) continue;
+    for (let i = 0; i < ids.length; i += 500) {
+      const batch = ids.slice(i, i + 500), binds = Object.fromEntries(batch.map((id, j) => [`i${j}`, id]));
+      const [{ N: n }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM ${table} WHERE PNLNAME = :n AND ${col} IN (${batch.map((_, j) => `:i${j}`).join(', ')})`, { n: pnlName, ...binds });
+      if (Number(n)) { found.push(`${table}.${col}`); break; }
+    }
+  }
+  return found;
+}
 
 async function insertControl(c: Connection, pnlName: string, rows: ControlRows): Promise<void> {
   const id = Number(rows.field.PNLFLDID);
@@ -1168,6 +1314,7 @@ async function insertControl(c: Connection, pnlName: string, rows: ControlRows):
   if (rows.aceData) await insertRow(c, 'PSPNLACEGRDDATA', rows.aceData);
   for (const a of rows.aceAxes ?? []) await insertRow(c, 'PSPNLACEGRDAXIS', a);
   for (const t of rows.treeNodes ?? []) await insertRow(c, 'PSPNLTREECTRL', t);
+  for (const x of rows.extra ?? []) await insertRow(c, x.table, x.row);
 }
 
 /** An added Subpage at its subpage's own rectangle (PSPNLDEFN PANELLEFT..BOTTOM): App Designer places it there (sbp-fresh, sb-subst). */
@@ -1245,6 +1392,13 @@ async function insertedControlRows(c: Connection, pnlName: string, ins: { pnlFld
       ...(await controlDataRows(c, copy, { pnlName, pnlFldId: ins.pnlFldId })),
       ...(rte ? { richText: { configSettingsId: rte.PTRTECFGSETTINGSID, imageLocationUrlId: rte.PTRTEIMGLOCURLID, pluginFileId: rte.PTRTEPLUGIN,
         templateFileId: rte.PTRTETEMPLATE, styleFileId: rte.PTRTESTYLE } } : {}) };
+  }
+  if (ins.control.restore) {
+    // A reviewed restoration: the control's own rows, at the tab place, level and grid column count this save assigns.
+    const r = ins.control.restore, field: ColumnValues = { ...r.PSPNLFIELD![0], FIELDNUM: ins.fieldNum, OCCURSLEVEL: Number(ins.control.occursLevel ?? 0) };
+    if (GRID_FIELD_TYPES.has(Number(field.FIELDTYPE))) field.GRDCOLUMNCOUNT = ins.control.grdColumnCount ?? 0;
+    const extra = RESTORABLE_CONTROL_TABLES.filter((t) => t !== 'PSPNLFIELD' && t !== 'PSPNLFIELDEXT').flatMap((table) => (r[table] ?? []).map((row) => ({ table, row })));
+    return { field, ext: { ...r.PSPNLFIELDEXT![0] }, extra };
   }
   if (!add) throw new PageSaveRefusedError(`Control ${ins.pnlFldId} is neither added nor pasted.`);
   let full: NewControl = { ...add, recName: add.recName.trim().toUpperCase(), fieldName: add.fieldName.trim().toUpperCase() };

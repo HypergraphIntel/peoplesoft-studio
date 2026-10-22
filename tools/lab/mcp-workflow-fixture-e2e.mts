@@ -1015,9 +1015,9 @@ try{
  const pageCommits=pageNative.counts().committed;nativePageUi._receive({action:'timelineCompare',id:pageRevert.id,revision:pageRevert.revision,object:pageRevert.objects[0].id,timelineRevision:pageHistory.revisions[0].id});
  await until(async()=>nativePageUi.webview.html.includes('data-page-preview="history-"'));assert.equal(pageNative.counts().committed,pageCommits);
  check('bounded Page HTTP/UI staging captures native snapshots, renders visual and retained baseline comparisons, applies typed edits and verifies checkpoint reversal without raw row replay');
- // Deleting a control has no Page adapter: grouped into a Change Set it is refused, never written outside the set the developer reviews.
- const structuralSet=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'Structural Page operation'}),committedBefore=pageNative.counts().committed;
- const unsupported=await reviewRpc('tools/call',{name:'psft_edit_page',arguments:{connection:'FIXTURE',page:'ZZ_PREVIEW_PAGE',changeSetId:structuralSet.id,operations:[{op:'delete',id:1}]}});assert.equal(unsupported.isError,true,'a structural Page edit in a Change Set is refused');assert.match(unsupported.content[0].text,/inserted or deleted Page control is not staged.*cannot be grouped into a Change Set/,'refused by review routing, not by a write guard');assert.equal(pageNative.counts().committed,committedBefore,'nothing written');
+ // A Page property without an adapter: grouped into a Change Set it is refused, never written outside the set the developer reviews.
+ const structuralSet=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'Unstaged Page property'}),committedBefore=pageNative.counts().committed;
+ const unsupported=await reviewRpc('tools/call',{name:'psft_edit_page',arguments:{connection:'FIXTURE',page:'ZZ_PREVIEW_PAGE',changeSetId:structuralSet.id,operations:[{op:'set_properties',ownerId:'PPT'}]}});assert.equal(unsupported.isError,true,'an unstaged Page edit in a Change Set is refused');assert.match(unsupported.content[0].text,/is not staged.*cannot be grouped into a Change Set/,'refused by review routing, not by a write guard');assert.equal(pageNative.counts().committed,committedBefore,'nothing written');
  const maliciousSet=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'Unsupported native Page column'});
  const nativeBefore=await provider.readPageForReview('ZZ_PREVIEW_PAGE'), altered=structuredClone(nativeBefore.value);altered.tables.PSPNLFIELD[0].UNTOUCHED_COLUMN='must not be replayed';
  const malicious=await reviewCall('psft_stage_object_change',{changeSetId:maliciousSet.id,adapter:'page',key:'ZZ_PREVIEW_PAGE',after:altered});
@@ -1028,7 +1028,7 @@ try{
  nativePageUi._receive({action:'approve',id:driftSet.id,revision:pageReady.revision});await settledReview(async()=>(await reviewService.store.get(driftSet.id)).status==='APPROVED');
  const sameVersion=pageNative.state().page.VERSION;pageNative.editCommitted((s:any)=>{s.tables.PSPNLFIELD[0].FIELDLEFT=999;});assert.equal(pageNative.state().page.VERSION,sameVersion);
  nativePageUi._receive({action:'apply',id:driftSet.id,revision:pageReady.revision});await settledReview(async()=>(await reviewService.store.get(driftSet.id)).status==='CONFLICTED');assert.equal(pageNative.counts().committed,2);assert.equal(pageNative.state().tables.PSPNLFIELD[0].FIELDLEFT,999);
- check('Page staging refuses structural operations and unhandled native columns; full snapshot tokens block unversioned control drift');
+ check('Page staging refuses unstaged properties and unhandled native columns; full snapshot tokens block unversioned control drift');
  const {setManualHistoryObserver}=require('./src/changeReview/manualHistory.ts');
  const {requestForPageSnapshot}=require('./src/providers/pageSnapshot.ts');
  setManualHistoryObserver((connection:string,key:any,write:any)=>key.type===5?reviewService.captureManual(connection,'page',key.parts[0],write):write());
@@ -1044,6 +1044,36 @@ try{
    assert.equal(pageNative.counts().committed,3);
  }finally{setManualHistoryObserver(undefined);}
  check('real manual Page saves capture native before/after history and timeline preserves an external-edit gap');
+ provider.guard=async(key:any)=>{assert.ok(isReviewedWrite(provider.id,key));assert.equal(writeOrigin(),'agent');};
+ // Structural Page review: an inserted control stages with its native id, applies exactly, reverses to the checkpoint (MAXPNLFLDID returned) and redoes under the same id.
+ const pageIds=()=>pageNative.state().tables.PSPNLFIELD.map((r:any)=>[r.PNLFLDID,r.FIELDNUM]).sort();
+ const insertSet=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'Structural Page insert'});
+ const insertStage=await reviewCall('psft_edit_page',{connection:'FIXTURE',page:'ZZ_PREVIEW_PAGE',changeSetId:insertSet.id,operations:[{op:'add',kind:'staticText',left:10,top:300,label:'Added'}]});
+ assert.equal(insertStage.status,'REVIEW_REQUIRED');assert.deepEqual(pageIds(),[[1,1]],'staging persists nothing');
+ let insertReady=await reviewCall('psft_validate_change_set',{changeSetId:insertSet.id});assert.equal(insertReady.status,'READY_FOR_REVIEW');
+ const insertDiff=await reviewCall('psft_get_object_diff',{changeSetId:insertSet.id,objectId:insertReady.objects[0].id});assert.ok(insertDiff.differences.some((d:any)=>d.path==='$.tables.PSPNLFIELD[2]'),'the inserted control is shown under its assigned native id');
+ await reviewUi.show(insertSet.id);nativePageUi._receive(await readyRenderedReview(nativePageUi,'approveAndApply'));
+ await settledReview(async()=>(await reviewService.store.get(insertSet.id)).status==='APPLIED');
+ assert.deepEqual(pageIds(),[[1,1],[2,2]]);assert.equal(pageNative.state().page.MAXPNLFLDID,2);assert.equal(pageNative.state().tables.PSPNLFIELD.find((r:any)=>r.PNLFLDID===2).LBLTEXT,'Added');
+ let insertUndo=await reviewCall('psft_prepare_revert',{changeSetId:insertSet.id});insertUndo=await reviewCall('psft_validate_change_set',{changeSetId:insertUndo.id});assert.equal(insertUndo.status,'READY_FOR_REVIEW');
+ await reviewUi.show(insertUndo.id);nativePageUi._receive(await readyRenderedReview(nativePageUi,'approveAndApply'));
+ await settledReview(async()=>(await reviewService.store.get(insertUndo.id)).status==='APPLIED'&&(await reviewService.store.get(insertSet.id)).status==='REVERTED');
+ assert.deepEqual(pageIds(),[[1,1]]);assert.equal(pageNative.state().page.MAXPNLFLDID,1,'the released id is returned to the high-water mark');
+ let insertRedo=await reviewCall('psft_prepare_redo',{changeSetId:insertSet.id});insertRedo=await reviewCall('psft_validate_change_set',{changeSetId:insertRedo.id});assert.equal(insertRedo.status,'READY_FOR_REVIEW');
+ await reviewUi.show(insertRedo.id);nativePageUi._receive(await readyRenderedReview(nativePageUi,'approveAndApply'));
+ await settledReview(async()=>(await reviewService.store.get(insertRedo.id)).status==='APPLIED');
+ assert.deepEqual(pageIds(),[[1,1],[2,2]],'redo restores the reviewed control under its own id');
+ // A delete with a reorder: the inverse restores the deleted control's own rows and id, and the original tab order.
+ const deleteSet=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'Structural Page delete'});
+ await reviewCall('psft_edit_page',{connection:'FIXTURE',page:'ZZ_PREVIEW_PAGE',changeSetId:deleteSet.id,operations:[{op:'delete',id:1}]});
+ const deleteReady=await reviewCall('psft_validate_change_set',{changeSetId:deleteSet.id});assert.equal(deleteReady.status,'READY_FOR_REVIEW');
+ await reviewUi.show(deleteSet.id);nativePageUi._receive(await readyRenderedReview(nativePageUi,'approveAndApply'));
+ await settledReview(async()=>(await reviewService.store.get(deleteSet.id)).status==='APPLIED');assert.deepEqual(pageIds(),[[2,1]]);
+ let deleteUndo=await reviewCall('psft_prepare_revert',{changeSetId:deleteSet.id});deleteUndo=await reviewCall('psft_validate_change_set',{changeSetId:deleteUndo.id});assert.equal(deleteUndo.status,'READY_FOR_REVIEW');
+ await reviewUi.show(deleteUndo.id);nativePageUi._receive(await readyRenderedReview(nativePageUi,'approveAndApply'));
+ await settledReview(async()=>(await reviewService.store.get(deleteUndo.id)).status==='APPLIED');
+ assert.deepEqual(pageIds(),[[1,1],[2,2]]);assert.equal(pageNative.state().tables.PSPNLFIELD.find((r:any)=>r.PNLFLDID===1).UNTOUCHED_COLUMN,'preserved','the restored control keeps every native column');
+ check('structural Page review stages inserted/deleted controls with native ids, applies them exactly, and reverses/redoes to exact checkpoints');
  provider.readPageLayout=originalPageRead;provider.withConnection=originalPageConnection;provider.guard=originalPageGuard;delete provider.types;
 
 

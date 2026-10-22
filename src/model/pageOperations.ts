@@ -22,6 +22,8 @@ export type PageOperation =
   | { op: 'set_label'; id: number; text?: string; labelType?: number }
   | { op: 'set_use'; id: number; displayOnly?: boolean; invisible?: boolean; deferProc?: boolean }
   | { op: 'delete'; id: number }
+  /** An Edit Box's Record Name / Field Name (eb77-eb82); the field's default label and format family come with it. */
+  | { op: 'set_binding'; id: number; record: string; field: string }
   /** A Scroll Bar's, Grid's or Scroll Area's own Occurs Level (1-3): the controls after it in tab order are at it. */
   | { op: 'set_occurs_level'; id: number; level: number }
   /** A Horizontal Rule's Set to Level: the controls after it are at `level`; null clears it (the rule then takes the running level). */
@@ -40,8 +42,25 @@ export class PageOperationError extends Error {
   }
 }
 
+/** What rebinding an Edit Box to a record field takes from the field: its default label (PSDBFLDLABL) and format family (PSDBFIELD). */
+export interface FieldBinding { labelId: string; shortName: string; longName: string; formatFamily: string }
+const bindingKey = (record: string, field: string) => record.trim().toUpperCase() + '.' + field.trim().toUpperCase();
+
+/** The record fields the operations rebind to, each looked up once (undefined: not a field on that record). */
+export async function resolvePageBindings(operations: readonly PageOperation[], lookup: (record: string, field: string) => Promise<FieldBinding | undefined>): Promise<Map<string, FieldBinding>> {
+  const out = new Map<string, FieldBinding>();
+  for (const o of operations) {
+    if (o.op !== 'set_binding' || out.has(bindingKey(o.record, o.field))) continue;
+    const b = await lookup(o.record.trim().toUpperCase(), o.field.trim().toUpperCase());
+    if (!b) throw new PageOperationError(`${bindingKey(o.record, o.field)} is not a field on record ${o.record.trim().toUpperCase()}.`);
+    out.set(bindingKey(o.record, o.field), b);
+  }
+  return out;
+}
+
 /** The controls and properties a savePage request carries after applying the operations, in order. */
-export function applyPageOperations(layout: PageLayout, operations: readonly PageOperation[]): { controls: EditedControl[]; properties: EditedPageProperties; order?: number[] } {
+export function applyPageOperations(layout: PageLayout, operations: readonly PageOperation[], bindings: ReadonlyMap<string, FieldBinding> = new Map()):
+  { controls: EditedControl[]; properties: EditedPageProperties; order?: number[] } {
   const controls: EditedControl[] = layout.controls.map((c) => ({ pnlFldId: c.pnlFldId, ...c.columns, fieldType: c.type,
     // A scroll's own Occurs Level and a Set to Level rule's choice; the save assigns the rest from the tab order.
     ...(SCROLL_TYPES.has(c.type) || (c.type === 23 && (c.columns.fieldUse & 0x2)) ? { occursLevel: c.level } : {}) }));
@@ -140,6 +159,18 @@ export function applyPageOperations(layout: PageLayout, operations: readonly Pag
         if (order) order = order.filter((id) => id !== o.id);
         break;
       }
+      case 'set_binding': {
+        const c = find(o.id);
+        // App Designer's Edit Box Record tab (eb77, eb79): the new field's default LABEL_ID, an RFT label's text, its
+        // FORMATFAMILY, and the Display Name cleared. Other control types' rebinds are not captured.
+        if (c.fieldType !== 4) throw new PageOperationError(`Control ${o.id} is not an Edit Box; only an Edit Box can be rebound (App Designer captures eb77-eb82).`);
+        const b = bindings.get(bindingKey(o.record, o.field));
+        if (!b) throw new PageOperationError(`${bindingKey(o.record, o.field)} was not looked up for set_binding.`);
+        c.recName = o.record.trim().toUpperCase(); c.fieldName = o.field.trim().toUpperCase();
+        c.labelId = b.labelId; c.formatFamily = b.formatFamily; c.displayFormatName = '';
+        if (c.lblType === 2) c.lblText = b.shortName; else if (c.lblType === 3) c.lblText = b.longName;
+        break;
+      }
       case 'set_occurs_level': {
         const c = find(o.id);
         if (!SCROLL_TYPES.has(Number(c.fieldType))) throw new PageOperationError(`Control ${o.id} is not a Scroll Bar, Grid or Scroll Area.`);
@@ -212,11 +243,12 @@ export function pageLayoutForAgent(layout: PageLayout): Record<string, unknown> 
 
 /**
  * The Page operations Change Review can carry an exact after-state for:
- * geometry, labels/use and the page's description/comments. Everything else
- * (inserting or deleting a control, saving an invalid page) is routed to the
+ * geometry, labels/use, the page's description/comments, inserted and deleted
+ * controls, the tab order and an Edit Box's record field. Everything else
+ * (other properties, a Tree's insert, saving an invalid page) is routed to the
  * legacy per-write confirmation rather than refused -- see reviewRouting.
  */
-export const STAGEABLE_PAGE_OPS = ['move', 'resize', 'set_label', 'set_use', 'set_properties'] as const;
+export const STAGEABLE_PAGE_OPS = ['move', 'resize', 'set_label', 'set_use', 'set_properties', 'add', 'delete', 'set_order', 'set_binding'] as const;
 
 export function isStageablePageRequest(operations: unknown, saveInvalid: unknown): boolean {
     if (saveInvalid === true || !Array.isArray(operations) || operations.length === 0) return false;
@@ -224,6 +256,8 @@ export function isStageablePageRequest(operations: unknown, saveInvalid: unknown
         if (!op || typeof op !== 'object') return false;
         const o = op as Record<string, unknown>;
         if (!(STAGEABLE_PAGE_OPS as readonly string[]).includes(String(o.op))) return false;
+        // A Tree's levels are keyed by its tab place: restoring one (a redo) is not supported, so its insert is not staged.
+        if (o.op === 'add' && o.kind === 'tree') return false;
         return o.op !== 'set_properties' || Object.keys(o).every(k => ['op', 'description', 'comments'].includes(k));
     });
 }

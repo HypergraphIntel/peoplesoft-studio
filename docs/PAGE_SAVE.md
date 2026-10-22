@@ -560,14 +560,41 @@ changed places (10: 5 -> 6, 14: 6 -> 5), plus the stamp and `PDM` / `SYS` +1.
 `pageWriter.test.ts` replays it. A move into or out of a scroll takes the level
 of its new place (see Scroll levels below).
 
+### Related Field references through structural edits
+
+A Related Field (FIELDUSE 0x10) names its Related Control Field as that
+control's FIELDNUM − 1 (ASSOCFIELDNUM). App Designer re-derives it at every
+save from the control itself (ps01–ps04 on ZZ_PG_STRUCT1, a Save As copy of
+ZZ_JOB_DATA1 with 13 Related Fields):
+
+- **ps01** deleting a control earlier in tab order: every ASSOCFIELDNUM after
+  it drops by one with its control field's FIELDNUM.
+- **ps02** deleting the Related Control Field itself: the related field loses
+  0x10 (FIELDUSE 19 → 3, Display Only and Invisible kept) and ASSOCFIELDNUM
+  becomes 0; the page then fails (15,22).
+- **ps03** an insert earlier in tab order: references move up by one.
+- **ps04** an Order tab move: references follow their controls.
+
+`planPageSave` does the same. 29,485 of HRDMO's 29,572 Related Fields name a
+Display Control Field (0x08), none dangling. A Group Box Header Extension
+(PTGBRELACTFLD, FIELDNUM − 1) is not captured through structural edits; the
+writer refuses a save that would move the group box it names.
+
 ### Where an added control goes
 
 App Designer does not append a new control, and does not put it after the
 selected control: it puts it **right after the control before it in reading
-order** -- the last of the page's controls at or above-left of the drop point,
-two controls being on one row when their tops are within 20 pixels (then left
-to right). Of several at one spot, the first in tab order counts; with none
-before it, the new control goes first. The controls after it move down one.
+order** -- the last of the page's controls before the drop point. A control
+higher on the page is before it wherever it is across; a control up to 20
+pixels lower counts as on its row, and is before it only when it is to the
+left. A scroll (Scroll Area, Grid ...) is never on a row: one even a few
+pixels lower comes after (ps03). Of several at one spot, the first in tab
+order counts; with none before it, the new control goes first. The controls
+after it move down one.
+
+- **ps03-insert-early** (ZZ_PG_STRUCT1): a Static Text dropped at top 64 went
+  after a hidden Edit Box at top 48 at the far right (higher, so before it) and
+  before the Scroll Area at top 72 (a scroll is never on the row).
 
 Evidence: every App Designer insert captured (02, 06, 07, 15-18, in01, in03,
 eb/gb-hr/rb/le/ht-fresh, ht-field, sa/sb/sec/sub-fresh) and three focused ones

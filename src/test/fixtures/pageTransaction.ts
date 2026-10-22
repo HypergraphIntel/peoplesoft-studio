@@ -10,7 +10,8 @@ export function pageTransaction(rows: Partial<Record<PageSnapshotTable, Record<s
     let state = structuredClone(initial), durable = structuredClone(initial), committed = 0, rolledBack = 0, updates = 0, badReadback = false;
     const connection: DbConnection = {
         catalog: { columns: async (_c, table) => {
-            if (!PAGE_SNAPSHOT_TABLES.includes(table as PageSnapshotTable)) throw new Error('Unexpected catalog request.');
+            // Tables outside the Page writer's scope (reference checks) are absent from this fixture database.
+            if (!PAGE_SNAPSHOT_TABLES.includes(table as PageSnapshotTable)) return [];
             const records = table === 'PSPNLDEFN' ? [initial.page] : initial.tables[table];
             return [...new Set(['PNLNAME', ...records.flatMap(r => Object.keys(r))])].map(name => ({ name, dataType: /DESCRLONG|FFSTYLELONG|HTMLAREA/.test(name) ? 'CLOB' : name === 'LASTUPDDTTM' ? 'TIMESTAMP(9)' : 'VARCHAR2' }));
         }, tableExists: async () => true },
@@ -20,7 +21,17 @@ export function pageTransaction(rows: Partial<Record<PageSnapshotTable, Record<s
             if (text === 'SET TRANSACTION READ ONLY') rows = [];
             else if (text.includes('FROM PSOPRDEFN')) rows = [{ N: 1 }];
             else if (text.startsWith('SELECT') && text.includes('FROM PSPNLDEFN')) rows = [{ ...state.page, ...(badReadback && text.startsWith('SELECT VERSION, FIELDCOUNT') ? { VERSION: -1 } : {}) }];
+            else if (/COUNT\(\*\) AS N FROM PSPNLFIELD(EXT)? WHERE PNLNAME = :n AND PNLFLDID = :id/.test(text)) rows = [{ N: state.tables[text.includes('PSPNLFIELDEXT') ? 'PSPNLFIELDEXT' : 'PSPNLFIELD'].filter(r => r.PNLFLDID === b.id).length }];
             else if (text.includes('COUNT(*) AS N FROM PSPNLFIELD')) rows = [{ N: state.tables.PSPNLFIELD.length }];
+            else if (/^DELETE FROM (PSPNL[A-Z0-9_]+|PSPTPNLRTEDITOR) WHERE PNLNAME = :n AND PNLFLDID = :id$/.test(text)) {
+                const table = text.split(' ')[2], kept = state.tables[table].filter(r => r.PNLFLDID !== b.id);
+                rowsAffected = state.tables[table].length - kept.length; state.tables[table] = kept; updates++;
+            } else if (/^INSERT INTO (PSPNL[A-Z0-9_]+|PSPTPNLRTEDITOR) \(/.test(text)) {
+                const table = text.split(' ')[2], cols = text.slice(text.indexOf('(') + 1, text.indexOf(')')).split(',').map(x => x.trim());
+                // Columns the INSERT leaves out are NULL, as in the native table.
+                const known = Object.fromEntries([...new Set(['PNLNAME', ...initial.tables[table].flatMap(r => Object.keys(r))])].map(col => [col, null]));
+                state.tables[table].push({ ...known, ...Object.fromEntries(cols.map((col, i) => [col, b['b' + i]])) }); rowsAffected = 1; updates++;
+            }
             else if (text.startsWith('SELECT') && /FROM (PSPNL[A-Z0-9_]+|PSPTPNLRTEDITOR)\b/.test(text)) {
                 const table = text.match(/FROM (PSPNL[A-Z0-9_]+|PSPTPNLRTEDITOR)\b/)![1];
                 if (!(table in state.tables)) throw new Error('Unknown Page table: ' + table);

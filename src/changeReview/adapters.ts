@@ -7,7 +7,7 @@ import { pcmProgKeyParts } from '../model/peopleCodeKeys.js';
 import { prepareHtmlText, contentTextRefusal } from '../providers/htmlWriter.js';
 import { queryDiff } from './semanticDiff.js';
 import { querySnapshot, queryView } from './query.js';
-import { requestForPageSnapshot, nativePageDiff } from '../providers/pageSnapshot.js';
+import { requestForPageSnapshot, nativePageDiff, pageReversalRefusal } from '../providers/pageSnapshot.js';
 import { DatabaseProvider } from '../providers/database.js';
 import type { Workspace } from '../workspace.js';
 import { DefinitionType, makeKey, type DefinitionKey } from '../model/definitions.js';
@@ -82,8 +82,8 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
         if (typeof key !== 'string' || !/^[A-Z][A-Z0-9_#@$]{0,17}$/.test(key)) throw new Error('Page key must be an uppercase native Page name.');
         return makeKey(DefinitionType.Page, key);
     };
-    const page: ReviewAdapter = { id: 'page', diff: nativePageDiff,
-        authorizationState: (e, key) => authorizationState(e, pageKey(key)), warnings: async (e, key) => [...await warnings(e, pageKey(key)), 'Existing-control geometry, labels/use and description/comments only. Native writer normalization is included in review. No Page creation/deletion, inserted/deleted controls or raw row replay.'],
+    const page: ReviewAdapter = { id: 'page', diff: nativePageDiff, reversalRefusal: (_key, before, after) => pageReversalRefusal(before, after),
+        authorizationState: (e, key) => authorizationState(e, pageKey(key)), warnings: async (e, key) => [...await warnings(e, pageKey(key)), 'Control geometry, labels/use, description/comments, inserted/deleted controls, tab order and Edit Box rebinding. Native writer normalization (ids, tab places, levels, Related Field references) is included in review. Restoration re-inserts only reviewed rows of this Page under their own ids. No Page creation/deletion, Tree restoration or arbitrary row replay.'],
         read: async (e, key) => { const p = await provider(e), read = await p.readPageForReview(pageKey(key).parts[0]); return { value: read.value as unknown as Json, token: read.token }; },
         validate: async (e, key, before, after) => {
             try {
