@@ -40,7 +40,8 @@
   Last Eff Date, beside Eff Date <=, can be authored, read back and run with
   the SQL Windows Query generates (captures qed01–qed06). HAVING criteria
   can be combined with OR (qhv01), and date columns take Min and Max (qag06). Expression
-  columns can be compared with a constant in WHERE, named `#N` (qex04).
+  columns can be compared with a constant in WHERE, named `#N` (qex04), and
+  subqueries can nest (qsq03).
 - **Page writer corrections from App Designer captures (ps01–ps04).** Related
   Field references (ASSOCFIELDNUM) now follow their control through deletes,
   inserts and reorders, and turn off when the control is deleted, as App

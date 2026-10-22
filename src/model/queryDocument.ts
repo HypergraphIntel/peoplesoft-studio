@@ -157,7 +157,10 @@ function references(view: QueryView): void {
 /** Selects are the top level, its subqueries (SELECTTYPE 2) and unions (3), each with consecutive records. */
 function checkShape(view: QueryView): void {
   const sels=[...view.selects].sort((a,b)=>n(a.SELNUM)-n(b.SELNUM));
-  if (!sels.length || sels.some((sel,i)=>n(sel.SELNUM)!==i+1 || (i ? ![2,3].includes(n(sel.SELECTTYPE)) || n(sel.PARENTSELNUM)!==1 : n(sel.SELECTTYPE)!==1 || n(sel.PARENTSELNUM)))
+  // qsq03: a subquery's parent is the top-level select or an earlier subquery; a union's is the top level.
+  const parentOk=(sel: Row, i: number)=>n(sel.SELECTTYPE)===3 ? n(sel.PARENTSELNUM)===1
+    : n(sel.SELECTTYPE)===2 && n(sel.PARENTSELNUM)>=1 && n(sel.PARENTSELNUM)<=i && [1,2].includes(n(sels[n(sel.PARENTSELNUM)-1].SELECTTYPE));
+  if (!sels.length || sels.some((sel,i)=>n(sel.SELNUM)!==i+1 || (i ? !parentOk(sel,i) : n(sel.SELECTTYPE)!==1 || n(sel.PARENTSELNUM)))
     || sels.some(sel=>view.records.filter(r=>n(r.SELNUM)===n(sel.SELNUM)).some((r,i)=>n(r.RCDNUM)!==i+1) || !view.records.some(r=>n(r.SELNUM)===n(sel.SELNUM)))
     || sels.some(sel=>n(sel.SELECTTYPE)===2) && sels.some(sel=>n(sel.SELECTTYPE)===3)) {
     throw new QueryUnsupportedError('Editing is calibrated for a top-level select with its subqueries or unions (not both).');
@@ -441,16 +444,33 @@ function setCriteria(view: QueryView, specs: QueryCriterion[], meta: Meta, sel: 
   const old=new Map(view.expressions.map(e=>[n(e.EXPNUM),e]));
   // Subqueries under the replaced criteria are removed and rebuilt from the specs.
   const oldSubs=previous.map(c=>subqueryOf(view,c)).filter(Boolean);
-  if (oldSubs.some(x=>view.selects.some(y=>n(y.PARENTSELNUM)===x && n(y.SELECTTYPE)===2))) throw new QueryUnsupportedError('Nested subqueries are not calibrated.');
   const snapshot=structuredClone(view);
   const gone=new Set(oldSubs.flatMap(x=>selectTree(view,x)));
   view.selects=view.selects.filter(x=>!gone.has(n(x.SELNUM)));
   view.records=view.records.filter(x=>!gone.has(n(x.SELNUM)));
   view.fields=view.fields.filter(x=>!gone.has(n(x.SELNUM)));
   view.criteria=view.criteria.filter(x=>!gone.has(n(x.SELNUM)) && !(n(x.SELNUM)===sel && previous.includes(x)));
-  if (gone.size && [...gone].some(x=>x<Math.max(...view.selects.map(y=>n(y.SELNUM))))) throw new QueryUnsupportedError('Replacing these subqueries would renumber later selects; this is not calibrated.');
+  // qsq02, qsq03: a subquery operand in the same place keeps its select number (and its alias while the record stays);
+  // a new one, nested ones included, takes the next free number and letter in criterion order.
+  const reused=new Map<QuerySubquery,number>(), created: QuerySubquery[]=[], reserved: string[]=[];
+  const criteriaOf=(selnum: number)=>snapshot.criteria.filter(c=>n(c.SELNUM)===selnum).sort((a,b)=>n(a.CRTNUM)-n(b.CRTNUM));
+  const plan=(list: QueryCriterion[], before: Row[])=>{
+    const prior=before.map(c=>subqueryOf(snapshot,c)).filter(Boolean);
+    let j=0;
+    for (const spec of list) if (spec.value && 'subquery' in spec.value) {
+      const sub=spec.value.subquery, old=prior[j++];
+      if (old) {
+        reused.set(sub,old);
+        const record=snapshot.records.find(r=>n(r.SELNUM)===old && n(r.RCDNUM)===1);
+        if (record && s(record.RECNAME)===sub.record) reserved.push(s(record.CORRNAME));
+      } else created.push(sub);
+      plan(sub.criteria ?? [],old ? criteriaOf(old) : []);
+    }
+  };
+  plan(specs,previous);
+  const last=Math.max(...view.selects.map(x=>n(x.SELNUM)),...reused.values());
+  const numbers=new Map<QuerySubquery,number>([...reused,...created.map((sub,i)=>[sub,last+i+1] as [QuerySubquery,number])]);
   const fresh: Row[]=[];
-  let subIndex=0;
   const build=(list: QueryCriterion[], at: number, before: Row[], combine: 'where'|'having', lead=0): Row[]=>{
     const rows=list.map((spec,i)=>{
       const cond=QUERY_OPERATORS[spec.operator], twoSided=cond===10 || cond===11, list=cond===8 || cond===9, none=[16,17,24,25].includes(cond);
@@ -481,7 +501,7 @@ function setCriteria(view: QueryView, specs: QueryCriterion[], meta: Meta, sel: 
       const place=(value: Operand, side: 'R1'|'R2', target: typeof r1)=>{
         if (!value || 'currentDate' in value) return;
         if ('field' in value) { exprtype=2; const r=fieldRow(view,value.field,meta,1,at); target.SELNUM=n(r.SELNUM); target.FLDNUM=n(r.FLDNUM); return; }
-        if ('subquery' in value) { exprtype=4; target.SELNUM=subquery(value.subquery,at,oldSubs[subIndex++]); return; }
+        if ('subquery' in value) { exprtype=4; target.SELNUM=subquery(value.subquery,at); return; }
         let kind: string, text: string, fieldtype=0;
         if ('constant' in value) { kind='constant'; text=constantText(value.constant,info!.type,spec.field!); fieldtype=info!.type; }
         else if ('list' in value) { kind='list'; exprtype=5; text=`(${value.list.map(v=>`'${v.replace(/'/g,"''")}'`).join(',')})`; }
@@ -521,14 +541,15 @@ function setCriteria(view: QueryView, specs: QueryCriterion[], meta: Meta, sel: 
     if (list.reduce((d,c)=>d+(c.open??0)-(c.close??0),0) || list.some((_,i)=>list.slice(0,i+1).reduce((d,c)=>d+(c.open??0)-(c.close??0),0)<0)) throw new Error('Criteria parentheses do not balance.');
     return rows;
   };
-  const subquery=(spec: QuerySubquery, parent: number, oldSel?: number): number=>{
+  const subquery=(spec: QuerySubquery, parent: number): number=>{
     const info=meta.records[spec.record];
     if (!info) throw new Error(`Supply ${spec.record}'s fields to use it in a subquery.`);
     if (effectiveDated(info)) throw new QueryUnsupportedError('A subquery on an effective-dated record is not calibrated.');
     if (view.selects.some(x=>n(x.SELECTTYPE)===3)) throw new QueryUnsupportedError('Subqueries in a query with unions are not calibrated.');
-    const selnum=Math.max(...view.selects.map(x=>n(x.SELNUM)))+1;
+    const selnum=numbers.get(spec)!, oldSel=reused.get(spec);
     const oldRecord=oldSel ? snapshot.records.find(r=>n(r.SELNUM)===oldSel && n(r.RCDNUM)===1) : undefined;
-    const alias=oldRecord && s(oldRecord.RECNAME)===spec.record && !view.records.some(r=>s(r.CORRNAME)===s(oldRecord.CORRNAME)) ? s(oldRecord.CORRNAME) : nextAlias(view);
+    const alias=oldRecord && s(oldRecord.RECNAME)===spec.record && !view.records.some(r=>s(r.CORRNAME)===s(oldRecord.CORRNAME)) ? s(oldRecord.CORRNAME)
+      : nextAlias({...view,records:[...view.records,...reserved.map(CORRNAME=>({CORRNAME}))]});
     view.selects.push(selectRow(k,selnum,2,parent));
     view.records.push({...k,SELNUM:selnum,RCDNUM:1,RECNAME:spec.record,JOINTYPE:1,JOINRCDNUM:0,JOINFLDNUM:0,CORRNAME:alias,QRYRECPRUNABLE:' '});
     const out=fieldRow(view,spec.field.includes('.') ? spec.field : `${alias}.${spec.field}`,meta,3,selnum);
@@ -537,7 +558,6 @@ function setCriteria(view: QueryView, specs: QueryCriterion[], meta: Meta, sel: 
     out.COLUMNNUM=1;
     const priorRows=oldSel ? snapshot.criteria.filter(c=>n(c.SELNUM)===oldSel).sort((a,b)=>n(a.CRTNUM)-n(b.CRTNUM)) : [];
     const rows=build(spec.criteria ?? [],selnum,priorRows,'where');
-    if (rows.some(r=>n(r.EXPRTYPE)===4)) throw new QueryUnsupportedError('Nested subqueries are not calibrated.');
     view.criteria.push(...rows.map((r,i)=>({...r,CRTNUM:i+1})));
     return selnum;
   };
@@ -548,6 +568,7 @@ function setCriteria(view: QueryView, specs: QueryCriterion[], meta: Meta, sel: 
   view.criteria=[...others,...ordered.map((c,i)=>({...c,CRTNUM:i+1}))];
   renumberExpressions(view,old,fresh);
   view.selects.sort((a,b)=>n(a.SELNUM)-n(b.SELNUM));
+  if (view.selects.some((x,i)=>n(x.SELNUM)!==i+1)) throw new QueryUnsupportedError('Removing these subqueries would renumber later selects; this is not calibrated.');
   references(view);
 }
 /** Keep every old expression still used (criteria, columns, translates) in its old order, then append the new ones. */

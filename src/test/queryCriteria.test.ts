@@ -184,6 +184,20 @@ test('native subqueries replay qsq01-qsq02', () => {
   const exists=applyQueryOp(view,{kind:'criteria',criteria:[]},records.AAP_YEAR.fields,all);
   assert.deepEqual([exists.selects.length,exists.records.length,exists.fields.map(f=>[f.QRYFLDNAME,f.USECOUNT])],[1,1,[['A.ESTABID',0]]]);
 });
+test('native nested subquery replays qsq03: existing subqueries keep their selects, the nested one is appended', () => {
+  const before=snapshot('qsq03-nested-subquery','before'), after=snapshot('qsq03-nested-subquery','after');
+  const criteria: QueryCriterion[]=[{field:'ESTABID',operator:'inList',value:{subquery:{record:'AAP_TBL',field:'ESTABID',
+      criteria:[{field:'ESTABID',operator:'inList',value:{subquery:{record:'AAP_YEAR',field:'ESTABID'}}}]}}},
+    {operator:'exists',logical:'AND',value:{subquery:{record:'AAP_TBL',field:'ESTABID',criteria:[{field:'ESTABID',operator:'equal',value:{field:'A.ESTABID'}}]}}}];
+  assert.deepEqual(describeQueryCriteria(after).criteria,criteria);
+  compare(applyQueryOp(before,{kind:'criteria',criteria},records.AAP_YEAR.fields,all),after,before,'qsq03');
+  compare(applyQueryOp(after,{kind:'criteria',criteria},records.AAP_YEAR.fields,all),after,after,'qsq03 round trip');
+  // Dropping the first subquery removes it and its nested select; the remaining one takes select 2 by position.
+  const dropped=applyQueryOp(after,{kind:'criteria',criteria:[criteria[1]]},records.AAP_YEAR.fields,all);
+  assert.deepEqual(dropped.selects.map(x=>[Number(x.SELNUM),Number(x.PARENTSELNUM)]),[[1,0],[2,1]]);
+  const {logical:_,...exists}=criteria[1];
+  assert.deepEqual(describeQueryCriteria(dropped).criteria,[exists]);
+});
 test('native union replays qun01', () => {
   compare(build('ZZ_QRY_UNION01','AAP_TBL',[{kind:'select',field:'ESTABID',selected:true},{kind:'union',record:'AAP_YEAR'},{kind:'select',field:'B.ESTABID',selected:true},
     {kind:'properties',description:'Union calibration',comments:''}]),snapshot('qun01-union','after'),undefined,'qun01');

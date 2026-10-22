@@ -58,8 +58,11 @@ export function compileQuerySql(view: QueryView, context: QuerySqlContext): Quer
   if (number(view.query.QRYTYPE) !== 1) refuse('Only User queries are supported for execution.');
   if (text(view.query.QRYDISABLED) === 'Y' || number(view.query.QRYDISABLED) === 1) refuse('This query is disabled.');
   const selects = [...view.selects].sort((a,b) => number(a.SELNUM)-number(b.SELNUM));
-  if (!selects.length || selects.some((sel,i) => number(sel.SELNUM) !== i+1 || (i ? ![2,3].includes(number(sel.SELECTTYPE)) || number(sel.PARENTSELNUM) !== 1
-    : number(sel.SELECTTYPE) !== 1 || number(sel.PARENTSELNUM)))) refuse('Only a top-level select with direct subqueries or unions is calibrated.');
+  // qsq03: a subquery's parent is the top-level select or an earlier subquery; a union's is the top level.
+  const parentOk = (sel: Row, i: number) => number(sel.SELECTTYPE) === 3 ? number(sel.PARENTSELNUM) === 1
+    : number(sel.SELECTTYPE) === 2 && number(sel.PARENTSELNUM) >= 1 && number(sel.PARENTSELNUM) <= i && [1,2].includes(number(selects[number(sel.PARENTSELNUM)-1].SELECTTYPE));
+  if (!selects.length || selects.some((sel,i) => number(sel.SELNUM) !== i+1 || (i ? !parentOk(sel,i)
+    : number(sel.SELECTTYPE) !== 1 || number(sel.PARENTSELNUM)))) refuse('Only a top-level select with subqueries (nested ones included) or unions is calibrated.');
   if (selects.some(sel => number(sel.SELECTTYPE) === 2) && selects.some(sel => number(sel.SELECTTYPE) === 3)) refuse('Subqueries together with unions are not calibrated.');
   const typeOfSelect = (sel: unknown) => number(selects.find(x => number(x.SELNUM) === number(sel))?.SELECTTYPE);
   const recordRows = (sel: unknown) => view.records.filter(r => number(r.SELNUM) === number(sel)).sort((a,b) => number(a.RCDNUM)-number(b.RCDNUM));
