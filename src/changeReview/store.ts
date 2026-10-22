@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { hash, canonical, privacy, type ChangeSet, type Json } from './model.js';
+import { syncDirectory } from '../util/syncDirectory.js';
 /** Single-machine storage. Never remove a live/unknown owner's lock. */
 export class ReviewStore {
     constructor(readonly root: string) { }
@@ -84,13 +85,7 @@ export class ReviewStore {
             await f.close();
         }
         await fs.rename(temp, file);
-        const dir = await fs.open(path.dirname(file), 'r');
-        try {
-            await dir.sync();
-        }
-        finally {
-            await dir.close();
-        }
+        await syncDirectory(path.dirname(file));
     }
     async blob(value: Json): Promise<string> {
         privacy(value);

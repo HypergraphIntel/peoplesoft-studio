@@ -50,3 +50,21 @@ publication is authorized by this qualification effort.
 All gates remain open until their final evidence is inspected. Historical
 native trials, fixture approvals and an artifact existing are not substitutes
 for the required scope of final installed/native acceptance.
+
+
+## Windows defect found during qualification
+
+The first four-way CI run passed both Linux jobs and failed both Windows jobs.
+Native Windows testing also reproduced `EPERM: operation not permitted, fsync`
+from the published 0.9.7 Change Review store. The newly written file was already
+renamed, but flushing its containing directory failed. The shared fix retains
+file flushing and atomic replacement everywhere, and directory flushing on
+platforms that support it; Windows errors from actual file writes/flushes are
+not swallowed. Local full verification passes after the correction. Remote CI
+and installed Windows acceptance of the corrected candidate remain required.
+
+The unmodified 0.9.7 Windows upgrade seed records that refusal and verifies the
+retained DRAFT history. It uses an independent owned SQL fixture for the dirty
+editor setup. No passing native write is attributed to that old Windows asset.
+Current-candidate save, inverse, redo and deletion still require actual rendered
+review. A final restart checks the resulting history and cleanup without replay.
