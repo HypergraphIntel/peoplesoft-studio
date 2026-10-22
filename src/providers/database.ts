@@ -3642,7 +3642,7 @@ export class DatabaseProvider implements DefinitionProvider {
 
   /** Generates SQL on the host, checks Query access, validates prompts, and always rolls back. */
   async runQuery(view: QueryView, operatorId: string, values: Record<string,string>, maxRows = 500): Promise<{
-    sql: string; rows: Array<Record<string,unknown>>; truncated: boolean; maxRows: number; ms: number;
+    sql: string; rows: Array<Record<string,unknown>>; columnNames: string[]; truncated: boolean; maxRows: number; ms: number;
   }> {
     if (this.platform !== 'oracle') throw new ProviderError('PS Query execution is currently calibrated on Oracle.');
     if (!Number.isInteger(maxRows) || maxRows < 1 || maxRows > 10000) throw new ProviderError('Query row limit must be between 1 and 10000.');
@@ -3652,8 +3652,9 @@ export class DatabaseProvider implements DefinitionProvider {
         await c.execute('SET TRANSACTION READ ONLY');
         const plan = await prepareQueryExecution(c,view,operatorId);
         const binds = await validateQueryPromptValues(c,plan,operatorId,values);
-        const rows = (await c.execute<Record<string,unknown>>(plan.sql,binds,{outFormat:this.types.OUT_FORMAT_OBJECT,maxRows:maxRows+1})).rows ?? [];
-        return {sql:plan.sql,rows:rows.slice(0,maxRows),truncated:rows.length>maxRows,maxRows,ms:Date.now()-started};
+        const result = await c.execute<Record<string,unknown>>(plan.sql,binds,{outFormat:this.types.OUT_FORMAT_OBJECT,maxRows:maxRows+1});
+        const rows = result.rows ?? [], columnNames = result.metaData?.map(column=>column.name) ?? [];
+        return {sql:plan.sql,rows:rows.slice(0,maxRows),columnNames,truncated:rows.length>maxRows,maxRows,ms:Date.now()-started};
       } finally { await c.rollback(); }
     });
   }

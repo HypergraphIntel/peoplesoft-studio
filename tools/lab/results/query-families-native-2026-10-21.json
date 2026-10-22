@@ -1,0 +1,748 @@
+{
+  "at": "2026-10-22T02:05:43.747Z",
+  "mode": "save",
+  "database": "HRDMO",
+  "owner": "JARED",
+  "queries": [
+    {
+      "name": "ZZ_QRY_STUDIO_JOIN",
+      "sql": "SELECT A.ESTABID,A.FEMALE_GOAL,B.DESCR\nFROM PS_AAP_YEAR A, PS_AAP_TBL B\nWHERE ( A.ESTABID = B.ESTABID\n     AND B.DESCR LIKE 'GBI%')",
+      "prompts": {},
+      "rows": [
+        {
+          "ESTABID": "KU001",
+          "FEMALE_GOAL": 23,
+          "DESCR": "GBI HQ Affirmative Action Plan"
+        },
+        {
+          "ESTABID": "KU002",
+          "FEMALE_GOAL": 3,
+          "DESCR": "GBI Data Processing Cntr"
+        },
+        {
+          "ESTABID": "KU002",
+          "FEMALE_GOAL": 0,
+          "DESCR": "GBI Data Processing Cntr"
+        }
+      ]
+    },
+    {
+      "name": "ZZ_QRY_STUDIO_REL",
+      "sql": "SELECT A.ESTABID,B.DESCR,C.DESCR\nFROM (PS_AAP_YEAR A LEFT OUTER JOIN  PS_AAP_TBL B ON  A.ESTABID = B.ESTABID ), PS_ESTAB_TBL C\nWHERE ( C.ESTABID = A.ESTABID\n     AND ( C.EFFDT =\n        (SELECT MAX(C_ED.EFFDT) FROM PS_ESTAB_TBL C_ED\n        WHERE C.ESTABID = C_ED.ESTABID\n          AND C_ED.EFFDT <= SYSDATE) ))",
+      "prompts": {},
+      "rows": [
+        {
+          "ESTABID": "KU002",
+          "DESCR": "GBI Data Processing Cntr",
+          "DESCR_1": "GBI Data Processing Center"
+        },
+        {
+          "ESTABID": "KU002",
+          "DESCR": "GBI Data Processing Cntr",
+          "DESCR_1": "GBI Data Processing Center"
+        },
+        {
+          "ESTABID": "KU001",
+          "DESCR": "GBI HQ Affirmative Action Plan",
+          "DESCR_1": "Global Business Institute HQ"
+        }
+      ]
+    },
+    {
+      "name": "ZZ_QRY_STUDIO_AGG",
+      "sql": "SELECT DISTINCT A.ESTABID,AVG( A.FEMALE_GOAL)\nFROM PS_AAP_YEAR A\nWHERE ( A.ESTABID LIKE '%')\nGROUP BY  A.ESTABID\nHAVING ( AVG( A.FEMALE_GOAL) >= 0)",
+      "prompts": {},
+      "rows": [
+        {
+          "ESTABID": "KU001",
+          "AVG(A.FEMALE_GOAL)": 23
+        },
+        {
+          "ESTABID": "KU002",
+          "AVG(A.FEMALE_GOAL)": 1.5
+        }
+      ]
+    },
+    {
+      "name": "ZZ_QRY_STUDIO_EXPR",
+      "sql": "SELECT A.ESTABID, A.FEMALE_GOAL * 2, A.FEMALE_GOAL + 100\nFROM PS_AAP_YEAR A\nWHERE ( A.FEMALE_GOAL >= 0 * 2)",
+      "prompts": {},
+      "rows": [
+        {
+          "ESTABID": "KU001",
+          "A.FEMALE_GOAL*2": 46,
+          "A.FEMALE_GOAL+100": 123
+        },
+        {
+          "ESTABID": "KU002",
+          "A.FEMALE_GOAL*2": 6,
+          "A.FEMALE_GOAL+100": 103
+        },
+        {
+          "ESTABID": "KU002",
+          "A.FEMALE_GOAL*2": 0,
+          "A.FEMALE_GOAL+100": 100
+        }
+      ]
+    },
+    {
+      "name": "ZZ_QRY_STUDIO_SUB",
+      "sql": "SELECT A.ESTABID\nFROM PS_AAP_YEAR A\nWHERE ( A.ESTABID IN (SELECT B.ESTABID\nFROM PS_AAP_TBL B)\n     AND EXISTS (SELECT C.ESTABID\nFROM PS_AAP_TBL C\nWHERE C.ESTABID = A.ESTABID))",
+      "prompts": {},
+      "rows": [
+        {
+          "ESTABID": "KU001"
+        },
+        {
+          "ESTABID": "KU002"
+        },
+        {
+          "ESTABID": "KU002"
+        }
+      ]
+    },
+    {
+      "name": "ZZ_QRY_STUDIO_UNION",
+      "sql": "SELECT A.ESTABID\nFROM PS_AAP_TBL A\nUNION\nSELECT B.ESTABID\nFROM PS_AAP_YEAR B",
+      "prompts": {},
+      "rows": [
+        {
+          "ESTABID": "KU001"
+        },
+        {
+          "ESTABID": "KU002"
+        }
+      ]
+    },
+    {
+      "name": "ZZ_QRY_STUDIO_XLAT",
+      "sql": "SELECT A.ESTABID,A2X.XLATLONGNAME\nFROM PS_ESTAB_TBL A LEFT OUTER JOIN PSXLATITEM A2X ON A2X.FIELDNAME='EFF_STATUS' AND A2X.FIELDVALUE=A.EFF_STATUS AND A2X.EFF_STATUS = 'A'\nWHERE ( (A2X.EFFDT = (SELECT MAX(EFFDT) FROM PSXLATITEM TB WHERE TB.FIELDNAME=A2X.FIELDNAME AND TB.FIELDVALUE=A2X.FIELDVALUE AND  TB.EFF_STATUS = 'A' AND TB.EFFDT <=  A.EFFDT) OR A2X.EFFDT is NULL)\n     AND A.EFFDT =\n        (SELECT MAX(A_ED.EFFDT) FROM PS_ESTAB_TBL A_ED\n        WHERE A.ESTABID = A_ED.ESTABID\n          AND A_ED.EFFDT <= SYSDATE))",
+      "prompts": {},
+      "rows": [
+        {
+          "ESTABID": "KRD DF",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KRD SP",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KRE BH",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KRE DF",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KRE RJ",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KRE RS",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KRE SP",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KRI1-1",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KRI1-2",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KRI1-3",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KRI1-4",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KRO1-2",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KU001",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KU002",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KU003",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KU004",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KU005",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KUV",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KUV01",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KY00000000B",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KY00000000C",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KY00000000D",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KY00000000A",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KRO1-1",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "PSCCS",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "PSGLK",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "PSNLD",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "PSUNV",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "WCARE",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "NCY",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "VT001",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "K12SD",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "K1GETA",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KC001",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KCY01",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KE01",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KE02",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KE03",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KE04",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KE05",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KE06",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KE07",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KF001",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KF002",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KF201",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KIST1",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KIST2",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KIST3",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KJLJ01",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KN1001",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KN2001",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KN2002",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KN3001",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KPEST1",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KPEST2",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KPEST3",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KPEST4",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KPEST5",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KPEST6",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KPEST7",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KRC1-1",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KRC1-2",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KRC1-3",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KRD BH",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KRD RJ",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KRD RS",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KE10",
+          "XLATLONGNAME": "Active"
+        },
+        {
+          "ESTABID": "KMEST1",
+          "XLATLONGNAME": "Active"
+        }
+      ]
+    },
+    {
+      "name": "ZZ_QRY_STUDIO_XLAT2",
+      "sql": "SELECT A.ESTABID,A2X.XLATSHORTNAME\nFROM PS_ESTAB_TBL A LEFT OUTER JOIN ( SELECT * FROM PSXLATITEM TA WHERE TA.FIELDNAME='EFF_STATUS' AND TA.EFF_STATUS = 'A' AND TA.EFFDT = (SELECT MAX(EFFDT) FROM PSXLATITEM TB WHERE TB.FIELDNAME='EFF_STATUS' AND TA.FIELDVALUE=TB.FIELDVALUE AND  TB.EFF_STATUS = 'A' AND\nTB.EFFDT <= TO_DATE(TO_CHAR(SYSDATE,'YYYY-MM-DD'),'YYYY-MM-DD'))) A2X ON A2X.FIELDVALUE = A.EFF_STATUS AND A2X.FIELDNAME='EFF_STATUS'\nWHERE ( A.EFFDT =\n        (SELECT MAX(A_ED.EFFDT) FROM PS_ESTAB_TBL A_ED\n        WHERE A.ESTABID = A_ED.ESTABID\n          AND A_ED.EFFDT <= SYSDATE))",
+      "prompts": {},
+      "rows": [
+        {
+          "ESTABID": "KRD DF",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KRD SP",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KRE BH",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KRE DF",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KRE RJ",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KRE RS",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KRE SP",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KRI1-1",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KRI1-2",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KRI1-3",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KRI1-4",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KRO1-2",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KU001",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KU002",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KU003",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KU004",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KU005",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KUV",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KUV01",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KY00000000B",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KY00000000C",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KY00000000D",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KY00000000A",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KRO1-1",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "PSCCS",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "PSGLK",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "PSNLD",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "PSUNV",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "WCARE",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "NCY",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "VT001",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "K12SD",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "K1GETA",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KC001",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KCY01",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KE01",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KE02",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KE03",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KE04",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KE05",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KE06",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KE07",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KF001",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KF002",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KF201",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KIST1",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KIST2",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KIST3",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KJLJ01",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KN1001",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KN2001",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KN2002",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KN3001",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KPEST1",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KPEST2",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KPEST3",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KPEST4",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KPEST5",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KPEST6",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KPEST7",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KRC1-1",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KRC1-2",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KRC1-3",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KRD BH",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KRD RJ",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KRD RS",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KE10",
+          "XLATSHORTNAME": "Active"
+        },
+        {
+          "ESTABID": "KMEST1",
+          "XLATSHORTNAME": "Active"
+        }
+      ]
+    }
+  ],
+  "passed": true,
+  "windowsQueryReopen": {
+    "checkedAt": "2026-10-21",
+    "tool": "Windows Query 8.62.09 on HRDMO (File > Open, SQL tab, Run Query)",
+    "ZZ_QRY_STUDIO_JOIN": {
+      "fields": "A.ESTABID, A.FEMALE_GOAL, B.DESCR",
+      "sqlTab": "identical to Studio SQL",
+      "results": [
+        "KU001|23|GBI HQ Affirmative Action Plan",
+        "KU002|3|GBI Data Processing Cntr",
+        "KU002|0|GBI Data Processing Cntr"
+      ],
+      "matchesStudio": true
+    },
+    "ZZ_QRY_STUDIO_REL": {
+      "records": "A AAP_YEAR, B AAP_TBL (left outer), C ESTAB_TBL (related)",
+      "sqlTab": "identical to Studio SQL",
+      "results": [
+        "KU002|GBI Data Processing Cntr|GBI Data Processing Center",
+        "KU002|GBI Data Processing Cntr|GBI Data Processing Center",
+        "KU001|GBI HQ Affirmative Action Plan|Global Business Institute HQ"
+      ],
+      "matchesStudio": true
+    },
+    "ZZ_QRY_STUDIO_AGG": {
+      "fields": "ESTABID, FEMALE_GOAL Avg (heading Avg(Fem Goal)); Having Criteria tab present",
+      "sqlTab": "identical to Studio SQL",
+      "results": [
+        "KU001|23",
+        "KU002|1"
+      ],
+      "matchesStudio": true,
+      "note": "Same rows and SQL; Windows Query displays the average in the field format (Num 6, no decimals): 1 where the database and Studio return 1.5."
+    },
+    "ZZ_QRY_STUDIO_EXPR": {
+      "fields": "ESTABID, A.FEMALE_GOAL * 2 (Num 7), A.FEMALE_GOAL + 100 (Num 5) with expression headings",
+      "sqlTab": "identical to Studio SQL",
+      "results": [
+        "KU001|46|123",
+        "KU002|6|103",
+        "KU002|0|100"
+      ],
+      "matchesStudio": true
+    },
+    "ZZ_QRY_STUDIO_SUB": {
+      "sqlTab": "identical to Studio SQL (IN subquery B, correlated EXISTS C)",
+      "results": [
+        "KU001",
+        "KU002",
+        "KU002"
+      ],
+      "matchesStudio": true
+    },
+    "ZZ_QRY_STUDIO_UNION": {
+      "sqlTab": "identical to Studio SQL",
+      "results": [
+        "KU001",
+        "KU002"
+      ],
+      "matchesStudio": true
+    },
+    "ZZ_QRY_STUDIO_XLAT": {
+      "sqlTab": "identical to Studio SQL (PSXLATITEM A2X, effective date A.EFFDT)",
+      "results": "68 rows, KRD DF ... KMEST1, Status Active; same order as Studio",
+      "matchesStudio": true
+    },
+    "ZZ_QRY_STUDIO_XLAT2": {
+      "sqlTab": "identical to Studio SQL (derived PSXLATITEM TA, current date)",
+      "results": "68 rows, KRD DF ... KMEST1, Status Active; same order as Studio",
+      "matchesStudio": true
+    }
+  }
+}

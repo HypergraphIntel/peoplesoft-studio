@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { applyQueryOp, newQueryDocument, parseQueryOp, type QueryCriterion, type QueryFieldInfo } from '../model/queryDocument.js';
+import { applyQueryOp, describeQueryCriteria, newQueryDocument, parseQueryOp, type QueryCriterion, type QueryFieldInfo, type QueryOp, type QueryRecordInfo } from '../model/queryDocument.js';
 import { canonicalQueryRows, planQuerySave, QUERY_TABLES, queryRows, type QueryTable } from '../model/querySavePlan.js';
 import type { QueryView, Row } from '../model/queryDefinition.js';
 
@@ -82,4 +82,101 @@ test('typed criteria refuse uncalibrated and inconsistent shapes', () => {
   refuse([{field:'FEMALE_GOAL',operator:'equal',value:{field:'ESTABID'}}],/character fields only/);
   assert.throws(()=>parseQueryOp({kind:'criteria',criteria:[{field:'ESTABID',operator:'regexp',value:{constant:'A'}}]}));
   assert.throws(()=>applyQueryOp(snapshot('qcr05-group','after'),{kind:'constant',field:'ESTABID',value:'X'},metadata),/several criteria/);
+});
+
+// HRDMO records for the join captures; useEdit 1 marks keys, ESTABID prompts ESTAB_TBL.
+const info=(type: number, longName: string, useEdit=0, editTable='', length=type===4?10:30): QueryFieldInfo=>({type,length,decimalPositions:0,format:0,shortName:longName,longName,editTable,useEdit});
+const records: Record<string,QueryRecordInfo>={
+  AAP_YEAR:{fields:{ESTABID:info(0,'Establishment ID',16385,'ESTAB_TBL',12),START_DT:info(4,'Start Date',1),FEMALE_GOAL:info(2,'Female Goal',0,'',6)}},
+  AAP_TBL:{fields:{ESTABID:info(0,'Establishment ID',16385,'ESTAB_TBL',12),DESCR:info(0,'Description'),AAP_RESPONSIBLE_ID:info(0,'Person Responsible')}},
+  ESTAB_TBL:{fields:{ESTABID:info(0,'Establishment ID',1,'',12),EFFDT:info(4,'Effective Date',1),EFF_STATUS:info(0,'Status'),DESCR:info(0,'Description')}}
+};
+test('native joins qjn01-qjn04 replay: standard, criteria after a join, left outer and related effective-dated', () => {
+  const base=records.AAP_YEAR.fields, op=(view: QueryView, o: QueryOp)=>applyQueryOp(view,o,base,records);
+  let joined=newQueryDocument('ZZ_QRY_JOIN01','JARED','AAP_YEAR');
+  for (const o of [{kind:'select',field:'ESTABID',selected:true},{kind:'select',field:'FEMALE_GOAL',selected:true},{kind:'join',record:'AAP_TBL',type:'standard'},
+    {kind:'select',field:'B.DESCR',selected:true},{kind:'properties',description:'Join calibration',comments:''}] as QueryOp[]) joined=op(joined,o);
+  compare(joined,snapshot('qjn01-standard-join','after'),undefined,'qjn01');
+  compare(op(snapshot('qjn02-criterion-after-join','before'),{kind:'criteria',criteria:[{field:'ESTABID',operator:'equal',value:{field:'B.ESTABID'}},
+    {field:'B.DESCR',operator:'like',logical:'AND',value:{constant:'A%'}}]}),snapshot('qjn02-criterion-after-join','after'),snapshot('qjn02-criterion-after-join','before'),'qjn02');
+  let outer=newQueryDocument('ZZ_QRY_JOIN02','JARED','AAP_YEAR');
+  for (const o of [{kind:'select',field:'ESTABID',selected:true},{kind:'join',record:'AAP_TBL',type:'leftOuter'},{kind:'select',field:'B.ESTABID',selected:true},
+    {kind:'properties',description:'Outer join calibration',comments:''}] as QueryOp[]) outer=op(outer,o);
+  compare(outer,snapshot('qjn03-left-outer','after'),undefined,'qjn03');
+  let related=op(snapshot('qjn04-related-join','before'),{kind:'join',record:'ESTAB_TBL',type:'related',field:'A.ESTABID'});
+  related=op(related,{kind:'select',field:'C.DESCR',selected:true});
+  compare(related,snapshot('qjn04-related-join','after'),snapshot('qjn04-related-join','before'),'qjn04');
+  // The ON criterion stays with its join when the WHERE criteria are replaced.
+  const replaced=op(snapshot('qjn04-related-join','after'),{kind:'criteria',criteria:[{field:'C.EFFDT',operator:'effectiveDate',value:{currentDate:true}},{field:'B.DESCR',operator:'isNotNull',logical:'AND'}]});
+  assert.deepEqual(replaced.criteria.map(c=>[c.CRTNUM,c.QRYOJSELNUM,c.CONDTYPE,c.COMBTYPE]),[[1,'2','2','3'],[2,0,20,1],[3,0,17,1]]);
+  assert.throws(()=>op(snapshot('qjn01-standard-join','after'),{kind:'join',record:'ESTAB_TBL',type:'standard'}),/effective-dated/);
+  assert.throws(()=>op(snapshot('qjn01-standard-join','after'),{kind:'join',record:'AAP_TBL',type:'related',field:'B.DESCR'}),/related \(prompt\) record/);
+});
+
+// Aggregates, HAVING, DISTINCT (qag), expressions (qex), subqueries (qsq), unions (qun), translates and base effective dating (qxl).
+const estab: Record<string,QueryFieldInfo>={ESTABID:info(0,'Establishment ID',1,'',12),EFFDT:info(4,'Effective Date',1),EFF_STATUS:info(0,'Status',0,'',1),DESCR:info(0,'Description')};
+const all: Record<string,QueryRecordInfo>={...records,ESTAB_TBL:{fields:estab}};
+const build=(name: string, record: string, ops: QueryOp[], dated=false)=>{
+  const base=all[record].fields;
+  return ops.reduce((v,o)=>applyQueryOp(v,o,base,all),newQueryDocument(name,'JARED',record,dated?base:undefined));
+};
+const step=(name: string, o: QueryOp)=>{ const before=snapshot(name,'before'); compare(applyQueryOp(before,o,records.AAP_YEAR.fields,all),snapshot(name,'after'),before,name); };
+test('native aggregates, HAVING and DISTINCT replay qag01-qag05', () => {
+  compare(build('ZZ_QRY_AGG01','AAP_YEAR',[{kind:'select',field:'ESTABID',selected:true},{kind:'select',field:'FEMALE_GOAL',selected:true},
+    {kind:'aggregate',field:'FEMALE_GOAL',function:'sum'},{kind:'properties',description:'Aggregate calibration',comments:''}]),snapshot('qag01-sum','after'),undefined,'qag01');
+  step('qag02-average',{kind:'aggregate',field:'FEMALE_GOAL',function:'average'});
+  step('qag03-having',{kind:'having',criteria:[{field:'FEMALE_GOAL',operator:'greater',value:{constant:'1'}}]});
+  step('qag04-distinct',{kind:'distinct',distinct:true});
+  step('qag05-where-and-having',{kind:'criteria',criteria:[{field:'ESTABID',operator:'equal',value:{constant:'KU001'}}]});
+  const agg=snapshot('qag05-where-and-having','after');
+  assert.throws(()=>applyQueryOp(agg,{kind:'having',criteria:[{field:'ESTABID',operator:'equal',value:{constant:'A'}}]},records.AAP_YEAR.fields,all),/aggregated field/);
+  assert.throws(()=>applyQueryOp(agg,{kind:'aggregate',field:'FEMALE_GOAL',function:'none'},records.AAP_YEAR.fields,all),/HAVING criterion uses/);
+  assert.throws(()=>applyQueryOp(agg,{kind:'having',criteria:[{field:'FEMALE_GOAL',operator:'greater',value:{constant:'1'}},{field:'FEMALE_GOAL',operator:'less',logical:'OR',value:{constant:'9'}}]},records.AAP_YEAR.fields,all),/OR between HAVING/);
+});
+test('native expressions replay qex01-qex03', () => {
+  compare(build('ZZ_QRY_EXPR01','AAP_YEAR',[{kind:'select',field:'ESTABID',selected:true},{kind:'expression',text:'A.FEMALE_GOAL * 2',type:'number',length:7},
+    {kind:'properties',description:'Expression calibration',comments:''}]),snapshot('qex01-expression-column','after'),undefined,'qex01');
+  step('qex02-second-expression',{kind:'expression',text:'A.FEMALE_GOAL + 100',type:'number',length:5});
+  step('qex03-expression-criterion',{kind:'criteria',criteria:[{field:'FEMALE_GOAL',operator:'greater',value:{expression:'5 * 2'}}]});
+  const view=snapshot('qex03-expression-criterion','after');
+  for (const text of ['1; DELETE FROM PSOPRDEFN','A.FEMALE_GOAL -- x','A.FEMALE_GOAL /* x */',':1','\'open']) assert.throws(()=>applyQueryOp(view,{kind:'expression',text,type:'number',length:5},records.AAP_YEAR.fields,all),/cannot contain|Unbalanced/);
+  // A quoted reference is not a field.
+  const quoted=applyQueryOp(view,{kind:'expression',text:"'A.X' || A.ESTABID",type:'character',length:20},records.AAP_YEAR.fields,all);
+  assert.equal(quoted.expressions.at(-1)!.EXPRESSIONTEXT,"'A.X' ||  :%1.1");
+});
+test('native subqueries replay qsq01-qsq02', () => {
+  const inSub: QueryCriterion={field:'ESTABID',operator:'inList',value:{subquery:{record:'AAP_TBL',field:'ESTABID'}}};
+  compare(build('ZZ_QRY_SUB01','AAP_YEAR',[{kind:'select',field:'ESTABID',selected:true},{kind:'criteria',criteria:[inSub]},
+    {kind:'properties',description:'Subquery calibration',comments:''}]),snapshot('qsq01-in-subquery','after'),undefined,'qsq01');
+  step('qsq02-exists',{kind:'criteria',criteria:[inSub,{operator:'exists',logical:'AND',value:{subquery:{record:'AAP_TBL',field:'ESTABID',
+    criteria:[{field:'ESTABID',operator:'equal',value:{field:'A.ESTABID'}}]}}}]});
+  const view=snapshot('qsq02-exists','after');
+  assert.throws(()=>applyQueryOp(view,{kind:'criteria',criteria:[{field:'ESTABID',operator:'equal',value:{subquery:{record:'AAP_TBL',field:'ESTABID'}}}]},records.AAP_YEAR.fields,all),/in list, not in list, exists/);
+  assert.throws(()=>applyQueryOp(view,{kind:'criteria',criteria:[{operator:'exists',value:{subquery:{record:'ESTAB_TBL',field:'ESTABID'}}}]},records.AAP_YEAR.fields,all),/effective-dated/);
+  assert.throws(()=>applyQueryOp(view,{kind:'union',record:'AAP_TBL'},records.AAP_YEAR.fields,all),/subqueries/);
+  // Removing the subquery criteria removes their selects, records and fields.
+  const exists=applyQueryOp(view,{kind:'criteria',criteria:[]},records.AAP_YEAR.fields,all);
+  assert.deepEqual([exists.selects.length,exists.records.length,exists.fields.map(f=>[f.QRYFLDNAME,f.USECOUNT])],[1,1,[['A.ESTABID',0]]]);
+});
+test('native union replays qun01', () => {
+  compare(build('ZZ_QRY_UNION01','AAP_TBL',[{kind:'select',field:'ESTABID',selected:true},{kind:'union',record:'AAP_YEAR'},{kind:'select',field:'B.ESTABID',selected:true},
+    {kind:'properties',description:'Union calibration',comments:''}]),snapshot('qun01-union','after'),undefined,'qun01');
+  assert.throws(()=>applyQueryOp(snapshot('qun01-union','after'),{kind:'union',record:'ESTAB_TBL'},records.AAP_TBL.fields,all),/effective-dated/);
+});
+test('native translates and base effective dating replay qxl01-qxl02', () => {
+  compare(build('ZZ_QRY_XLAT01','ESTAB_TBL',[{kind:'select',field:'ESTABID',selected:true},{kind:'select',field:'EFF_STATUS',selected:true},
+    {kind:'translate',field:'EFF_STATUS',value:'long',effectiveDate:{field:'EFFDT'}},{kind:'properties',description:'Translate calibration',comments:''}],true),snapshot('qxl01-translate','after'),undefined,'qxl01');
+  const before=snapshot('qxl02-short-current','before');
+  compare(applyQueryOp(before,{kind:'translate',field:'EFF_STATUS',value:'short',effectiveDate:'current'},estab,all),snapshot('qxl02-short-current','after'),before,'qxl02');
+  assert.throws(()=>applyQueryOp(before,{kind:'translate',field:'ESTABID',value:'short'},estab,all),/translate field/);
+  assert.throws(()=>applyQueryOp(before,{kind:'select',field:'EFF_STATUS',selected:false},estab,all),/translate or aggregate/);
+});
+test('every native capture round-trips: its described criteria replace themselves exactly', () => {
+  const metaOf=(view: QueryView)=>all[String(view.records[0].RECNAME)].fields;
+  for (const name of ['qcr10-field','qnm04-number-prompt','qjn02-criterion-after-join','qjn04-related-join','qag05-where-and-having','qex03-expression-criterion','qsq02-exists','qxl01-translate','qun01-union']) {
+    const view=snapshot(name,'after'), {criteria,having}=describeQueryCriteria(view);
+    let again=applyQueryOp(view,{kind:'criteria',criteria},name.startsWith('qcr')?metadata:metaOf(view),all);
+    if (having.length) again=applyQueryOp(again,{kind:'having',criteria:having},metaOf(view),all);
+    compare(again,view,view,name);
+  }
 });

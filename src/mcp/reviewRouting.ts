@@ -3,7 +3,7 @@ import { DatabaseProvider } from '../providers/database.js';
 import { prepareHtmlText } from '../providers/htmlWriter.js';
 import { makeKey, DefinitionType } from '../model/definitions.js';
 import type { Workspace } from '../workspace.js';
-import { prepareQueryReview } from './queryTools.js';
+import { prepareQueryLifecycleReview, prepareQueryReview } from './queryTools.js';
 import * as z from 'zod/v4';
 import { prepareSqlText } from '../providers/sqlWriter.js';
 import type { ReviewService } from '../changeReview/service.js';
@@ -19,7 +19,7 @@ import { prepareStructuredCreationReview } from './structuredCreationReview.js';
 import { prepareProjectCreationReview } from './projectCreationReview.js';
 import { prepareIbHeaderReview } from './ibHeaderReview.js';
 import { prepareIbDefinitionReview } from './ibDefinitionReview.js';
-export const REVIEWED_MUTATION_TOOLS = ['psft_save_text_definition', 'psft_process_save', 'psft_query_save', 'psft_query_create', 'psft_query_copy', 'psft_save_peoplecode', 'psft_edit_page', 'psft_edit_record', 'psft_ae_edit', 'psft_ib_save','psft_ib_create','psft_ib_delete', 'psft_create_record', 'psft_ae_create', 'psft_create_project'];
+export const REVIEWED_MUTATION_TOOLS = ['psft_save_text_definition', 'psft_process_save', 'psft_query_save', 'psft_query_create', 'psft_query_copy', 'psft_query_delete', 'psft_query_rename', 'psft_save_peoplecode', 'psft_edit_page', 'psft_edit_record', 'psft_ae_edit', 'psft_ib_save','psft_ib_create','psft_ib_delete', 'psft_create_record', 'psft_ae_create', 'psft_create_project'];
 /** Compatibility routing only for adapters whose exact after-state is known. */
 export function routeReviewedMutations(server: {
     registerTool: unknown;
@@ -175,6 +175,12 @@ export function routeReviewedMutations(server: {
                 const before = await p.readReviewContent(native);
                 const staged = await service.stage(setId, args.type === DefinitionType.HtmlDefinition ? 'html' : 'stylesheet', key, { text: String(args.text), description: typeof args.description === 'string' ? args.description : before?.description ?? '' }, args.dependsOn as string[]);
                 return jsonResult({ status: 'REVIEW_REQUIRED', changeSetId: staged.id, revision: staged.revision, persisted: false, command: 'psft.changeReview.open' });
+            }
+            if (name === 'psft_query_delete' || name === 'psft_query_rename') {
+                const proposals = await prepareQueryLifecycleReview(workspace, name, args);
+                let staged;
+                for (const proposal of proposals) staged = await service.stage(setId, 'query', proposal.key, proposal.after, args.dependsOn as string[], undefined, proposal.expectedToken);
+                return jsonResult({ status: 'REVIEW_REQUIRED', changeSetId: staged!.id, revision: staged!.revision, persisted: false, command: 'psft.changeReview.open' });
             }
             if (name.startsWith('psft_query_')) {
                 const proposal = await prepareQueryReview(workspace, name, args);

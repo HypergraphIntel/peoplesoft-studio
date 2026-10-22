@@ -46,10 +46,18 @@ export function validateQuerySaveShape(view: QueryView): void {
   }
   const counts={SELCOUNT:view.selects.length,EXPCOUNT:view.expressions.length,BNDCOUNT:view.binds.length};
   for (const [column,value] of Object.entries(counts)) if (Number(header[column])!==value) throw new Error(`Query ${column} is inconsistent.`);
-  // A criterion has zero to two expressions (qcr07 between, qcr10 field, qcr09 keeps an is-null's old one); each expression belongs to one.
-  const used=view.criteria.flatMap(c=>[Number(c.R1CRTEXPNUM),Number(c.R2CRTEXPNUM)]).filter(Boolean);
-  if (new Set(used).size!==used.length || used.length!==view.expressions.length || view.expressions.some(e=>!used.includes(Number(e.EXPNUM)))
-    || Number(view.selects[0]?.FLDCOUNT)!==view.fields.length || Number(view.selects[0]?.CRTCOUNT)!==view.criteria.length) throw new Error('Query field, criterion or expression counts are inconsistent.');
+  // A criterion has zero to two expressions (qcr07 between, qcr10 field, qcr09 keeps an is-null's old one), an
+  // expression column one (qex01); each expression belongs to one of them.
+  const used=[...view.criteria.flatMap(c=>[Number(c.R1CRTEXPNUM),Number(c.R2CRTEXPNUM)]),...view.fields.flatMap(f=>[Number(f.FLDEXPNUM),Number(f.XLATEXPNUM)])].filter(Boolean);
+  if (new Set(used).size!==used.length || used.length!==view.expressions.length || view.expressions.some(e=>!used.includes(Number(e.EXPNUM)))) throw new Error('Query expression references are inconsistent.');
+  // Per select: FLDCOUNT, RCDCOUNT, CRTCOUNT (WHERE) and HAVECRTCOUNT (HAVING, qag03/qag05).
+  for (const sel of view.selects) {
+    const of=(rows: Row[])=>rows.filter(r=>Number(r.SELNUM)===Number(sel.SELNUM));
+    const having=of(view.criteria).filter(c=>[4,5,6].includes(Number(c.COMBTYPE))).length;
+    if (Number(sel.FLDCOUNT)!==of(view.fields).length || Number(sel.RCDCOUNT)!==of(view.records).length
+      || Number(sel.CRTCOUNT)!==of(view.criteria).length-having || Number(sel.HAVECRTCOUNT)!==having) throw new Error('Query field, record or criterion counts are inconsistent.');
+  }
+  if (view.fields.some(f=>!view.selects.some(sel=>Number(sel.SELNUM)===Number(f.SELNUM))) || view.criteria.some(c=>!view.selects.some(sel=>Number(sel.SELNUM)===Number(c.SELNUM)))) throw new Error('Query rows reference a missing select.');
   for (const table of TABLES) for (const row of queryRows(view,table)) {
     if (String(row.QRYNAME).trim()!==String(header.QRYNAME).trim() || String(row.OPRID).trim()!==String(header.OPRID).trim()) {
       throw new Error('All query rows must belong to the same query key.');
@@ -90,12 +98,13 @@ export async function saveQuery(c: DbConnection, types: DbTypes, request: QueryS
     // Typed criteria and number/date fields are calibrated on 8.62.09 (qcr01-qcr10, qnm01-qnm04);
     // 8.61.15 keeps the one equal-to character criterion its captures established.
     if (!release.startsWith('8.62.')) {
-      const view=request.view, names=[...new Set(view.fields.map(f=>String(f.FIELDNAME).trim()))];
+      const view=request.view, names=[...new Set(view.fields.map(f=>String(f.FIELDNAME).trim()).filter(Boolean))];
       const types=names.length?(await c.execute<{FIELDTYPE:number}>(`SELECT FIELDTYPE FROM PSDBFIELD WHERE FIELDNAME IN (${names.map((_,i)=>':f'+i).join(',')})`,
         Object.fromEntries(names.map((f,i)=>['f'+i,f])))).rows ?? []:[];
-      if (view.criteria.length>1 || view.criteria.some(c=>Number(c.CONDTYPE)!==2 || ![1,8].includes(Number(c.EXPRTYPE)) || String(c.NEGATION ?? '').trim()
-        || Number(c.LPARENLVL) || Number(c.RPARENLVL)) || types.some(t=>Number(t.FIELDTYPE)!==0)) {
-        throw new Error(`Multiple, grouped or non-equal criteria and number/date fields are calibrated on PeopleTools 8.62.09; this database is ${release}.`);
+      if (view.records.length>1 || view.selects.length>1 || view.criteria.length>1 || view.criteria.some(c=>Number(c.CONDTYPE)!==2 || ![1,8].includes(Number(c.EXPRTYPE)) || String(c.NEGATION ?? '').trim()
+        || Number(c.LPARENLVL) || Number(c.RPARENLVL)) || types.some(t=>Number(t.FIELDTYPE)!==0) || String(view.selects[0]?.QRYDISTINCT ?? '').trim()
+        || view.fields.some(f=>Number(f.TTLTYPE)!==1 || Number(f.XLATTYPE)!==1 || Number(f.FLDEXPNUM))) {
+        throw new Error(`Joins, subqueries, unions, aggregates, DISTINCT, expressions, translates, multiple, grouped or non-equal criteria and number/date fields are calibrated on PeopleTools 8.62.09; this database is ${release}.`);
       }
     }
     await prepareQueryExecution(c,request.view,request.operatorId);
@@ -177,6 +186,5 @@ export async function readQueryMigration(c: DbConnection, types: DbTypes, name: 
     return undefined;
   }
   validateQuerySaveShape(read.view);
-  if (read.view.records.length!==1 || read.view.selects.length!==1 || read.view.criteria.length>1) throw new Error('Query migration supports the calibrated one-record/one-select shape with at most one criterion.');
   return { data: { name, owner:owner.trim(), view:querySnapshot(read.view) as Json }, token:read.token };
 }

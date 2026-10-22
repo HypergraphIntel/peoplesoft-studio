@@ -7,6 +7,10 @@ from the remaining completion work; no 1.0 delivery date is committed.
 
 ## Current release: 0.9.7
 
+Next development version: **0.9.8 — unreleased**. Package metadata and
+[draft release notes](releases/0.9.8.md) are prepared for the Query and
+Integration Broker work described below. No release date is set.
+
 0.9.4 adds calibrated 8.61.15 Query and standard Integration Broker writes,
 release-aware Page and Field Configurator mapping, application-class signature
 comments, tablespace selection and native save corrections. Its portal MCP
@@ -87,11 +91,21 @@ App Designer checks of migration-made definitions pass; see
 metadata, nested or SQL Table subrecords, updates to indexed records), as do
 cross-database migration and Data Migration Workbench. Component editing and
 Data Mover script templates already exist. PS Query authoring on 8.62.09 now
-covers multiple criteria (AND/OR, NOT, grouping, every comparison, like, null,
-list and between operator), number and date fields and typed prompts, natively
-replayed and reopened in Windows Query ([evidence](PS_QUERY_WINDOWS.md)).
-Full PS Query parity (joins, unions, subqueries, expressions, aggregates) and browser
-SAML SSO remain open.
+covers every criteria operator, number and date fields, prompts, standard, outer
+and related-record joins, aggregates with HAVING and DISTINCT, expression
+columns, IN/EXISTS subqueries, unions, translates and effective dating, plus
+designer editing, migration and review-only delete/rename. 31 native Windows
+Query saves are replayed exactly, and Studio-written queries for each family
+reopened in Windows Query with identical SQL and results
+([evidence](PS_QUERY_WINDOWS.md)). Browser SAML SSO remains open.
+
+Installed Query acceptance is complete on October 21: ten checks against a
+separate unmodified installed VSIX cover designer editing, SQL and result-cell
+values, undo/redo/discard, and reviewed rename/delete with exact inverse
+restoration. Temporary HRDMO queries and deletion markers were cleaned up;
+see [installed evidence](PS_QUERY_WINDOWS.md#installed-acceptance-october-21-2026).
+8.61.15 family calibration remains open. Query development and unreleased
+0.9.8 preparation are recorded on `query-criteria` at the developer's request.
 
 See the [README capability tables](../README.md#what-works-now),
 [MCP reference](MCP_REFERENCE.md), and [changelog](../CHANGELOG.md) for current

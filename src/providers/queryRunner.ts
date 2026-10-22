@@ -42,16 +42,22 @@ export async function prepareQueryExecution(c: DbConnection, view: QueryView, op
   if (!operator.trim() || !(await operatorExists(c,operator))) throw new Error('Set a valid PeopleSoft Operator ID before running PS Query.');
   const owner = text(view.query.OPRID);
   if (owner && owner !== operator) throw new Error('Only public queries and your own private queries can be run.');
-  if (view.records.length !== 1) throw new QueryUnsupportedError('Joins and multiple-record queries are not calibrated yet.');
-  const name = text(view.records[0].RECNAME);
-  await requireQueryRecordAccess(c,operator,name);
-  const record = await recordInfo(c,name);
-  const fields = (await c.execute<{FIELDNAME:string; FIELDTYPE:number}>(`SELECT F.FIELDNAME,D.FIELDTYPE
-    FROM PSRECFIELD F JOIN PSDBFIELD D ON D.FIELDNAME=F.FIELDNAME WHERE F.RECNAME=:r`, { r:name })).rows ?? [];
-  return compileQuerySql(view, {
-    record:name, table:tableName({name,sqlTableName:record.SQLTABLENAME}), recordType:Number(record.RECTYPE),
-    querySecurityRecord:text(record.QRYSECRECNAME), fields:Object.fromEntries(fields.map(f => [text(f.FIELDNAME),{type:Number(f.FIELDTYPE)}]))
-  });
+  // Every record, joined, subquery and union ones included (qjn, qsq, qun), needs the operator's Query access.
+  const contexts = [];
+  const names = [...new Set([...view.records].sort((a,b) => Number(a.SELNUM)-Number(b.SELNUM) || Number(a.RCDNUM)-Number(b.RCDNUM)).map(row => text(row.RECNAME)))];
+  for (const name of names) {
+    await requireQueryRecordAccess(c,operator,name);
+    const record = await recordInfo(c,name);
+    const fields = (await c.execute<{FIELDNAME:string; FIELDTYPE:number; USEEDIT:number}>(`SELECT F.FIELDNAME,D.FIELDTYPE,F.USEEDIT
+      FROM PSRECFIELD F JOIN PSDBFIELD D ON D.FIELDNAME=F.FIELDNAME WHERE F.RECNAME=:r ORDER BY F.FIELDNUM`, { r:name })).rows ?? [];
+    contexts.push({
+      record:name, table:tableName({name,sqlTableName:record.SQLTABLENAME}), recordType:Number(record.RECTYPE),
+      querySecurityRecord:text(record.QRYSECRECNAME), fields:Object.fromEntries(fields.map(f => [text(f.FIELDNAME),{type:Number(f.FIELDTYPE)}])),
+      keys:fields.filter(f => Number(f.USEEDIT) & 1).map(f => text(f.FIELDNAME))
+    });
+  }
+  if (!contexts.length) throw new QueryUnsupportedError('The query has no record.');
+  return compileQuerySql(view, {...contexts[0], joined:Object.fromEntries(contexts.slice(1).map(ctx => [ctx.record,ctx]))});
 }
 
 /** Captured Prompt Table edit: validate the bound value through an unsecured, granted record. */

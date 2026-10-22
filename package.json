@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.9.7",
+  "version": "0.9.8",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -1817,6 +1817,7 @@
     "test:application-packages": "node scripts/application-package-check.mjs",
     "test:application-packages:native": "tsx tools/lab/application-package-native.mts",
     "test:application-packages:installed": "node scripts/application-package-native.mjs tools/lab/results/application-package-installed-2026-10-20.json",
+    "test:query:installed": "node scripts/query-installed-native.mjs",
     "test:migration:native": "tsx tools/lab/project-migration-native.mts",
     "test:mcp-workflows": "tsx tools/lab/mcp-workflow-fixture-e2e.mts",
     "bundle": "node esbuild.mjs",

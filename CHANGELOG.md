@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.9.8 — Unreleased
+
+Initial preparation only; no release date is set. See the
+[draft release notes](docs/releases/0.9.8.md).
+
+- **PS Query authoring reaches Windows Query parity on 8.62.09.** Joins
+  (standard, left outer, related record), IN and EXISTS subqueries, unions,
+  aggregates with HAVING and DISTINCT, expression columns, translates and
+  effective dating join the criteria, prompts and number/date fields. Each
+  follows native Windows Query saves (rows and SQL), and Studio-written queries
+  reopen in Windows Query with identical SQL and results. The designer edits
+  all of them; migration carries them; MCP adds review-only delete and rename.
+- **Query designer corrections found during installed acceptance.** Expression
+  submission reads its Length input correctly; result grids use the native
+  projection names for aggregates, expressions, translates and duplicate field
+  names. Direct fields remain editable when their SQL Table also contains
+  unrelated subrecord placeholders; subrecord fields are not expanded.
+- **Installed Query acceptance is complete on HRDMO 8.62.09.** Ten checks
+  cover designer editing, native SQL and displayed result values,
+  undo/redo/discard, and reviewed rename/delete with exact inverse restoration.
+  Broader 8.61.15 Query authoring still requires native calibration.
+- **Integration Broker Change Review covers more structural and lifecycle
+  operations.** Existing REST URI template text preserves its ordered
+  dependencies; paired OnRequest handler removal supports typed undo/redo on
+  8.62.09. Bounded standard and REST service/operation creation and deletion
+  now have complete checkpoints, native tombstones and reviewed inverses on
+  8.62.09, with installed acceptance. Existing-version structural apply/inverse
+  also passed installed checks on 8.61.15 and for REST consumers. Credentials,
+  manual routings, URI message bindings and 8.61 child deletion/lifecycle
+  remain outside this scope.
+
 ## 0.9.7 — October 21, 2026
 
 - **Project migration covers fields, records, pages, components and

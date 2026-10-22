@@ -972,8 +972,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         const record=await vscode.window.showInputBox({title:'New PS Query — Record',prompt:'SQL Table record name',value:'AAP_TBL',ignoreFocusOut:true});
         if(!record)return;
         const layout=await provider.readRecordLayout(makeKey(DefinitionType.Record,record.trim().toUpperCase()));
-        if(!layout || layout.recordType!==RecordType.Table || layout.fields.some(f=>f.isSubrecord))throw new Error('Choose a SQL Table record without subrecords for this first release.');
-        const doc=newQueryDocument(target.name,target.owner,layout.name);
+        if(!layout || layout.recordType!==RecordType.Table)throw new Error('Choose a SQL Table record. Only directly declared fields are available; subrecords are not expanded.');
+        const doc=newQueryDocument(target.name,target.owner,layout.name,Object.fromEntries(layout.fields.filter(f=>f.type!==undefined && f.length!==undefined).map(f=>[f.name,{
+          type:f.type!,length:f.length!,decimalPositions:f.decimalPositions??0,format:f.format??0,shortName:f.shortName,longName:f.longName,editTable:f.editTable,useEdit:f.useEdit}])));
         await showQueryDesigner(workspace,provider,makeKey(DefinitionType.Query,target.name,target.owner),{view:doc,token:'absent'});
       });
     }),
@@ -2286,21 +2287,30 @@ async function showQueryDesigner(workspace: Workspace, provider: DatabaseProvide
   const edit=initial ?? (provider.platform==='oracle'?await provider.readQueryDocument(key.parts[0],key.parts[1] ?? ''):await provider.readQueryDefinition(key).then(view=>({view,token:queryToken(view)})));
   if(!edit)throw new Error('Query not found.');
   const operator=workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim() ?? '';
-  const metadata: Record<string,QueryFieldInfo & import('./editors/queryDesignerHtml.js').QueryFieldMetadata>={};
-  let basic=false;
-  if(edit.view.records.length===1){
-    const record=await provider.readRecordLayout(makeKey(DefinitionType.Record,String(edit.view.records[0].RECNAME).trim()));
-    if(record){
-      basic=record.recordType===RecordType.Table && !record.fields.some(f=>f.isSubrecord);
-      for(const f of record.fields)if(f.type!==undefined && f.length!==undefined)metadata[f.name]={
-        type:f.type,length:f.length,decimalPositions:f.decimalPositions??0,format:f.format??0,
-        shortName:f.shortName,longName:f.longName,editTable:f.editTable,useEdit:f.useEdit,labels:f.labels??[{id:'',shortName:f.shortName,longName:f.longName,isDefault:true}]};
-    }
+  type Meta=Record<string,QueryFieldInfo & import('./editors/queryDesignerHtml.js').QueryFieldMetadata>;
+  // Expose directly declared fields of SQL Tables. Subrecord placeholders have no field metadata
+  // and remain unavailable; unrelated placeholders must not hide calibrated direct fields (ESTAB_TBL).
+  const loadRecord=async(name:string,strict:boolean):Promise<Meta|undefined>=>{
+    const record=await provider.readRecordLayout(makeKey(DefinitionType.Record,name));
+    if(!record || record.recordType!==RecordType.Table){if(strict)throw new Error(`${name}: choose a SQL Table record. Subrecord fields are not expanded.`);return undefined;}
+    const fields: Meta={};
+    for(const f of record.fields)if(f.type!==undefined && f.length!==undefined)fields[f.name]={
+      type:f.type,length:f.length,decimalPositions:f.decimalPositions??0,format:f.format??0,
+      shortName:f.shortName,longName:f.longName,editTable:f.editTable,useEdit:f.useEdit,labels:f.labels??[{id:'',shortName:f.shortName,longName:f.longName,isDefault:true}]};
+    return fields;
+  };
+  const records: Record<string,Meta>={};
+  let basic=!!edit.view.records.length;
+  for(const name of new Set(edit.view.records.map(r=>String(r.RECNAME).trim()))){
+    const fields=await loadRecord(name,false);
+    if(fields)records[name]=fields;else basic=false;
   }
+  const metadata: Meta=records[String(edit.view.records[0]?.RECNAME ?? '').trim()] ?? {};
   if(edit.token!=='absent')try{await provider.prepareQuery(edit.view,operator);}catch{basic=false;}
   const editable=basic && workspace.isWritable(provider.id) && !!operator && !writeScopeRefusal(key.parts[0]);
   await QueryDesignerPanel.show(provider,edit,{
-    editable,metadata,
+    editable,metadata,records,
+    loadRecord:async name=>(await loadRecord(name,true))!,
     prepare:view=>provider.prepareQuery(view,operator),
     run:(view,values,limit)=>provider.runQuery(view,operator,values,limit),
     save:(view,token)=>provider.saveQueryDocument({view,openedToken:token,operatorId:operator}),

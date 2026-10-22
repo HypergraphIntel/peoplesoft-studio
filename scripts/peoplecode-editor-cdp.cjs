@@ -49,7 +49,14 @@ exports.connectWorkbench = async function (url) {
         const docs=[document];for(const f of document.querySelectorAll('iframe')){try{if(f.contentDocument)docs.push(f.contentDocument)}catch{}}
         const doc=docs.find(d=>d.body?.innerText.includes(${JSON.stringify(match)}));if(!doc)return null;
         const action=${JSON.stringify(action)},value=${JSON.stringify(value ?? '')};
-        if(action==='expandObjects'){
+        if(action==='query'){
+          for(const [selector,text] of Object.entries(value.values??{})){
+            const input=doc.querySelector(selector);if(!input||input.disabled)throw Error('Query input unavailable: '+selector);
+            input.value=String(text);
+          }
+          if(value.click){const b=doc.querySelector(value.click);if(!b||b.disabled)throw Error('Query control unavailable: '+value.click);b.scrollIntoView({block:'center'});b.click();}
+          if(value.submit){const form=doc.querySelector(value.submit);if(!form)throw Error('Query form missing: '+value.submit);form.querySelector('button').scrollIntoView({block:'center'});form.requestSubmit();}
+        }else if(action==='expandObjects'){
           for(const row of [...doc.querySelectorAll('tr.obj:not(.open)')])row.click();
         }else if(action==='click'){
           const b=[...doc.querySelectorAll('button')].find(b=>b.textContent.trim()===value||b.dataset.action===value||b.dataset.selectObject===value||b.dataset.select===value);
@@ -60,7 +67,7 @@ exports.connectWorkbench = async function (url) {
         }else if(action==='checkbox'){
           const b=doc.getElementById(value);if(!b||b.type!=='checkbox')throw Error('Checkbox missing');if(!b.checked)b.click();
         }
-        return {title:doc.title,selectedTitle:doc.querySelector('main>section>h2')?.textContent,status:doc.body.dataset.reviewStatus,reviewToken:doc.body.dataset.reviewToken,renderNonce:doc.querySelector('script[nonce]')?.nonce,busy:doc.body.getAttribute('aria-busy'),text:doc.body.innerText,checkboxes:[...doc.querySelectorAll('input[type=checkbox]')].map(b=>({id:b.id,checked:b.checked})),buttons:[...doc.querySelectorAll('button')].map(b=>({text:b.textContent.trim(),disabled:b.disabled,action:b.dataset.action,object:b.dataset.selectObject,requestId:b.closest('article')?.dataset.id})),selects:[...doc.querySelectorAll('select')].map(s=>({value:s.value,options:[...s.options].map(o=>o.text)}))};
+        return {title:doc.title,selectedTitle:doc.querySelector('main>section>h2')?.textContent,status:doc.body.dataset.reviewStatus,reviewToken:doc.body.dataset.reviewToken,renderNonce:doc.querySelector('script[nonce]')?.nonce,busy:doc.body.getAttribute('aria-busy'),text:doc.body.innerText,query:{header:doc.querySelector('header')?.innerText,status:doc.querySelector('#status')?.textContent,sql:doc.querySelector('#sql pre')?.textContent,results:doc.querySelector('#results')?.innerText,resultRows:[...doc.querySelectorAll('#results tbody tr')].map(tr=>[...tr.querySelectorAll('td')].map(td=>td.textContent)),forms:[...doc.querySelectorAll('form')].map(f=>f.id||f.dataset.aggregate||f.dataset.translate),criteria:[...doc.querySelectorAll('[data-criteria]')].map(s=>({kind:s.dataset.criteria,select:s.dataset.sel,rows:s.querySelectorAll('tbody tr').length}))},checkboxes:[...doc.querySelectorAll('input[type=checkbox]')].map(b=>({id:b.id,checked:b.checked})),buttons:[...doc.querySelectorAll('button')].map(b=>({text:b.textContent.trim(),disabled:b.disabled,action:b.dataset.action,object:b.dataset.selectObject,requestId:b.closest('article')?.dataset.id})),selects:[...doc.querySelectorAll('select')].map(s=>({value:s.value,options:[...s.options].map(o=>o.text)}))};
       })()`;
       const { targetInfos } = await send('Target.getTargets');
       for (const target of targetInfos.filter(t=>t.type==='iframe')) {

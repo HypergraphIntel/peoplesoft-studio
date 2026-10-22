@@ -24,20 +24,20 @@ export const CONDITIONS: Readonly<Record<number, string>> = {
   16: 'is null', 17: 'is not null', 20: 'Eff Date <=', 21: 'Eff Date >='
 };
 
-/** PSQRYCRITERIA.COMBTYPE: 3 opens the criteria (2,606 of 2,606 rows are first), then 1 AND, 2 OR. */
-export const CONNECTORS: Readonly<Record<number, string>> = { 1: 'AND', 2: 'OR', 3: 'WHERE' };
+/** PSQRYCRITERIA.COMBTYPE: 3 opens the criteria (2,606 of 2,606 rows are first), then 1 AND, 2 OR; HAVING criteria follow, 6 first then 4 AND (qag03, qag05). */
+export const CONNECTORS: Readonly<Record<number, string>> = { 1: 'AND', 2: 'OR', 3: 'WHERE', 4: 'AND', 5: 'OR', 6: 'HAVING' };
 
 /** PSQRYSELECT.SELECTTYPE (PSXLATITEM QRYLEVELTYPE's levels; 2,397 top levels for 2,397 queries, 328 subqueries for 328 subquery operands). */
 export const SELECT_TYPES: Readonly<Record<number, string>> = { 1: 'Top Level', 2: 'Subquery', 3: 'Union' };
 
 /** PSQRYRECORD.JOINTYPE: 5 Left Outer Join (all 608 carry ON criteria, QRYOJSELNUM); 1 the first record or a standard join. */
-export const JOIN_TYPES: Readonly<Record<number, string>> = { 1: 'Standard', 5: 'Left Outer Join' };
+export const JOIN_TYPES: Readonly<Record<number, string>> = { 1: 'Standard', 3: 'Related Record', 5: 'Left Outer Join' };
 
 /** PSQRYDEFN.QRYTYPE, from the queries' names (_ROLE_ ..., _DBAG_ ..., ..._ARCHVE). */
 export const QUERY_TYPES: Readonly<Record<number, string>> = { 1: 'User', 3: 'Process', 4: 'Role', 5: 'Database Agent', 7: 'Archive' };
 
-/** Windows Query saves qry01/qry04/qry05/qry06: aggregates are TTLTYPE, not AGGREGATEFUNC. */
-export const QUERY_AGGREGATES: Readonly<Record<number, string>> = { 1: 'None', 3: 'Count', 4: 'Min', 5: 'Max' };
+/** Windows Query saves qry01/qry04-qry06, qag01/qag02: aggregates are TTLTYPE, not AGGREGATEFUNC. */
+export const QUERY_AGGREGATES: Readonly<Record<number, string>> = { 1: 'None', 2: 'Sum', 3: 'Count', 4: 'Min', 5: 'Max', 6: 'Avg' };
 
 export function queryAggregateLabel(field: Row): string {
   const type = num(field.TTLTYPE);

@@ -1,0 +1,20 @@
+{
+ "format": "query-property-capture/1",
+ "database": "HRDMO",
+ "release": "8.62.09",
+ "query": "ZZ_QRY_AGG01",
+ "owner": "JARED",
+ "marker": {
+  "SCN": "39362814605298",
+  "CAPTURED_AT": "2026-10-21T19:09:10.668179-05:00"
+ },
+ "tables": {
+  "PSQRYCRITERIA": [],
+  "PSQRYDEFN": [],
+  "PSQRYEXPR": [],
+  "PSQRYFIELD": [],
+  "PSQRYRECORD": [],
+  "PSQRYSELECT": [],
+  "PSQRYBIND": []
+ }
+}

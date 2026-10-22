@@ -15,6 +15,8 @@ import type { SqlPlatform } from './sqlTranslate.js';
 export interface DbResult<T> {
   rows?: T[];
   rowsAffected?: number;
+  /** Returned column names in projection order, including driver-disambiguated duplicate names. */
+  metaData?: Array<{ name: string }>;
 }
 
 /** A bind value, or a typed one: { val, type: types.BLOB | types.CLOB }. */

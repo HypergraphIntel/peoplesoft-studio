@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { QueryView } from '../model/queryDefinition.js';
-import { applyQueryOp, parseQueryOp, type QueryFieldInfo } from '../model/queryDocument.js';
+import { applyQueryOp, parseQueryOp, type QueryCriterion, type QueryFieldInfo, type QueryOp } from '../model/queryDocument.js';
 import type { QueryEdit } from '../providers/queryWriter.js';
 import type { QuerySqlPlan } from '../model/querySql.js';
 import { renderQueryDesigner, type QueryFieldMetadata, type QueryDesignerState } from './queryDesignerHtml.js';
@@ -8,6 +8,9 @@ import { renderQueryDesigner, type QueryFieldMetadata, type QueryDesignerState }
 export interface QueryDesignerHost {
   editable: boolean;
   metadata: Record<string, QueryFieldInfo & QueryFieldMetadata>;
+  /** Field metadata of every record the query uses, by record name; loadRecord adds a joined, union or subquery record. */
+  records?: Record<string, Record<string, QueryFieldInfo & QueryFieldMetadata>>;
+  loadRecord?(name: string): Promise<Record<string, QueryFieldInfo & QueryFieldMetadata>>;
   prepare(view: QueryView): Promise<QuerySqlPlan>;
   run(view: QueryView, values: Record<string,string>, limit: number): Promise<NonNullable<QueryDesignerState['result']>>;
   save(view: QueryView, token: string): Promise<QueryEdit>;
@@ -35,6 +38,9 @@ export class QueryDesignerPanel {
     let history: QueryView[]=[], future: QueryView[]=[];
     let result: QueryDesignerState['result'];
     let message='';
+    const records={...host.records};
+    const subqueryRecords=(criteria: QueryCriterion[]): string[]=>criteria.flatMap(c=>[c.value,c.value2].flatMap(v=>v && 'subquery' in v ? [v.subquery.record,...subqueryRecords(v.subquery.criteria ?? [])] : []));
+    const needed=(op: QueryOp)=>op.kind==='join' || op.kind==='union' ? [op.record] : op.kind==='criteria' || op.kind==='having' ? subqueryRecords(op.criteria) : [];
     let disposed=false;
     let queue=Promise.resolve();
     const render=async () => {
@@ -43,7 +49,7 @@ export class QueryDesignerPanel {
       if (disposed) return;
       panel.title=`${dirty?'● ':''}${name} — Query`;
       panel.webview.html=renderQueryDesigner(name,connection.displayName,view,host.metadata,
-        {editable:host.editable,dirty,plan,unsupported,message,result,canUndo:!!history.length,canRedo:!!future.length});
+        {editable:host.editable,dirty,plan,unsupported,message,result,canUndo:!!history.length,canRedo:!!future.length,records});
     };
     this.sessions.set(id, { dirty: () => dirty, reload: async () => {
       queue = queue.then(async () => {
@@ -65,7 +71,12 @@ export class QueryDesignerPanel {
         if (['op','undo','redo','save','saveAs'].includes(String(m.kind)) && !host.editable) throw new Error('This Query is read only.');
         switch(m.kind) {
           case 'op': {
-            const next=applyQueryOp(view,parseQueryOp(m.op),host.metadata);
+            const parsed=parseQueryOp(m.op);
+            for (const name of needed(parsed)) if (!records[name]) {
+              if (!host.loadRecord) throw new Error('This designer cannot add records.');
+              records[name]=await host.loadRecord(name);
+            }
+            const next=applyQueryOp(view,parsed,host.metadata,Object.fromEntries(Object.entries(records).map(([name,fields])=>[name,{fields}])));
             history.push(view); if(history.length>100)history.shift(); future=[];view=next;dirty=true;result=undefined;break;
           }
           case 'undo': if(history.length){future.push(view);view=history.pop()!;dirty=true;result=undefined;} break;

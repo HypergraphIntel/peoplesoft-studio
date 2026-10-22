@@ -50,26 +50,45 @@ replacement associations; omitted stored associations are removed.
 - `psft_query_list`: `connection`, optional SQL LIKE `pattern`; public queries
   and the configured operator's own private queries, bounded to 500 entries.
 - `psft_query_get`: `connection`, `name`, optional `owner` (blank: public);
-  native rows, token and execution diagnostics. Unsupported definitions remain
-  inspectable.
+  native rows, token, execution diagnostics and `criteria`: each top-level or
+  union select's WHERE and HAVING criteria as the specs the `criteria` and
+  `having` operations take. Unsupported definitions remain inspectable.
 - `psft_query_prepare`: same identity; generated SQL and active prompts,
   without execution or saving.
 - `psft_query_run`: same identity, optional `values` keyed by prompt number,
   and `maxRows` (1–10000, default 500); Query access and prompt checks, read-only
-  transaction, always rolled back.
+  transaction, always rolled back. Returns native `rows` and `columnNames` in
+  projection order, including the driver's disambiguated duplicate names;
+  the designer uses those names for aggregates, expressions and translates.
 - `psft_query_save`: same identity, `expectedToken`, typed `operations`, optional
   `dryRun`; host reads current rows rather than accepting arbitrary table rows.
 - `psft_query_create`: identity plus `record` and operations; select at least
-  one character field. Target must be absent.
+  one field. Target must be absent. An effective-dated record starts with the
+  `EFFDT <= current date` criterion, as Windows Query adds it.
 - `psft_query_copy`: source identity plus `expectedSourceToken`, `targetName`,
   optional `targetOwner`, operations and `dryRun`. Target must be absent.
+- `psft_query_delete`: identity plus `expectedToken`. Review-only (Change
+  Review, Oracle 8.62): deletes the query rows and writes the PSQRYDEL marker;
+  a project member or stored source mention blocks it.
+- `psft_query_rename`: identity, `expectedToken`, `targetName`, optional
+  `targetOwner`. Review-only: one Change Set with the copy under the new key and
+  the reviewed deletion of the old one (not Query Manager's in-place Rename).
 
-Operations are the designer's `select`, `heading`, `order`, `constant`,
-`prompt`, `clearCriteria` and `properties` operations. Authoring is calibrated
-for Oracle PeopleTools 8.62.09 and 8.61.15: one SQL Table record without subrecords,
-direct character fields, and at most one ungrouped equal-to constant/prompt
-criterion. Joins, unions, aggregates, row-security SQL and other unsupported
-shapes remain refused. There is no Query rename/delete tool.
+Operations: `select`, `heading`, `order`, `aggregate` (none, sum, count, min,
+max, average), `translate` (none, short, long; current date or a date field),
+`expression` (text with `A.FIELD` references, character or number, length),
+`distinct`, `criteria` (replace a select's WHERE criteria; optional `select`
+for a union), `having`, `join` (standard, leftOuter, related with `field`),
+`union` (adds a select; name its fields `B.FIELD`), `constant`, `prompt`,
+`clearCriteria` and `properties`. Criteria take a `field` (absent for
+exists/notExists), an operator, optional `logical`, `not`, `open`, `close`, and
+operands `constant`, `field`, `prompt`, `list`, `currentDate`, `expression` or
+`subquery` `{record, field, criteria}` (inside it an unaliased field is the
+subquery's record; `A.FIELD` correlates). Authoring is calibrated for Oracle
+PeopleTools 8.62.09 and 8.61.15 (8.61.15: one record, character fields and at
+most one equal-to constant/prompt criterion). Row-security SQL, nested
+subqueries, subqueries with unions, effective-dated subquery and union records
+and HAVING OR remain refused; see docs/PS_QUERY_WINDOWS.md.
 
 Both save previews execute the shared transactional writer and readback, then
 roll back. They still require writable access and valid write configuration,

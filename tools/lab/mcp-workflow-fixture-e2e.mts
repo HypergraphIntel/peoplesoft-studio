@@ -1343,6 +1343,20 @@ try{
  assert.ok((await reviewService.store.get(blockedReady.id)).journal.some((e:any)=>e.action==='APPLICATION_STOPPED'));
  check('combined UI application retains dirty-editor refusal, conflict journaling and native writer guards without adding an MCP approval/apply tool');
 
+ // Query deletion and rename are review-only: one DELETE, or a copy CREATE plus the old key's DELETE, staged without writes.
+ const queryWritesBefore=calls.filter(c=>c==='querySave').length;
+ const queryRead=await reviewCall('psft_query_get',{connection:'FIXTURE',name:'ZZ_MCP_QRY'});
+ const queryDelete=await reviewCall('psft_query_delete',{connection:'FIXTURE',name:'ZZ_MCP_QRY',expectedToken:queryRead.token});
+ assert.equal(queryDelete.status,'REVIEW_REQUIRED');
+ assert.deepEqual((await reviewService.store.get(queryDelete.changeSetId)).objects.map((o:any)=>[o.adapter,o.key,o.operation]),[['query',['ZZ_MCP_QRY',''],'DELETE']]);
+ await reviewService.cancel(queryDelete.changeSetId);
+ const queryRename=await reviewCall('psft_query_rename',{connection:'FIXTURE',name:'ZZ_MCP_QRY',expectedToken:queryRead.token,targetName:'ZZ_MCP_RENAMED'});
+ assert.deepEqual((await reviewService.store.get(queryRename.changeSetId)).objects.map((o:any)=>[o.key,o.operation]),[[['ZZ_MCP_RENAMED',''],'CREATE'],[['ZZ_MCP_QRY',''],'DELETE']]);
+ await reviewService.cancel(queryRename.changeSetId);
+ await reviewCall('psft_query_delete',{connection:'FIXTURE',name:'ZZ_MCP_QRY',expectedToken:'stale'},false);
+ await reviewCall('psft_query_rename',{connection:'FIXTURE',name:'ZZ_MCP_QRY',expectedToken:queryRead.token,targetName:'ZZ_MCP_QRY'},false);
+ assert.equal(calls.filter(c=>c==='querySave').length,queryWritesBefore);
+ check('Query delete and rename stage review-only Change Sets (DELETE; copy CREATE plus DELETE) and refuse stale or same-key requests');
 
 }finally{reviewUi.dispose();await reviewServer.dispose();await fs.rm(reviewRoot,{recursive:true,force:true,maxRetries:5,retryDelay:100});}
 

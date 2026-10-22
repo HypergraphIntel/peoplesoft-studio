@@ -49,6 +49,23 @@ exercised, and the production page preview was visually inspected. These are
 fixture-backed approval/application checks; no new live PeopleSoft application
 was performed for this UI change.
 
+## October 21 installed Query lifecycle acceptance (complete)
+
+[Ten installed VSIX checks](../../tools/lab/results/query-installed-2026-10-21.json)
+pass in an isolated normal VS Code 1.143.0 window with private history on HRDMO
+8.62.09. MCP Query rename stages an absent-target copy and old-key deletion;
+delete stages one deletion. Neither writes before rendered approval. Applying
+without destructive consent is refused with unchanged native snapshots and
+pending object reviews. Rendered explicit consent and Approve and apply execute
+the guarded writers; fresh reviewed inverses restore complete snapshots and
+mark the forward histories REVERTED after verification. All temporary query
+rows and PSQRYDEL markers are absent after cleanup. Manifest, bundle and worker
+integrity pass; the original running window and installation were untouched.
+The same trial verifies the Query designer and result values; see
+[acceptance and reproduction](../PS_QUERY_WINDOWS.md#installed-acceptance-october-21-2026).
+No broader deletion or platform acceptance is implied. This Query work is
+included in the unreleased 0.9.8 checkpoint on `query-criteria`.
+
 ## October 21 REST lifecycle calibration (complete)
 
 The developer approved one HRDMO batch: owned REST fixtures

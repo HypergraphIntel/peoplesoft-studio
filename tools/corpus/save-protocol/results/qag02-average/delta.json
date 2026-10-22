@@ -1,0 +1,295 @@
+{
+  "format": "query-property-capture/1",
+  "database": "HRDMO",
+  "release": "8.62.09",
+  "query": "ZZ_QRY_AGG01",
+  "owner": "JARED",
+  "markers": {
+    "before": {
+      "SCN": "39362814607529",
+      "CAPTURED_AT": "2026-10-21T19:10:32.753698-05:00"
+    },
+    "after": {
+      "SCN": "39362814608168",
+      "CAPTURED_AT": "2026-10-21T19:10:52.854995-05:00"
+    }
+  },
+  "tables": {
+    "PSQRYDEFN": {
+      "inserted": [
+        {
+          "CAPTURE_ROWID": "AAAPHdAHXAACPc3AAF",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_AGG01",
+          "DESCR": "Aggregate calibration",
+          "VERSION": "105",
+          "QRYTYPE": "1",
+          "SELCOUNT": "1",
+          "EXPCOUNT": "0",
+          "BNDCOUNT": "0",
+          "QRYVALID": "0",
+          "LASTUPDDTTM": "2026-10-21T19:10:47.595683000",
+          "LASTUPDOPRID": "JARED",
+          "QRYAPPROVED": "A",
+          "CREATEOPRID": "JARED",
+          "CREATEDTTM": "2026-10-21T19:10:15.000000000",
+          "APPROVEOPRID": " ",
+          "APPROVEDTTM": null,
+          "EXECLOGGING": " ",
+          "QRYDISABLED": " ",
+          "QRYFOLDER": " ",
+          "QRYJOINOPTIMIZE": "0",
+          "QRYIMGTYPE": "0",
+          "DESCRLONG": null
+        }
+      ],
+      "deleted": [
+        {
+          "CAPTURE_ROWID": "AAAPHdAHXAACPc3AAG",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_AGG01",
+          "DESCR": "Aggregate calibration",
+          "VERSION": "104",
+          "QRYTYPE": "1",
+          "SELCOUNT": "1",
+          "EXPCOUNT": "0",
+          "BNDCOUNT": "0",
+          "QRYVALID": "0",
+          "LASTUPDDTTM": "2026-10-21T19:10:15.595393000",
+          "LASTUPDOPRID": "JARED",
+          "QRYAPPROVED": "A",
+          "CREATEOPRID": "JARED",
+          "CREATEDTTM": "2026-10-21T19:10:15.000000000",
+          "APPROVEOPRID": " ",
+          "APPROVEDTTM": null,
+          "EXECLOGGING": " ",
+          "QRYDISABLED": " ",
+          "QRYFOLDER": " ",
+          "QRYJOINOPTIMIZE": "0",
+          "QRYIMGTYPE": "0",
+          "DESCRLONG": null
+        }
+      ],
+      "updated": []
+    },
+    "PSQRYFIELD": {
+      "inserted": [
+        {
+          "CAPTURE_ROWID": "AAAPH0AHmAAAF3NAAf",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_AGG01",
+          "QRYFLDNAME": "A.ESTABID",
+          "SELNUM": "1",
+          "FLDNUM": "1",
+          "RECNAME": "AAP_YEAR",
+          "FIELDNAME": "ESTABID",
+          "FLDRCDNUM": "1",
+          "FLDEXPNUM": "0",
+          "HDGTYPE": "3",
+          "HEADING": " ",
+          "COLUMNNUM": "1",
+          "GROUPBYNUM": "0",
+          "ORDERBYNUM": "0",
+          "ORDERBYDIR": " ",
+          "TTLTYPE": "1",
+          "SUBTTLNUM": "0",
+          "USECOUNT": "0",
+          "XLATTYPE": "1",
+          "XLATEXPRTYPE": "6",
+          "XLATFLDNUM": "0",
+          "XLATEXPNUM": "0",
+          "AGGREGATEFUNC": " "
+        },
+        {
+          "CAPTURE_ROWID": "AAAPH0AHmAAAF3NAAg",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_AGG01",
+          "QRYFLDNAME": "A.FEMALE_GOAL",
+          "SELNUM": "1",
+          "FLDNUM": "2",
+          "RECNAME": "AAP_YEAR",
+          "FIELDNAME": "FEMALE_GOAL",
+          "FLDRCDNUM": "1",
+          "FLDEXPNUM": "0",
+          "HDGTYPE": "3",
+          "HEADING": " ",
+          "COLUMNNUM": "2",
+          "GROUPBYNUM": "0",
+          "ORDERBYNUM": "0",
+          "ORDERBYDIR": " ",
+          "TTLTYPE": "6",
+          "SUBTTLNUM": "0",
+          "USECOUNT": "0",
+          "XLATTYPE": "1",
+          "XLATEXPRTYPE": "6",
+          "XLATFLDNUM": "0",
+          "XLATEXPNUM": "0",
+          "AGGREGATEFUNC": " "
+        }
+      ],
+      "deleted": [
+        {
+          "CAPTURE_ROWID": "AAAPH0AHmAAAF3NAAh",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_AGG01",
+          "QRYFLDNAME": "A.ESTABID",
+          "SELNUM": "1",
+          "FLDNUM": "1",
+          "RECNAME": "AAP_YEAR",
+          "FIELDNAME": "ESTABID",
+          "FLDRCDNUM": "1",
+          "FLDEXPNUM": "0",
+          "HDGTYPE": "3",
+          "HEADING": " ",
+          "COLUMNNUM": "1",
+          "GROUPBYNUM": "0",
+          "ORDERBYNUM": "0",
+          "ORDERBYDIR": " ",
+          "TTLTYPE": "1",
+          "SUBTTLNUM": "0",
+          "USECOUNT": "0",
+          "XLATTYPE": "1",
+          "XLATEXPRTYPE": "6",
+          "XLATFLDNUM": "0",
+          "XLATEXPNUM": "0",
+          "AGGREGATEFUNC": " "
+        },
+        {
+          "CAPTURE_ROWID": "AAAPH0AHmAAAF3NAAi",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_AGG01",
+          "QRYFLDNAME": "A.FEMALE_GOAL",
+          "SELNUM": "1",
+          "FLDNUM": "2",
+          "RECNAME": "AAP_YEAR",
+          "FIELDNAME": "FEMALE_GOAL",
+          "FLDRCDNUM": "1",
+          "FLDEXPNUM": "0",
+          "HDGTYPE": "3",
+          "HEADING": " ",
+          "COLUMNNUM": "2",
+          "GROUPBYNUM": "0",
+          "ORDERBYNUM": "0",
+          "ORDERBYDIR": " ",
+          "TTLTYPE": "2",
+          "SUBTTLNUM": "0",
+          "USECOUNT": "0",
+          "XLATTYPE": "1",
+          "XLATEXPRTYPE": "6",
+          "XLATFLDNUM": "0",
+          "XLATEXPNUM": "0",
+          "AGGREGATEFUNC": " "
+        }
+      ],
+      "updated": []
+    },
+    "PSQRYRECORD": {
+      "inserted": [
+        {
+          "CAPTURE_ROWID": "AAAPIGAHlAAAMSLAAj",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_AGG01",
+          "SELNUM": "1",
+          "RCDNUM": "1",
+          "RECNAME": "AAP_YEAR",
+          "JOINTYPE": "1",
+          "JOINRCDNUM": "0",
+          "JOINFLDNUM": "0",
+          "CORRNAME": "A",
+          "QRYRECPRUNABLE": " "
+        }
+      ],
+      "deleted": [
+        {
+          "CAPTURE_ROWID": "AAAPIGAHlAAAMSLAAm",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_AGG01",
+          "SELNUM": "1",
+          "RCDNUM": "1",
+          "RECNAME": "AAP_YEAR",
+          "JOINTYPE": "1",
+          "JOINRCDNUM": "0",
+          "JOINFLDNUM": "0",
+          "CORRNAME": "A",
+          "QRYRECPRUNABLE": " "
+        }
+      ],
+      "updated": []
+    },
+    "PSQRYSELECT": {
+      "inserted": [
+        {
+          "CAPTURE_ROWID": "AAAPIIAHlAAAMSlAAG",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_AGG01",
+          "SELNUM": "1",
+          "SELECTTYPE": "1",
+          "PARENTSELNUM": "0",
+          "RCDCOUNT": "1",
+          "FLDCOUNT": "2",
+          "CRTCOUNT": "0",
+          "QRYDISTINCT": " ",
+          "HAVECRTCOUNT": "0"
+        }
+      ],
+      "deleted": [
+        {
+          "CAPTURE_ROWID": "AAAPIIAHlAAAMSlAAH",
+          "OPRID": "JARED",
+          "QRYNAME": "ZZ_QRY_AGG01",
+          "SELNUM": "1",
+          "SELECTTYPE": "1",
+          "PARENTSELNUM": "0",
+          "RCDCOUNT": "1",
+          "FLDCOUNT": "2",
+          "CRTCOUNT": "0",
+          "QRYDISTINCT": " ",
+          "HAVECRTCOUNT": "0"
+        }
+      ],
+      "updated": []
+    },
+    "PSVERSION": {
+      "inserted": [],
+      "deleted": [],
+      "updated": [
+        {
+          "before": {
+            "OBJECTTYPENAME": "QDM",
+            "VERSION": "104"
+          },
+          "after": {
+            "OBJECTTYPENAME": "QDM",
+            "VERSION": "105"
+          }
+        },
+        {
+          "before": {
+            "OBJECTTYPENAME": "SYS",
+            "VERSION": "5278"
+          },
+          "after": {
+            "OBJECTTYPENAME": "SYS",
+            "VERSION": "5279"
+          }
+        }
+      ]
+    },
+    "PSLOCK": {
+      "inserted": [],
+      "deleted": [],
+      "updated": [
+        {
+          "before": {
+            "OBJECTTYPENAME": "QDM",
+            "VERSION": "104"
+          },
+          "after": {
+            "OBJECTTYPENAME": "QDM",
+            "VERSION": "105"
+          }
+        }
+      ]
+    }
+  }
+}

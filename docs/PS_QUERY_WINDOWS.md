@@ -260,47 +260,136 @@ prompts `TO_DATE(:1,'YYYY-MM-DD')`. A selected date column is
 date constants to today (entered MM/DD/YYYY). With `like` only Constant and
 Prompt operands are offered; `in list` offers In List and Subquery.
 
-### Deliberate limits and next evidence
+### Joins, aggregates, expressions, subqueries, unions and translates (October 21, 8.62.09)
+
+One native Windows Query save per case on HRDMO, captured with the same tool
+(`qjn*`, `qag*`, `qex*`, `qsq*`, `qun*`, `qxl*`). The SQL below is what the
+SQL tab showed for the saved definition; Studio's compiler reproduces each
+statement (whitespace aside) and the replay tests reproduce every row.
+
+| Case | Change | Stored |
+| --- | --- | --- |
+| qjn01-standard-join | AAP_YEAR, join AAP_TBL | record B JOINTYPE 1; Windows adds the key criterion `A.ESTABID = B.ESTABID` (EXPRTYPE 2), which does not count as a field use |
+| qjn02-criterion-after-join | B.DESCR like 'A%' | an ordinary criterion after the join criterion |
+| qjn03-left-outer | left outer join AAP_TBL | JOINTYPE 5, JOINRCDNUM 1; the key criterion has QRYOJSELNUM 2; SQL `(PS_AAP_YEAR A LEFT OUTER JOIN  PS_AAP_TBL B ON  A.ESTABID = B.ESTABID )` |
+| qjn04-related-join | related record ESTAB_TBL through A.ESTABID | JOINTYPE 3 with JOINRCDNUM/JOINFLDNUM (which counts as a use); WHERE `C.ESTABID = A.ESTABID` plus `EFFDT Eff Date <= Current Date` (CONDTYPE 20, EXPRTYPE 6), first WHERE criterion AND after the ON criterion |
+| qag01-sum | Sum FEMALE_GOAL | TTLTYPE 2 (1 none, 3 count, 4 min, 5 max, 6 average); `SUM( A.FEMALE_GOAL)`, GROUP BY the other columns |
+| qag02-average | Average | TTLTYPE 6, `AVG( A.FEMALE_GOAL)` |
+| qag03-having | Having AVG > 1 | COMBTYPE 6 (first HAVING; 4 AND), HAVECRTCOUNT 1, CRTCOUNT 0; `HAVING ( AVG( A.FEMALE_GOAL) > 1)` |
+| qag04-distinct | Distinct | PSQRYSELECT.QRYDISTINCT 'Y'; `SELECT DISTINCT` |
+| qag05-where-and-having | WHERE ESTABID = 'KU001' | WHERE criteria precede HAVING ones (CRTNUM 1, 2); the kept HAVING expression keeps number 1 |
+| qex01-expression-column | expression `A.FEMALE_GOAL * 2`, Number 7 | PSQRYEXPR FIELDTYPE 2 LENGTH 7, text ` :%1.2 * 2` (each field reference becomes ` :%SELNUM.FLDNUM`); the field added hidden first; column QRYFLDNAME `EXP1_18` (18 = heading length), FLDEXPNUM 1, HDGTYPE 2, heading ` A.FEMALE_GOAL * 2` |
+| qex02-second-expression | `A.FEMALE_GOAL + 100`, Number 5 | EXP2_20; FEMALE_GOAL USECOUNT 2 (one per token) |
+| qex03-expression-criterion | FEMALE_GOAL > expression `5 * 2` | EXPRTYPE 3, expression FIELDTYPE 0 numbered after the column expressions; SQL `A.FEMALE_GOAL > 5 * 2` |
+| qsq01-in-subquery | ESTABID in list Subquery (AAP_TBL ESTABID) | select 2 SELECTTYPE 2 PARENTSELNUM 1, alias B, its own FLDNUM/RCDNUM from 1; CONDTYPE 8 EXPRTYPE 4 R1CRTSELNUM 2 |
+| qsq02-exists | AND exists (AAP_TBL where C.ESTABID = A.ESTABID) | CONDTYPE 12 with no left field; select 3 alias C; correlated criterion LCRTSELNUM 3, R1CRTSELNUM 1, counting both fields; the subquery's WHERE is not parenthesized |
+| qun01-union | AAP_TBL ESTABID union AAP_YEAR ESTABID | select 2 SELECTTYPE 3 PARENTSELNUM 1, alias B; `... UNION SELECT B.ESTABID FROM PS_AAP_YEAR B` |
+| qxl01-translate | ESTAB_TBL (effective-dated), EFF_STATUS translate Long, effective date Field EFFDT | a new effective-dated query starts with `A.EFFDT Eff Date <= Current Date` on a hidden EFFDT (FLDNUM 1); XLATTYPE 3, XLATEXPRTYPE 2, XLATFLDNUM 1 (counts as a use); `LEFT OUTER JOIN PSXLATITEM A2X` (record alias, column number, X) with an effective-date clause |
+| qxl02-short-current | Short, Current Date | XLATTYPE 2, XLATEXPRTYPE 6; SQL joins a derived `( SELECT * FROM PSXLATITEM TA ... TB.EFFDT <= TO_DATE(TO_CHAR(SYSDATE,...)) ) A2X` |
+
+Rules these establish: aliases continue across selects (the next letter after
+every alias in use); expression numbering keeps every expression still used in
+its old order and appends new ones; WHERE effective dating on the select's own
+first record is unparenthesized, a joined record's is parenthesized; with the
+translated column unselected (not saved) Windows shows the base record's
+effective-date criterion alone.
+
+### Native acceptance
+
+The replay tests reproduce all fourteen qcr/qnm saves column for column
+(expression numbering included), and every captured definition compiles to the
+SQL Windows Query shows. Studio then saved `ZZ_QRY_STUDIO_CRIT` (NOT field
+comparison, OR group, is null, in list, like) and `ZZ_QRY_STUDIO_NUM` (not less
+than 0, date prompt) on HRDMO; Windows Query reopened both with the same
+criteria and SQL, and its Results matched Studio's run row for row (2 and 3
+rows, `tools/lab/results/query-criteria-native-2026-10-21.json`). Studio's
+reader and designer show NOT for NEGATION 'N', the only value Windows Query and
+the delivered queries use.
+
+Studio then saved one query per new family on HRDMO through the same writer:
+`ZZ_QRY_STUDIO_JOIN` (standard join plus joined-record criterion), `_REL` (left
+outer plus effective-dated related join), `_AGG` (average, DISTINCT, WHERE and
+HAVING), `_EXPR` (two expression columns, expression criterion), `_SUB` (IN
+subquery, correlated EXISTS), `_UNION`, `_XLAT` (Long, field effective date on
+an effective-dated record) and `_XLAT2` (Short, current date). Windows Query
+opened all eight with the same fields, headings and records, showed SQL
+identical to Studio's, and its Run Query returned the same rows in the same
+order (3, 3, 2, 3, 3, 2, 68 and 68 rows;
+`tools/lab/results/query-families-native-2026-10-21.json`). One display
+difference: Windows shows an aggregate in its field's format (AVG 1.5 of a
+Number 6.0 field as `1`), while Studio returns the database value.
+
+### Limits
 
 Authoring is calibrated on **Oracle / PeopleTools 8.62.09 and 8.61.15** for
-one SQL Table record without subrecords. On 8.61.15 that is direct character
-fields and at most one equal-to criterion with a character constant or
-uppercase/mixed-case prompt. On **8.62.09** it also covers number and date
-fields and a `criteria` operation that replaces every criterion: AND/OR, NOT,
-parentheses, every comparison operator, like/not like, is (not) null, in/not
-in constant lists and between/not between two constants, with constant,
-character field, prompt (new or existing, character/number/date) and list
-operands. Between, lists, like and field comparison are calibrated for
-character fields; the writer refuses these shapes on other releases. It does
-not yet edit/run joins, unions, subqueries, effective-date criteria,
-expression columns, aggregate SQL, translate SQL, DISTINCT, or row-security
-SQL.
+directly declared fields of SQL Table records. Subrecord fields are not
+expanded; unrelated subrecord placeholders do not hide the record's direct
+fields (for example ESTAB_TBL's ESTABID, EFFDT and EFF_STATUS). On **8.61.15** that is one record, direct
+character fields and at most one equal-to criterion with a character constant
+or prompt; the writer refuses every other shape there. On **8.62.09** it covers
+everything above: number and date fields; criteria replacing a select's WHERE
+criteria (AND/OR, NOT, parentheses, every comparison, like, null, list,
+between, exists and effective-date operator; constant, field, prompt, list,
+expression and subquery operands); standard, left outer and related-record
+joins; aggregates, HAVING (AND) and DISTINCT; character and number expression
+columns; translates; unions; subqueries with correlation to the top level.
+`psft_query_get` describes the stored criteria in the same form, and replacing
+the criteria with that description reproduces the stored rows (tested for each
+family). Refused: row-security SQL, nested subqueries, subqueries together with
+unions, effective-dated subquery or union records, HAVING OR, aggregates on
+date columns, criteria on expression columns, and the remaining Windows options
+(Eff Date >=, tree prompts, Effective Seq, expression translate dates).
 
-Native acceptance: the replay tests reproduce all fourteen qcr/qnm saves
-column for column (expression numbering included), and every captured
-definition compiles to the SQL Windows Query shows. Studio then saved
-`ZZ_QRY_STUDIO_CRIT` (NOT field comparison, OR group, is null, in list, like)
-and `ZZ_QRY_STUDIO_NUM` (not less than 0, date prompt) on HRDMO; Windows
-Query reopened both with the same criteria and SQL, and its Results matched
-Studio's run row for row (2 and 3 rows,
-`tools/lab/results/query-criteria-native-2026-10-21.json`). Studio's reader
-and designer now show NOT for NEGATION 'N', the only value Windows Query and
-the delivered queries use (they previously expected 'Y'). Rename, Delete,
-Excel export and printing remain future workflows. Unsupported shapes show a
-reason and retain their readable definition.
+Delete is a review-only Change Review operation on 8.62 (PSQRYDEL marker at the
+next QDM version, checked against project membership and stored source
+mentions, with typed undo); rename is staged as a copy to the new key plus that
+reviewed deletion, not Query Manager's in-place Rename. The designer edits all
+of the above: per-record field lists, aggregate and translate properties, Add
+Record (joins and unions), expression columns, DISTINCT, and criteria and
+HAVING tables, loading a new record's fields when it is added.
 
 Native No Table Edit accepted an empty DESCR prompt even though
 QRYREQUIREDPROMPT was Y, and returned zero rows. Blank input binding itself
 still lacks a positive blank-value control, so Studio reports it as explicitly
 uncalibrated rather than interpreting the flag as a required-input rule.
 
-Next native cases: blank prompt binding positive/negative controls;
-effective-date/compound-key prompt lookups; additional criteria and Boolean
-grouping; related-record/effective-date/security joins; numeric/date fields;
-aggregate SQL and translation; expression columns, subqueries and unions.
-Each new operation needs native captures, row-plan replay and native reopen /
-SQL / results validation before enabling it. This release covers both requested
-workflows in a bounded scope; it does not claim full PS Query parity.
+### Installed acceptance — October 21, 2026
+
+[Ten checks](../tools/lab/results/query-installed-2026-10-21.json) passed against
+an unmodified packaged VSIX installed into a separate real VS Code 1.143.0
+window with private settings/history and HRDMO 8.62.09. The original window and
+normal installed extension were untouched. The actual designer opens
+Studio-saved queries, edits WHERE/HAVING, aggregates and DISTINCT, adds a join
+and its fields, adds an expression column, changes long/short translates and
+field/current effective dates, edits IN/correlated EXISTS subqueries, and adds
+a union with its own criteria. SQL and every displayed result cell match an
+independent database execution. Undo, redo and modal discard preserve the
+saved native query.
+
+Installed MCP rename and delete return REVIEW_REQUIRED without writing. A
+rendered apply without destructive consent is refused without writes; the
+rendered checkbox and Approve and apply then apply the proposal. Fresh reviewed
+inverses restore complete native query snapshots, and the forward histories
+become REVERTED only after verified restoration. Every temporary query and its
+PSQRYDEL marker was removed and absence independently checked.
+
+The trial found three defects that fixture-only checks missed: expression
+submission read HTMLFormControlsCollection.length rather than the Length input;
+the results grid looked up stored field names instead of native projection
+names (leaving aggregates, expressions and translates blank); and unrelated
+subrecord placeholders made ESTAB_TBL's directly declared fields read-only.
+The corrected candidate passes the complete installed journey. Native result
+column names now accompany the unchanged row objects, preserving driver
+disambiguation of duplicate column names. Subrecord fields remain unavailable.
+
+Reproduce with `npm test` then `npm run test:query:installed`, with the HRDMO lab
+credentials in the environment. The runner packages and installs an isolated
+candidate, verifies manifest/bundle/worker integrity and records checksums in
+the report. The tested VSIX is `/tmp/peoplesoft-studio-query-tested.vsix`.
+`npm run verify`, the five direct Query designer regression tests and all 70
+fixture-backed production MCP workflow checks pass. 8.61.15 family calibration
+remains open; the Query work and unreleased 0.9.8 preparation are recorded on
+`query-criteria` at the developer's request.
 
 ## MCP workflows in 0.9.0
 

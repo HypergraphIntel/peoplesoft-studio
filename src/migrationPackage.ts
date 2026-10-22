@@ -116,7 +116,7 @@ export function assetRequirements(asset: MigrationAsset): DefinitionKey[] {
     }
   } else if (asset.kind === 'query') {
     const view = queryView(asset.data.view);
-    for (const row of view.records) record(String(row.RECNAME ?? '').trim());
+    for (const name of new Set(view.records.map(row => String(row.RECNAME ?? '').trim()))) record(name);
     for (const row of view.binds) record(String(row.EDITTABLE ?? '').trim());
   } else if (asset.kind === 'peoplecode') {
     const p = pcmProgKeyParts(asset.key);
@@ -251,7 +251,8 @@ const querySchema = z.custom<Json>(value => {
   try {
     if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).sort().join(',') !== 'binds,criteria,expressions,fields,query,records,selects') return false;
     const view=queryView(value as Json); validateQuerySaveShape(view);
-    return view.records.length===1 && view.selects.length===1 && view.criteria.length<=1 && migrationCanonical(querySnapshot(view))===migrationCanonical(value);
+    // Any shape the Query writer validates; the target's preview save compiles its SQL and applies the release gate.
+    return migrationCanonical(querySnapshot(view))===migrationCanonical(value);
   } catch { return false; }
 }, 'Unsupported Query migration snapshot');
 const assetSchema = z.discriminatedUnion('kind', [

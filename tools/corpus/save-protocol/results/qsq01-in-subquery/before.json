@@ -1,0 +1,1011 @@
+{
+  "format": "query-property-capture/1",
+  "database": "HRDMO",
+  "release": "8.62.09",
+  "query": "ZZ_QRY_SUB01",
+  "owner": "JARED",
+  "marker": {
+    "SCN": "39362814621480",
+    "CAPTURED_AT": "2026-10-21T19:18:40.756723-05:00"
+  },
+  "tables": {
+    "PSCONQRSRUNPRM": [],
+    "PSCONQRSRUNPRMX": [],
+    "PSCUBDIMSTRCOUT": [],
+    "PSCUBDIMSTRUCT": [],
+    "PSCUBRUNCNTL": [],
+    "PSCUBRUNPARM": [],
+    "PSQASRUN": [],
+    "PSQRYBIND": [],
+    "PSQRYBINDLANG": [],
+    "PSQRYCRITERIA": [],
+    "PSQRYDEFN": [],
+    "PSQRYDEFNLANG": [],
+    "PSQRYDEL": [],
+    "PSQRYEXECLOG": [],
+    "PSQRYEXPR": [],
+    "PSQRYFAVORITES": [],
+    "PSQRYFIELD": [],
+    "PSQRYFIELDDEP": [],
+    "PSQRYFIELDLANG": [],
+    "PSQRYHDFTTEXT": [],
+    "PSQRYRECORD": [],
+    "PSQRYSELECT": [],
+    "PSQRYSTATS": [],
+    "PSQRYTRANS": [],
+    "PSQRYXFORM": [],
+    "PS_ACA_DTEX_RUNCTL": [],
+    "PS_ACA_EXTRACT_AET": [],
+    "PS_AE_GB_AET": [],
+    "PS_EOEN_AL_RC2": [],
+    "PS_EOTR_OWN_QRY": [],
+    "PS_FF_QRYRUNPARM": [],
+    "PS_FIXEDEXPR_TAO": [],
+    "PS_FSPC_USR_QRYLST": [],
+    "PS_HOLDEXPKEYS_TAO": [],
+    "PS_JPM_ITMRPT_RCTL": [],
+    "PS_JPM_RPT1_AET": [],
+    "PS_JPM_RPT1_RCTL": [],
+    "PS_QRY_DUP_HD_AET": [],
+    "PS_QRY_RUN_TREEPRM": [],
+    "PS_QUERY_RUN_CNTRL": [],
+    "PS_SCH_AENRL_AET": [],
+    "PS_TL_AENRL_AET": [],
+    "PS_TL_AENRL_EX_AET": [],
+    "PS_TL_AENRL_RNCTL": [],
+    "PS_TL_AE_DC_RNCTL": [],
+    "PS_UPGQRYEXPR_AET": [],
+    "PSVERSION": [
+      {
+        "OBJECTTYPENAME": "ACM",
+        "VERSION": "9"
+      },
+      {
+        "OBJECTTYPENAME": "ADSM",
+        "VERSION": "2"
+      },
+      {
+        "OBJECTTYPENAME": "AEM",
+        "VERSION": "431"
+      },
+      {
+        "OBJECTTYPENAME": "AES",
+        "VERSION": "399"
+      },
+      {
+        "OBJECTTYPENAME": "APM",
+        "VERSION": "240"
+      },
+      {
+        "OBJECTTYPENAME": "ARCOM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "ARCTM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "ATM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "BCM",
+        "VERSION": "44"
+      },
+      {
+        "OBJECTTYPENAME": "BMM",
+        "VERSION": "2"
+      },
+      {
+        "OBJECTTYPENAME": "BPM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "CBCNM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "CBDIM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "CBOTM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "CBTPM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "CDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "CERTM",
+        "VERSION": "18"
+      },
+      {
+        "OBJECTTYPENAME": "CHDM",
+        "VERSION": "37"
+      },
+      {
+        "OBJECTTYPENAME": "CLM",
+        "VERSION": "63"
+      },
+      {
+        "OBJECTTYPENAME": "CPQDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "CQDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "CRM",
+        "VERSION": "112"
+      },
+      {
+        "OBJECTTYPENAME": "DBSEQ",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "DIAGM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "DLOM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "DOCPC",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "DSCMA",
+        "VERSION": "23"
+      },
+      {
+        "OBJECTTYPENAME": "DTPLM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "EEM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "FCATM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "FDFM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "FDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "FDTM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "FILEM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "FLDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "FLM",
+        "VERSION": "71"
+      },
+      {
+        "OBJECTTYPENAME": "FRM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "GTM",
+        "VERSION": "44"
+      },
+      {
+        "OBJECTTYPENAME": "HPM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "IBSA",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "IDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "INTGM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "IOM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "JPUP",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "KEYM",
+        "VERSION": "3"
+      },
+      {
+        "OBJECTTYPENAME": "LSDDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "LSDM",
+        "VERSION": "23"
+      },
+      {
+        "OBJECTTYPENAME": "MAPM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "MAPS",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "MCRM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "MDM",
+        "VERSION": "326"
+      },
+      {
+        "OBJECTTYPENAME": "MNDM",
+        "VERSION": "231"
+      },
+      {
+        "OBJECTTYPENAME": "MPM",
+        "VERSION": "3"
+      },
+      {
+        "OBJECTTYPENAME": "MSDM",
+        "VERSION": "224"
+      },
+      {
+        "OBJECTTYPENAME": "NTM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "OPRHM",
+        "VERSION": "32"
+      },
+      {
+        "OBJECTTYPENAME": "OPRM",
+        "VERSION": "100"
+      },
+      {
+        "OBJECTTYPENAME": "OPRVM",
+        "VERSION": "75"
+      },
+      {
+        "OBJECTTYPENAME": "PBM",
+        "VERSION": "12"
+      },
+      {
+        "OBJECTTYPENAME": "PCM",
+        "VERSION": "581"
+      },
+      {
+        "OBJECTTYPENAME": "PDM",
+        "VERSION": "772"
+      },
+      {
+        "OBJECTTYPENAME": "PGM",
+        "VERSION": "457"
+      },
+      {
+        "OBJECTTYPENAME": "PJM",
+        "VERSION": "399"
+      },
+      {
+        "OBJECTTYPENAME": "PPC",
+        "VERSION": "34"
+      },
+      {
+        "OBJECTTYPENAME": "PRDM",
+        "VERSION": "13"
+      },
+      {
+        "OBJECTTYPENAME": "PRSM",
+        "VERSION": "168"
+      },
+      {
+        "OBJECTTYPENAME": "PRUF",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "PRUH",
+        "VERSION": "5"
+      },
+      {
+        "OBJECTTYPENAME": "PSC",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "PSCHM",
+        "VERSION": "49"
+      },
+      {
+        "OBJECTTYPENAME": "PSH",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "PSR",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "QAL",
+        "VERSION": "3"
+      },
+      {
+        "OBJECTTYPENAME": "QDM",
+        "VERSION": "110"
+      },
+      {
+        "OBJECTTYPENAME": "QUEM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "RCMTM",
+        "VERSION": "31"
+      },
+      {
+        "OBJECTTYPENAME": "RCSCM",
+        "VERSION": "40"
+      },
+      {
+        "OBJECTTYPENAME": "RCSDM",
+        "VERSION": "15"
+      },
+      {
+        "OBJECTTYPENAME": "RCUPM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "RDM",
+        "VERSION": "487"
+      },
+      {
+        "OBJECTTYPENAME": "REST",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "RLM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "ROLM",
+        "VERSION": "3"
+      },
+      {
+        "OBJECTTYPENAME": "ROM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "RSM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "RSTM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "RTDM",
+        "VERSION": "188"
+      },
+      {
+        "OBJECTTYPENAME": "SATRM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "SCATM",
+        "VERSION": "15"
+      },
+      {
+        "OBJECTTYPENAME": "SCMA",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "SCNFM",
+        "VERSION": "200"
+      },
+      {
+        "OBJECTTYPENAME": "SCTXM",
+        "VERSION": "2"
+      },
+      {
+        "OBJECTTYPENAME": "SDEFM",
+        "VERSION": "222"
+      },
+      {
+        "OBJECTTYPENAME": "SDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "SPTM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "SRM",
+        "VERSION": "266"
+      },
+      {
+        "OBJECTTYPENAME": "SRVM",
+        "VERSION": "87"
+      },
+      {
+        "OBJECTTYPENAME": "SSM",
+        "VERSION": "112"
+      },
+      {
+        "OBJECTTYPENAME": "STM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "SUDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "SYS",
+        "VERSION": "5284"
+      },
+      {
+        "OBJECTTYPENAME": "TAM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "TBM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "TDM",
+        "VERSION": "2"
+      },
+      {
+        "OBJECTTYPENAME": "THM",
+        "VERSION": "5"
+      },
+      {
+        "OBJECTTYPENAME": "TSM",
+        "VERSION": "9"
+      },
+      {
+        "OBJECTTYPENAME": "TSTCM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "TSTM",
+        "VERSION": "9"
+      },
+      {
+        "OBJECTTYPENAME": "TYC",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "UPM",
+        "VERSION": "162"
+      },
+      {
+        "OBJECTTYPENAME": "VAM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "WSCPH",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "WSDL",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "WSPLT",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "WSPRD",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "XPDSM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "XRRDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "XTM",
+        "VERSION": "132"
+      },
+      {
+        "OBJECTTYPENAME": "XTRDM",
+        "VERSION": "1"
+      }
+    ],
+    "PSLOCK": [
+      {
+        "OBJECTTYPENAME": "ACM",
+        "VERSION": "9"
+      },
+      {
+        "OBJECTTYPENAME": "ADSM",
+        "VERSION": "2"
+      },
+      {
+        "OBJECTTYPENAME": "AEM",
+        "VERSION": "431"
+      },
+      {
+        "OBJECTTYPENAME": "AES",
+        "VERSION": "399"
+      },
+      {
+        "OBJECTTYPENAME": "APM",
+        "VERSION": "240"
+      },
+      {
+        "OBJECTTYPENAME": "ARCOM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "ARCTM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "ATM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "BCM",
+        "VERSION": "44"
+      },
+      {
+        "OBJECTTYPENAME": "BMM",
+        "VERSION": "2"
+      },
+      {
+        "OBJECTTYPENAME": "BPM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "CBCNM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "CBDIM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "CBOTM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "CBTPM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "CDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "CERTM",
+        "VERSION": "18"
+      },
+      {
+        "OBJECTTYPENAME": "CHDM",
+        "VERSION": "37"
+      },
+      {
+        "OBJECTTYPENAME": "CLM",
+        "VERSION": "63"
+      },
+      {
+        "OBJECTTYPENAME": "CPQDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "CQDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "CRM",
+        "VERSION": "112"
+      },
+      {
+        "OBJECTTYPENAME": "DBSEQ",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "DIAGM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "DLOM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "DOCPC",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "DSCMA",
+        "VERSION": "23"
+      },
+      {
+        "OBJECTTYPENAME": "DTPLM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "EEM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "FCATM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "FDFM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "FDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "FDTM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "FILEM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "FLDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "FLM",
+        "VERSION": "71"
+      },
+      {
+        "OBJECTTYPENAME": "FRM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "GTM",
+        "VERSION": "45"
+      },
+      {
+        "OBJECTTYPENAME": "HPM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "IBSA",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "IDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "INTGM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "IOM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "JPUP",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "KEYM",
+        "VERSION": "3"
+      },
+      {
+        "OBJECTTYPENAME": "LSDDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "LSDM",
+        "VERSION": "23"
+      },
+      {
+        "OBJECTTYPENAME": "MAPM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "MAPS",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "MCRM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "MDM",
+        "VERSION": "326"
+      },
+      {
+        "OBJECTTYPENAME": "MNDM",
+        "VERSION": "231"
+      },
+      {
+        "OBJECTTYPENAME": "MPM",
+        "VERSION": "3"
+      },
+      {
+        "OBJECTTYPENAME": "MSDM",
+        "VERSION": "224"
+      },
+      {
+        "OBJECTTYPENAME": "NTM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "OPRHM",
+        "VERSION": "32"
+      },
+      {
+        "OBJECTTYPENAME": "OPRM",
+        "VERSION": "100"
+      },
+      {
+        "OBJECTTYPENAME": "OPRVM",
+        "VERSION": "75"
+      },
+      {
+        "OBJECTTYPENAME": "PBM",
+        "VERSION": "12"
+      },
+      {
+        "OBJECTTYPENAME": "PCM",
+        "VERSION": "581"
+      },
+      {
+        "OBJECTTYPENAME": "PDM",
+        "VERSION": "772"
+      },
+      {
+        "OBJECTTYPENAME": "PGM",
+        "VERSION": "457"
+      },
+      {
+        "OBJECTTYPENAME": "PJM",
+        "VERSION": "399"
+      },
+      {
+        "OBJECTTYPENAME": "PPC",
+        "VERSION": "34"
+      },
+      {
+        "OBJECTTYPENAME": "PRDM",
+        "VERSION": "13"
+      },
+      {
+        "OBJECTTYPENAME": "PRSM",
+        "VERSION": "168"
+      },
+      {
+        "OBJECTTYPENAME": "PRUF",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "PRUH",
+        "VERSION": "5"
+      },
+      {
+        "OBJECTTYPENAME": "PSC",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "PSCHM",
+        "VERSION": "49"
+      },
+      {
+        "OBJECTTYPENAME": "PSH",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "PSR",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "QDM",
+        "VERSION": "110"
+      },
+      {
+        "OBJECTTYPENAME": "QUEM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "RCMTM",
+        "VERSION": "31"
+      },
+      {
+        "OBJECTTYPENAME": "RCSCM",
+        "VERSION": "40"
+      },
+      {
+        "OBJECTTYPENAME": "RCSDM",
+        "VERSION": "15"
+      },
+      {
+        "OBJECTTYPENAME": "RCUPM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "RDM",
+        "VERSION": "487"
+      },
+      {
+        "OBJECTTYPENAME": "REST",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "RLM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "ROLM",
+        "VERSION": "3"
+      },
+      {
+        "OBJECTTYPENAME": "ROM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "RSM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "RSTM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "RTDM",
+        "VERSION": "188"
+      },
+      {
+        "OBJECTTYPENAME": "SATRM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "SCATM",
+        "VERSION": "15"
+      },
+      {
+        "OBJECTTYPENAME": "SCMA",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "SCNFM",
+        "VERSION": "200"
+      },
+      {
+        "OBJECTTYPENAME": "SCTXM",
+        "VERSION": "2"
+      },
+      {
+        "OBJECTTYPENAME": "SDEFM",
+        "VERSION": "222"
+      },
+      {
+        "OBJECTTYPENAME": "SDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "SPTM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "SRM",
+        "VERSION": "266"
+      },
+      {
+        "OBJECTTYPENAME": "SRVM",
+        "VERSION": "87"
+      },
+      {
+        "OBJECTTYPENAME": "SSM",
+        "VERSION": "112"
+      },
+      {
+        "OBJECTTYPENAME": "STM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "SUDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "SYS",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "TAM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "TBM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "TDM",
+        "VERSION": "2"
+      },
+      {
+        "OBJECTTYPENAME": "THM",
+        "VERSION": "5"
+      },
+      {
+        "OBJECTTYPENAME": "TSM",
+        "VERSION": "9"
+      },
+      {
+        "OBJECTTYPENAME": "TSTCM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "TSTM",
+        "VERSION": "9"
+      },
+      {
+        "OBJECTTYPENAME": "TYC",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "UPM",
+        "VERSION": "161"
+      },
+      {
+        "OBJECTTYPENAME": "VAM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "WSCPH",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "WSDL",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "WSPLT",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "WSPRD",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "XPDSM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "XRRDM",
+        "VERSION": "1"
+      },
+      {
+        "OBJECTTYPENAME": "XTM",
+        "VERSION": "132"
+      },
+      {
+        "OBJECTTYPENAME": "XTRDM",
+        "VERSION": "1"
+      }
+    ]
+  }
+}

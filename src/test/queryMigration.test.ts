@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { applyQueryOp, newQueryDocument } from '../model/queryDocument.js';
 import { querySnapshot } from '../changeReview/query.js';
 import { DefinitionType, makeKey } from '../model/definitions.js';
-import { checkedMigrationAsset, exportMigrationPackage, type MigrationPackageReader } from '../migrationPackage.js';
+import { assetRequirements, checkedMigrationAsset, exportMigrationPackage, type MigrationPackageReader } from '../migrationPackage.js';
+import { readFileSync } from 'node:fs';
 
 const name='ZZ_MIG_QRY';
 function view(owner='') {
@@ -25,4 +26,13 @@ test('Query migration rejects mismatched ownership, unhandled joins, counts and 
   assert.throws(()=>checkedMigrationAsset('query',key,{...data,view:querySnapshot(invalid)}),/Unsupported Query/);
   const partial=querySnapshot(view()) as Record<string,unknown>;delete partial.binds;
   assert.throws(()=>checkedMigrationAsset('query',key,{...data,view:partial}),/Unsupported Query|Incomplete Query/);
+});
+test('Query migration carries joined, subquery and union shapes the writer validates, with every record as a prerequisite',()=>{
+  for (const [fixture,records] of [['qsq02-exists',['AAP_TBL','AAP_YEAR']],['qun01-union',['AAP_TBL','AAP_YEAR']],['qjn04-related-join',['AAP_TBL','AAP_YEAR','ESTAB_TBL']]] as const) {
+    const t=JSON.parse(readFileSync(`src/test/fixtures/query/${fixture}-after.json`,'utf8')).tables;
+    const stored={query:t.PSQRYDEFN[0],selects:t.PSQRYSELECT,records:t.PSQRYRECORD,fields:t.PSQRYFIELD,criteria:t.PSQRYCRITERIA,expressions:t.PSQRYEXPR,binds:t.PSQRYBIND};
+    const qname=String(stored.query.QRYNAME).trim(),owner=String(stored.query.OPRID).trim(),key=makeKey(DefinitionType.Query,qname,owner);
+    const asset=checkedMigrationAsset('query',key,{name:qname,owner,view:querySnapshot(stored)});
+    assert.deepEqual(assetRequirements(asset).map(k=>k.parts[0]).sort(),[...records],fixture);
+  }
 });

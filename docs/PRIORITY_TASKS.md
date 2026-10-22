@@ -12,8 +12,42 @@ The goal remains open until every requirement is verified.
 | 4. Expanded project migration | Complete. HTML, freeform style sheets, standalone/associated PeopleCode, Query and Menu (Codex), plus fields with every stored property and translate values, Application Packages with classes and root properties, SubRecords and subrecord rows, SQL Table user indexes, pages and components (create and replace) — each through durable Change Review with native HRDMO trials, App Designer captures for every new writer, and App Designer checks of migration-made definitions. | See the continuation sections below and [PROJECT_MIGRATION.md](PROJECT_MIGRATION.md). Remaining refusals are explicit (alternate search keys, custom index DDL, translations, subpackage/class metadata, nested/SQL-Table subrecords, updates to indexed records/SubRecords). |
 | 5. Change Review recovery | Complete. Crash/lost-reply reconciliation, continuation undo/redo and Record/AE/SQL/HTML/style sheet creation reversal (Codex); Query and project creation reversal; undo/redo of every migrated definition type through App Designer-calibrated deletion writers (dl01-dl13); same-run ownership re-stamping for dependent creations. 63/63 production HTTP/UI workflow checks. | [Query/project trial](../tools/lab/results/query-project-reversal-reviewed-native-2026-10-20.json), [migration undo/redo trial](../tools/lab/results/migration-reversal-native-2026-10-20.json). |
 
-Checkpointed on branch `checkpoint/priority-tasks` on October 21, 2026, with Codex's
-work credited in the commit messages. No push or release is requested.
+## PS Query parity — open tasks (October 21, 2026)
+
+Version preparation: the package and [draft release notes](releases/0.9.8.md)
+now target **0.9.8 — unreleased**. This is initial preparation, not a tag or
+publication; the existing acceptance artifacts retain their tested versions
+and checksums.
+
+Joins, subqueries, unions, aggregates/HAVING/DISTINCT, expressions, translates,
+effective dating, the designer, migration and review-only delete/rename are
+built on branch `query-criteria` and natively verified on HRDMO
+8.62.09: 31 Windows Query captures replay exactly, and eight Studio-written
+queries reopen in Windows Query with identical SQL and rows
+([evidence](../tools/lab/results/query-families-native-2026-10-21.json),
+[PS_QUERY_WINDOWS.md](PS_QUERY_WINDOWS.md)). Installed acceptance is complete;
+8.61.15 calibration remains open:
+
+| Task | Needs | Acceptance required |
+| --- | --- | --- |
+| 1. Installed check — complete October 21 | Unmodified candidate VSIX installed in a separate real VS Code 1.143.0 window, private history, HRDMO 8.62.09 | [10 installed checks](../tools/lab/results/query-installed-2026-10-21.json): saved-query editing of criteria/HAVING, joins, aggregates, translates, expressions, subqueries and unions; SQL and every rendered result cell match independent native execution; undo/redo/discard; MCP rename/delete stage without writing, refuse missing destructive consent without writes, apply through rendered approval and undo to exact native snapshots. Cleanup and installed artifact integrity verified. |
+| 2. 8.61.15 calibration | Developer's RDP session to HCDEV (XX_ objects only) | Windows Query 8.61.15 captures of each family, replayed exactly; the 8.61 writer gate (now one record, one equal-to criterion) lifted only where proven. |
+| 3. Commit and push — complete in this checkpoint | Developer requested all changes committed and pushed | Query implementation, native/installed evidence and unreleased 0.9.8 preparation recorded together on `query-criteria`. No merge, tag or release. |
+
+Reproduce installed acceptance with HRDMO lab credentials in `PSLAB_ACCESSID`
+and `PSLAB_ACCESSPSWD`: `npm run test:query:installed` (after `npm test` compiles
+the independent reader). The tested candidate is
+`/tmp/peoplesoft-studio-query-tested.vsix`; runtime bundle SHA-256
+`00290cf52b6019a3478e0fd4634491d6edf9d0b7c4a486c66b002d59054c47cf`.
+The user's running window and normal installation were unchanged. The installed
+trial found and corrected expression Length
+submission, result-column mapping and the overly broad subrecord metadata
+restriction; see [installed acceptance](PS_QUERY_WINDOWS.md#installed-acceptance-october-21-2026).
+
+The earlier priority work was checkpointed on branch `checkpoint/priority-tasks`
+on October 21, 2026, with Codex's work credited in the commit messages. The
+subsequent commit/push request applies to the current `query-criteria` branch;
+release publication remains separate.
 No encoder/decoder changes have been made for these tasks.
 
 Installed tasks 2/3 evidence: [report](../tools/lab/results/write-approval-installed-2026-10-20.json), [pending](../tools/lab/results/write-approval-pending-2026-10-20.png), [outcomes](../tools/lab/results/write-approval-outcomes-2026-10-20.png). Candidate bundle: `1ba73ca20ba162ada5e7879994002255efd52ae934fcf5dbea010845b7cf88e9`.
