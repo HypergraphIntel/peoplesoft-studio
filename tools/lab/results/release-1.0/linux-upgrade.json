@@ -1,11 +1,12 @@
 {
-  "at": "2026-10-22T04:21:03.715Z",
+  "at": "2026-10-22T05:13:35.562Z",
+  "scenario": "upgrade",
   "scope": "Isolated Linux normal installed VS Code; published 0.9.7 to current candidate; real SecretStorage and native HRDMO SQL writers via rendered review",
-  "name": "ZZ_V1_B9973EBBDE",
+  "name": "ZZ_V1_718BA7C041",
   "phases": [
     {
       "phase": "seed",
-      "at": "2026-10-22T04:21:08.777Z",
+      "at": "2026-10-22T05:13:40.572Z",
       "vscode": "1.143.0",
       "checks": [
         {
@@ -21,19 +22,25 @@
           "passed": true
         }
       ],
+      "environment": {
+        "toolsRelease": "8.62",
+        "patchLevel": 9
+      },
+      "platform": "linux",
+      "architecture": "x64",
       "passed": true,
       "hotExit": "onExitAndWindowClose",
       "openDocuments": [
         {
-          "uri": "psft://5cc75c1851ea2531/30%3AZZ_V1_B9973EBBDE.0/ZZ_V1_B9973EBBDE.0.pssql",
+          "uri": "psft://5cc75c1851ea2531/30%3AZZ_V1_718BA7C041.0/ZZ_V1_718BA7C041.0.pssql",
           "dirty": true,
           "text": "SELECT 101 FROM DUAL /* preserved across upgrade */"
         }
       ],
       "backups": [
-        "3d8cd5afc4f57574b9aaa9fe9d55309a",
-        "3d8cd5afc4f57574b9aaa9fe9d55309a/psft",
-        "3d8cd5afc4f57574b9aaa9fe9d55309a/psft/-32014c4b"
+        "94bd63018b0e20dfb780b93a1e15928f",
+        "94bd63018b0e20dfb780b93a1e15928f/psft",
+        "94bd63018b0e20dfb780b93a1e15928f/psft/-5825c5cb"
       ],
       "integrity": {
         "manifestUnmodified": true,
@@ -43,7 +50,7 @@
     },
     {
       "phase": "upgrade",
-      "at": "2026-10-22T04:21:24.694Z",
+      "at": "2026-10-22T05:13:56.644Z",
       "vscode": "1.143.0",
       "checks": [
         {
@@ -67,19 +74,25 @@
           "passed": true
         }
       ],
+      "environment": {
+        "toolsRelease": "8.62",
+        "patchLevel": 9
+      },
+      "platform": "linux",
+      "architecture": "x64",
       "passed": true,
       "hotExit": "onExitAndWindowClose",
       "openDocuments": [
         {
-          "uri": "psft://5cc75c1851ea2531/30%3AZZ_V1_B9973EBBDE.0/ZZ_V1_B9973EBBDE.0.pssql",
+          "uri": "psft://5cc75c1851ea2531/30%3AZZ_V1_718BA7C041.0/ZZ_V1_718BA7C041.0.pssql",
           "dirty": true,
           "text": "SELECT 202 FROM DUAL /* preserved across reload */"
         }
       ],
       "backups": [
-        "3d8cd5afc4f57574b9aaa9fe9d55309a",
-        "3d8cd5afc4f57574b9aaa9fe9d55309a/psft",
-        "3d8cd5afc4f57574b9aaa9fe9d55309a/psft/-32014c4b"
+        "94bd63018b0e20dfb780b93a1e15928f",
+        "94bd63018b0e20dfb780b93a1e15928f/psft",
+        "94bd63018b0e20dfb780b93a1e15928f/psft/-5825c5cb"
       ],
       "integrity": {
         "manifestUnmodified": true,
@@ -89,7 +102,7 @@
     },
     {
       "phase": "reload",
-      "at": "2026-10-22T04:21:31.750Z",
+      "at": "2026-10-22T05:14:03.991Z",
       "vscode": "1.143.0",
       "checks": [
         {
@@ -105,19 +118,61 @@
           "passed": true
         },
         {
+          "name": "Installed Record Build creates a fresh native table and key index after actual DDL confirmation",
+          "passed": true
+        },
+        {
+          "name": "Installed Alter copies the owned row and produces the exact saved column layout",
+          "passed": true
+        },
+        {
+          "name": "Installed Create Indexes rebuilds the native key without losing the owned row",
+          "passed": true
+        },
+        {
           "name": "Owned fixture deletion uses rendered destructive review; cleanup removes only its native markers",
           "passed": true
         }
       ],
+      "environment": {
+        "toolsRelease": "8.62",
+        "patchLevel": 9
+      },
+      "platform": "linux",
+      "architecture": "x64",
       "passed": true,
       "hotExit": "onExitAndWindowClose",
-      "openDocuments": [
+      "openDocuments": [],
+      "backups": [],
+      "integrity": {
+        "manifestUnmodified": true,
+        "bundleUnmodified": true,
+        "workerUnmodified": true
+      }
+    },
+    {
+      "phase": "final",
+      "at": "2026-10-22T05:14:56.191Z",
+      "vscode": "1.143.0",
+      "checks": [
         {
-          "uri": "psft://5cc75c1851ea2531/30%3AZZ_V1_B9973EBBDE.0/ZZ_V1_B9973EBBDE.0.pssql",
-          "dirty": false,
-          "text": ""
+          "name": "Installed candidate connects through the real password/SecretStorage path",
+          "passed": true
+        },
+        {
+          "name": "Final restart retains verified history and the completed cleanup without replay",
+          "passed": true
         }
       ],
+      "environment": {
+        "toolsRelease": "8.62",
+        "patchLevel": 9
+      },
+      "platform": "linux",
+      "architecture": "x64",
+      "passed": true,
+      "hotExit": "onExitAndWindowClose",
+      "openDocuments": [],
       "backups": [],
       "integrity": {
         "manifestUnmodified": true,
@@ -126,8 +181,8 @@
       }
     }
   ],
-  "candidateVsix": "/tmp/psft-v1-upgrade-dGKSP3/candidate.vsix",
-  "candidateSha256": "426f08576249872ec7444af116b760902023d8e867c1c5a96f8c88ec8bdc870e",
+  "candidateVsix": "/tmp/psft-v1-upgrade-A2Ara9/candidate.vsix",
+  "candidateSha256": "ae4082f77ce72cf19110aff405bc75dfe607511569b00e263785fac92ce443d0",
   "oldAssetSha256": "66868e42b17180d8b81848652a8958ee69eba168c30cdd2af4bf80845ec06623",
   "passed": true
 }

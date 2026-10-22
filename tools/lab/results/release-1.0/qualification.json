@@ -1,0 +1,74 @@
+{
+  "at": "2026-10-22T05:33:34.058125+00:00",
+  "status": "CORE_READY",
+  "version": "0.9.8",
+  "target": "1.0",
+  "published": false,
+  "sourceFreeze": "32177c66d62406cc9c29d7e25e83e442b4c2bc7c",
+  "profile": {
+    "database": "Oracle",
+    "peopleTools": "8.62.09",
+    "clients": [
+      "Linux x64",
+      "Windows x64"
+    ]
+  },
+  "artifact": "peoplesoft-studio-0.9.8-core-candidate.vsix",
+  "vsixSha256": "ae4082f77ce72cf19110aff405bc75dfe607511569b00e263785fac92ce443d0",
+  "bundleSha256": "37997adb101fdf07de01f1ffa3718963020d32e36ab1794e1be7f1e2dbd1663e",
+  "workerSha256": "2022a1104d48cd47f48806708a56dfdbd689e7dcf657e913277f287f885b2c01",
+  "installedChecks": 65,
+  "acceptance": [
+    {
+      "report": "linux-upgrade.json",
+      "checks": 17,
+      "passed": true
+    },
+    {
+      "report": "windows-upgrade.json",
+      "checks": 17,
+      "passed": true
+    },
+    {
+      "report": "linux-fresh-install.json",
+      "checks": 4,
+      "passed": true
+    },
+    {
+      "report": "windows-fresh-install.json",
+      "checks": 4,
+      "passed": true
+    },
+    {
+      "report": "query-installed.json",
+      "checks": 10,
+      "passed": true
+    },
+    {
+      "report": "peoplecode-editor-installed.json",
+      "checks": 13,
+      "passed": true
+    }
+  ],
+  "nativeCleanupVerified": true,
+  "localTestsPassed": 2240,
+  "existingTestsSkipped": 1,
+  "protectedExact": 430,
+  "targetedExact": [
+    27362,
+    28098,
+    19282
+  ],
+  "nativeCrashBoundaries": [
+    "before-commit",
+    "after-commit"
+  ],
+  "ci": "https://github.com/HypergraphIntel/peoplesoft-studio/actions/runs/39726848453",
+  "ciJobsPassed": 4,
+  "limits": [
+    "Bounded core only; native/installed reports retain their own approval and scope categories.",
+    "Run and Monitor native acceptance remains preview and Low priority.",
+    "1.5/2.0 expansion targets remain outside this qualification."
+  ],
+  "passed": true
+}

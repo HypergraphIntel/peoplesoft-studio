@@ -1,0 +1,52 @@
+
+> peoplesoft-studio@0.9.8 corpus:verify
+> tsx tools/corpus/cli.ts --compare-baseline --limit 430
+
+PeopleCode Corpus Harness
+-------------------------
+Database: HCDEV
+Mode:     DISCOVERY
+Source:   LOCAL SNAPSHOT
+Limit:    430
+Offset:   0
+Trace:    off
+
+Loaded 430 definition(s) from local snapshot.
+[25] exact=25 failed=0
+[50] exact=50 failed=0
+[75] exact=75 failed=0
+[100] exact=100 failed=0
+[125] exact=125 failed=0
+[150] exact=150 failed=0
+[175] exact=175 failed=0
+[200] exact=200 failed=0
+[225] exact=225 failed=0
+[250] exact=250 failed=0
+[275] exact=275 failed=0
+[300] exact=300 failed=0
+[325] exact=325 failed=0
+[350] exact=350 failed=0
+[375] exact=375 failed=0
+[400] exact=400 failed=0
+[425] exact=425 failed=0
+
+Summary
+-------
+Definitions: 430
+Exact:       430
+Failed:      0
+Compiled exact (EXACT + EXACT_RECOVERED_SOURCE): 430
+
+Classifications
+---------------
+EXACT                             430
+
+Regression Comparison
+---------------------
+Improved:          0
+Regressed:         0
+Unchanged failures:0
+New definitions:   0
+Source changed:     0
+
+REGRESSION GATE: PASS

@@ -1,0 +1,44 @@
+{
+  "at": "2026-10-22T04:41:37.471058+00:00",
+  "scope": "Fresh HCDEV snapshot regression and targeted source-to-binary/roundtrip checks; unchanged compiler binding to published 0.9.7 and retained native 8.62.09 validation. No fresh full-corpus or new native App Designer validation is claimed.",
+  "baselineDefinitions": 430,
+  "compilerSourceChangesSincePublished097": [],
+  "releasedWorkerSha256": "2022a1104d48cd47f48806708a56dfdbd689e7dcf657e913277f287f885b2c01",
+  "candidateWorkerSha256": "2022a1104d48cd47f48806708a56dfdbd689e7dcf657e913277f287f885b2c01",
+  "workerIdentical": true,
+  "checks": {
+    "protected-430": {
+      "file": "protected-430.txt",
+      "sha256": "27906b10a590cae78ab8a0f63667d4628a8a7298057aceb0cb07e038091a1091",
+      "passed": true
+    },
+    "target-27362": {
+      "file": "target-27362.txt",
+      "sha256": "e5dabbfe0371258bb7c963773db54857a8e1f15b4b472e13c59fbc167d4485d3",
+      "passed": true
+    },
+    "target-28098": {
+      "file": "target-28098.txt",
+      "sha256": "c578abfee107d1cc3a797a8d7b8b94e346d1abb29de6121ee2de39a2ae66555a",
+      "passed": true
+    },
+    "target-19282": {
+      "file": "target-19282.txt",
+      "sha256": "8074eeeedb4ceed212a521415a408a5bd2dbcdbfdacc47e2cea44dc75186e113",
+      "passed": true
+    }
+  },
+  "nativeEvidence": [
+    {
+      "reference": "docs/build-requests/AE_FILE_WORKFLOW.md#native-syntax-correction-and-completed-csv-acceptance--october-19",
+      "scope": "Developer confirmed native App Designer validation of corrected ZZ_RF_EXPORT; scheduler 607175 completed and exact CSV was checked. This is retained historical native acceptance."
+    },
+    {
+      "reference": "tools/corpus/controlled-compile/results/8.62.09/delivered-corpus-comparison.json",
+      "scope": "Retained controlled native 8.62.09 comparison, captured October 6; not a new full corpus run."
+    }
+  ],
+  "passed": true,
+  "sourceFreeze": "32177c66d62406cc9c29d7e25e83e442b4c2bc7c",
+  "candidateVsixSha256": "ae4082f77ce72cf19110aff405bc75dfe607511569b00e263785fac92ce443d0"
+}

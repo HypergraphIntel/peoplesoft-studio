@@ -10,9 +10,10 @@ from the remaining completion work; no 1.0 delivery date is committed.
 The developer directed larger readiness items toward later releases. The
 [1.0 / 1.5 / 2.0 release plan](RELEASE_PLAN.md) assigns:
 
-- **1.0:** dependable supported core workflows, PeopleCode regression gates,
-  clear stable/preview boundaries, installation/upgrade/recovery acceptance
-  and qualification of the exact release artifact.
+- **1.0 core gates complete:** dependable bounded Oracle 8.62.09 workflows,
+  protected PeopleCode calibration, stable/preview boundaries, Linux/Windows
+  install/upgrade/recovery and exact-artifact qualification. The package remains
+  0.9.8, unreleased; see [completed evidence](releases/1.0/PROGRESS.md).
 - **1.5:** broader structural Change Review, promotion between separate Oracle
   environments, production-style business workflows, Windows AI Build handoff
   and wider Query/editor support. Run and Monitor acceptance stays Low priority.

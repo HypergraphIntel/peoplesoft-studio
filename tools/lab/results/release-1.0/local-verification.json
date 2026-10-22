@@ -1,0 +1,13 @@
+{
+  "command": "npm run verify",
+  "tests": 2241,
+  "passed": 2240,
+  "failed": 0,
+  "skipped": 1,
+  "productionMcpFixtureChecks": 70,
+  "verifyLogSha256": "706ac297a387b6f63c06027f8d67e3a521f651b80a96930863726096aa4200b4",
+  "mcpLogSha256": "7f5d85d1b2ff34e66e68340d726b49d472d23e9f823be29054edc0823457298c",
+  "sourceFreeze": "32177c66d62406cc9c29d7e25e83e442b4c2bc7c",
+  "scope": "Local verification and production HTTP/UI fixtures; separate from native scheduler acceptance.",
+  "existingSkip": "Legacy 0x4F marker variable-assignment golden fixture remains a calibration TODO; no new skip or protected EXACT regression."
+}

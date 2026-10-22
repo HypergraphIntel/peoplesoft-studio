@@ -1,0 +1,27 @@
+
+> peoplesoft-studio@0.9.8 corpus:harness
+> tsx tools/corpus/cli.ts --definition-id 28098
+
+PeopleCode Corpus Harness
+-------------------------
+Database: HCDEV
+Mode:     DEFINITION ID
+Source:   LOCAL SNAPSHOT
+Limit:    undefined
+Offset:   0
+Trace:    off
+
+Definition ID: 28098
+Current offset: 28097
+66=GPSG_CPFLINE, 77=C11000, 39=GBL, 20=default, 21=1900-01-01, 78=Next_Adv, 12=OnExecute
+
+Summary
+-------
+Definitions: 1
+Exact:       1
+Failed:      0
+Compiled exact (EXACT + EXACT_RECOVERED_SOURCE): 1
+
+Classifications
+---------------
+EXACT                             1

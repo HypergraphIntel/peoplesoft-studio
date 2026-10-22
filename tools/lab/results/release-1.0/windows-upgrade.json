@@ -1,0 +1,189 @@
+{
+  "at": "2026-10-22T05:18:37.382Z",
+  "platform": "win32",
+  "scenario": "upgrade",
+  "scope": "Windows normal installed VS Code; published 0.9.7 upgrade; real SecretStorage and native HRDMO SQL writers through rendered review",
+  "name": "ZZ_V1_3BC9FD83A5",
+  "phases": [
+    {
+      "phase": "seed",
+      "at": "2026-10-22T05:18:48.642Z",
+      "vscode": "1.141.0",
+      "checks": [
+        {
+          "name": "Installed candidate connects through the real password/SecretStorage path",
+          "passed": true
+        },
+        {
+          "name": "Published 0.9.7 retains local history despite its known Windows directory-fsync refusal",
+          "passed": true
+        },
+        {
+          "name": "A dirty native SQL document is retained for upgrade without saving its draft",
+          "passed": true
+        }
+      ],
+      "environment": {
+        "toolsRelease": "8.62",
+        "patchLevel": 9
+      },
+      "platform": "win32",
+      "architecture": "x64",
+      "previousVersionIssue": "Published 0.9.7 Windows directory fsync EPERM; retained DRAFT must survive upgrade. Fixture setup uses the independent native writer; current candidate writes still require rendered review.",
+      "passed": true,
+      "hotExit": "onExitAndWindowClose",
+      "openDocuments": [
+        {
+          "uri": "psft://5cc75c1851ea2531/30%3AZZ_V1_3BC9FD83A5.0/ZZ_V1_3BC9FD83A5.0.pssql",
+          "dirty": true,
+          "text": "SELECT 101 FROM DUAL /* preserved across upgrade */"
+        }
+      ],
+      "integrity": {
+        "manifestUnmodified": true,
+        "bundleUnmodified": true,
+        "workerUnmodified": true
+      },
+      "backups": [
+        "8c1e1c40ab3d0c0f4c6ca4c820a3e6db",
+        "8c1e1c40ab3d0c0f4c6ca4c820a3e6db\\psft",
+        "8c1e1c40ab3d0c0f4c6ca4c820a3e6db\\psft\\2904cb75"
+      ]
+    },
+    {
+      "phase": "upgrade",
+      "at": "2026-10-22T05:19:12.347Z",
+      "vscode": "1.141.0",
+      "checks": [
+        {
+          "name": "Installed candidate connects through the real password/SecretStorage path",
+          "passed": true
+        },
+        {
+          "name": "Native dirty document and Change Review history survive upgrade",
+          "passed": true
+        },
+        {
+          "name": "Settings and MCP expose the same release contract and preview boundary",
+          "passed": true
+        },
+        {
+          "name": "Dirty native source blocks reviewed application without a database write",
+          "passed": true
+        },
+        {
+          "name": "Disconnect and reconnect retain the dirty draft and require no credential re-entry",
+          "passed": true
+        }
+      ],
+      "environment": {
+        "toolsRelease": "8.62",
+        "patchLevel": 9
+      },
+      "platform": "win32",
+      "architecture": "x64",
+      "passed": true,
+      "hotExit": "onExitAndWindowClose",
+      "openDocuments": [
+        {
+          "uri": "psft://5cc75c1851ea2531/30%3AZZ_V1_3BC9FD83A5.0/ZZ_V1_3BC9FD83A5.0.pssql",
+          "dirty": true,
+          "text": "SELECT 202 FROM DUAL /* preserved across reload */"
+        }
+      ],
+      "integrity": {
+        "manifestUnmodified": true,
+        "bundleUnmodified": true,
+        "workerUnmodified": true
+      },
+      "backups": [
+        "8c1e1c40ab3d0c0f4c6ca4c820a3e6db",
+        "8c1e1c40ab3d0c0f4c6ca4c820a3e6db\\psft",
+        "8c1e1c40ab3d0c0f4c6ca4c820a3e6db\\psft\\2904cb75"
+      ]
+    },
+    {
+      "phase": "reload",
+      "at": "2026-10-22T05:19:28.617Z",
+      "vscode": "1.141.0",
+      "checks": [
+        {
+          "name": "Installed candidate connects through the real password/SecretStorage path",
+          "passed": true
+        },
+        {
+          "name": "Native dirty document and Change Review history survive reload",
+          "passed": true
+        },
+        {
+          "name": "Current installed source save, inverse and redo verify native SQL at every boundary",
+          "passed": true
+        },
+        {
+          "name": "Installed Record Build creates a fresh native table and key index after actual DDL confirmation",
+          "passed": true
+        },
+        {
+          "name": "Installed Alter copies the owned row and produces the exact saved column layout",
+          "passed": true
+        },
+        {
+          "name": "Installed Create Indexes rebuilds the native key without losing the owned row",
+          "passed": true
+        },
+        {
+          "name": "Owned fixture deletion uses rendered destructive review; cleanup removes only its native markers",
+          "passed": true
+        }
+      ],
+      "environment": {
+        "toolsRelease": "8.62",
+        "patchLevel": 9
+      },
+      "platform": "win32",
+      "architecture": "x64",
+      "passed": true,
+      "hotExit": "onExitAndWindowClose",
+      "openDocuments": [],
+      "integrity": {
+        "manifestUnmodified": true,
+        "bundleUnmodified": true,
+        "workerUnmodified": true
+      },
+      "backups": []
+    },
+    {
+      "phase": "final",
+      "at": "2026-10-22T05:20:14.591Z",
+      "vscode": "1.141.0",
+      "checks": [
+        {
+          "name": "Installed candidate connects through the real password/SecretStorage path",
+          "passed": true
+        },
+        {
+          "name": "Final restart retains verified history and the completed cleanup without replay",
+          "passed": true
+        }
+      ],
+      "environment": {
+        "toolsRelease": "8.62",
+        "patchLevel": 9
+      },
+      "platform": "win32",
+      "architecture": "x64",
+      "passed": true,
+      "hotExit": "onExitAndWindowClose",
+      "openDocuments": [],
+      "integrity": {
+        "manifestUnmodified": true,
+        "bundleUnmodified": true,
+        "workerUnmodified": true
+      },
+      "backups": []
+    }
+  ],
+  "candidateSha256": "ae4082f77ce72cf19110aff405bc75dfe607511569b00e263785fac92ce443d0",
+  "oldAssetSha256": "66868e42b17180d8b81848652a8958ee69eba168c30cdd2af4bf80845ec06623",
+  "passed": true
+}

@@ -1,0 +1,22 @@
+{
+  "at": "2026-10-22T05:30:47.547Z",
+  "scope": "Read-only HRDMO audit of this qualification fixture prefix after all runs; no cleanup writes or cache-counter rewinds.",
+  "prefix": "ZZ_V1_",
+  "counts": {
+    "PSSQLDEFN": 0,
+    "PSSQLTEXTDEFN": 0,
+    "PSSQLHASH": 0,
+    "PSSQLDESCR": 0,
+    "PSSQLLANG": 0,
+    "PSSQLDEL": 0,
+    "PSRECDEFN": 0,
+    "PSRECFIELD": 0,
+    "PSRECFIELDDB": 0,
+    "PSINDEXDEFN": 0,
+    "PSKEYDEFN": 0,
+    "PSRECTBLSPC": 0,
+    "PSRECDEL": 0,
+    "physicalTables": 0
+  },
+  "passed": true
+}

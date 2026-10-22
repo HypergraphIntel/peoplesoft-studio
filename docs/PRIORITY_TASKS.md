@@ -11,6 +11,21 @@ by assigning a related feature to a later release. The core profile is Oracle / 
 [qualification evidence](releases/1.0/PROGRESS.md) records completed gates. No
 publication date is committed.
 
+## Current priorities after core qualification
+
+V1-1 through V1-5 are **complete** for the exact qualified 0.9.8 candidate;
+[the evidence tracker](releases/1.0/PROGRESS.md) records native/client/CI scope.
+No tag or release was created.
+
+| Target | Priority | Next work | Why it matters |
+| --- | --- | --- | --- |
+| 1.5 / V15-1 | Highest next big win | Structural Page Change Review: insert/delete/rebind/order with native persisted-ID mapping and exact apply/inverse/redo | Makes larger reviewed UI changes possible through one durable workflow |
+| 1.5 / V15-2 | High | Promotion between separate Oracle environments | Turns the bounded package workflow into verified delivery across environments |
+| 1.5 / V15-3 | High | Representative business application acceptance and native Windows AI Build handoff | Proves real requirements-to-application behavior beyond current synthetic/Linux evidence |
+| 1.5 / V15-4 | Normal | Broader Query release/family and language/editor coverage | Expands the currently calibrated contract without protected regressions |
+| 1.5 / V15-5 | Low | Run and Monitor RT-L1–RT-L4 | Explicitly deferred native scheduler acceptance and environment prerequisite |
+| 2.0 | Planned | Production SQL Server/DB2, cross-platform promotion, Workbench and wider parity/security | Requires platform-specific native evidence and a wider product contract |
+
 ## Run and Monitor — Low-priority follow-up
 
 Developer direction at closeout: finish the local implementation and document
@@ -37,7 +52,7 @@ outside the 1.0 gate; native acceptance remains pending.
 
 User-requested scope: complete all five tasks below. Source changes, fixture
 checks, installed UI checks and live runtime evidence are separate gates.
-The goal remains open until every requirement is verified.
+This historical inventory is retained; the current 1.0 qualification and later release targets above define the active completion boundary.
 
 | Task | Current state | Acceptance required |
 | --- | --- | --- |

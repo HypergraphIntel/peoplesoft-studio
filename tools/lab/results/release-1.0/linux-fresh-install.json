@@ -1,0 +1,55 @@
+{
+  "at": "2026-10-22T05:16:17.838Z",
+  "scenario": "fresh",
+  "scope": "Blank Linux normal VS Code profile; current unmodified candidate; real credential prompt, rendered SQL creation/draft/inverse and native readback",
+  "name": "ZZ_V1_8902866719",
+  "phases": [
+    {
+      "phase": "fresh",
+      "at": "2026-10-22T05:16:22.918Z",
+      "vscode": "1.143.0",
+      "checks": [
+        {
+          "name": "Installed candidate connects through the real password/SecretStorage path",
+          "passed": true
+        },
+        {
+          "name": "Fresh current candidate stages creation without a native write, then renders approval and verifies persistence",
+          "passed": true
+        },
+        {
+          "name": "Fresh current candidate opens editable SQL and preserves the native source while drafting",
+          "passed": true
+        },
+        {
+          "name": "Fresh creation inverse requires rendered destructive approval and cleans only the owned native scope",
+          "passed": true
+        }
+      ],
+      "environment": {
+        "toolsRelease": "8.62",
+        "patchLevel": 9
+      },
+      "platform": "linux",
+      "architecture": "x64",
+      "passed": true,
+      "hotExit": "onExitAndWindowClose",
+      "openDocuments": [
+        {
+          "uri": "psft://5cc75c1851ea2531/30%3AZZ_V1_8902866719.0/ZZ_V1_8902866719.0.pssql",
+          "dirty": false,
+          "text": ""
+        }
+      ],
+      "backups": [],
+      "integrity": {
+        "manifestUnmodified": true,
+        "bundleUnmodified": true,
+        "workerUnmodified": true
+      }
+    }
+  ],
+  "candidateVsix": "/tmp/psft-v1-upgrade-dqUYc4/candidate.vsix",
+  "candidateSha256": "ae4082f77ce72cf19110aff405bc75dfe607511569b00e263785fac92ce443d0",
+  "passed": true
+}

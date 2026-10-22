@@ -1,83 +1,103 @@
-# 1.0 completion tracker
+# 1.0 core qualification — complete
 
-Active objective: complete every V1-1 through V1-5 requirement in
-[the release plan](../../RELEASE_PLAN.md). This tracker records evidence and
-open work; it does not replace or narrow those requirements. The 1.5/2.0
-expansions and Low-priority scheduler work remain deferred. No tag or
-publication is authorized by this qualification effort.
+Completed October 22, 2026: **V1-1 through V1-5 pass** for the bounded Oracle /
+PeopleTools **8.62.09** core on **Linux x64 and Windows x64**. The development
+package remains **0.9.8, unreleased**. No tag or release was created. The
+[release plan](../../RELEASE_PLAN.md) retains the 1.5/2.0 expansions and the
+explicitly Low-priority scheduler acceptance work.
 
-## Qualification matrix
+The [machine-checked qualification manifest](../../../tools/lab/results/release-1.0/qualification.json)
+binds every installed report to the same VSIX and frozen product source.
 
-| Gate | Requirements retained | Current evidence | Remaining work |
-| --- | --- | --- | --- |
-| V1-1 | Explicit database/PeopleTools/client support matrix; operation limits and consistent UI/MCP/docs maturity | Oracle 8.62.09 named primary profile; existing native Oracle 8.61/8.62 findings remain release-specific | Shared contract implemented in Settings, tool descriptions, MCP orientation/catalog and support matrix; finish native client qualification and stale-claim audit |
-| V1-2 | Correctness, authorized writes, native readback, conflict/refusal/recovery; no critical stable-path defect | Current full verify passes; existing installed/native review/recovery evidence retained | Audit current code and fix defects; exercise final artifact's supported save/refusal/recovery paths; retain native evidence |
-| V1-3 | Protected 430 baseline; targeted regression and representative native compilation for declared profiles; explicit unsupported refusals | Fresh local snapshot gate: 430 EXACT, zero regressions, zero source changes | Retain reproducible gate report and native validation evidence bound to final compiler artifact |
-| V1-4 | Fresh install/upgrade, credentials/drafts/history, client OS coverage, connection loss/reload/interrupted-save safety | Linux installed native test infrastructure exists; Windows ps-win-client is running and reachable by SSH; guest agent is absent | Verify final installed artifact on Linux and Windows, upgrade from published 0.9.7, real SecretStorage/draft/history persistence and recovery; Windows sign-in verified; interactive installed acceptance running |
-| V1-5 | Representative native core journeys, clean CI, exact artifact fingerprints, reconciled docs, frozen committed scope and support/upgrade notes | Current full verify passes; old native/installed reports are historical evidence | Fix browser-dependent CI setup, add Windows/runtime matrix, run exact-candidate installed/native checks, write upgrade/support notes, freeze/commit and obtain remote CI evidence |
+| Gate | Completed evidence | Boundaries retained |
+| --- | --- | --- |
+| V1-1 | [Support contract](../../SUPPORT_MATRIX.md), shared `CORE_READY` model in Settings/tool descriptions/MCP orientation and operation catalog; stale Query/project reversal claims reconciled | Oracle 8.61.15 remains bounded preview; SQL Server/DB2 production and macOS are unqualified. Standalone class lifecycle and unverified event-write variants retain preview labels |
+| V1-2 | 2,240 local tests pass, 70 production HTTP/UI workflow fixtures pass; native save/readback, dirty and stale refusal, actual reviewed inverse/redo; Windows persistence defects and packaged editor configuration fixed | Per-writer transactions, current authorization/approval/native-token gates and explicit legacy save paths remain. No universal rollback or complete dynamic-reference closure |
+| V1-3 | Fresh 430/430 protected EXACT gate, zero regressions/source changes; targeted IDs 27362, 28098 and 19282 EXACT; compiler worker byte-identical to published 0.9.7 with retained native 8.62.09 validation | One existing 0x4F golden-fixture calibration TODO remains skipped; no full-language or new full-corpus certification. Unsupported or unprovable saves retain their refusals |
+| V1-4 | Normal installed upgrade/reload: 17 checks each on Linux VS Code 1.143.0 and Windows VS Code 1.141.0; blank-profile native SQL creation/draft/comment/inverse: four checks each; actual SecretStorage/drafts/history and disconnect/reconnect | Same profile/workspace is required for its backups/history. Actual before/after-commit SIGKILL tests cover the shared recovery service; they are separate from installed UI checks and do not certify OS power-loss durability |
+| V1-5 | One exact VSIX passes all 65 installed acceptance checks, Query and physical Build checks, both native crash boundaries and four CI jobs; frozen committed source, matching artifact fingerprints, reconciled trackers and [upgrade/support notes](UPGRADE.md) | No publication/version bump to 1.0. Separate-environment promotion, broader structural review and native scheduler acceptance remain later scope |
 
-## Current execution
+## Frozen candidate and checksums
 
-- Initial full `npm run verify`: passed (2,237 tests; 2,236 pass, one skip),
-  activation/editor/package fixtures and runtime Chromium/HTTP checks.
-- Fresh `npm run corpus:verify -- --limit 430`: PASS, 430 EXACT; zero
-  regressions, unchanged failures, new definitions or source changes.
-- Current local `npm run verify`: 2,239 tests (2,238 pass, one skip), plus
-  activation, editor, package and runtime rendered/HTTP checks. Production MCP
-  workflow fixtures: all 70 pass. These are not native runtime certification.
-- CI source now targets Ubuntu/Windows and Node 22/24, with explicit Chrome
-  provisioning and a portable browser resolver. Remote matrix results remain open.
-- Packaged SQL grammar was missing despite its manifest contribution. Added the
-  grammar and smoke checks for every contributed grammar/configuration path.
-- Linux normal installed VS Code 1.143.0: all 12 upgrade/reload checks pass,
-  published 0.9.7 to the unmodified 0.9.8 candidate. Real SecretStorage reuse,
-  hot-exit native SQL drafts, history, disconnect/reconnect, dirty refusal,
-  rendered apply/inverse/redo, stale-reversal refusal and fresh reviewed cleanup
-  pass. [Report](../../../tools/lab/results/release-1.0/linux-upgrade.json).
-  The three abandoned diagnostic fixtures were removed only after validating
-  their original absent-scope ownership receipts and synthetic source.
-- Initial draft loss was isolated to the test's Extension Development Host,
-  whose backups did not persist across launches. Installing the independent
-  driver into a normal isolated profile proves actual hot-exit persistence.
-- Exact Linux candidate SHA-256:
-  `426f08576249872ec7444af116b760902023d8e867c1c5a96f8c88ec8bdc870e`.
-  Fresh installed PeopleCode editor checks pass on that same VSIX. Query checks
-  and Windows interactive acceptance are running; no pass is claimed yet.
-- Windows VM sign-in and HRDMO reachability are verified. The isolated driver
-  runs in the existing interactive desktop; SSH's session-zero launch cannot
-  qualify UI behavior. Credentials remain outside reports, settings and source.
+Product source freeze: `32177c66d62406cc9c29d7e25e83e442b4c2bc7c`.
+The qualification verifier refuses runtime-source drift from that commit.
+The deliverable is `peoplesoft-studio-0.9.8-core-candidate.vsix` in the repository
+root (ignored by Git).
 
-All gates remain open until their final evidence is inspected. Historical
-native trials, fixture approvals and an artifact existing are not substitutes
-for the required scope of final installed/native acceptance.
+- VSIX SHA-256: `ae4082f77ce72cf19110aff405bc75dfe607511569b00e263785fac92ce443d0`
+- Extension bundle SHA-256: `37997adb101fdf07de01f1ffa3718963020d32e36ab1794e1be7f1e2dbd1663e`
+- Compiler worker SHA-256: `2022a1104d48cd47f48806708a56dfdbd689e7dcf657e913277f287f885b2c01`
 
+[Source-freeze CI](https://github.com/HypergraphIntel/peoplesoft-studio/actions/runs/39726848453)
+passes Ubuntu/Windows × Node 22/24, including required rendered browser checks
+and all 70 production MCP fixture workflows on every job. The
+[CI record](../../../tools/lab/results/release-1.0/ci.json) retains the exact SHA,
+job results and URLs. Evidence-only follow-up commits do not change the tested
+product files or artifact.
 
-## Windows defect found during qualification
+## Acceptance reports
 
-The first four-way CI run passed both Linux jobs and failed both Windows jobs.
-Native Windows testing also reproduced `EPERM: operation not permitted, fsync`
-from the published 0.9.7 Change Review store. The newly written file was already
-renamed, but flushing its containing directory failed. The shared fix retains
-file flushing and atomic replacement everywhere, and directory flushing on
-platforms that support it; Windows errors from actual file writes/flushes are
-not swallowed. Local full verification passes after the correction. Remote CI
-and installed Windows acceptance of the corrected candidate remain required.
+| Report | Checks | What it proves |
+| --- | ---: | --- |
+| [Linux upgrade](../../../tools/lab/results/release-1.0/linux-upgrade.json) | 17 | Untouched published 0.9.7 upgrade; SecretStorage, dirty native SQL drafts, history, disconnect/reconnect, dirty/stale refusal, rendered save/inverse/redo, physical Create Tables/Alter/Create Indexes with an owned row retained, cleanup and final restart |
+| [Windows upgrade](../../../tools/lab/results/release-1.0/windows-upgrade.json) | 17 | Same journey on the actual Windows client; records the old asset's directory-fsync refusal without attributing a successful reviewed write to 0.9.7 |
+| [Linux fresh install](../../../tools/lab/results/release-1.0/linux-fresh-install.json) | 4 | Blank current-candidate profile, credential path, staged creation without persistence, rendered application, actual SQL comment toggling, draft isolation, destructive creation inverse and cleanup |
+| [Windows fresh install](../../../tools/lab/results/release-1.0/windows-fresh-install.json) | 4 | Same fresh-profile journey on the Windows desktop |
+| [Query](../../../tools/lab/results/release-1.0/query-installed.json) | 10 | Installed designer criteria/aggregate/join/expression/translate/effective-date/subquery/union editing and actual displayed values; consent refusal, reviewed rename/delete and exact undo |
+| [PeopleCode editor](../../../tools/lab/results/release-1.0/peoplecode-editor-installed.json) | 13 | Fresh installed completion/navigation/diagnostics/settings, actual popups, large-class responsiveness and connection behavior; native database unchanged |
 
-The unmodified 0.9.7 Windows upgrade seed records that refusal and verifies the
-retained DRAFT history. It uses an independent owned SQL fixture for the dirty
-editor setup. No passing native write is attributed to that old Windows asset.
-Current-candidate save, inverse, redo and deletion still require actual rendered
-review. A final restart checks the resulting history and cleanup without replay.
+[Compiler qualification](../../../tools/lab/results/release-1.0/compiler-qualification.json)
+retains reproducible protected/targeted logs and the unchanged worker binding.
+The previous native App Designer validation and scheduler acceptance are retained
+historical evidence for that compiler; no fresh full-corpus run or new scheduler
+execution is claimed.
 
+[Hard-crash recovery](../../../tools/lab/results/release-1.0/recovery-crash-native.json)
+uses actual SIGKILL before and after real HRDMO commits, durable state and native
+readback. Recovery changes no native token/counter and never replays a writer;
+remaining work requires fresh approval. Its approval is a trusted service-test
+API, distinct from the rendered installed review journeys above.
 
-The next Windows CI run passed all unit/activation/editor/runtime checks, then
-found that the Build Request workflow fixture mocked only Linux terminals,
-although the existing Windows branch uses VS Code Tasks. The fixture now
-models both actual API boundaries and asserts literal strong quoting; this is
-fixture acceptance, not the deferred native Windows AI-client handoff.
-Native Windows also exposed transient `EPERM` during atomic history replacement.
-The shared replacement helper retries only bounded Windows sharing/scan errors
-for the same flushed local file. It never deletes the old checkpoint or retries
-a native writer. Permanent storage errors still propagate. New tests cover
-retained checkpoints, the platform-specific retry and permanent-error refusal.
-Final Windows and exact-candidate evidence remain open until inspected.
+[Cleanup audit](../../../tools/lab/results/release-1.0/native-cleanup.json)
+finds zero qualification SQL/Record headers, children, markers and physical
+tables. Failed diagnostic fixtures were removed only from their recorded fresh
+ownership receipts; unrelated definitions and the original workbench were
+preserved. Native cache counters were not rewound.
+
+## Defects closed during qualification
+
+- Windows rejected directory fsync after local history publication. Files still
+  flush before atomic replacement; directory flushing remains enabled where
+  supported. Windows sharing/scan conflicts retry only the same local rename,
+  never a PeopleSoft writer. Permanent errors retain explicit failures.
+- The package declared an absent SQL grammar and reused PeopleCode comments for
+  SQL. The grammar/configuration now ship, SQL comments use `--`, and malformed
+  PeopleCode JSON/regex flags are corrected. Smoke parses every configuration
+  and regex. The compiler was not changed.
+- CI now provisions its browser portably. Windows fixture APIs are registered
+  before importing production modules; legal review fixture clicks wait for the
+  actual idle/enabled render. No approval, disabled-control or writer gate was
+  weakened to obtain passing results.
+- Initial draft loss was isolated to the test's Extension Development Host.
+  Installing its independent driver in a normal private profile proves actual
+  persistent backups. The product bundle, worker and manifest remain unmodified
+  during each installed run.
+
+## Reproduce and next work
+
+With the established HRDMO lab credentials in the environment, use the installed
+host tools in `tools/lab/release-1.0/`; Windows runs through the existing active
+interactive desktop and a temporary user-bound DPAPI credential bridge. Secrets
+are excluded from source, settings and reports. The verifier needs no credentials:
+
+```sh
+python3 tools/lab/release-1.0/verify-evidence.py \
+  peoplesoft-studio-0.9.8-core-candidate.vsix \
+  --source-freeze 32177c66d62406cc9c29d7e25e83e442b4c2bc7c
+```
+
+Recommended next big win: **V15-1, structural Page Change Review**, starting with
+insert/delete/rebind/order and native persisted-ID mapping. Separate Oracle
+promotion and realistic business/Windows AI handoff remain 1.5 expansions.
+Run and Monitor RT-L1–RT-L4 remain **Low priority**; no gateway patch was deployed
+and no scheduler process was submitted by this qualification effort.

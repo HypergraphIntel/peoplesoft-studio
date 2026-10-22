@@ -1,0 +1,102 @@
+{
+  "checkedAt": "2026-10-22T05:10:06.830Z",
+  "vscode": "1.143.0",
+  "names": {
+    "aggregate": "ZZ_BQUI_D1294745_A",
+    "join": "ZZ_BQUI_D1294745_J",
+    "translate": "ZZ_BQUI_D1294745_T",
+    "union": "ZZ_BQUI_D1294745_U",
+    "renamed": "ZZ_BQUI_D1294745_R"
+  },
+  "checks": [
+    {
+      "name": "Installed candidate connects to HRDMO and discovers the lifecycle MCP tools",
+      "passed": true
+    },
+    {
+      "name": "Installed designer opens a Studio-saved query and edits aggregates, HAVING, WHERE and DISTINCT",
+      "passed": true
+    },
+    {
+      "name": "Add Record loads joined-record fields; expression columns save and run through the installed UI",
+      "passed": true
+    },
+    {
+      "name": "Translate and effective-date controls save, reload and run in the installed designer",
+      "passed": true
+    },
+    {
+      "name": "Installed criteria editor saves IN and correlated EXISTS subqueries",
+      "passed": true
+    },
+    {
+      "name": "Add Record creates a union; its own field catalog and criteria save and run",
+      "passed": true
+    },
+    {
+      "name": "Undo/redo, dirty drafts and discard preserve the saved native query",
+      "passed": true
+    },
+    {
+      "name": "MCP rename stages copy plus deletion without writing; stale tokens refuse",
+      "passed": true
+    },
+    {
+      "name": "Rendered destructive approval applies rename and reviewed undo restores the exact original",
+      "passed": true
+    },
+    {
+      "name": "MCP delete stages without writing; rendered approval deletes and reviewed undo recreates exactly",
+      "passed": true
+    }
+  ],
+  "cleanupVerified": true,
+  "scope": "Unmodified installed VSIX in isolated VS Code; rendered Query controls and Change Review, actual HRDMO writers, independent database readback; original window unchanged.",
+  "environment": {
+    "toolsRelease": "8.62",
+    "patchLevel": 9
+  },
+  "aggregate": {
+    "sql": "SELECT DISTINCT A.ESTABID,AVG( A.FEMALE_GOAL)\nFROM PS_AAP_YEAR A\nWHERE ( A.ESTABID LIKE '%')\nGROUP BY  A.ESTABID\nHAVING ( AVG( A.FEMALE_GOAL) >= 0)",
+    "rows": 2
+  },
+  "join": {
+    "sql": "SELECT A.ESTABID,A.FEMALE_GOAL,B.DESCR, A.FEMALE_GOAL * 2\nFROM PS_AAP_YEAR A, PS_AAP_TBL B\nWHERE ( A.ESTABID = B.ESTABID)",
+    "rows": 3
+  },
+  "translateFieldDate": {
+    "sql": "SELECT A.ESTABID,A2X.XLATLONGNAME\nFROM PS_ESTAB_TBL A LEFT OUTER JOIN PSXLATITEM A2X ON A2X.FIELDNAME='EFF_STATUS' AND A2X.FIELDVALUE=A.EFF_STATUS AND A2X.EFF_STATUS = 'A'\nWHERE ( (A2X.EFFDT = (SELECT MAX(EFFDT) FROM PSXLATITEM TB WHERE TB.FIELDNAME=A2X.FIELDNAME AND TB.FIELDVALUE=A2X.FIELDVALUE AND  TB.EFF_STATUS = 'A' AND TB.EFFDT <=  A.EFFDT) OR A2X.EFFDT is NULL)\n     AND A.EFFDT =\n        (SELECT MAX(A_ED.EFFDT) FROM PS_ESTAB_TBL A_ED\n        WHERE A.ESTABID = A_ED.ESTABID\n          AND A_ED.EFFDT <= SYSDATE))",
+    "rows": 68
+  },
+  "translate": {
+    "sql": "SELECT A.ESTABID,A2X.XLATSHORTNAME\nFROM PS_ESTAB_TBL A LEFT OUTER JOIN ( SELECT * FROM PSXLATITEM TA WHERE TA.FIELDNAME='EFF_STATUS' AND TA.EFF_STATUS = 'A' AND TA.EFFDT = (SELECT MAX(EFFDT) FROM PSXLATITEM TB WHERE TB.FIELDNAME='EFF_STATUS' AND TA.FIELDVALUE=TB.FIELDVALUE AND  TB.EFF_STATUS = 'A' AND\nTB.EFFDT <= TO_DATE(TO_CHAR(SYSDATE,'YYYY-MM-DD'),'YYYY-MM-DD'))) A2X ON A2X.FIELDVALUE = A.EFF_STATUS AND A2X.FIELDNAME='EFF_STATUS'\nWHERE ( A.EFFDT =\n        (SELECT MAX(A_ED.EFFDT) FROM PS_ESTAB_TBL A_ED\n        WHERE A.ESTABID = A_ED.ESTABID\n          AND A_ED.EFFDT <= SYSDATE))",
+    "rows": 68
+  },
+  "subquery": {
+    "sql": "SELECT A.ESTABID,A.FEMALE_GOAL,B.DESCR, A.FEMALE_GOAL * 2\nFROM PS_AAP_YEAR A, PS_AAP_TBL B\nWHERE ( A.ESTABID = B.ESTABID\n     AND A.ESTABID IN (SELECT C.ESTABID\nFROM PS_AAP_TBL C)\n     AND EXISTS (SELECT D.ESTABID\nFROM PS_AAP_TBL D\nWHERE D.ESTABID = A.ESTABID))",
+    "rows": 3
+  },
+  "union": {
+    "sql": "SELECT A.ESTABID\nFROM PS_AAP_TBL A\nUNION\nSELECT B.ESTABID\nFROM PS_AAP_YEAR B\nWHERE ( B.ESTABID LIKE '%')",
+    "rows": 2
+  },
+  "rename": {
+    "changeSetId": "686ecf72-0d51-4cf2-86dc-1570e8385597",
+    "inverseSetId": "aa6f3c1a-bce8-4e46-baa9-1bcca081e9d1"
+  },
+  "delete": {
+    "changeSetId": "29cc4245-3bf3-44ad-9463-067a1ab0c338",
+    "inverseSetId": "dacd2d22-6426-4f6b-b294-70bd33ac9b27"
+  },
+  "passed": true,
+  "installation": {
+    "activation": "installed",
+    "manifestUnmodified": true,
+    "bundleUnmodified": true,
+    "workerUnmodified": true
+  },
+  "bundleSha256": "37997adb101fdf07de01f1ffa3718963020d32e36ab1794e1be7f1e2dbd1663e",
+  "workerSha256": "2022a1104d48cd47f48806708a56dfdbd689e7dcf657e913277f287f885b2c01",
+  "vsixSha256": "ae4082f77ce72cf19110aff405bc75dfe607511569b00e263785fac92ce443d0",
+  "candidateVsix": "/tmp/psft-query-installed-IijYRj/candidate.vsix"
+}
