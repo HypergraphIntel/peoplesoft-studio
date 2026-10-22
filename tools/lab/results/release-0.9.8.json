@@ -49,7 +49,8 @@
       "passed": true,
       "checks": 70,
       "kind": "fixture-backed production HTTP MCP; no live database",
-      "logSha256": "7f5d85d1b2ff34e66e68340d726b49d472d23e9f823be29054edc0823457298c"
+      "logSha256": "7f5d85d1b2ff34e66e68340d726b49d472d23e9f823be29054edc0823457298c",
+      "fixtureSynchronization": "IB success-path fixtures wait for source lineage updates and writer lock release before the next independent action; product locking and writer gates are unchanged."
     }
   },
   "previewBoundary": "Run and Monitor native acceptance remains Low priority; 1.5 and 2.0 expansions retain their documented targets."

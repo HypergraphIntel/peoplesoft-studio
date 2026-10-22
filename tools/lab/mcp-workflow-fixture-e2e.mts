@@ -1175,14 +1175,13 @@ try{
    ready=await reviewCall('psft_validate_change_set',{changeSetId:shapedSet.id});assert.equal(ready.status,'READY_FOR_REVIEW');
    await reviewUi.show(shapedSet.id);ui._receive({action:'approve',id:shapedSet.id,revision:ready.revision});await until(async()=>(await reviewService.store.get(shapedSet.id)).status==='APPROVED');
    ui._receive({action:'apply',id:shapedSet.id,revision:ready.revision});await until(async()=>(await reviewService.store.get(shapedSet.id)).status==='APPLIED');assert.equal(shaped.counts().commits,1);
+   await until(async()=>!require('node:fs').existsSync(join(reviewRoot,'writer.lock')));
    if(kind==='service'){
     assert.equal(shaped.state().PSSERVICE[0].IB_NAMESPACE,'urn:reviewed');assert.equal(shaped.state().PSSERVICE[0].IBEXTERNALPWD,'fixture-private');
     let back=await reviewCall('psft_prepare_revert',{changeSetId:shapedSet.id});back=await reviewCall('psft_validate_change_set',{changeSetId:back.id});assert.equal(back.status,'READY_FOR_REVIEW');
     await reviewUi.show(back.id);ui._receive({action:'approve',id:back.id,revision:back.revision});await until(async()=>(await reviewService.store.get(back.id)).status==='APPROVED');
     ui._receive({action:'apply',id:back.id,revision:back.revision});await until(async()=>(await reviewService.store.get(back.id)).status==='APPLIED');
     assert.equal(shaped.state().PSSERVICE[0].IB_NAMESPACE,'urn:fixture');assert.equal(shaped.counts().commits,2);
-    // APPLIED is saved before the original is marked REVERTED inside the same exclusive section.
-    await until(async()=>(await reviewService.store.get(shapedSet.id)).status==='REVERTED'&&!require('node:fs').existsSync(require('node:path').join(reviewService.store.root,'writer.lock')));
    }else{
     assert.ok(shaped.state().PSOPRHDLR.some((r:any)=>r.HANDLERNAME==='REQUESTHDLR'));
     let back=await reviewCall('psft_prepare_revert',{changeSetId:shapedSet.id});back=await reviewCall('psft_validate_change_set',{changeSetId:back.id});assert.equal(back.status,'READY_FOR_REVIEW',JSON.stringify(back.objects.map((c:any)=>c.validation)));
@@ -1190,6 +1189,9 @@ try{
     ui._receive({action:'apply',id:back.id,revision:back.revision});await until(async()=>['APPLIED','CONFLICTED','FAILED'].includes((await reviewService.store.get(back.id)).status));assert.equal((await reviewService.store.get(back.id)).status,'APPLIED');
     assert.equal(shaped.counts().commits,2);assert.equal(shaped.state().PSOPRHDLRDEL.length,1);assert.equal(shaped.state().PSOPRHDLR.some((r:any)=>r.HANDLERNAME==='REQUESTHDLR'),false);
    }
+   // Both inverse paths publish APPLIED before updating their source lineage and releasing the lock.
+   // Wait for the entire exclusive action before starting the next independent MCP request.
+   await until(async()=>(await reviewService.store.get(shapedSet.id)).status==='REVERTED'&&!require('node:fs').existsSync(join(reviewRoot,'writer.lock')));
    check('IB '+kind+' bounded structure stages the writer preview, applies exactly through trusted UI and '+(kind==='service'?'reverses by typed inverse':'reverses an added handler with native deletion marker/counter rules'));
  }
  for(const release of ['8.61.15','8.62.09'])for(const restRole of ['consumer','provider']){
@@ -1201,7 +1203,8 @@ try{
    const staged=await reviewCall('psft_ib_save',{connection:'FIXTURE',input,expectedToken:live.token,changeSetId:set.id});assert.equal(staged.persisted,false);assert.deepEqual(native.state(),native.initial);
    const apply=async(id:string)=>{const ready=await reviewCall('psft_validate_change_set',{changeSetId:id});assert.equal(ready.status,'READY_FOR_REVIEW',JSON.stringify(ready.objects.map((c:any)=>c.validation)));
      await reviewUi.show(id);const ui=vscode._panels.at(-1);ui._receive({action:'approve',id,revision:ready.revision});await until(async()=>(await reviewService.store.get(id)).status==='APPROVED');
-     ui._receive({action:'apply',id,revision:ready.revision});await until(async()=>['APPLIED','CONFLICTED','FAILED'].includes((await reviewService.store.get(id)).status));assert.equal((await reviewService.store.get(id)).status,'APPLIED');};
+     ui._receive({action:'apply',id,revision:ready.revision});await until(async()=>['APPLIED','CONFLICTED','FAILED'].includes((await reviewService.store.get(id)).status));assert.equal((await reviewService.store.get(id)).status,'APPLIED');
+     await until(async()=>!require('node:fs').existsSync(join(reviewRoot,'writer.lock')));};
    await apply(set.id);assert.equal(native.state().PSOPERATIONURI[0].IB_URI_TEMPLATE,'v2/items/{item}');
    for(const t of ['PSOPRURIDATA','PSIBOPRROOT','PSIBRTNGDEFN','PSSERVICEOPR'])assert.deepEqual(native.state()[t],native.initial[t]);
    const inverse=await reviewCall('psft_prepare_revert',{changeSetId:set.id});await apply(inverse.id);assert.equal((await provider.readIbForReview('operation',native.name)).hash,baseline.hash);
