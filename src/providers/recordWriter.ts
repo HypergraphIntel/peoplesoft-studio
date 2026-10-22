@@ -283,6 +283,19 @@ async function createRecord(c: Connection, request: RecordSaveRequest, types?: D
   return result;
 }
 
+/** What still names a record field outside the record's own rows: its Record PeopleCode, page controls, queries and other records' defaults. */
+export async function removedFieldReferences(c: Connection, recname: string, field: string): Promise<string[]> {
+  const uses: Array<[string, string]> = [
+    ['Record Field PeopleCode', `SELECT COUNT(*) AS N FROM PSPCMPROG WHERE OBJECTID1 = 1 AND OBJECTVALUE1 = :r AND OBJECTID2 = 2 AND OBJECTVALUE2 = :f`],
+    ['page controls', `SELECT COUNT(*) AS N FROM PSPNLFIELD WHERE RECNAME = :r AND FIELDNAME = :f`],
+    ['queries', `SELECT COUNT(*) AS N FROM PSQRYFIELD WHERE RECNAME = :r AND FIELDNAME = :f`],
+    ['other records\' defaults', `SELECT COUNT(*) AS N FROM PSRECFIELD WHERE DEFRECNAME = :r AND DEFFIELDNAME = :f AND RECNAME <> :r`]
+  ];
+  const found: string[] = [];
+  for (const [what, sql] of uses) if (Number((await select<{ N: number }>(c, sql, { r: recname, f: field }))[0]?.N ?? 0) > 0) found.push(what);
+  return found;
+}
+
 export async function saveRecord(c: Connection, request: RecordSaveRequest, types?: DbTypes): Promise<RecordSaveResult> {
   const recname = request.edit.recname;
   try {
@@ -335,6 +348,17 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest, type
       `SELECT RECNAME FROM PSRECDEFN WHERE RECNAME <> :r AND RELLANGRECNAME = :r FOR UPDATE`, { r: recname });
     if ((request.captureSnapshots || request.expectedSnapshotToken) && languageReferrers.length) throw new RecordSaveRefusedError('Record review needs checkpoints for Related Language referrers; this definition is not supported yet.');
 
+    const reviewed = !!(request.captureSnapshots || request.expectedSnapshotToken);
+    if (request.edit.fields.some((f) => f.restore) && !reviewed) throw new RecordSaveRefusedError('Restoring a field row is only done by a reviewed snapshot-guarded save.');
+    // A reviewed removal must not leave code, pages, queries or other records naming the field: Change Review cannot
+    // checkpoint them, so undoing the removal could not bring them back consistently.
+    if (reviewed) {
+      const kept = new Set(request.edit.fields.map((f) => f.name));
+      for (const f of stored.fields.filter((x) => !kept.has(text(x.FIELDNAME)) && text(x.SUBRECORD) !== 'Y')) {
+        const refs = await removedFieldReferences(c, recname, text(f.FIELDNAME));
+        if (refs.length) throw new RecordSaveRefusedError(`${text(f.FIELDNAME)} is still used (${refs.join(', ')}); a reviewed removal cannot leave it behind.`);
+      }
+    }
     for (const f of request.edit.fields.filter((x) => x.isNew && !x.isSubrecord)) {
       const [{ N }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSDBFIELD WHERE FIELDNAME = :f`, { f: f.name });
       if (Number(N) === 0) throw new RecordSaveRefusedError(`There is no field named ${f.name}.`);

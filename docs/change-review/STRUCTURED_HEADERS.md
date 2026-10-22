@@ -73,3 +73,45 @@ execution or native Record/AE Designer reopen. Reference-side effects outside
 the supported scopes and broader structured operations remain pending.
 Staged dependency overlays and general Record/AE structural reversal remain
 separate work.
+
+
+## Record field structure (V15-1)
+
+Development state as of October 22, 2026: implemented, transaction tested,
+production HTTP/UI fixture verified and HRDMO rollback-preview verified;
+installed developer-approved acceptance pending.
+
+`psft_edit_record` stages, besides description/comments, the record grid's
+field structure on existing SQL Table and Derived/Work records:
+`insert_field`, `insert_subrecord`, `remove_field`, `move_field`, `set_use`
+(except In Memory), `set_edits`, `set_default` and `set_label`. `set_type`,
+other Record Properties and In Memory keep the legacy per-write confirmation.
+
+- **Proposal:** the editor's operations run through the shared writer in
+  rollback with the six-table checkpoints; the after-image is the proposal,
+  including native derivations (PSRECFIELDDB expansion, key and alternate
+  search key indexes, counts).
+- **Typed reconstruction** (`recordStructureRequest`): the after-image's fields
+  in FIELDNUM order with their editable settings; a field absent from the
+  baseline is restored from its own reviewed PSRECFIELD row (stamps excluded)
+  instead of App Designer's new-row values, so undoing a removal returns the
+  field's own non-default columns. Removals are omissions. A restored row is
+  accepted only by a snapshot-guarded (reviewed) save.
+- **Refusals:** a reviewed removal of a field still used by its Record Field
+  PeopleCode, page controls, queries or other records' defaults
+  (`removedFieldReferences`): those are outside the checkpoint and could not be
+  restored with it. Related Language referrers remain refused.
+- **Physical scope:** metadata only. DDL is never run; building the table is a
+  separate, explicitly confirmed operation. Undoing a removal restores the
+  definition, not column data a later build dropped.
+
+Evidence: `reviewStructuredHeaders.test.ts` (insert, exact replay, removal of
+a field with a non-default column, exact inverse restoring it, inverse of the
+insert, unreviewed restore refused); the HTTP/UI fixture (insert
+stage/apply/inverse/redo through the rendered review); HRDMO rollback previews
+(`tools/lab/record-structure-native-preview.mts`,
+`tools/lab/results/record-structure-native-preview.json`): ZZ_RPT_LINE
+insert/move/removal and ZZ_FL_REC_A insert/removal/list-box change each
+reproduced exactly by the rebuilt edit; removals refused for ZZ_PCODE_LAB_R2
+(Record Field PeopleCode) and ZZ_PCODE_LAB_R7 (page controls); all tokens
+unchanged.

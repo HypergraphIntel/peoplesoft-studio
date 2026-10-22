@@ -1100,13 +1100,35 @@ try{
    assert.equal(native.counts().commits,2);
    const history=await reviewCall('psft_get_object_timeline',{changeSetId:reverse.id,objectId:reverse.objects[0].id,checkLive:true});assert.equal(history.live.status,'MATCHES_RECORDED');assert.equal(history.revisions.length,2);
    const structural=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:family+' structural operation'});
-   const count=(await reviewService.store.list()).length;const refused=await reviewRpc('tools/call',{name:toolName,arguments:{...request,changeSetId:structural.id,operations:[{op:family==='record'?'remove_field':'delete_section',field:'DESCR',section:'MAIN'}]}});assert.equal(refused.isError,true,'a structural '+family+' edit in a Change Set is refused');assert.match(refused.content[0].text,/structural Record or App Engine operation is not staged.*cannot be grouped into a Change Set/,'refused by review routing, not by a write guard');assert.equal((await reviewService.store.list()).length,count);
+   const count=(await reviewService.store.list()).length;const refused=await reviewRpc('tools/call',{name:toolName,arguments:{...request,changeSetId:structural.id,operations:[family==='record'?{op:'set_type',recordType:0}:{op:'delete_section',section:'MAIN'}]}});assert.equal(refused.isError,true,'an unstaged '+family+' edit in a Change Set is refused');assert.match(refused.content[0].text,/Record or App Engine operation is not staged.*cannot be grouped into a Change Set/,'refused by review routing, not by a write guard');assert.equal((await reviewService.store.list()).length,count);
    const drift=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:family+' unversioned native drift'});
    await reviewCall(toolName,{...request,expectedVersion:undefined,changeSetId:drift.id});ready=await reviewCall('psft_validate_change_set',{changeSetId:drift.id});await reviewUi.show(drift.id);
    ui._receive({action:'approve',id:drift.id,revision:ready.revision});await settledReview(async()=>(await reviewService.store.get(drift.id)).status==='APPROVED');
    native.editCommitted((t:any)=>{t[family==='record'?'PSRECDEFN':'PSAEAPPLDEFN'][0].FUTURE_COLUMN='outside';});
    ui._receive({action:'apply',id:drift.id,revision:ready.revision});await settledReview(async()=>(await reviewService.store.get(drift.id)).status==='CONFLICTED');assert.equal(native.counts().commits,2);
-   check(family+' bounded header HTTP/UI stages without writes, applies actual native writer, verifies inverse/timeline and blocks structural edits and unversioned drift');
+   check(family+' bounded header HTTP/UI stages without writes, applies actual native writer, verifies inverse/timeline and blocks unstaged edits and unversioned drift');
+   if(family==='record'){
+     // Record field structure: an inserted field stages, applies, and its checkpoint inverse removes it exactly.
+     const oldLayout=provider.readRecordLayout;
+     provider.readRecordLayout=async()=>{const s=native.state(),d=s.PSRECDEFN[0];return {name:native.name,version:d.VERSION,recordType:d.RECTYPE,auxFlagMask:0,indexIds:[],
+       fields:[...s.PSRECFIELD].sort((a:any,b:any)=>a.FIELDNUM-b.FIELDNUM).map((r:any)=>({name:r.FIELDNAME,useEdit:r.USEEDIT,useEdit2:r.USEEDIT2,isSubrecord:r.SUBRECORD==='Y'}))};};
+     native.editCommitted((t:any)=>{t.PSRECDEFN[0].FUTURE_COLUMN='preserved';});
+     const fieldsOf=()=>native.state().PSRECFIELD.map((r:any)=>[r.FIELDNAME,r.FIELDNUM]).sort();
+     const fieldSet=await reviewCall('psft_create_change_set',{connection:'FIXTURE',title:'record field structure'});
+     const staged=await reviewCall('psft_edit_record',{connection:'FIXTURE',record:native.name,changeSetId:fieldSet.id,operations:[{op:'insert_field',field:'NAME'}]});
+     assert.equal(staged.status,'REVIEW_REQUIRED');assert.deepEqual(fieldsOf(),[['DESCR',1]],'staging persists nothing');
+     const fieldReady=await reviewCall('psft_validate_change_set',{changeSetId:fieldSet.id});assert.equal(fieldReady.status,'READY_FOR_REVIEW');
+     await reviewUi.show(fieldSet.id);ui._receive(await readyRenderedReview(ui,'approveAndApply'));await settledReview(async()=>(await reviewService.store.get(fieldSet.id)).status==='APPLIED');
+     assert.deepEqual(fieldsOf(),[['DESCR',1],['NAME',2]]);
+     let fieldUndo=await reviewCall('psft_prepare_revert',{changeSetId:fieldSet.id});fieldUndo=await reviewCall('psft_validate_change_set',{changeSetId:fieldUndo.id});assert.equal(fieldUndo.status,'READY_FOR_REVIEW');
+     await reviewUi.show(fieldUndo.id);ui._receive(await readyRenderedReview(ui,'approveAndApply'));await settledReview(async()=>(await reviewService.store.get(fieldUndo.id)).status==='APPLIED'&&(await reviewService.store.get(fieldSet.id)).status==='REVERTED');
+     assert.deepEqual(fieldsOf(),[['DESCR',1]]);
+     let fieldRedo=await reviewCall('psft_prepare_redo',{changeSetId:fieldSet.id});fieldRedo=await reviewCall('psft_validate_change_set',{changeSetId:fieldRedo.id});assert.equal(fieldRedo.status,'READY_FOR_REVIEW');
+     await reviewUi.show(fieldRedo.id);ui._receive(await readyRenderedReview(ui,'approveAndApply'));await settledReview(async()=>(await reviewService.store.get(fieldRedo.id)).status==='APPLIED');
+     assert.deepEqual(fieldsOf(),[['DESCR',1],['NAME',2]],'redo restores the reviewed field row');
+     provider.readRecordLayout=oldLayout;
+     check('record field structure stages an inserted field, applies it exactly, and reverses/redoes it to exact checkpoints');
+   }
  }
  // Coherent creation: real Record/AE/project writers; SQL persistence remains the HTTP fixture above.
  {

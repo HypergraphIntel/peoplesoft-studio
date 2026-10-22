@@ -1,7 +1,7 @@
 import { canonical, differences, type Json } from './model.js';
 import type { ObjectDiffProvider } from './semanticDiff.js';
 import { structuredSnapshot, type StructuredFamily } from '../providers/structuredSnapshot.js';
-import { editStateFor, setRecordProperties, type StoredRecord, type Row } from '../model/recordEdit.js';
+import { editStateFor, setRecordProperties, type StoredRecord, type Row, type RecordEditField, type RecordEditState } from '../model/recordEdit.js';
 import type { RecordSaveRequest } from '../providers/recordWriter.js';
 import type { AeDocument } from '../model/aeDocument.js';
 
@@ -55,6 +55,55 @@ export function recordHeaderRequest(name: string, beforeValue: unknown, afterVal
         ...(head.DESCRLONG !== base.DESCRLONG ? { definition: comments ?? '' } : {})
     });
     return { edit, operatorId };
+}
+
+/**
+ * The Record operations Change Review stages: header description/comments and the field-level structure App Designer's
+ * record grid edits (insert/remove/move a field or subrecord, Use, Edits, default, label). Record type, view SQL, other
+ * Record Properties and In Memory stay on the legacy per-write confirmation.
+ */
+const STAGEABLE_RECORD_OPS = ['insert_field', 'insert_subrecord', 'remove_field', 'move_field', 'set_use', 'set_edits', 'set_default', 'set_label'];
+export function isStageableRecordOperation(op: Record<string, unknown>): boolean {
+    return isHeaderOnlyOperation('record', op) || (STAGEABLE_RECORD_OPS.includes(String(op.op)) && op.inMemory === undefined);
+}
+export function isStageableRecordRequest(operations: unknown): boolean {
+    return Array.isArray(operations) && operations.length > 0 && operations.every(op => !!op && typeof op === 'object' && isStageableRecordOperation(op as Record<string, unknown>));
+}
+
+/**
+ * The typed Record edit that reproduces a reviewed change from its native before/after checkpoints: the after-image's
+ * fields in FIELDNUM order with their editable settings, an inserted field restored from its own reviewed row, removals
+ * by omission, and the header text. Never row replay of arbitrary input: native preview must reproduce the after-image.
+ */
+export function recordStructureRequest(name: string, beforeValue: unknown, afterValue: unknown, version: number, operatorId: string): RecordSaveRequest {
+    const before = structuredSnapshot(beforeValue, 'record'), after = structuredSnapshot(afterValue, 'record');
+    for (const s of [before, after]) {
+        if (s.tables.PSRECDEFN.length !== 1 || String(s.tables.PSRECDEFN[0].RECNAME ?? '').trim() !== name) throw new Error('Checkpoint identifies another definition.');
+    }
+    const base = before.tables.PSRECDEFN[0], head = after.tables.PSRECDEFN[0];
+    if (![0, 2].includes(Number(base.RECTYPE)) || Number(head.RECTYPE) !== Number(base.RECTYPE)) throw new Error('Record review supports existing SQL Table and Derived/Work records without a type change.');
+    if (typeof head.RECDESCR !== 'string' || head.DESCRLONG !== null && typeof head.DESCRLONG !== 'string') throw new Error('Header description/comments require native text.');
+    const scalar = (r: Record<string, Json>): Row => Object.fromEntries(Object.entries(r).map(([k, v]) => {
+        if (v !== null && typeof v !== 'string' && typeof v !== 'number') throw new Error('Record typed projection requires scalar native metadata.');
+        return [k, v];
+    }));
+    const t = (v: Json | undefined) => String(v ?? '').trim();
+    const had = new Set(before.tables.PSRECFIELD.map(r => t(r.FIELDNAME)));
+    const rows = [...after.tables.PSRECFIELD].sort((a, b) => Number(a.FIELDNUM) - Number(b.FIELDNUM));
+    if (rows.some((r, i) => Number(r.FIELDNUM) !== i + 1)) throw new Error('Record proposal field order is not a contiguous native FIELDNUM sequence.');
+    const fields: RecordEditField[] = rows.map(r => {
+        const field: RecordEditField = { name: t(r.FIELDNAME), useEdit: Number(r.USEEDIT), useEdit2: Number(r.USEEDIT2 ?? 0), isNew: !had.has(t(r.FIELDNAME)),
+            ...(t(r.SUBRECORD) === 'Y' ? { isSubrecord: true } : {}) };
+        if (field.isNew) return { ...field, restore: scalar(r) };
+        if (field.isSubrecord) return field;
+        return { ...field, editTable: t(r.EDITTABLE), defaultRecord: t(r.DEFRECNAME), defaultField: t(r.DEFFIELDNAME), labelId: t(r.LABEL_ID), pageControl: Number(r.DEFGUICONTROL) };
+    });
+    const edit: RecordEditState = { recname: name, recordType: Number(base.RECTYPE), openedVersion: version, fields };
+    const properties = setRecordProperties(edit, {
+        ...(head.RECDESCR !== base.RECDESCR ? { description: head.RECDESCR } : {}),
+        ...(head.DESCRLONG !== base.DESCRLONG ? { definition: (head.DESCRLONG as string | null) ?? '' } : {})
+    });
+    return { edit: properties, operatorId };
 }
 
 export function aeHeaderDocument(name: string, beforeValue: unknown, afterValue: unknown, live: AeDocument): AeDocument {

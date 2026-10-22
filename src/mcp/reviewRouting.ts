@@ -13,7 +13,7 @@ import { preparePageReview } from './pageReview.js';
 import type { McpWriteHost } from './writeTools.js';
 import { planHash } from '../changeReview/model.js';
 import { prepareStructuredHeaderReview } from './structuredHeaderReview.js';
-import { isHeaderOnlyRequest } from '../changeReview/structuredHeaders.js';
+import { isHeaderOnlyRequest, isStageableRecordRequest } from '../changeReview/structuredHeaders.js';
 import { isStageablePageRequest } from '../model/pageOperations.js';
 import { prepareStructuredCreationReview } from './structuredCreationReview.js';
 import { prepareProjectCreationReview } from './projectCreationReview.js';
@@ -38,8 +38,10 @@ export function routeReviewedMutations(server: {
                 ? ' With Oracle Change Review on 8.62.09, bounded standard or REST service and synchronous operation lifecycle stages exact complete checkpoints; a REST operation includes its URI templates and writer-generated routing. Operation approval covers its existing owning service mapping/resave. Deletion is review-only. Other creations retain legacy confirmation outside an explicit Change Set.'
                 : name === 'psft_ib_save'
                 ? ' With Change Review on Oracle, existing service/operation edits stage fixed noncredential preservation snapshots when they stay inside the bounded contract: description/comments; service owner, namespace, application and app server group; operation header except owning service, routing type, REST method, alias and message binding; existing versions, parameters (not message binding), handlers (not type/event) and application class rows; existing REST URI template text preserving ordered URI variables and mappings; and ApplicationClass REQUESTHDLR/OnRequest addition. Paired removal of that handler and its class row, with native tombstones and typed inverse/redo, is calibrated only on 8.62.09. Other child removal and out-of-contract edits keep legacy confirmation and cannot be attached to a Change Set. For bounded 8.62.09 standard and REST definition lifecycle use psft_ib_create / psft_ib_delete and psft_ib_definition_get.'
-                : name === 'psft_edit_record' || name === 'psft_ae_edit'
-                ? ' With Change Review on Oracle, only existing-definition description/comments edits stage full preservation snapshots for developer approval/application; Record SQL Table/Derived Work only. A structural operation is not staged: it saves through the legacy per-write confirmation, outside creation review. Proposed dependency validation is limited to new definitions with explicit dependencies. Explicit dryRun retains its documented preview path.'
+                : name === 'psft_edit_record'
+                ? ' With Change Review on Oracle, SQL Table/Derived Work description/comments and field structure (insert_field, insert_subrecord, remove_field, move_field, set_use, set_edits, set_default, set_label) stage full six-table metadata checkpoints for developer approval/application, with exact typed inverse/redo (a removed field is restored from its own reviewed row). Physical DDL and data are not reviewed: build separately; undo restores metadata, not dropped column data. Removing a field still used by its PeopleCode, pages, queries or other records is refused. set_type, other Record Properties and In Memory are not staged: they save through the legacy per-write confirmation. Explicit dryRun retains its documented preview path.'
+                : name === 'psft_ae_edit'
+                ? ' With Change Review on Oracle, only existing-definition description/comments edits stage full preservation snapshots for developer approval/application. A structural operation is not staged: it saves through the legacy per-write confirmation, outside creation review. Proposed dependency validation is limited to new definitions with explicit dependencies. Explicit dryRun retains its documented preview path.'
                 : name === 'psft_edit_page'
                 ? ' With Change Review on Oracle, move/resize, label/use, description/comments, inserted and deleted controls (not a Tree insert), set_order and Edit Box set_binding stage exact native proposals; the writer assigns the new controls\' ids and tab places and renumbers Related Field references, and the reviewed after-image is applied exactly. Reversal restores deleted controls under their own ids and returns MAXPNLFLDID after removing added ones; deletes of controls named by translations or configurator rows are refused. Other properties and saveInvalid are not staged: they save through the legacy per-write confirmation. Explicit dryRun keeps the rollback preview path. No Page creation/deletion adapter is implied.'
                 : ' With Change Review enabled on Oracle, supported text, PeopleCode, Process and Query mutations stage a durable proposal and return REVIEW_REQUIRED; they do not persist until the developer applies in VS Code. On Oracle 8.62, portable SQL/HTML/freeform saves use complete metadata checkpoints with guarded creation inverse/redo. Older or nonportable existing edits retain their legacy history scope. A new Application Class is not staged: it saves through the legacy per-write confirmation.') + ' Supply changeSetId to group operations. Unsupported platforms retain legacy gates.',
@@ -112,8 +114,8 @@ export function routeReviewedMutations(server: {
             // new Application Class -- it keeps the legacy
             // per-write confirmation instead of being refused. Refusing it left the edit
             // with no route at all: staging cannot carry it and nothing else was offered.
-            if (headerFamily && !isHeaderOnlyRequest(headerFamily, args.operations)) {
-                refuseOutsideSet('A structural Record or App Engine operation is not staged; it saves through the legacy per-write confirmation.');
+            if (headerFamily && !(headerFamily === 'record' ? isStageableRecordRequest(args.operations) : isHeaderOnlyRequest(headerFamily, args.operations))) {
+                refuseOutsideSet('This Record or App Engine operation is not staged; it saves through the legacy per-write confirmation.');
                 return callback(args, ...rest);
             }
             const preparedHeader = headerFamily ? await prepareStructuredHeaderReview(workspace, host?.(), headerFamily, args) : undefined;

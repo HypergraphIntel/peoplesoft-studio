@@ -75,6 +75,11 @@ export interface RecordEditField {
   pageControl?: number;
   /** True for a field inserted in this edit. */
   isNew: boolean;
+  /**
+   * Change Review restoration only: an inserted row's own reviewed PSRECFIELD columns (stamps excluded), written instead
+   * of App Designer's new-row values so that undoing a removal restores the field exactly. Never editor or agent input.
+   */
+  restore?: Row;
   /** A subrecord row (PSRECFIELD.SUBRECORD 'Y'): name is the subrecord's. */
   isSubrecord?: boolean;
 }
@@ -669,6 +674,14 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
     if (seen.has(f.name)) throw new RecordSaveRefusedError(`${f.name} is listed twice.`);
     seen.add(f.name);
     const fieldNum = i + 1;
+    if (f.isNew && f.restore) {
+      if (byName.has(f.name)) throw new RecordSaveRefusedError(`${f.name} is already in ${stored.recname}.`);
+      if (str(f.restore.FIELDNAME) !== f.name || str(f.restore.RECNAME) !== stored.recname || (str(f.restore.SUBRECORD) === 'Y') !== !!f.isSubrecord) {
+        throw new RecordSaveRefusedError(`${f.name}: the restored row is for another field or record.`);
+      }
+      const own = Object.fromEntries(Object.entries(f.restore).filter(([k]) => !['LASTUPDDTTM', 'LASTUPDOPRID', 'VERSION'].includes(k)));
+      return { ...NEW_RECFIELD_VALUES, ...own, RECNAME: stored.recname, FIELDNAME: f.name, FIELDNUM: fieldNum, LASTUPDDTTM: stamp.ts, LASTUPDOPRID: stamp.operatorId };
+    }
     if (f.isNew && f.isSubrecord) {
       if (byName.has(f.name)) throw new RecordSaveRefusedError(`${f.name} is already in ${stored.recname}.`);
       // r53: the subrecord's row -- SUBRECORD 'Y', USEEDIT 0, the new-row values, stamped.

@@ -1,0 +1,179 @@
+{
+  "checkedAt": "2026-10-22T19:45:16.160Z",
+  "connection": "HRDMO",
+  "mode": "native rollback previews only; no commit, stage, approval or apply",
+  "cases": [
+    {
+      "record": "ZZ_RPT_LINE",
+      "case": "insert DESCR first",
+      "fieldsBefore": [
+        "RECTYPE",
+        "ZZ_RPT_LABEL",
+        "ZZ_RPT_COUNT"
+      ],
+      "fieldsAfter": [
+        "DESCR",
+        "RECTYPE",
+        "ZZ_RPT_LABEL",
+        "ZZ_RPT_COUNT"
+      ],
+      "indexKeysAfter": [],
+      "reproduced": true
+    },
+    {
+      "record": "ZZ_RPT_LINE",
+      "case": "move RECTYPE last",
+      "fieldsBefore": [
+        "RECTYPE",
+        "ZZ_RPT_LABEL",
+        "ZZ_RPT_COUNT"
+      ],
+      "fieldsAfter": [
+        "ZZ_RPT_LABEL",
+        "ZZ_RPT_COUNT",
+        "RECTYPE"
+      ],
+      "indexKeysAfter": [],
+      "reproduced": true
+    },
+    {
+      "record": "ZZ_RPT_LINE",
+      "case": "remove ZZ_RPT_COUNT",
+      "fieldsBefore": [
+        "RECTYPE",
+        "ZZ_RPT_LABEL",
+        "ZZ_RPT_COUNT"
+      ],
+      "fieldsAfter": [
+        "RECTYPE",
+        "ZZ_RPT_LABEL"
+      ],
+      "indexKeysAfter": [],
+      "reproduced": true
+    },
+    {
+      "record": "ZZ_FL_REC_A",
+      "case": "insert DESCR",
+      "fieldsBefore": [
+        "EMPLID",
+        "PLAN_TYPE",
+        "DED_CLASS",
+        "RUN_ID",
+        "DEDCD",
+        "DED_CUR",
+        "CHECK_DT",
+        "BALANCE_YEAR",
+        "COMPANY",
+        "PROCESS_DT",
+        "BEGIN_TM",
+        "DTTM_STAMP"
+      ],
+      "fieldsAfter": [
+        "EMPLID",
+        "PLAN_TYPE",
+        "DED_CLASS",
+        "RUN_ID",
+        "DEDCD",
+        "DED_CUR",
+        "CHECK_DT",
+        "BALANCE_YEAR",
+        "COMPANY",
+        "PROCESS_DT",
+        "BEGIN_TM",
+        "DTTM_STAMP",
+        "DESCR"
+      ],
+      "indexKeysAfter": [
+        "_:EMPLID"
+      ],
+      "reproduced": true
+    },
+    {
+      "record": "ZZ_FL_REC_A",
+      "case": "remove DTTM_STAMP",
+      "fieldsBefore": [
+        "EMPLID",
+        "PLAN_TYPE",
+        "DED_CLASS",
+        "RUN_ID",
+        "DEDCD",
+        "DED_CUR",
+        "CHECK_DT",
+        "BALANCE_YEAR",
+        "COMPANY",
+        "PROCESS_DT",
+        "BEGIN_TM",
+        "DTTM_STAMP"
+      ],
+      "fieldsAfter": [
+        "EMPLID",
+        "PLAN_TYPE",
+        "DED_CLASS",
+        "RUN_ID",
+        "DEDCD",
+        "DED_CUR",
+        "CHECK_DT",
+        "BALANCE_YEAR",
+        "COMPANY",
+        "PROCESS_DT",
+        "BEGIN_TM"
+      ],
+      "indexKeysAfter": [
+        "_:EMPLID"
+      ],
+      "reproduced": true
+    },
+    {
+      "record": "ZZ_FL_REC_A",
+      "case": "DTTM_STAMP becomes a list box item",
+      "fieldsBefore": [
+        "EMPLID",
+        "PLAN_TYPE",
+        "DED_CLASS",
+        "RUN_ID",
+        "DEDCD",
+        "DED_CUR",
+        "CHECK_DT",
+        "BALANCE_YEAR",
+        "COMPANY",
+        "PROCESS_DT",
+        "BEGIN_TM",
+        "DTTM_STAMP"
+      ],
+      "fieldsAfter": [
+        "EMPLID",
+        "PLAN_TYPE",
+        "DED_CLASS",
+        "RUN_ID",
+        "DEDCD",
+        "DED_CUR",
+        "CHECK_DT",
+        "BALANCE_YEAR",
+        "COMPANY",
+        "PROCESS_DT",
+        "BEGIN_TM",
+        "DTTM_STAMP"
+      ],
+      "indexKeysAfter": [
+        "_:EMPLID"
+      ],
+      "reproduced": true
+    },
+    {
+      "record": "ZZ_PCODE_LAB_R2",
+      "case": "remove ZZ_PCODE_LAB_MCP1",
+      "refused": "/Record Field PeopleCode/"
+    },
+    {
+      "record": "ZZ_PCODE_LAB_R7",
+      "case": "remove ZZ_PCODE_LAB_KEY",
+      "refused": "/page controls/"
+    }
+  ],
+  "nativeScopedContentAndTokensUnchanged": true,
+  "notVerified": [
+    "developer-approved apply/inverse/redo in the installed build",
+    "App Designer reopen of reviewed record structure",
+    "physical DDL (out of scope)"
+  ]
+}

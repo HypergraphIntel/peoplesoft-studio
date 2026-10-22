@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ADAPTER_TYPES } from '../db/connection.js';
 import { readStructuredSnapshot, type StructuredFamily } from '../providers/structuredSnapshot.js';
-import { recordHeaderRequest, aeHeaderDocument, headerProposal, headerChange, structuredHeaderDiff } from '../changeReview/structuredHeaders.js';
+import { recordHeaderRequest, recordStructureRequest, aeHeaderDocument, headerProposal, headerChange, structuredHeaderDiff } from '../changeReview/structuredHeaders.js';
 import { saveRecord } from '../providers/recordWriter.js';
 import { saveAppEngine, readStoredAppEngine, documentOf, appEngineToken } from '../providers/appEngineWriter.js';
 import { structuredTransaction } from './fixtures/structuredTransaction.js';
@@ -99,4 +99,37 @@ test('structured snapshot refuses unsafe native precision and timezone columns w
         g.connection.catalog.columns = async (c, table) => (await columns(c, table)).map(col => col.name === 'LASTUPDDTTM' ? { ...col, dataType: 'TIMESTAMP WITH TIME ZONE' } : col);
         await assert.rejects(readStructuredSnapshot(g.connection, ADAPTER_TYPES, family, g.name), /unsupported.*schema/);
     }
+});
+
+test('record field structure: insert/remove/move reproduce exactly; the checkpoint inverse restores a removed field from its own row', async () => {
+    const f = structuredTransaction('record');
+    // A stored field with a non-default column: restoring it with App Designer's new-row values would not be exact.
+    f.editCommitted(t => { t.PSRECFIELD[0].CURCTLFIELDNAME = 'CTRL'; t.PSRECFIELDDB[0].CURCTLFIELDNAME = 'CTRL'; });
+    const start = await readStructuredSnapshot(f.connection, ADAPTER_TYPES, 'record', f.name);
+    const run = (before: typeof start, target: Json | undefined, edit?: Parameters<typeof saveRecord>[1]['edit'], commit = false) =>
+        saveRecord(f.connection, { edit: edit ?? recordStructureRequest(f.name, before.value, target, before.version, 'JARED').edit, operatorId: 'JARED',
+            expectedSnapshotToken: before.token, ...(!commit ? { dryRun: true, captureSnapshots: true } : {}) }, ADAPTER_TYPES);
+    // Forward: insert NAME before DESCR (the editor's state), previewed with full checkpoints.
+    const added = await run(start, undefined, { recname: f.name, recordType: 2, openedVersion: start.version,
+        fields: [{ name: 'NAME', useEdit: 0, isNew: true }, { name: 'DESCR', useEdit: 0, useEdit2: 0, isNew: false }] });
+    const insertAfter = added.snapshots!.after.value as unknown as Json;
+    assert.equal((await run(start, insertAfter)).snapshots!.after.hash, added.snapshots!.after.hash, 'the rebuilt typed edit reproduces the insert');
+    await run(start, insertAfter, undefined, true);
+    const inserted = await readStructuredSnapshot(f.connection, ADAPTER_TYPES, 'record', f.name);
+    assert.equal(inserted.hash, hash(insertAfter));
+    // Remove DESCR (and leave NAME), then undo: DESCR comes back with its own CURCTLFIELDNAME, at its place.
+    const removed = await run(inserted, undefined, { recname: f.name, recordType: 2, openedVersion: inserted.version, fields: [{ name: 'NAME', useEdit: 0, useEdit2: 0, isNew: false }] });
+    const removeAfter = removed.snapshots!.after.value as unknown as Json;
+    await run(inserted, removeAfter, undefined, true);
+    const gone = await readStructuredSnapshot(f.connection, ADAPTER_TYPES, 'record', f.name);
+    await run(gone, inserted.value as unknown as Json, undefined, true);
+    const back = await readStructuredSnapshot(f.connection, ADAPTER_TYPES, 'record', f.name);
+    assert.equal(back.hash, inserted.hash, 'undoing the removal restores the field row exactly');
+    assert.equal(back.value.tables.PSRECFIELD.find(r => r.FIELDNAME === 'DESCR')?.CURCTLFIELDNAME, 'CTRL');
+    // Undo the insert: back to the original checkpoint.
+    await run(back, start.value as unknown as Json, undefined, true);
+    assert.equal((await readStructuredSnapshot(f.connection, ADAPTER_TYPES, 'record', f.name)).hash, start.hash);
+    // A restored row outside a reviewed save is refused.
+    const restore = recordStructureRequest(f.name, start.value, insertAfter, start.version, 'JARED');
+    await assert.rejects(saveRecord(f.connection, { ...restore, edit: { ...restore.edit, openedVersion: (await readStructuredSnapshot(f.connection, ADAPTER_TYPES, 'record', f.name)).version } }, ADAPTER_TYPES), /only done by a reviewed/);
 });

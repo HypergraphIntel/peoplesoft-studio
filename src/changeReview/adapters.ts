@@ -21,7 +21,7 @@ import type { ReviewAdapter, ReviewValidationContext } from './service.js';
 import { withReviewedWrite, reviewedPolicyIdentity } from './authorization.js';
 import type { McpWriteHost } from '../mcp/writeTools.js';
 import { requireProvider } from '../mcp/tools.js';
-import { recordHeaderRequest, aeHeaderDocument, headerChange, structuredHeaderDiff } from './structuredHeaders.js';
+import { recordStructureRequest, aeHeaderDocument, headerChange, structuredHeaderDiff } from './structuredHeaders.js';
 import type { StructuredFamily } from '../providers/structuredSnapshot.js';
 import { deepValidate } from '../mcp/appEngineTools.js';
 import { ibDefinitionKey } from '../model/ibOperations.js';
@@ -111,8 +111,8 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
             return makeKey(family === 'record' ? DefinitionType.Record : DefinitionType.AppEngineProgram, key);
         };
         async function request(p: DatabaseProvider, name: string, before: Json, after: Json, version: number, operatorId: string, token: string, preview: boolean) {
+            if (family === 'record') return p.saveRecord({ ...recordStructureRequest(name, before, after, version, operatorId), expectedSnapshotToken: token, ...(preview ? { dryRun: true, captureSnapshots: true } : {}) });
             headerChange(before, after, family, name);
-            if (family === 'record') return p.saveRecord({ ...recordHeaderRequest(name, before, after, version, operatorId), expectedSnapshotToken: token, ...(preview ? { dryRun: true, captureSnapshots: true } : {}) });
             const live = await p.readAppEngineDocument(name);
             if (!live) throw new Error('Application Engine program no longer exists.');
             const doc = aeHeaderDocument(name, before, after, live.doc), errors = (await deepValidate(p, doc)).filter(d => d.severity === 'error');
@@ -120,7 +120,9 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
             return p.saveAppEngineDocument({ doc, openedToken: live.token, operatorId, expectedSnapshotToken: token, ...(preview ? { dryRun: true, captureSnapshots: true } : {}) });
         }
         return { id: family, diff: structuredHeaderDiff(family), authorizationState: (e, key) => authorizationState(e, keyOf(key)),
-            warnings: async (e, key) => [...await warnings(e, keyOf(key)), 'Bounded existing-definition description/comments only. No structural edits, field removal, DDL, code mutation, creation/deletion or raw checkpoint row replay.'],
+            warnings: async (e, key) => [...await warnings(e, keyOf(key)), family === 'record'
+                ? 'Record metadata only: description/comments and field structure (insert/remove/move fields and subrecords, Use, Edits, default, label). No physical DDL or data: build the table separately; undoing a removal restores the metadata, not dropped column data. Removing a field still used by its PeopleCode, pages, queries or other records is refused.'
+                : 'Bounded existing-definition description/comments only. No structural edits, code mutation, creation/deletion or raw checkpoint row replay.'],
             read: async (e, key) => { const p = await provider(e), live = await p.readStructuredForReview(family, keyOf(key).parts[0]); return { value: live.value as unknown as Json, token: live.token }; },
             validate: async (e, key, before, after) => {
                 try {

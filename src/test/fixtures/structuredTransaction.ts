@@ -16,7 +16,7 @@ export function structuredTransaction(family: StructuredFamily, creation = false
     if (family === 'record') {
         initial.PSRECDEFN = [{ RECNAME: name, RECTYPE: 2, VERSION: 7, FIELDCOUNT: 1, INDEXCOUNT: 0, RECDESCR: 'Before', DESCRLONG: null,
             LASTUPDDTTM: '2026-10-15T10:00:00.123456789', LASTUPDOPRID: 'JARED', AUXFLAGMASK: 0, FUTURE_COLUMN: 'preserved' }];
-        initial.PSRECFIELD = [{ RECNAME: name, FIELDNAME: 'DESCR', FIELDNUM: 1, USEEDIT: 0, USEEDIT2: 0, SUBRECORD: 'N',
+        initial.PSRECFIELD = [{ RECNAME: name, FIELDNAME: 'DESCR', FIELDNUM: 1, USEEDIT: 0, USEEDIT2: 0, SUBRECORD: 'N', CURCTLFIELDNAME: ' ',
             LASTUPDDTTM: '2026-10-15T10:00:00.123456789', LASTUPDOPRID: 'JARED' }];
         initial.PSRECFIELDDB = [{ ...initial.PSRECFIELD[0], RECNAME_PARENT: name }];
     } else {
@@ -64,8 +64,10 @@ export function structuredTransaction(family: StructuredFamily, creation = false
             : [{ TS: '2026-10-15T11:00:00.123456' }];
         else if (/^SELECT/.test(text)) {
             const table = text.match(/FROM ([A-Z0-9_]+)/)?.[1];
-            if (!table || !(table in state)) throw new Error('Unexpected fixture SELECT: ' + text);
-            if (table === 'PSRECDEFN' && text.includes('RECNAME <>')) rows = related && text.includes('RELLANGRECNAME') ? [{ RECNAME: 'RELATED' }] : [];
+            // Uses of a removed field elsewhere (its PeopleCode, pages, queries, other records' defaults): none in this fixture.
+            if (text.startsWith('SELECT COUNT(*) AS N FROM') && /(FIELDNAME|OBJECTVALUE2) = :f/.test(text) && (['PSPCMPROG', 'PSPNLFIELD', 'PSQRYFIELD'].includes(table ?? '') || text.includes('DEFRECNAME = :r'))) rows = [{ N: 0 }];
+            else if (!table || !(table in state)) throw new Error('Unexpected fixture SELECT: ' + text);
+            else if (table === 'PSRECDEFN' && text.includes('RECNAME <>')) rows = related && text.includes('RELLANGRECNAME') ? [{ RECNAME: 'RELATED' }] : [];
             else if (table === 'PSRECFIELD' && text.includes("SUBRECORD = 'Y'")) rows = [{ N: 0 }];
             else if (table === 'PSVERSION' || table === 'PSLOCK') rows = state[table].map(r => ({ T: r.OBJECTTYPENAME, V: r.VERSION }));
             else {

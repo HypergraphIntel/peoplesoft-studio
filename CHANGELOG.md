@@ -10,6 +10,11 @@
   ones; redo restores the reviewed controls. Deletes of controls that
   translations or configurator rows still name are refused. Installed
   developer acceptance is pending.
+- **Structural Record Change Review (V15-1).** `psft_edit_record` stages
+  field structure — insert, remove and move fields and subrecords, Use,
+  Edits, defaults and labels — with exact undo/redo: a removed field returns
+  from its own reviewed row. Removing a field still used by its PeopleCode,
+  pages, queries or other records is refused; DDL stays a separate build.
 - **Page writer corrections from App Designer captures (ps01–ps04).** Related
   Field references (ASSOCFIELDNUM) now follow their control through deletes,
   inserts and reorders, and turn off when the control is deleted, as App
