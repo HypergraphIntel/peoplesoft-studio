@@ -41,6 +41,11 @@ export function headerChange(beforeValue: unknown, afterValue: unknown, family: 
     return { before, after, head, description: head[columns[0]] as string, comments: head.DESCRLONG as string | null };
 }
 
+/** Whether before -> after changes nothing but the header description/comments (the bounded header path). */
+export function isHeaderChange(beforeValue: unknown, afterValue: unknown, family: StructuredFamily, name: string): boolean {
+    try { headerChange(beforeValue, afterValue, family, name); return true; } catch { return false; }
+}
+
 export function recordHeaderRequest(name: string, beforeValue: unknown, afterValue: unknown, version: number, operatorId: string): RecordSaveRequest {
     const { before, head, description, comments } = headerChange(beforeValue, afterValue, 'record', name), base = before.tables.PSRECDEFN[0];
     if (![0, 2].includes(Number(base.RECTYPE))) throw new Error('Record header review currently supports existing SQL Table and Derived/Work records only.');

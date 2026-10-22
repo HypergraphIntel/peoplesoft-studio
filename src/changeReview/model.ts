@@ -32,6 +32,11 @@ export interface Change {
     verified?: string;
     verifiedToken?: string;
     resultKnown?: boolean;
+    /**
+     * An inverse whose after-image is its checkpoint plus native side effects the adapter projected and preview-verified
+     * (App Designer's deletion tombstones for keys the undo removes): the checkpoint blob it was projected from.
+     */
+    projectedFrom?: string;
 }
 export interface Entry {
     at: string;

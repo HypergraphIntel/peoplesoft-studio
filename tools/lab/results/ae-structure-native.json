@@ -1,0 +1,236 @@
+{
+  "checkedAt": "2026-10-22T19:55:07.556Z",
+  "connection": "HRDMO",
+  "mode": "rollback previews and one rolled-back transaction; nothing persisted",
+  "reconstruction": {
+    "programs": 28,
+    "sameAsOwnDocument": 20,
+    "notes": [
+      {
+        "program": "ZZ_BC_EXPORT",
+        "unchanged": true,
+        "detail": "own save normalizes (ASOF_DT)"
+      },
+      {
+        "program": "ZZ_BL_EXPORT",
+        "unchanged": true,
+        "detail": "own save normalizes (ASOF_DT)"
+      },
+      {
+        "program": "ZZ_BR_ACC",
+        "unchanged": true,
+        "detail": "own save normalizes (ASOF_DT)"
+      },
+      {
+        "program": "ZZ_C88_74840",
+        "unchanged": false,
+        "detail": "not saveable: The program has errors"
+      },
+      {
+        "program": "ZZ_CP88_843",
+        "unchanged": false,
+        "detail": "not saveable: The program has errors"
+      },
+      {
+        "program": "ZZ_IB_NATIVE",
+        "unchanged": true,
+        "detail": "own save normalizes (ASOF_DT)"
+      },
+      {
+        "program": "ZZ_L88_74840",
+        "unchanged": true,
+        "detail": "own save normalizes (ASOF_DT)"
+      },
+      {
+        "program": "ZZ_L88_75253",
+        "unchanged": true,
+        "detail": "own save normalizes (ASOF_DT)"
+      },
+      {
+        "program": "ZZ_L88_85556",
+        "unchanged": true,
+        "detail": "own save normalizes (ASOF_DT)"
+      },
+      {
+        "program": "ZZ_LIB88_843",
+        "unchanged": true,
+        "detail": "own save normalizes (ASOF_DT)"
+      },
+      {
+        "program": "ZZ_M88_49843",
+        "unchanged": false,
+        "detail": "not saveable: The program has errors"
+      },
+      {
+        "program": "ZZ_M88_74840",
+        "unchanged": false,
+        "detail": "not saveable: The program has errors"
+      },
+      {
+        "program": "ZZ_M88_75253",
+        "unchanged": false,
+        "detail": "not saveable: The program has errors"
+      },
+      {
+        "program": "ZZ_M88_85556",
+        "unchanged": false,
+        "detail": "not saveable: The program has errors"
+      },
+      {
+        "program": "ZZ_R88_75253",
+        "unchanged": false,
+        "detail": "not saveable: The program has errors"
+      },
+      {
+        "program": "ZZ_R88_85556",
+        "unchanged": false,
+        "detail": "not saveable: The program has errors"
+      },
+      {
+        "program": "ZZ_RF_EXPORT",
+        "unchanged": true,
+        "detail": "own save normalizes (ASOF_DT)"
+      },
+      {
+        "program": "ZZ_RPT_INV",
+        "unchanged": true,
+        "detail": "own save normalizes (ASOF_DT)"
+      },
+      {
+        "program": "ZZ_SYS_PROBE",
+        "unchanged": true,
+        "detail": "own save normalizes (ASOF_DT)"
+      },
+      {
+        "program": "ZZ_X88_74840",
+        "unchanged": true,
+        "detail": "own save normalizes (ASOF_DT)"
+      },
+      {
+        "program": "ZZ_X88_75253",
+        "unchanged": true,
+        "detail": "own save normalizes (ASOF_DT)"
+      },
+      {
+        "program": "ZZ_X88_85556",
+        "unchanged": true,
+        "detail": "own save normalizes (ASOF_DT)"
+      },
+      {
+        "program": "ZZ_XSL88_843",
+        "unchanged": true,
+        "detail": "own save normalizes (ASOF_DT)"
+      }
+    ]
+  },
+  "tombstones": {
+    "s0": {
+      "PSAEAPPLDEL": [],
+      "PSAESECTDEL": [
+        "ZZ_AE_LAB01|Proc",
+        "ZZ_AE_LAB01|Section2"
+      ],
+      "PSSQLDEL": [
+        "ZZ_AE_LAB01 MAIN    Init    S|1",
+        "ZZ_AE_LAB01 Proc    Step01  S|1",
+        "ZZ_AE_LAB01 Section2Step01  S|1"
+      ],
+      "PSPCMPROGDEL": [
+        "66|ZZ_AE_LAB01|77|MAIN|39|GBL|20|default|21|1900-01-01|78|Init|12|OnExecute",
+        "66|ZZ_AE_LAB01|77|MAIN|39|GBR|20|default|21|1900-01-01|78|Step01|12|OnExecute",
+        "66|ZZ_AE_LAB01|77|Proc|39|GBL|20|default|21|1900-01-01|78|Step01|12|OnExecute",
+        "66|ZZ_AE_LAB01|77|Section2|39|GBL|20|default|21|1900-01-01|78|Step01|12|OnExecute"
+      ]
+    },
+    "s1": {
+      "PSAEAPPLDEL": [],
+      "PSAESECTDEL": [
+        "ZZ_AE_LAB01|Proc",
+        "ZZ_AE_LAB01|Section2"
+      ],
+      "PSSQLDEL": [
+        "ZZ_AE_LAB01 MAIN    Init    S|1",
+        "ZZ_AE_LAB01 Proc    Step01  S|1",
+        "ZZ_AE_LAB01 Section2Step01  S|1"
+      ],
+      "PSPCMPROGDEL": [
+        "66|ZZ_AE_LAB01|77|MAIN|39|GBL|20|default|21|1900-01-01|78|Init|12|OnExecute",
+        "66|ZZ_AE_LAB01|77|MAIN|39|GBR|20|default|21|1900-01-01|78|Step01|12|OnExecute",
+        "66|ZZ_AE_LAB01|77|Proc|39|GBL|20|default|21|1900-01-01|78|Step01|12|OnExecute",
+        "66|ZZ_AE_LAB01|77|Section2|39|GBL|20|default|21|1900-01-01|78|Step01|12|OnExecute"
+      ]
+    },
+    "s2": {
+      "PSAEAPPLDEL": [],
+      "PSAESECTDEL": [
+        "ZZ_AE_LAB01|Proc",
+        "ZZ_AE_LAB01|Section2"
+      ],
+      "PSSQLDEL": [
+        "ZZ_AE_LAB01 MAIN    Init    S|1",
+        "ZZ_AE_LAB01 MAIN    ZZCYCLE S|1",
+        "ZZ_AE_LAB01 Proc    Step01  S|1",
+        "ZZ_AE_LAB01 Section2Step01  S|1"
+      ],
+      "PSPCMPROGDEL": [
+        "66|ZZ_AE_LAB01|77|MAIN|39|GBL|20|default|21|1900-01-01|78|Init|12|OnExecute",
+        "66|ZZ_AE_LAB01|77|MAIN|39|GBL|20|default|21|1900-01-01|78|ZZCYCPC|12|OnExecute",
+        "66|ZZ_AE_LAB01|77|MAIN|39|GBR|20|default|21|1900-01-01|78|Step01|12|OnExecute",
+        "66|ZZ_AE_LAB01|77|Proc|39|GBL|20|default|21|1900-01-01|78|Step01|12|OnExecute",
+        "66|ZZ_AE_LAB01|77|Section2|39|GBL|20|default|21|1900-01-01|78|Step01|12|OnExecute"
+      ]
+    }
+  },
+  "cycle": {
+    "program": "ZZ_AE_LAB01",
+    "forward": [
+      "add step ZZCYCLE (SQL) after Init",
+      "add step ZZCYCPC (PeopleCode)",
+      "rename Step02 -> ZZRENAME"
+    ],
+    "inverse": "checkpoint exactly, plus App Designer deletion records for the removed keys",
+    "tombstonesAddedByInverse": {
+      "PSAEAPPLDEL": 0,
+      "PSAESECTDEL": 0,
+      "PSSQLDEL": 1,
+      "PSPCMPROGDEL": 1
+    },
+    "redoEqualsAfterImage": true,
+    "steps": [
+      [
+        "Init",
+        "Step01",
+        "Step01",
+        "Step02"
+      ],
+      [
+        "Init",
+        "Step01",
+        "Step01",
+        "ZZCYCLE",
+        "ZZCYCPC",
+        "ZZRENAME"
+      ],
+      [
+        "Init",
+        "Step01",
+        "Step01",
+        "Step02"
+      ],
+      [
+        "Init",
+        "Step01",
+        "Step01",
+        "ZZCYCLE",
+        "ZZCYCPC",
+        "ZZRENAME"
+      ]
+    ]
+  },
+  "commitsSuppressed": 3,
+  "persisted": false,
+  "notVerified": [
+    "developer-approved application through the installed review UI",
+    "App Designer reopen"
+  ]
+}

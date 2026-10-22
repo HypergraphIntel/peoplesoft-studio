@@ -4,6 +4,8 @@ import { makeKey, DefinitionType } from '../model/definitions.js';
 import { hash, type Json } from '../changeReview/model.js';
 import { headerProposal, recordStructureRequest, aeHeaderDocument, isHeaderOnlyOperation, isHeaderOnlyRequest, isStageableRecordRequest } from '../changeReview/structuredHeaders.js';
 import { applyRecordOperations, type RecordOperation } from '../model/recordOperations.js';
+import { applyOperation, type Operation as AeOperation } from '../model/aeOperations.js';
+import { aeDocumentFromSnapshot } from '../changeReview/aeStructure.js';
 import type { StructuredFamily } from '../providers/structuredSnapshot.js';
 import { deepValidate } from './appEngineTools.js';
 
@@ -12,6 +14,7 @@ export async function prepareStructuredHeaderReview(workspace: Workspace, host: 
     if (args.includeSnapshots) throw new Error('includeSnapshots requires explicit dryRun.');
     const operations = args.operations as Record<string, unknown>[];
     if (family === 'record' && !isHeaderOnlyRequest('record', operations)) return prepareRecordStructureReview(workspace, host, args);
+    if (family === 'ae' && !isHeaderOnlyRequest('ae', operations)) return prepareAeStructureReview(workspace, host, args);
     const changes: { description?: string; comments?: string } = {};
     for (const op of operations) {
         if (!isHeaderOnlyOperation(family, op))
@@ -62,5 +65,34 @@ async function prepareRecordStructureReview(workspace: Workspace, host: McpWrite
     if (preview.snapshots.after.hash === before.hash) throw new Error('Record proposal has no changes.');
     const after = preview.snapshots.after.value as unknown as Json;
     recordStructureRequest(name, before.value, after, before.version, gate.operatorId);
+    return { key: name, after, expectedToken: before.token };
+}
+
+/**
+ * An App Engine program's structure: psft_ae_edit's operations applied to the live document, validated and executed by
+ * the shared writer in rollback with the twenty-table checkpoints. The proposal is that native after-image; the document
+ * rebuilt from it (aeDocumentFromSnapshot) must reproduce it exactly, which validation checks again.
+ */
+async function prepareAeStructureReview(workspace: Workspace, host: McpWriteHost, args: Record<string, unknown>) {
+    const name = String(args.program).trim().toUpperCase(), key = makeKey(DefinitionType.AppEngineProgram, name), gate = await writable(workspace, host, String(args.connection), name);
+    if (host.hasUnsavedEditor(gate.provider.id, key)) throw new Error('Definition has unsaved editor changes.');
+    const current = await gate.provider.readAppEngineDocument(name);
+    if (!current) throw new Error('Application Engine program no longer exists.');
+    if (args.expectedToken !== undefined && args.expectedToken !== current.token) throw new Error('Stale Application Engine token; read the program again.');
+    const before = await gate.provider.readStructuredForReview('ae', name);
+    let doc = current.doc;
+    for (const [i, o] of (args.operations as AeOperation[]).entries()) {
+        try { doc = applyOperation(doc, o); } catch (e) { throw new Error(`Operation ${i + 1} (${o.op}): ${e instanceof Error ? e.message : String(e)}`); }
+    }
+    const errors = (await deepValidate(gate.provider, doc)).filter(d => d.severity === 'error');
+    if (errors.length) throw new Error(errors.map(d => d.path + ': ' + d.message).join('\n'));
+    const preview = await gate.provider.saveAppEngineDocument({ doc, openedToken: current.token, operatorId: gate.operatorId, dryRun: true, captureSnapshots: true, expectedSnapshotToken: before.token });
+    if (!preview.snapshots || preview.snapshots.before.hash !== before.hash) throw new Error('Native Application Engine preview did not return complete matching snapshots.');
+    if (preview.snapshots.after.hash === before.hash) throw new Error('Application Engine proposal has no changes.');
+    const after = preview.snapshots.after.value as unknown as Json;
+    // The review applies the document the after-image stores: it must reproduce that after-image exactly.
+    const replay = await gate.provider.saveAppEngineDocument({ doc: aeDocumentFromSnapshot(name, after), openedToken: current.token, operatorId: gate.operatorId,
+        dryRun: true, captureSnapshots: true, expectedSnapshotToken: before.token });
+    if (replay.snapshots?.after.hash !== preview.snapshots.after.hash) throw new Error('The program as stored after this change cannot be reproduced exactly by the native writer; it is not staged.');
     return { key: name, after, expectedToken: before.token };
 }

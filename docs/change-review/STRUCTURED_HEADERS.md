@@ -118,3 +118,45 @@ unchanged. In one rolled-back native transaction
 (`tools/lab/structural-cycle-native.mts`), ZZ_RPT_LINE insert DESCR first +
 remove ZZ_RPT_COUNT, the rebuilt inverse (ZZ_RPT_COUNT from its own row) equals
 the checkpoint exactly and redo equals the after-image; nothing persisted.
+
+
+## App Engine structure (V15-1)
+
+Development state as of October 22, 2026: implemented, unit tested, production
+HTTP/UI fixture verified and HRDMO native verified (rollback previews and one
+rolled-back apply/inverse/redo transaction); installed developer-approved
+acceptance pending.
+
+Every `psft_ae_edit` operation now stages: program properties, state records,
+temporary tables, sections, steps and actions with their SQL and PeopleCode.
+Program creation, copy, rename and deletion keep their own tools.
+
+- **Proposal:** the operations applied to the live document, validated
+  (`deepValidate`) and executed by the shared writer in rollback with the
+  twenty-table checkpoints; the after-image is the proposal. Staging also
+  requires that the document rebuilt from that after-image reproduces it.
+- **Typed reconstruction** (`aeDocumentFromSnapshot`): the checkpoint read as
+  the program reader reads it (`documentFromRows`), with PeopleCode source from
+  PSPCMTXT. The writer compiles and saves it like any edit; preview must
+  reproduce the proposal exactly.
+- **Inverse target** (`inverseTarget`, new service hook): undoing an added
+  section, step, SQL or PeopleCode deletes it, and App Designer records each
+  deleted key (PSAESECTDEL, PSSQLDEL, PSPCMPROGDEL). The inverse's after-image
+  is the native preview of the checkpoint document, accepted only when every
+  other table equals the checkpoint and the only additions are deletion records
+  new to this transition (`aeTombstoneProjection`); App Designer's first-save
+  ASOF_DT NULL → 1900-01-01 [ap01] is the one other allowed difference. The
+  proposal carries `projectedFrom` and a warning naming the projection. Redo
+  re-creates the keys, and their tombstones go as App Designer removes them.
+
+Evidence: `reviewAeStructure.test.ts` (rebuilt document equals the reader's;
+projection accepts only the transition's own deletion records and the ASOF_DT
+normalization); HTTP/UI fixture (step edit stage/apply/inverse through the
+rendered review); `tools/lab/ae-structure-native.mts`
+(`tools/lab/results/ae-structure-native.json`): all 20 saveable ZZ_ App Engine
+programs on HRDMO save their rebuilt document exactly as their own (the other
+eight fail the writer's existing program validation and cannot be saved at
+all); on ZZ_AE_LAB01 in one rolled-back transaction, adding a SQL step and a
+PeopleCode step and renaming a step, then the inverse, reaches the checkpoint
+plus one PSSQLDEL and one PSPCMPROGDEL record, and redo reaches the reviewed
+after-image exactly. Nothing persisted.

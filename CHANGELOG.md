@@ -15,6 +15,10 @@
   Edits, defaults and labels — with exact undo/redo: a removed field returns
   from its own reviewed row. Removing a field still used by its PeopleCode,
   pages, queries or other records is refused; DDL stays a separate build.
+- **App Engine structural Change Review (V15-1).** Every `psft_ae_edit`
+  operation now stages the shared writer's full after-image. Undo reaches the
+  checkpoint plus the deletion records App Designer writes for removed keys;
+  redo re-creates them exactly.
 - **Page writer corrections from App Designer captures (ps01–ps04).** Related
   Field references (ASSOCFIELDNUM) now follow their control through deletes,
   inserts and reorders, and turn off when the control is deleted, as App

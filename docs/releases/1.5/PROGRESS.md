@@ -10,8 +10,8 @@ nothing here is released.
 | --- | --- | --- | --- |
 | V15-1 Page structure | Implemented (b5912ba8) | Unit + transaction tests, HTTP/UI fixture, HRDMO rollback previews and a rolled-back native apply/inverse/redo cycle; App Designer captures ps01–ps04 | Installed developer apply/inverse/redo; App Designer reopen after a returned MAXPNLFLDID |
 | V15-1 Record field structure | Implemented (75351f32) | Transaction tests, HTTP/UI fixture, HRDMO rollback previews and a rolled-back native apply/inverse/redo cycle | Installed developer apply/inverse/redo |
-| V15-1 AE structural edits | Next | — | — |
-| V15-1 Package/class lifecycle | Not started | — | — |
+| V15-1 AE structural edits | Implemented | Unit tests, HTTP/UI fixture, HRDMO reconstruction of all 20 saveable ZZ_ programs, rolled-back native apply/inverse/redo with tombstone projection | Installed developer apply/inverse/redo |
+| V15-1 Package/class lifecycle | Next | — | — |
 | V15-2 Separate-environment promotion | Not started | — | — |
 | V15-3 Business application acceptance + Windows AI handoff | Not started | — | — |
 | V15-4 Query/release/editor breadth | Not started | — | — |
@@ -26,9 +26,11 @@ can share one Change Set, one inverse and one redo. Queue:
    App Designer reopen and a fresh App Designer add (MAXPNLFLDID + 1 after the
    returned high-water mark).
 2. Record: insert/move/remove on ZZ_RPT_LINE; inverse; redo.
+3. App Engine: add a SQL step and a PeopleCode step on ZZ_AE_LAB01; inverse
+   (expect the projected deletion records); redo.
 
 ## Next action
 
-V15-1 AE structural edits: stage section/step/action changes as full
-twenty-table rollback after-images, rebuild the typed AE document from the
-after-image, require exact preview equivalence.
+V15-1 package/class lifecycle: combined Application Package / class
+metadata checkpoints so a new class and a class deletion can stage with exact
+inverse (blocker 2 in change-review/COVERAGE.md).

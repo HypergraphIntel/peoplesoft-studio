@@ -19,6 +19,12 @@ export interface ReviewAdapter {
     canDelete?: boolean | ((key: Json) => boolean);
     /** Why an applied before -> after cannot be reversed by a typed inverse (e.g. it added rows whose deletion is uncalibrated). */
     reversalRefusal?(key: Json, before: Json, after: Json): string | undefined;
+    /**
+     * The after-image an inverse or redo toward `checkpoint` actually reaches from `live`: the checkpoint plus calibrated
+     * native side effects of the transition (App Designer records deleted keys as tombstones). Must be preview-verified and
+     * differ from the checkpoint only in those side effects; absent, the target is the checkpoint itself.
+     */
+    inverseTarget?(environment: Environment, key: Json, checkpoint: Json, live: Json): Promise<Json>;
     diff?: ObjectDiffProvider;
     normalize?(value: Json): Json;
     warnings?(environment: Environment, key: Json): Promise<string[]>;
@@ -122,7 +128,7 @@ export class ReviewService {
                 const c = verified.find(c => c.id === object.objectId);
                 if (!c || c.verified !== object.snapshot || c.verifiedToken !== object.token) throw new Error('Combined reversal source checkpoint changed.');
                 const proposal = proposals.find(o => o.adapter === c.adapter && canonical(o.key) === canonical(c.key));
-                if (!proposal || proposal.before !== object.snapshot || proposal.baselineToken !== object.token || proposal.after !== c.before) throw new Error('Combined reversal proposal no longer matches its source checkpoint.');
+                if (!proposal || proposal.before !== object.snapshot || proposal.baselineToken !== object.token || (proposal.after !== c.before && proposal.projectedFrom !== c.before)) throw new Error('Combined reversal proposal no longer matches its source checkpoint.');
             }
         }
     }
@@ -741,8 +747,13 @@ export class ReviewService {
                 const refusal = await this.reversalRefusal(c);
                 if (refusal) throw new Error(refusal + ' No partial reverse proposal created.');
                 const dependencies = entries.filter(e => forwardDependencies(e).includes(hash([c.adapter, c.key]))).map(e => ids.get(e.object.id)!);
-                proposal.objects.push({ id: ids.get(c.id)!, adapter: c.adapter, key: c.key, operation: value === null ? 'DELETE' : live.value === null ? 'CREATE' : 'UPDATE', before: await this.store.blob(live.value), after: await this.store.blob(value), baselineToken: live.token, dependencies,
-                    revision: 1, review: 'PENDING', validation: [], warnings: [], application: 'PENDING' });
+                // An adapter may project native side effects of the transition onto the checkpoint (preview-verified).
+                const target = value !== null && live.value !== null && a.inverseTarget ? await a.inverseTarget(original.environment, c.key, value, live.value) : value;
+                const projected = hash(target) !== hash(value);
+                proposal.objects.push({ id: ids.get(c.id)!, adapter: c.adapter, key: c.key, operation: value === null ? 'DELETE' : live.value === null ? 'CREATE' : 'UPDATE', before: await this.store.blob(live.value), after: await this.store.blob(target), baselineToken: live.token, dependencies,
+                    revision: 1, review: 'PENDING', validation: [], application: 'PENDING',
+                    warnings: projected ? ['The target is the checkpoint plus the native deletion records (tombstones) App Designer writes for what this undo removes.'] : [],
+                    ...(projected ? { projectedFrom: c.before } : {}) });
             }
             ordered(proposal, false);
             await this.checkReversalSources(proposal);
@@ -808,7 +819,7 @@ export class ReviewService {
                 for (const dep of c.dependencies)
                     if (!ids.has(dep) && !verified.some(v => v.id === dep)) throw new Error('Remaining work has an unresolved dependency.');
                 proposal.objects.push({ id: ids.get(c.id)!, adapter: c.adapter, key: c.key, operation: c.operation,
-                    before: await this.store.blob(live.value), after: c.after, baselineToken: live.token,
+                    before: await this.store.blob(live.value), after: c.after, baselineToken: live.token, ...(c.projectedFrom ? { projectedFrom: c.projectedFrom } : {}),
                     dependencies: c.dependencies.filter(d => ids.has(d)).map(d => ids.get(d)!), revision: 1,
                     review: 'PENDING', validation: [], warnings: ['Continues a partial application; previously verified objects are read-only prerequisites.'], application: 'PENDING' });
             }

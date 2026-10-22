@@ -21,7 +21,8 @@ import type { ReviewAdapter, ReviewValidationContext } from './service.js';
 import { withReviewedWrite, reviewedPolicyIdentity } from './authorization.js';
 import type { McpWriteHost } from '../mcp/writeTools.js';
 import { requireProvider } from '../mcp/tools.js';
-import { recordStructureRequest, aeHeaderDocument, headerChange, structuredHeaderDiff } from './structuredHeaders.js';
+import { recordStructureRequest, aeHeaderDocument, isHeaderChange, structuredHeaderDiff } from './structuredHeaders.js';
+import { aeDocumentFromSnapshot, aeTombstoneProjection } from './aeStructure.js';
 import type { StructuredFamily } from '../providers/structuredSnapshot.js';
 import { deepValidate } from '../mcp/appEngineTools.js';
 import { ibDefinitionKey } from '../model/ibOperations.js';
@@ -112,17 +113,29 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
         };
         async function request(p: DatabaseProvider, name: string, before: Json, after: Json, version: number, operatorId: string, token: string, preview: boolean) {
             if (family === 'record') return p.saveRecord({ ...recordStructureRequest(name, before, after, version, operatorId), expectedSnapshotToken: token, ...(preview ? { dryRun: true, captureSnapshots: true } : {}) });
-            headerChange(before, after, family, name);
             const live = await p.readAppEngineDocument(name);
             if (!live) throw new Error('Application Engine program no longer exists.');
-            const doc = aeHeaderDocument(name, before, after, live.doc), errors = (await deepValidate(p, doc)).filter(d => d.severity === 'error');
+            // A header-only change edits the live document; any other change saves the document the after-image stores.
+            const doc = isHeaderChange(before, after, family, name) ? aeHeaderDocument(name, before, after, live.doc) : aeDocumentFromSnapshot(name, after);
+            const errors = (await deepValidate(p, doc)).filter(d => d.severity === 'error');
             if (errors.length) throw new Error(errors.map(d => d.path + ': ' + d.message).join('\n'));
             return p.saveAppEngineDocument({ doc, openedToken: live.token, operatorId, expectedSnapshotToken: token, ...(preview ? { dryRun: true, captureSnapshots: true } : {}) });
         }
         return { id: family, diff: structuredHeaderDiff(family), authorizationState: (e, key) => authorizationState(e, keyOf(key)),
+            ...(family === 'ae' ? { inverseTarget: async (e: Environment, key: Json, checkpoint: Json, liveValue: Json) => {
+                // Undoing an added section, step, SQL or PeopleCode deletes it, and App Designer records each deleted key as a
+                // tombstone: the reachable target is the checkpoint plus those records, verified by native preview.
+                const k = keyOf(key), { p, operator } = await authorize(e, k), current = await p.readStructuredForReview(family, k.parts[0]);
+                if (current.hash !== hash(liveValue)) throw new Error('Live state changed since application; reversal blocked.');
+                const result = await request(p, k.parts[0], liveValue, checkpoint, current.version, operator, current.token, true);
+                if (!result.snapshots) throw new Error('Native preview did not return the undo target.');
+                const after = result.snapshots.after.value as unknown as Json, refusal = aeTombstoneProjection(checkpoint, liveValue, after);
+                if (refusal) throw new Error(refusal);
+                return after;
+            } } : {}),
             warnings: async (e, key) => [...await warnings(e, keyOf(key)), family === 'record'
                 ? 'Record metadata only: description/comments and field structure (insert/remove/move fields and subrecords, Use, Edits, default, label). No physical DDL or data: build the table separately; undoing a removal restores the metadata, not dropped column data. Removing a field still used by its PeopleCode, pages, queries or other records is refused.'
-                : 'Bounded existing-definition description/comments only. No structural edits, code mutation, creation/deletion or raw checkpoint row replay.'],
+                : 'Program, sections, steps and actions as the App Engine document stores them, saved by the shared writer (SQL and PeopleCode compiled and validated as on any save). Undo restores the checkpoint plus the deletion records App Designer writes for removed keys. No program creation/deletion, rename or copy here.'],
             read: async (e, key) => { const p = await provider(e), live = await p.readStructuredForReview(family, keyOf(key).parts[0]); return { value: live.value as unknown as Json, token: live.token }; },
             validate: async (e, key, before, after) => {
                 try {
