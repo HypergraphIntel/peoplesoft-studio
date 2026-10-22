@@ -497,8 +497,8 @@ function setCriteria(view: QueryView, specs: QueryCriterion[], meta: Meta, sel: 
       };
       place(spec.value,'R1',r1); place(spec.value2,'R2',r2);
       if (none && prior && n(prior.R1CRTEXPNUM) && old.has(n(prior.R1CRTEXPNUM))) r1.EXPNUM=n(prior.R1CRTEXPNUM);
-      const first=combine==='having' ? 6 : 3, and=combine==='having' ? 4 : 1, or=combine==='having' ? 0 : 2;
-      if (spec.logical==='OR' && !or && (i || lead)) throw new QueryUnsupportedError('OR between HAVING criteria is not calibrated.');
+      // WHERE: first 3, AND 1, OR 2; HAVING: first 6, AND 4, OR 5 (qag03, qhv01).
+      const first=combine==='having' ? 6 : 3, and=combine==='having' ? 4 : 1, or=combine==='having' ? 5 : 2;
       return {...k,SELNUM:at,CRTNUM:0,COMBTYPE:i || lead?(spec.logical==='OR'?or:and):first,NEGATION:spec.not?'N':' ',LPARENLVL:spec.open??0,
         LCRTSELNUM:left?n(left.SELNUM):0,LCRTFLDNUM:left?n(left.FLDNUM):0,CONDTYPE:cond,EXPRTYPE:exprtype,R1CRTSELNUM:r1.SELNUM,R1CRTFLDNUM:r1.FLDNUM,R1CRTEXPNUM:r1.EXPNUM,
         R2CRTSELNUM:r2.SELNUM,R2CRTFLDNUM:r2.FLDNUM,R2CRTEXPNUM:r2.EXPNUM,RPARENLVL:spec.close??0,QRYOJSELNUM:0};

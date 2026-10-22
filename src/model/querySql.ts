@@ -134,7 +134,7 @@ export function compileQuerySql(view: QueryView, context: QuerySqlContext): Quer
       const cond = number(c.CONDTYPE), exprtype = number(c.EXPRTYPE), negation = text(c.NEGATION), comb = number(c.COMBTYPE);
       const exists = cond === 12 || cond === 13;
       if (number(c.CRTNUM) !== criteria.indexOf(c)+1 || !(cond in OPERATORS || exists || cond in EFFECTIVE_DATING) || negation && negation !== 'N'
-        || (isHaving ? (i ? comb !== 4 : comb !== 6) : ![1,2,3].includes(comb) || (i ? comb === 3 : comb !== 3))
+        || (isHaving ? (i ? comb !== 4 && comb !== 5 : comb !== 6) : ![1,2,3].includes(comb) || (i ? comb === 3 : comb !== 3))
         || (exists ? number(c.LCRTSELNUM) || number(c.LCRTFLDNUM) : number(c.LCRTSELNUM) !== sel)) refuse('This criterion shape is not calibrated.');
       const field = exists ? undefined : fieldAt(c.LCRTSELNUM,c.LCRTFLDNUM), type = field && typeOf(field);
       if (field && number(field.FLDEXPNUM)) refuse('Criteria on expression columns are not calibrated.');

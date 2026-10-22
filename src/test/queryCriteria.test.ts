@@ -131,7 +131,12 @@ test('native aggregates, HAVING and DISTINCT replay qag01-qag05', () => {
   const agg=snapshot('qag05-where-and-having','after');
   assert.throws(()=>applyQueryOp(agg,{kind:'having',criteria:[{field:'ESTABID',operator:'equal',value:{constant:'A'}}]},records.AAP_YEAR.fields,all),/aggregated field/);
   assert.throws(()=>applyQueryOp(agg,{kind:'aggregate',field:'FEMALE_GOAL',function:'none'},records.AAP_YEAR.fields,all),/HAVING criterion uses/);
-  assert.throws(()=>applyQueryOp(agg,{kind:'having',criteria:[{field:'FEMALE_GOAL',operator:'greater',value:{constant:'1'}},{field:'FEMALE_GOAL',operator:'less',logical:'OR',value:{constant:'9'}}]},records.AAP_YEAR.fields,all),/OR between HAVING/);
+});
+test('native HAVING OR replays qhv01: COMBTYPE 5', () => {
+  const before=snapshot('qhv01-having-or','before'), after=snapshot('qhv01-having-or','after');
+  const having: QueryCriterion[]=[{field:'FEMALE_GOAL',operator:'notLess',value:{constant:'0'}},{field:'FEMALE_GOAL',operator:'equal',logical:'OR',value:{constant:'0'}}];
+  compare(applyQueryOp(before,{kind:'having',criteria:having},records.AAP_YEAR.fields,all),after,before,'qhv01');
+  assert.deepEqual(describeQueryCriteria(after).having,having);
 });
 test('native expressions replay qex01-qex03', () => {
   compare(build('ZZ_QRY_EXPR01','AAP_YEAR',[{kind:'select',field:'ESTABID',selected:true},{kind:'expression',text:'A.FEMALE_GOAL * 2',type:'number',length:7},
