@@ -41,7 +41,9 @@ export function renderQueryDesigner(name: string, connection: string, view: Quer
   const fieldCatalog=catalogRecords.map(r=>`<details open><summary>${esc(`${s(r.CORRNAME)} = ${s(r.RECNAME)}`)}${n(r.SELNUM)>1?` (union ${n(r.SELNUM)})`:''}</summary>${Object.entries(recordMeta(r)).filter(([,m])=>[0,2,4].includes(m.type)).map(([name,m])=>
     `<label class="record-field"><input type="checkbox" data-select="${esc(refOf(r,name))}"${view.fields.some(f=>s(f.FIELDNAME)===name && n(f.SELNUM)===n(r.SELNUM) && n(f.FLDRCDNUM)===n(r.RCDNUM) && n(f.COLUMNNUM)>0)?' checked':''}${disabled}>${esc(name)} <span>${esc(m.longName ?? m.labels.find(l=>l.isDefault)?.longName ?? m.labels[0]?.longName ?? '')}</span></label>`).join('')}</details>`).join('');
   const refs0=queryReferences(view);
-  const allRefs=catalogRecords.flatMap(r=>Object.entries(recordMeta(r)).filter(([,m])=>[0,2,4].includes(m.type)).map(([name])=>`${s(r.CORRNAME)}.${name}`));
+  // Expression columns are named #N (their expression number) in criteria.
+  const allRefs=[...catalogRecords.flatMap(r=>Object.entries(recordMeta(r)).filter(([,m])=>[0,2,4].includes(m.type)).map(([name])=>`${s(r.CORRNAME)}.${name}`)),
+    ...view.fields.filter(f=>n(f.SELNUM)===1 && n(f.FLDEXPNUM) && n(f.COLUMNNUM)>0).map(f=>`#${n(f.FLDEXPNUM)}`)];
   const selected=view.fields.filter(f=>n(f.COLUMNNUM)>0 && n(f.SELNUM)===1).sort((a,b)=>n(a.COLUMNNUM)-n(b.COLUMNNUM));
   const fieldRef=(f: Row)=>{const r=view.records.find(x=>n(x.SELNUM)===n(f.SELNUM) && n(x.RCDNUM)===n(f.FLDRCDNUM));return r?refOf(r,s(f.FIELDNAME)):s(f.FIELDNAME);};
   const dateRefs=catalogRecords.filter(r=>n(r.SELNUM)===1).flatMap(r=>Object.entries(recordMeta(r)).filter(([,m])=>m.type===4).map(([name])=>refOf(r,name)));

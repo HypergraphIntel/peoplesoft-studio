@@ -143,6 +143,16 @@ test('native date aggregate replays qag06: Max on START_DT; a WHERE criterion on
     {kind:'criteria',criteria:[{field:'START_DT',operator:'greater',value:{constant:'2000-01-01'}}]},records.AAP_YEAR.fields,all);
   assert.throws(()=>applyQueryOp(dated,{kind:'aggregate',field:'START_DT',function:'max'},records.AAP_YEAR.fields,all),/WHERE criterion uses this field/);
 });
+test('native expression-column criterion replays qex04: the expression column is #N', () => {
+  const before=snapshot('qex04-expression-column-criterion','before'), after=snapshot('qex04-expression-column-criterion','after');
+  const {criteria}=describeQueryCriteria(after);
+  assert.deepEqual(criteria[1],{field:'#1',operator:'equal',logical:'AND',value:{constant:'0'}});
+  compare(applyQueryOp(before,{kind:'criteria',criteria},records.AAP_YEAR.fields,all),after,before,'qex04');
+  assert.throws(()=>applyQueryOp(before,{kind:'criteria',criteria:[{field:'#1',operator:'like',value:{constant:'1%'}}]},records.AAP_YEAR.fields,all),/expression columns/);
+  assert.throws(()=>applyQueryOp(before,{kind:'criteria',criteria:[{field:'#1',operator:'equal',value:{prompt:'new'}}]},records.AAP_YEAR.fields,all),/expression columns/);
+  assert.throws(()=>applyQueryOp(before,{kind:'criteria',criteria:[{field:'#9',operator:'equal',value:{constant:'1'}}]},records.AAP_YEAR.fields,all),/no expression column/);
+  assert.throws(()=>applyQueryOp(before,{kind:'criteria',criteria:[{field:'#1',operator:'equal',value:{constant:'x'}}]},records.AAP_YEAR.fields,all),/number/);
+});
 test('native HAVING OR replays qhv01: COMBTYPE 5', () => {
   const before=snapshot('qhv01-having-or','before'), after=snapshot('qhv01-having-or','after');
   const having: QueryCriterion[]=[{field:'FEMALE_GOAL',operator:'notLess',value:{constant:'0'}},{field:'FEMALE_GOAL',operator:'equal',logical:'OR',value:{constant:'0'}}];

@@ -103,7 +103,7 @@ max, average), `translate` (none, short, long; current date or a date field),
 for a union), `having`, `join` (standard, leftOuter, related with `field`),
 `union` (adds a select; name its fields `B.FIELD`), `constant`, `prompt`,
 `clearCriteria` and `properties`. Criteria take a `field` (absent for
-exists/notExists), an operator, optional `logical`, `not`, `open`, `close`, and
+exists/notExists; `#N` names expression column N, compared with a constant), an operator, optional `logical`, `not`, `open`, `close`, and
 operands `constant`, `field`, `prompt`, `list`, `currentDate`, `expression` or
 `subquery` `{record, field, criteria}` (inside it an unaliased field is the
 subquery's record; `A.FIELD` correlates). Authoring is calibrated for Oracle

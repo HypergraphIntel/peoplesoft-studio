@@ -51,8 +51,10 @@ export type QueryOperand={constant:string}|{field:string}|{prompt:number|'new'}|
 /** `field` is absent only for exists/notExists. */
 export interface QueryCriterion { field?:string; operator:QueryOperator; logical?:'AND'|'OR'; not?:boolean; open?:number; close?:number; value?:QueryOperand; value2?:QueryOperand }
 const fieldName=z.string().regex(/^(?:[A-Z]\.)?[A-Z][A-Z0-9_]*$/);
+/** An expression column named in a criterion: `#N`, N its expression number (qex04). */
+const EXPRESSION_COLUMN=/^#([1-9][0-9]*)$/;
 const recordName=z.string().regex(/^[A-Z][A-Z0-9_]*$/);
-const criterion: z.ZodType<QueryCriterion>=z.lazy(()=>z.object({field:fieldName.optional(),operator:z.enum(Object.keys(QUERY_OPERATORS) as [QueryOperator,...QueryOperator[]]),
+const criterion: z.ZodType<QueryCriterion>=z.lazy(()=>z.object({field:z.union([fieldName,z.string().regex(EXPRESSION_COLUMN)]).optional(),operator:z.enum(Object.keys(QUERY_OPERATORS) as [QueryOperator,...QueryOperator[]]),
   logical:z.enum(['AND','OR']).optional(),not:z.boolean().optional(),open:z.number().int().min(0).max(9).optional(),close:z.number().int().min(0).max(9).optional(),
   value:operand.optional(),value2:operand.optional()}).strict());
 const operand: z.ZodType<QueryOperand>=z.lazy(()=>z.union([z.object({constant:z.string().max(254)}).strict(),z.object({field:fieldName}).strict(),
@@ -400,6 +402,13 @@ function translate(view: QueryView, f: Row, info: QueryFieldInfo, op: Extract<Qu
   }
   references(view);
 }
+function expressionColumn(view: QueryView, ref: string, sel: number): { row: Row; info: QueryFieldInfo } | undefined {
+  const m=EXPRESSION_COLUMN.exec(ref);
+  if (!m) return undefined;
+  const row=view.fields.find(f=>n(f.SELNUM)===sel && n(f.FLDEXPNUM)===Number(m[1]) && n(f.COLUMNNUM)>0), expr=view.expressions.find(e=>n(e.EXPNUM)===Number(m[1]));
+  if (!row || !expr) throw new Error(`${ref}: no expression column with that expression number.`);
+  return { row, info:{type:n(expr.FIELDTYPE),length:n(expr.LENGTH),decimalPositions:n(expr.DECIMALPOS),format:0,shortName:'',longName:'',editTable:'',useEdit:0} };
+}
 const isoDate=(v: string)=>/^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v+'T00:00:00Z')) && new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v;
 /** Expression text as Windows Query stores it: ISO dates (qnm02), bare numbers (qnm01), quoted lists (qcr08). */
 function constantText(value: string, type: number, field: string): string {
@@ -451,7 +460,9 @@ function setCriteria(view: QueryView, specs: QueryCriterion[], meta: Meta, sel: 
       if (exists && !sub) throw new Error('Exists takes a subquery.');
       if (sub && !exists && !list) throw new QueryUnsupportedError('Subqueries are calibrated for in list, not in list, exists and does not exist.');
       if (combine==='having' && (sub || exists || dated)) throw new QueryUnsupportedError('HAVING criteria compare an aggregate with a value.');
-      const left=spec.field ? fieldRow(view,spec.field,meta,1,at) : undefined, info=spec.field ? locate(view,spec.field,meta,at).info! : undefined;
+      const column=spec.field ? expressionColumn(view,spec.field,at) : undefined;
+      if (column && (combine!=='where' || at!==1 || cond<2 || cond>7 || !spec.value || !('constant' in spec.value))) throw new QueryUnsupportedError('Criteria on expression columns are calibrated as a top-level WHERE comparison with a constant.');
+      const left=column ? column.row : spec.field ? fieldRow(view,spec.field,meta,1,at) : undefined, info=column ? column.info : spec.field ? locate(view,spec.field,meta,at).info! : undefined;
       if (combine==='having' && n(left!.TTLTYPE)===1) throw new Error(`${spec.field}: a HAVING criterion is on an aggregated field.`);
       if (combine==='having' && info!.type===4) throw new QueryUnsupportedError('HAVING criteria on date aggregates are not calibrated.');
       if (combine==='where' && left && n(left.SELNUM)===1 && n(left.TTLTYPE)!==1) throw new QueryUnsupportedError(`${spec.field}: a WHERE criterion on an aggregated field is not valid SQL; use a HAVING criterion.`);
@@ -559,6 +570,7 @@ function renumberExpressions(view: QueryView, old: Map<number,Row>, fresh: Row[]
 export function describeQueryCriteria(view: QueryView, sel=1): { criteria: QueryCriterion[]; having: QueryCriterion[] } {
   const ref=(selnum: unknown, fldnum: unknown, at: number)=>{
     const f=fieldAt(view,selnum,fldnum), r=f && view.records.find(x=>n(x.SELNUM)===n(selnum) && n(x.RCDNUM)===n(f.FLDRCDNUM));
+    if (f && n(f.FLDEXPNUM)) return `#${n(f.FLDEXPNUM)}`;
     if (!f || !r) throw new Error('Criterion references a missing field.');
     return n(selnum)===at && n(r.RCDNUM)===1 ? s(f.FIELDNAME) : `${s(r.CORRNAME)}.${s(f.FIELDNAME)}`;
   };

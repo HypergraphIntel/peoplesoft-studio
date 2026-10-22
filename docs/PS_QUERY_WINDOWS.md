@@ -287,6 +287,7 @@ statement (whitespace aside) and the replay tests reproduce every row.
 | qxl01-translate | ESTAB_TBL (effective-dated), EFF_STATUS translate Long, effective date Field EFFDT | a new effective-dated query starts with `A.EFFDT Eff Date <= Current Date` on a hidden EFFDT (FLDNUM 1); XLATTYPE 3, XLATEXPRTYPE 2, XLATFLDNUM 1 (counts as a use); `LEFT OUTER JOIN PSXLATITEM A2X` (record alias, column number, X) with an effective-date clause |
 | qxl02-short-current | Short, Current Date | XLATTYPE 2, XLATEXPRTYPE 6; SQL joins a derived `( SELECT * FROM PSXLATITEM TA ... TB.EFFDT <= TO_DATE(TO_CHAR(SYSDATE,...)) ) A2X` |
 | qag06-date-max | new AAP_YEAR query, ESTABID and START_DT with Aggregate Max | TTLTYPE 5 on the date (Sum is disabled for dates); `MAX( TO_CHAR(A.START_DT,'YYYY-MM-DD'))`, GROUP BY ESTABID; Windows' results equal Studio's run. With a WHERE criterion on the same field Windows also writes `MAX( A.START_DT) > ...` into WHERE, which Oracle rejects, so Studio refuses that combination |
+| qex04-expression-column-criterion | `_EXPR` New Criteria on the `A.FEMALE_GOAL * 2` column, equal to 0 | LCRTFLDNUM is the expression column's field row (FLDNUM 3, which now counts USECOUNT 1); the constant is a number expression (FIELDTYPE 2, LENGTH 0); `AND  A.FEMALE_GOAL * 2 = 0`; Windows' results equal Studio's run. Studio names the column `#1` (its expression number) |
 | qhv01-having-or | `_AGG` HAVING `>= 0` OR `= 0` | the OR row is COMBTYPE 5 (HAVING AND is 4, first 6); `HAVING ( AVG( A.FEMALE_GOAL) >= 0 OR AVG( A.FEMALE_GOAL) = 0)` |
 | qed01-effdt-ge | `_XLAT2`'s EFFDT criterion to Eff Date >= Current Date | CONDTYPE 21, EXPRTYPE 6; `A.EFFDT = (SELECT MIN(A_ED.EFFDT) ... AND A_ED.EFFDT >= SYSDATE)` |
 | qed02-effdt-lt | Eff Date < | CONDTYPE 22, EXPRTYPE 6; MAX, `A_ED.EFFDT < SYSDATE` |
@@ -360,7 +361,8 @@ store an ascending sort as a blank ORDERBYDIR. Row security with joins,
 translates, subqueries or unions, and security records keyed by OPRCLASS or
 ROWSECCLASS, remain refused. Refused: nested subqueries, subqueries together with
 unions, effective-dated subquery or union records, Count/Average or HAVING on
-date aggregates, WHERE criteria on aggregated fields, criteria on expression columns, and the remaining Windows options
+date aggregates, WHERE criteria on aggregated fields, expression-column criteria
+other than a WHERE comparison with a constant, and the remaining Windows options
 (tree prompts, Effective Seq, effective-date operands other than Current Date,
 expression translate dates).
 

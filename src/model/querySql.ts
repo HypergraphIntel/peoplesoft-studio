@@ -138,11 +138,12 @@ export function compileQuerySql(view: QueryView, context: QuerySqlContext): Quer
         || (isHaving ? (i ? comb !== 4 && comb !== 5 : comb !== 6) : ![1,2,3].includes(comb) || (i ? comb === 3 : comb !== 3))
         || (exists ? number(c.LCRTSELNUM) || number(c.LCRTFLDNUM) : number(c.LCRTSELNUM) !== sel)) refuse('This criterion shape is not calibrated.');
       const field = exists ? undefined : fieldAt(c.LCRTSELNUM,c.LCRTFLDNUM), type = field && typeOf(field);
-      if (field && number(field.FLDEXPNUM)) refuse('Criteria on expression columns are not calibrated.');
+      // qex04: an expression column compared with a constant in the top-level WHERE; its text is the left side.
+      if (field && number(field.FLDEXPNUM) && (isHaving || kind !== 1 || exprtype !== 1 || cond < 2 || cond > 7)) refuse('Criteria on expression columns are calibrated as a WHERE comparison with a constant.');
       if (isHaving && (!field || number(field.TTLTYPE) === 1 || number(field.TTLTYPE) === 3 && type !== 2 || type === 4)) refuse('HAVING criteria are calibrated on SUM, MIN, MAX, AVG and numeric COUNT aggregates of character and number fields.');
       // Windows Query aggregates a WHERE criterion's field too (MAX( A.START_DT) > ... in WHERE), which Oracle rejects.
       if (!isHaving && field && number(field.TTLTYPE) !== 1) refuse('A WHERE criterion on an aggregated field is not valid SQL; use a HAVING criterion.');
-      const left = field ? (isHaving ? aggregated(field) : rawSql(field)) : '';
+      const left = field ? (isHaving ? aggregated(field) : number(field.FLDEXPNUM) ? detokenized(expressionOf(field.FLDEXPNUM).EXPRESSIONTEXT).trim() : rawSql(field)) : '';
       const expression = (side: 'R1'|'R2') => {
         const expr = expressionOf(c[`${side}CRTEXPNUM`]);
         return text(expr.EXPRESSIONTEXT) ? String(expr.EXPRESSIONTEXT) : ' ';
