@@ -485,7 +485,10 @@ test('the release is read from the connection, not inferred from its name', asyn
   conns.environments.set('oracle:HCDEV', async () => ({ toolsRelease: '8.62', patchLevel: 9 }));
 
   assert.equal(service.getState().connections[0].environment.status, 'loading');
+  assert.equal(service.getState().connections[0].releaseSupport.level, 'PREVIEW');
   await settle();
+  assert.equal(states.at(-1)!.connections[0].releaseSupport.level,'CORE');
+  assert.equal(states.at(-1)!.releaseSupport.qualification,'IN_PROGRESS');
   const env = states.at(-1)!.connections[0].environment;
   assert.equal(env.status, 'available');
   assert.equal(env.status === 'available' && env.release, '8.62.09');

@@ -71,6 +71,7 @@
     const f = find();
     $('toolbar').innerHTML = [
       b('tb-save', 'Save', 'Save the program (Ctrl+S)', ed && (state.dirty || state.isNew), 'primary'),
+      b('tb-run', 'Run and Monitor', 'Run the saved Application Engine through Process Scheduler', !state.isNew && !state.dirty),
       b('tb-undo', 'Undo', 'Undo (Ctrl+Z)', ed && state.canUndo), b('tb-redo', 'Redo', 'Redo (Ctrl+Y)', ed && state.canRedo),
       '<span class="sep"></span>',
       b('tb-section', 'Insert Section', 'Insert a section', ed),
@@ -469,6 +470,7 @@
       case 'tb-validate': status = 'Validating...'; statusError = false; renderToolbar(); post({ type: 'validate' }); break;
       case 'tb-preview': post({ type: 'preview' }); break;
       case 'tb-reload': post({ type: 'reload' }); break;
+      case 'tb-run': post({ type: 'run' }); break;
       case 'tb-saveas': post({ type: 'saveAs' }); break;
       case 'tb-rename': post({ type: 'rename' }); break;
       case 'tb-deleteprog': post({ type: 'delete' }); break;

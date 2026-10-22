@@ -4,14 +4,20 @@ Assessment as of October 21, 2026: 0.9.7 is released. The next development
 version is **0.9.8 — unreleased**; package metadata and
 [draft release notes](releases/0.9.8.md) are prepared, with no release date set.
 There is meaningful implementation and native verification progress,
-but not feature-complete for the project's stated full Application Designer
-parity goal. No 1.0 delivery date or final feature cut has been agreed. A claim
+but not feature-complete for the project's long-term full Application Designer
+parity goal. The developer has directed larger items toward later releases;
+[the proposed 1.0 / 1.5 / 2.0 plan](RELEASE_PLAN.md) separates core release gates
+from expansions. No 1.0 delivery date or final support matrix has been agreed. A claim
 that delivery is on schedule is therefore not supported. Version 0.9.7 does not
 mean 97 percent complete.
 
-Keep the completion goal visible rather than silently narrowing it to match
-what already works. This is a readiness inventory, not a newly agreed schedule
-or permission to change the supported scope. The current source of capability
+Keep the long-term completion goal visible while planning staged releases.
+This is an evidence inventory across the whole product, not a requirement to
+complete every remaining item for 1.0. Use [V1-1 through V1-5](RELEASE_PLAN.md#10--dependable-core-workflows)
+as the proposed 1.0 gate; structural review expansion, cross-environment
+promotion and broader business/AI handoffs target 1.5, with platform/parity
+expansion targeting 2.0. These targets do not certify unsupported paths.
+The current source of capability
 detail is the [README](../README.md#what-works-now), [roadmap](ROADMAP.md) and
 [Change Review coverage](change-review/COVERAGE.md).
 
@@ -49,11 +55,17 @@ acceptance task.
    [IB_STRUCTURE.md](change-review/IB_STRUCTURE.md#installed-acceptance-october-21).
    REST service/operation lifecycle passed installed acceptance the same day.
    8.61 child deletion and other IB families remain open.
-3. Close native recovery and remaining adapter acceptance gaps while
-   expanding the Query and migration/build workflows. Migration now covers
-   every definition type listed in the gate table, with undo/redo; explicit
-   refusals and cross-database migration remain. Broader migration and review
-   coverage remains completion work, not an agreed release scope or schedule.
-4. Reassess these gates against actual evidence. Establish a 1.0 target only
+3. For 1.0, close correctness, safety, core native/installed acceptance,
+   upgrade/recovery and exact-artifact release gates within a declared stable
+   support matrix. Retain unsupported-operation refusals and explicit preview
+   labels. Broader structural review, migration/promotion and business/AI
+   workflow expansion target 1.5; platform/parity expansion targets 2.0.
+4. Low priority, deferred by the developer: Run and Monitor's gateway TLS
+   prerequisite and real installed scheduler, output and persistence acceptance
+   ([RT-L1 through RT-L4](PRIORITY_TASKS.md#run-and-monitor--low-priority-follow-up)).
+   Local implementation/tests and candidate packaging are complete; native
+   runtime acceptance remains unverified and must not be inferred from them.
+   Carry forward to the proposed 1.5 plan as Low priority, not a 1.0 gate.
+5. Reassess these gates against actual evidence. Establish a 1.0 target only
    after the required feature set, outstanding scope and delivery estimates
    are concrete. Do not substitute passing unit tests for native/runtime results.

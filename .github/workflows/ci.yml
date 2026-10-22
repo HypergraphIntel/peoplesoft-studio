@@ -2,14 +2,23 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, query-criteria, 'release/**']
   pull_request:
     branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [22, 24]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -18,14 +27,23 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: ${{ matrix.node }}
           cache: npm
+
+      - name: Setup browser for required rendered UI checks
+        id: browser
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: stable
+          install-dependencies: ${{ runner.os == 'Linux' }}
 
       - name: Install
         run: npm ci
 
-      - name: Verify (typecheck, tests, smoke)
+      - name: Verify (typecheck, tests, activation and rendered UI)
         run: npm run verify
+        env:
+          PSFT_BROWSER_BIN: ${{ steps.browser.outputs.chrome-path }}
 
       - name: MCP workflow routing and editor integration (fixtures)
         run: npm run test:mcp-workflows

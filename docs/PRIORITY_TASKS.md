@@ -1,4 +1,38 @@
-# Priority tasks — October 20, 2026
+# Priority tasks
+
+## Release targeting
+
+See the [proposed release plan](RELEASE_PLAN.md) for explicit assignments:
+V1-1 through V1-5 are core 1.0 reliability, support-scope and release gates;
+broader structural review, separate-environment promotion and business/AI
+workflow expansion target 1.5; platform/parity expansion targets 2.0.
+Existing stable-path correctness and safety issues cannot be deferred merely
+by assigning a related feature to a later release. Final support profiles and
+release dates remain to be agreed.
+
+## Run and Monitor — Low-priority follow-up
+
+Developer direction at closeout: finish the local implementation and document
+the remaining runtime work as **Low priority**. The workflow, local tests,
+rendered UI/production HTTP checks and candidate package are complete. Isolated
+installed connection/panel preflight passed; a real scheduler run and native
+output acceptance remain unverified. No server change or process submission
+was performed, and no acceptance window remains waiting for credentials.
+
+| ID | Priority | Deferred task | Completion evidence |
+| --- | --- | --- | --- |
+| RT-L1 | Low | Resolve the gateway's backend TLS prerequisite during a later server-maintenance session. Refresh config/certificate evidence before applying the prepared patch. | Keep the public HTTPS URL, TLS validation and IB security; native probe passes the `(158,554)` transport rejection. |
+| RT-L2 | Low | Verify JARED sign-in and a single confirmed synthetic HRDMO run through the final installed candidate, after RT-L1. | Preparation submits nothing; exactly one matching native instance reaches Success/Posted; program and configuration preservation verified. |
+| RT-L3 | Low | Verify native logs, repository authentication and actual UI file download, after RT-L2. | Open stdout; save and hash the exact 123-byte CSV through Download; retain native report authorization. Add save-dialog/byte verification to the runner. |
+| RT-L4 | Low | Verify installed history persistence, refusals and uncertain-outcome reconciliation, after RT-L2. | Reopen/reload retains history; dirty/read-only/stale requests and duplicate clicks cannot submit; recovery links the verified instance without replay. |
+
+[Detailed scope, dependencies and evidence](PROCESS_SCHEDULER_RUNTIME.md#deferred-tasks--low-priority).
+These are deferred acceptance tasks, not completed native runtime capabilities.
+This priority change applies to Run and Monitor only.
+Its proposed release target is **1.5**, still **Low priority** and explicitly
+outside the proposed 1.0 gate; native acceptance remains pending.
+
+## Earlier priority tasks — October 20, 2026
 
 User-requested scope: complete all five tasks below. Source changes, fixture
 checks, installed UI checks and live runtime evidence are separate gates.

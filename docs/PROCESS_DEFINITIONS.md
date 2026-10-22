@@ -149,3 +149,14 @@ live token and counters. The developer-approved continuation committed with
 verified full-input/token readback; a subsequent approved Process UPDATE
 restored the original trace settings, VERSION 32. Continuation reversal itself
 remains unsupported.
+
+
+## Run and Monitor (0.9.8 development)
+
+Saved Application Engine definitions now have a Run and Monitor entry point,
+also available in the AE designer, Configuration Tools and Command Palette.
+It uses the delivered PROCESSREQUEST service and an existing operator run
+control, with separate operator sign-in and an explicit confirmation per run.
+It does not change process definitions or application parameters.
+Local/fixture verification passes; installed runtime acceptance is pending the
+HRDMO gateway transport prerequisite. See [scope and progress](PROCESS_SCHEDULER_RUNTIME.md).

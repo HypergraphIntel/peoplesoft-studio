@@ -1,15 +1,8 @@
+import {toolReleaseSupport} from '../model/releaseSupport.js';
 import * as vscode from 'vscode';
 import { TOOL_TREES, type ToolNode, type ToolViewId } from '../model/toolTrees.js';
 
-/*
- * Configuration Tools and Data Migration Tools: two panes of PeopleSoft's
- * online tools, placeholders for now. Every entry is shown greyed (its label
- * through a file decoration colour, its icon in the disabled colour) and says
- * it is not available yet when chosen; a built entry runs its command. The trees themselves are plain data
- * (model/toolTrees.ts), so filling one in later is a matter of giving an
- * entry a command and dropping `planned`.
- */
-
+/** Tool routing and release maturity are separate from native connection authorization. */
 
 /** The command a placeholder entry runs. */
 export const PLANNED_TOOL_COMMAND = 'psft.plannedTool';
@@ -48,7 +41,9 @@ export class ToolsView implements vscode.TreeDataProvider<Node> {
     } else if (tool.command) {
       item.contextValue = 'tool.' + tool.command;
       item.command = { command: tool.command, title: tool.label };
-      item.tooltip = node.path.join(' › ');
+      const support=toolReleaseSupport(tool.label);
+      item.description=support.label;
+      item.tooltip=node.path.join(' › ')+' — '+support.label+'\n'+support.detail;
     }
     return item;
   }

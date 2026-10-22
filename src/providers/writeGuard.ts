@@ -72,6 +72,7 @@ export function effectivePolicy(): EffectivePolicy { return policyReader(); }
 
 const requestSignal=new AsyncLocalStorage<AbortSignal|undefined>();
 export function withWriteRequest<T>(signal:AbortSignal|undefined,fn:()=>T):T {return requestSignal.run(signal,fn);}
+export function assertWriteRequestActive():void {requestSignal.getStore()?.throwIfAborted();}
 
 /** MCP approval cannot keep a tool alive indefinitely or authorize a cancelled request later. */
 export class WriteApprovalTimeoutError extends Error {

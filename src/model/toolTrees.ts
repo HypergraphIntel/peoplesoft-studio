@@ -18,6 +18,7 @@ export interface ToolNode {
 
 export const CONFIGURATION_TOOLS: readonly ToolNode[] = [
   { label: 'PS Query', icon: 'search', command: 'psft.query.open' },
+  { label: 'Run and Monitor', icon: 'play-circle', command: 'psft.process.run' },
   { label: 'Process Definitions', icon: 'run', command: 'psft.process.open' },
   { label: 'Customization', icon: 'wand', children: [
     { label: 'Page and Field Configurator', icon: 'layout', command: 'psft.customization.openPageFieldConfigurator' },

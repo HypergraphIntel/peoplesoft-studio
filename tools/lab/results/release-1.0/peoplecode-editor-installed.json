@@ -1,0 +1,97 @@
+{
+  "vscode": "1.143.0",
+  "checks": [
+    {
+      "name": "real record-field completion, including a typed prefix",
+      "ms": 326
+    },
+    {
+      "name": "built-in function catalog is registered with VS Code",
+      "ms": 13
+    },
+    {
+      "name": "class own/private/inherited members and %Super",
+      "ms": 55
+    },
+    {
+      "name": "typed object members respect imports, visibility and unsaved class edits",
+      "ms": 20
+    },
+    {
+      "name": "record-field and class-member suggestion popups render in the installed workbench",
+      "ms": 289
+    },
+    {
+      "name": "600 KB class completion reads declarations promptly",
+      "ms": 148
+    },
+    {
+      "name": "the language server switch disables and restores completion",
+      "ms": 180
+    },
+    {
+      "name": "diagnostics follow the newest edit and settings",
+      "ms": 1869
+    },
+    {
+      "name": "environment-check and unknown-function settings update existing diagnostics",
+      "ms": 1489
+    },
+    {
+      "name": "connection switching does not reactivate the old document connection",
+      "ms": 1565
+    },
+    {
+      "name": "a real large delivered class completes validation without blocking the host",
+      "ms": 6522
+    },
+    {
+      "name": "large explicit validation is responsive and abandoned after an edit",
+      "ms": 377
+    },
+    {
+      "name": "closing and reopening an editor clears obsolete diagnostics",
+      "ms": 533
+    }
+  ],
+  "databaseUnchanged": true,
+  "target": {
+    "environment": "HRDMO",
+    "toolsRelease": "8.62",
+    "patchLevel": 9
+  },
+  "extensionId": "JaredNorris.peoplesoft-studio",
+  "screenshots": [
+    "peoplecode-editor-record-popup.png",
+    "peoplecode-editor-class-popup.png"
+  ],
+  "largeCompletionMs": 125,
+  "deliveredCompletionMs": 13,
+  "delivered": {
+    "key": {
+      "type": 58,
+      "parts": [
+        "EP_FUNCTIONS",
+        "WorkCenterUI",
+        "OnExecute"
+      ]
+    },
+    "characters": 593979,
+    "validationMs": 5281,
+    "heartbeatMs": 12,
+    "diagnosticsPublished": true,
+    "compilerProblems": 0
+  },
+  "largeValidationHeartbeatMs": 11,
+  "largeValidationBytes": 672211,
+  "passed": true,
+  "installation": {
+    "activation": "installed",
+    "manifestUnmodified": true,
+    "bundleUnmodified": true,
+    "workerUnmodified": true
+  },
+  "bundleSha256": "25d556500af8b8df05741b471636f0e8aaa78c014102b6150bfc7237d65c8b69",
+  "workerSha256": "2022a1104d48cd47f48806708a56dfdbd689e7dcf657e913277f287f885b2c01",
+  "vsixSha256": "426f08576249872ec7444af116b760902023d8e867c1c5a96f8c88ec8bdc870e"
+}

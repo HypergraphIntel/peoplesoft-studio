@@ -1,3 +1,4 @@
+import {ProcessRuntimeController} from './processRuntime/controller.js';
 import { stageMigrationImport } from './changeReview/migration.js';
 import { deserializeRecentProjects, RECENT_PROJECTS_KEY } from './model/recentProjects.js';
 import { isMissingProjectDefinition, missingProjectDefinitionMessage } from './model/projectOpening.js';
@@ -464,8 +465,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   const refreshAll = () => { connections.refresh(); browser.refresh(); projects.refresh(); ApplicationPackagePanel.refreshAll(); };
 
+  const processRuntime = new ProcessRuntimeController(context, workspace, () => mcpController.writeHost);
+  context.subscriptions.push(processRuntime, vscode.commands.registerCommand('psft.process.run', async (connectionId?: string, process?: string) => {
+    await withError('Run and Monitor', () => processRuntime.show(typeof connectionId === 'string' ? connectionId : undefined, typeof process === 'string' ? process : undefined));
+  }));
+
   // MCP writes (mcp/writeTools.ts): the setting, the user's approval, and the editors' state.
   mcpController.writeHost = {
+    processRuntime,
     mode: () => vscode.workspace.getConfiguration('peoplesoft.mcp').get<McpWriteMode>('writes', 'confirm'),
     projectInclusion: () => {
       const c = vscode.workspace.getConfiguration('peoplesoft.projects');

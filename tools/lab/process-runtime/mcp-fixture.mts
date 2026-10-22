@@ -1,0 +1,48 @@
+/** Production HTTP runtime tools and trusted controller, fixture native client only. No database or scheduler claim. */
+import assert from 'node:assert/strict';
+import Module,{createRequire} from 'node:module';
+import {pathToFileURL} from 'node:url';
+import path from 'node:path';
+import {mkdtemp,rm} from 'node:fs/promises';
+import os from 'node:os';
+import {createServer} from 'node:net';
+import {createHash} from 'node:crypto';
+const root=process.cwd(),{createStub}=await import(pathToFileURL(path.join(root,'scripts/vscode-stub.mjs')).href),{vscode}=createStub();
+const loader=(Module as any)._load;(Module as any)._load=function(n:string,p:unknown,m:boolean){return n==='vscode'?vscode:loader.call(this,n,p,m);};
+const require=createRequire(path.join(root,'package.json')),{DatabaseProvider}=require('./src/providers/database.ts'),{ProcessRuntimeController}=require('./src/processRuntime/controller.ts'),{startPeopleSoftMcpServer}=require('./src/mcp/server.ts');
+const directory=await mkdtemp(path.join(os.tmpdir(),'psft-runtime-http-')),endpoint='https://example.com/PSIGW/PeopleSoftServiceListeningConnector',operator='JARED',password='fixture-only';
+let writable=true,dirty=false,mode='allow',approved=false,confirmations=0,posts=0,token='baseline',lost=false,lateDirty=false;
+const provider=new DatabaseProvider({name:'FIXTURE',platform:'oracle',connectString:'fixture',user:'fixture',password:''});
+provider.readEnvironment=async()=>({toolsRelease:'8.62'});provider.readProcessRuntimeMetadata=async()=>({endpoint,operatorId:operator,runControls:[{id:'ONCE',aeProgram:'ZZ_RUNTIME'}]});
+provider.readProcessRuntimeBaseline=async()=>({identity:'fixture-env',token,description:'Fixture AE',control:{id:'ONCE'},lastInstance:40});
+const workspace:any={connections:[],activeProviders:[provider],require:async(id:string)=>{assert.equal(id,provider.id);return provider;},configFor:()=>({name:'FIXTURE',peoplesoftOperatorId:operator}),isWritable:()=>writable};
+const host:any={mode:()=>mode,hasUnsavedEditor:()=>dirty,saved:()=>{},confirm:async()=>{confirmations++;if(lateDirty)dirty=true;return approved;}};
+const context={globalStorageUri:{fsPath:directory},globalState:{get:()=>endpoint},secrets:{get:async()=>password}};
+const runtime=new ProcessRuntimeController(context,workspace,()=>host);host.processRuntime=runtime;
+const run={instance:42,process:'ZZ_RUNTIME',processType:'Application Engine',runControl:'ONCE',operator,server:'PSUNX',runStatus:'Error',distributionStatus:'Not Posted',requested:'now',scheduled:'now',started:'now',ended:'now',contentIds:[]};
+runtime.clients.set(provider.id,{key:createHash('sha256').update(JSON.stringify([endpoint,operator,password])).digest('hex'),client:{discover:async()=>({}),processes:async()=>['ZZ_RUNTIME'],servers:async()=>['PSUNX'],schedule:async()=>{posts++;if(lost)throw Error('Lost response');return 42;},get:async()=>run,find:async()=>[run],reports:async()=>[]}});
+const reservation=createServer();await new Promise<void>(r=>reservation.listen(0,'127.0.0.1',r));const port=(reservation.address() as import('node:net').AddressInfo).port;await new Promise<void>(r=>reservation.close(()=>r()));
+const server=await startPeopleSoftMcpServer(workspace,{port,writeHost:()=>host});let id=0;
+const rpc=async(method:string,params:unknown)=>{const r=await fetch(server.url,{method:'POST',headers:{'content-type':'application/json',accept:'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:++id,method,params})}),s=await r.text(),v=JSON.parse(s.startsWith('{')?s:s.split('\n').find(l=>l.startsWith('data:'))!.slice(5));if(v.error)throw Error(JSON.stringify(v.error));return v.result;};
+const call=async(name:string,args:unknown={},error?:RegExp)=>{const r=await rpc('tools/call',{name,arguments:args});if(error){assert.equal(r.isError,true);assert.match(r.content[0].text,error);return;}assert.ok(!r.isError,r.content[0].text);return JSON.parse(r.content[0].text);};
+const prepare=()=>call('psft_process_prepare_run',{connection:provider.id,process:'ZZ_RUNTIME',runControl:'ONCE',server:'PSUNX'});
+const submit=(p:any,error?:RegExp)=>call('psft_process_submit_run',{id:p.id,confirmationHash:p.confirmationHash},error);
+try{
+ const tools=(await rpc('tools/list',{})).tools;for(const n of ['psft_process_prepare_run','psft_process_submit_run','psft_process_run_status','psft_process_report_read'])assert.ok(tools.some((t:any)=>t.name===n));
+ assert.equal((await call('psft_process_runtime_reference')).available,true);assert.deepEqual((await call('psft_process_runtime_choices',{connection:provider.id})).servers,['PSUNX']);
+ let p=await prepare();assert.equal(posts,0);assert.equal((await submit(p)).state,'CANCELLED');assert.equal(confirmations,1);assert.equal(posts,0);
+ p=await prepare();mode='off';await submit(p,/disabled/);assert.equal(confirmations,1);assert.equal(posts,0);mode='allow';approved=true;dirty=true;await submit(p,/Save or revert/);assert.equal(posts,0);dirty=false;
+ writable=false;await submit(p,/Writable/);assert.equal(posts,0);writable=true;
+ lateDirty=true;await submit(p,/Save or revert/);assert.equal(posts,0);lateDirty=false;dirty=false;
+ const {runAsAgent,withWriteRequest}=require('./src/providers/writeGuard.ts'),abort=new AbortController(),originalConfirm=host.confirm;
+ let entered!:()=>void,release!:(value:boolean)=>void;const arrived=new Promise<void>(r=>entered=r),approval=new Promise<boolean>(r=>release=r);
+ host.confirm=async()=>{entered();return approval;};
+ const cancelled=runAsAgent(()=>withWriteRequest(abort.signal,()=>runtime.submitFromAgent(p.id,p.confirmationHash)));await arrived;abort.abort();
+ await assert.rejects(()=>cancelled,/cancelled/);release(true);host.confirm=originalConfirm;assert.equal(posts,0,'late approval after cancellation must never schedule');
+ token='changed';await submit(p,/changed after preview/);assert.equal(posts,0);
+ p=await prepare();const count=confirmations;assert.equal((await submit(p)).instance,42);assert.equal(confirmations,count+1,'allow mode must still require per-run trusted confirmation');assert.equal(posts,1);await submit(p,/already been used/);assert.equal(posts,1);
+ const status=await call('psft_process_run_status',{id:p.id});assert.equal(status.run.runStatus,'Error');assert.equal(status.run.distributionStatus,'Not Posted');assert.deepEqual((await call('psft_process_run_reports',{id:p.id})).reports,[]);
+ await call('psft_process_report_read',{id:p.id,reportId:'a'.repeat(64)},/no longer available/);
+ p=await prepare();lost=true;assert.equal((await submit(p)).state,'UNCERTAIN');await submit(p,/already been used/);assert.equal(posts,2);
+ console.log('PASS production HTTP runtime discovery, native choices, durable prepare, off/read-only/dirty/stale/late gates, mandatory allow-mode approval, single submission, failure status, report identity and lost-response refusal');
+}finally{server.dispose();runtime.dispose();await rm(directory,{recursive:true,force:true});}

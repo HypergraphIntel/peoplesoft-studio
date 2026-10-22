@@ -1,3 +1,4 @@
+import {RELEASE_SUPPORT,toolReleaseSupport} from '../model/releaseSupport.js';
 import { DefinitionType, typeLabel } from '../model/definitions.js';
 import { TOOL_TREES, type ToolNode } from '../model/toolTrees.js';
 import { DEFINITION_TYPE_GUIDE } from './definitionTypes.js';
@@ -8,7 +9,8 @@ export const CONFIGURATION_GUIDES: Record<string, { tools: string[]; limitation?
   'Data Mover Scripts': { tools: [], limitation: 'Studio UI creates untitled scripts from templates. RichardWood.peoplesoft-datamover supplies language support when installed. No Data Mover execution or MCP authoring tool.' },
   'Import Migration Package…': { tools: [], limitation: 'Trusted Studio UI previews a definition migration package and stages its exact target changes in durable Change Review; the developer approves and applies there. No MCP import/apply tool; this is not Data Mover execution.' },
   'PS Query': { tools: ['psft_query_reference', 'psft_query_list', 'psft_query_get', 'psft_query_prepare', 'psft_query_run', 'psft_query_create', 'psft_query_save', 'psft_query_copy', 'psft_query_rename', 'psft_query_delete'], limitation: 'Oracle 8.62.09 query authoring calibrated against Windows Query: joins, subqueries, unions, aggregates/HAVING/DISTINCT, expressions, translates and effective dating (8.61.15: one record, one equal-to criterion); Query access checks apply. Delete and rename are review-only on 8.62.' },
-  'Process Definitions': { tools: ['psft_search_definitions', 'psft_process_reference', 'psft_process_get', 'psft_process_save'], limitation: 'Existing definitions only; Oracle saves and rollback previews. No scheduling or execution.' },
+  'Run and Monitor': { tools: ['psft_process_runtime_reference', 'psft_process_runtime_choices', 'psft_process_prepare_run', 'psft_process_submit_run', 'psft_process_run_list', 'psft_process_run_status', 'psft_process_run_reports', 'psft_process_report_read'], limitation: 'Oracle 8.62 Application Engine runtime via authenticated delivered PROCESSREQUEST. Existing operator run control, run now, Web/TXT; explicit per-run approval, no automatic retry after an uncertain response. Native/installed runtime acceptance is tracked separately.' },
+  'Process Definitions': { tools: ['psft_search_definitions', 'psft_process_reference', 'psft_process_get', 'psft_process_save'], limitation: 'Existing definitions only; Oracle saves and rollback previews. These tools edit metadata; native runtime uses Run and Monitor.' },
   'Page and Field Configurator': { tools: ['psft_page_field_config_get', 'psft_page_field_config_fields', 'psft_page_field_config_save', 'psft_page_field_config_apply'], limitation: 'Standard and Masking saves; Change Tracking is read only. On 8.61 a save maps nothing; psft_page_field_config_apply maps it (Apply Configuration). Runtime application depends on EOCC Event Mapping.' },
   'Event Mapping': { tools: ['psft_event_mapping_reference', 'psft_event_mapping_get', 'psft_event_mapping_create_service', 'psft_event_mapping_save', 'psft_event_mapping_remove'] },
   'Drop Zones': { tools: ['psft_customization_discover', 'psft_drop_zone_get', 'psft_drop_zone_save'], limitation: 'Configure existing delivered drop zones; adding a drop zone to a delivered page changes that definition.' },
@@ -25,6 +27,7 @@ export const CONFIGURATION_GUIDES: Record<string, { tools: string[]; limitation?
 function describeNodes(nodes: readonly ToolNode[]): unknown[] {
   return nodes.map(node => ({
     label: node.label,
+    releaseSupport: toolReleaseSupport(node.label,node.planned),
     studioStatus: node.planned ? 'PLANNED' : node.children ? 'GROUP' : 'AVAILABLE',
     ...(node.command ? { command: node.command } : {}),
     ...(node.children ? { children: describeNodes(node.children) } : CONFIGURATION_GUIDES[node.label] ?? {
@@ -35,6 +38,7 @@ function describeNodes(nodes: readonly ToolNode[]): unknown[] {
 
 export function studioReference() {
   return {
+    releaseSupport: RELEASE_SUPPORT,
     scope: 'Current Studio implementation. Tool names describe routing, not permission or verified availability on a particular database. Consult tools/list for this server session; write tools require a write host.',
     configurationTools: describeNodes(TOOL_TREES['psft.configurationTools'].nodes),
     dataMigrationTools: describeNodes(TOOL_TREES['psft.dataMigrationTools'].nodes),

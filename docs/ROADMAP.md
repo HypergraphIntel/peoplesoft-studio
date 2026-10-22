@@ -5,11 +5,35 @@ Designer parity is the goal; this is the path to it. The
 [1.0 readiness gates](RELEASE_1_0_READINESS.md) separate demonstrated progress
 from the remaining completion work; no 1.0 delivery date is committed.
 
+## Proposed release targets
+
+The developer directed larger readiness items toward later releases. The
+[1.0 / 1.5 / 2.0 release plan](RELEASE_PLAN.md) proposes:
+
+- **1.0:** dependable supported core workflows, PeopleCode regression gates,
+  clear stable/preview boundaries, installation/upgrade/recovery acceptance
+  and qualification of the exact release artifact.
+- **1.5:** broader structural Change Review, promotion between separate Oracle
+  environments, production-style business workflows, Windows AI Build handoff
+  and wider Query/editor support. Run and Monitor acceptance stays Low priority.
+- **2.0:** production SQL Server/DB2, cross-platform promotion, Data Migration
+  Workbench and wider designer/security coverage toward the parity goal.
+
+These are planning targets, not dates or support certifications. Full parity
+remains the long-term objective; it is not the proposed 1.0 completion test.
+
 ## Current release: 0.9.7
 
 Next development version: **0.9.8 — unreleased**. Package metadata and
 [draft release notes](releases/0.9.8.md) are prepared for the Query and
 Integration Broker work described below. No release date is set.
+
+Run and Monitor's local implementation, fixture verification and candidate
+packaging are complete. The developer has deferred its gateway TLS prerequisite
+and real installed scheduler/report/persistence acceptance as **Low priority**;
+see [RT-L1 through RT-L4](PRIORITY_TASKS.md#run-and-monitor--low-priority-follow-up).
+Native runtime acceptance is still pending. No server patch or process was
+submitted during this work, and no tag/release was created.
 
 0.9.4 adds calibrated 8.61.15 Query and standard Integration Broker writes,
 release-aware Page and Field Configurator mapping, application-class signature

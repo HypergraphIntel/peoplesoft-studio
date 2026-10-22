@@ -1,0 +1,69 @@
+{
+  "checkedAt": "2026-10-22T03:38:49.225Z",
+  "implementation": "0.9.8 unreleased development",
+  "validation": {
+    "verify": {
+      "passed": true,
+      "tests": 2237,
+      "passedTests": 2236,
+      "skipped": 1,
+      "includesRuntimeUiAndHttp": true
+    },
+    "existingMcpWorkflows": {
+      "passed": true,
+      "checks": 70
+    },
+    "targetedRuntimeUnit": {
+      "passed": true,
+      "tests": 15
+    },
+    "renderedRuntimeUi": {
+      "passed": true,
+      "native": false
+    },
+    "runtimeProductionHttp": {
+      "passed": true,
+      "nativeClient": "fixture",
+      "includesCancelledRequestLateApprovalRefusal": true
+    }
+  },
+  "installedPreflight": {
+    "connectedTo": "HRDMO",
+    "operator": "JARED",
+    "version": "0.9.8",
+    "commandRendered": true,
+    "integrity": {
+      "manifestMatchesExceptVscodeInstallerMetadata": true,
+      "bundles": {
+        "dist/extension.js": true,
+        "dist/validateWorker.js": true
+      }
+    },
+    "nativeRuntimeAccepted": false,
+    "gatewayPrerequisite": "158,554: native gateway requires HTTPS; public reverse proxy forwards over HTTP",
+    "screenshot": "process-runtime-installed-preflight.png"
+  },
+  "packagedFinalCandidate": {
+    "path": "/tmp/peoplesoft-studio-runtime-candidate.vsix",
+    "sha256": "060ebc2127596f9e642310a6af4c7b9b8301645c4b77aedfee551f89e97aa319",
+    "runtimeAcceptance": "pending"
+  },
+  "newProcessSubmitted": false,
+  "serverPatchDeployed": false,
+  "tagCreated": false,
+  "releasePublished": false,
+  "closeout": {
+    "recordedAt": "2026-10-22T03:41:18.052582+00:00",
+    "localImplementationComplete": true,
+    "remainingTaskPriority": "Low",
+    "deferredTasks": [
+      "RT-L1",
+      "RT-L2",
+      "RT-L3",
+      "RT-L4"
+    ],
+    "nativeRuntimeAccepted": false,
+    "acceptanceWindowWaiting": false,
+    "reason": "Developer requested finishing local work and deferring remaining tasks as low priority."
+  }
+}

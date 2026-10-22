@@ -1,0 +1,133 @@
+{
+  "at": "2026-10-22T04:21:03.715Z",
+  "scope": "Isolated Linux normal installed VS Code; published 0.9.7 to current candidate; real SecretStorage and native HRDMO SQL writers via rendered review",
+  "name": "ZZ_V1_B9973EBBDE",
+  "phases": [
+    {
+      "phase": "seed",
+      "at": "2026-10-22T04:21:08.777Z",
+      "vscode": "1.143.0",
+      "checks": [
+        {
+          "name": "Installed candidate connects through the real password/SecretStorage path",
+          "passed": true
+        },
+        {
+          "name": "Published 0.9.7 saves an owned SQL fixture only through rendered review and native readback",
+          "passed": true
+        },
+        {
+          "name": "A dirty native SQL document is retained for upgrade without saving its draft",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "hotExit": "onExitAndWindowClose",
+      "openDocuments": [
+        {
+          "uri": "psft://5cc75c1851ea2531/30%3AZZ_V1_B9973EBBDE.0/ZZ_V1_B9973EBBDE.0.pssql",
+          "dirty": true,
+          "text": "SELECT 101 FROM DUAL /* preserved across upgrade */"
+        }
+      ],
+      "backups": [
+        "3d8cd5afc4f57574b9aaa9fe9d55309a",
+        "3d8cd5afc4f57574b9aaa9fe9d55309a/psft",
+        "3d8cd5afc4f57574b9aaa9fe9d55309a/psft/-32014c4b"
+      ],
+      "integrity": {
+        "manifestUnmodified": true,
+        "bundleUnmodified": true,
+        "workerUnmodified": true
+      }
+    },
+    {
+      "phase": "upgrade",
+      "at": "2026-10-22T04:21:24.694Z",
+      "vscode": "1.143.0",
+      "checks": [
+        {
+          "name": "Installed candidate connects through the real password/SecretStorage path",
+          "passed": true
+        },
+        {
+          "name": "Native dirty document and Change Review history survive upgrade",
+          "passed": true
+        },
+        {
+          "name": "Settings and MCP expose the same release contract and preview boundary",
+          "passed": true
+        },
+        {
+          "name": "Dirty native source blocks reviewed application without a database write",
+          "passed": true
+        },
+        {
+          "name": "Disconnect and reconnect retain the dirty draft and require no credential re-entry",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "hotExit": "onExitAndWindowClose",
+      "openDocuments": [
+        {
+          "uri": "psft://5cc75c1851ea2531/30%3AZZ_V1_B9973EBBDE.0/ZZ_V1_B9973EBBDE.0.pssql",
+          "dirty": true,
+          "text": "SELECT 202 FROM DUAL /* preserved across reload */"
+        }
+      ],
+      "backups": [
+        "3d8cd5afc4f57574b9aaa9fe9d55309a",
+        "3d8cd5afc4f57574b9aaa9fe9d55309a/psft",
+        "3d8cd5afc4f57574b9aaa9fe9d55309a/psft/-32014c4b"
+      ],
+      "integrity": {
+        "manifestUnmodified": true,
+        "bundleUnmodified": true,
+        "workerUnmodified": true
+      }
+    },
+    {
+      "phase": "reload",
+      "at": "2026-10-22T04:21:31.750Z",
+      "vscode": "1.143.0",
+      "checks": [
+        {
+          "name": "Installed candidate connects through the real password/SecretStorage path",
+          "passed": true
+        },
+        {
+          "name": "Native dirty document and Change Review history survive reload",
+          "passed": true
+        },
+        {
+          "name": "Current installed source save, inverse and redo verify native SQL at every boundary",
+          "passed": true
+        },
+        {
+          "name": "Owned fixture deletion uses rendered destructive review; cleanup removes only its native markers",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "hotExit": "onExitAndWindowClose",
+      "openDocuments": [
+        {
+          "uri": "psft://5cc75c1851ea2531/30%3AZZ_V1_B9973EBBDE.0/ZZ_V1_B9973EBBDE.0.pssql",
+          "dirty": false,
+          "text": ""
+        }
+      ],
+      "backups": [],
+      "integrity": {
+        "manifestUnmodified": true,
+        "bundleUnmodified": true,
+        "workerUnmodified": true
+      }
+    }
+  ],
+  "candidateVsix": "/tmp/psft-v1-upgrade-dGKSP3/candidate.vsix",
+  "candidateSha256": "426f08576249872ec7444af116b760902023d8e867c1c5a96f8c88ec8bdc870e",
+  "oldAssetSha256": "66868e42b17180d8b81848652a8958ee69eba168c30cdd2af4bf80845ec06623",
+  "passed": true
+}

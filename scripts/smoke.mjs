@@ -6,7 +6,7 @@
  * declares in package.json match what it actually registers?
  */
 import { createRequire } from 'node:module';
-import { copyFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -30,6 +30,18 @@ Module._load = function (request, parent, isMain) {
 
 const failures = [];
 const check = (ok, message) => { if (!ok) failures.push(message); };
+
+// Broken contribution paths otherwise fail silently after installation.
+for (const grammar of manifest.contributes.grammars ?? []) {
+  const file = path.join(root, grammar.path);
+  check(existsSync(file), `missing contributed grammar: ${grammar.path}`);
+  if (existsSync(file)) check(JSON.parse(readFileSync(file, 'utf8')).scopeName === grammar.scopeName,
+    `grammar scope does not match its contribution: ${grammar.path}`);
+}
+for (const language of manifest.contributes.languages ?? []) {
+  if (language.configuration) check(existsSync(path.join(root, language.configuration)),
+    `missing language configuration: ${language.configuration}`);
+}
 
 const require = createRequire(import.meta.url);
 const bundlePath = path.join(root, manifest.main);

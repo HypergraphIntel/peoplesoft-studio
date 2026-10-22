@@ -1,3 +1,4 @@
+import type {ProcessRuntimeController} from '../processRuntime/controller.js';
 import {awaitWriteApproval} from '../providers/writeGuard.js';
 import { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
@@ -38,6 +39,8 @@ export type McpWriteMode = 'confirm' | 'allow' | 'off';
 
 /** What the VS Code side provides: the setting, the confirmation, and editor state. */
 export interface McpWriteHost {
+  /** Native runtime workflow; each submission retains its own explicit approval. */
+  processRuntime?: ProcessRuntimeController;
   mode(): McpWriteMode;
   /** Asks the user; true only on an explicit yes. */
   confirm(request: { title: string; detail: string; signal?: AbortSignal }): Promise<boolean>;

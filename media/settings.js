@@ -53,6 +53,7 @@
 
   const SECTIONS = [
     { id: 'connections', title: 'Connections' },
+    { id: 'support', title: 'Release Support' },
     { id: 'peoplecodeEditor', title: 'PeopleCode Editor' },
     { id: 'mcp', title: 'AI Integration' },
     { id: 'projects', title: 'Project Contents' },
@@ -204,8 +205,9 @@
       c.selected ? badge('Target', 'neutral', 'The workspace target connection, chosen in the Connections view or the status bar') : null,
       c.connected ? badge('Connected', 'ok') : badge('Not connected', 'off'),
       badge(c.access.label, 'warn', c.access.detail),
+      c.releaseSupport ? badge(c.releaseSupport.label, 'neutral', c.releaseSupport.detail) : null,
       c.peoplecodeWrite && c.peoplecodeWrite.access === 'writable'
-        ? badge('Writes allowed', 'error', 'PeopleCode may be saved back to this database once saving is implemented.')
+        ? badge('Writes allowed', 'error', 'Supported authoritative-source PeopleCode can be compiled and saved; unsupported programs remain read-only.')
         : null,
       // Closed, the header still says where the connection goes.
       open ? null : h('span', { className: 'summary', text:
@@ -700,6 +702,19 @@
       .map((s) => h('a', { text: s.title, attrs: { href: `#${s.id}` } })));
   }
 
+  function renderReleaseSupport() {
+    const support = state.releaseSupport;
+    if (!support) return null;
+    return h('section', {attrs: {id: 'support'}}, [
+      h('h2', {text: 'Release Support'}),
+      h('p', {className: 'description', text: '1.0 core qualification: Oracle / PeopleTools 8.62.09 / Linux and Windows x64. Status: '+support.qualification}),
+      h('p', {className: 'hint', text: support.principle}),
+      h('ul', {}, support.coreWorkflows.map(text => h('li', {text}))),
+      h('p', {className: 'description', text: support.compatibility+' '+support.experimental}),
+      h('ul', {}, support.limits.map(text => h('li', {text})))
+    ]);
+  }
+
   // --- Render loop ---------------------------------------------------------
 
   function render() {
@@ -715,6 +730,7 @@
     renderToc(!!state.mcp);
     root.replaceChildren(...[
       renderConnections(),
+      renderReleaseSupport(),
       renderSettingsSection('peoplecodeEditor', 'PeopleCode Editor',
         'What PeopleCode editors do as you work: the Language Server\'s completion, navigation and checks, and how stored PeopleCode is decoded.'),
       renderMcp(),

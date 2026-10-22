@@ -1,5 +1,17 @@
 # Change Review, transactions and history — progress
 
+## Scheduler runtime boundary — 0.9.8 development
+
+Run and Monitor has a separate durable request journal and per-run confirmation.
+It uses the delivered PROCESSREQUEST runtime API, never Change Review apply,
+SQL queue writes or metadata writer replay. Runtime application data effects
+cannot be undone through metadata checkpoints. No approval/apply authority was
+added to Change Review MCP tools. Local implementation, verification and
+candidate packaging are complete. The developer deferred the gateway HTTPS
+prerequisite and live acceptance as **Low priority** (RT-L1 through RT-L4).
+[Runtime progress](../PROCESS_SCHEDULER_RUNTIME.md) records the implemented
+scope, fixture evidence and remaining unverified native acceptance.
+
 ## Current state — 0.9.7 released
 
 Reconciled October 20, 2026 against the source and recorded native acceptance.

@@ -178,6 +178,11 @@
     ],
     "commands": [
       {
+        "command": "psft.process.run",
+        "title": "Run and Monitor",
+        "category": "PeopleSoft"
+      },
+      {
         "command": "psft.security.oauth",
         "title": "OAuth2 Service Applications",
         "category": "PeopleSoft"
@@ -1818,6 +1823,8 @@
     "test:application-packages:native": "tsx tools/lab/application-package-native.mts",
     "test:application-packages:installed": "node scripts/application-package-native.mjs tools/lab/results/application-package-installed-2026-10-20.json",
     "test:query:installed": "node scripts/query-installed-native.mjs",
+    "test:process-runtime": "node scripts/process-runtime-ui-check.mjs && tsx tools/lab/process-runtime/mcp-fixture.mts",
+    "test:process-runtime:installed": "node scripts/process-runtime-installed.mjs",
     "test:migration:native": "tsx tools/lab/project-migration-native.mts",
     "test:mcp-workflows": "tsx tools/lab/mcp-workflow-fixture-e2e.mts",
     "bundle": "node esbuild.mjs",
@@ -1828,7 +1835,7 @@
     "smoke": "cross-env PSFT_DISABLE_MCP=1 node scripts/smoke.mjs",
     "vscode:prepublish": "npm run compile",
     "package": "npm run verify && vsce package --out peoplesoft-studio.vsix",
-    "verify": "npm run compile && npm test && npm run smoke && npm run test:peoplecode-editor && npm run test:application-packages",
+    "verify": "npm run compile && npm test && npm run smoke && npm run test:peoplecode-editor && npm run test:application-packages && npm run test:process-runtime",
     "dev": "npm run package && code --install-extension peoplesoft-studio.vsix --force",
     "corpus": "tsc -p . && node scripts/corpus-peoplecode.mjs",
     "corpus:harness": "tsx tools/corpus/cli.ts",

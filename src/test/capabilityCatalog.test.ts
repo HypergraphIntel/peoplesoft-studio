@@ -15,7 +15,7 @@ test('catalog covers every modeled type exactly once and exposes bounded operati
   assert.equal(query.operations.edit.session, 'WRITE_HOST_REQUIRED');
   assert.deepEqual([query.operations.delete.status, query.operations.delete.tools, query.operations.rename.tools], ['BOUNDED', ['psft_query_delete'], ['psft_query_rename']]);
   const process = entries.find(entry => entry.type === DefinitionType.ProcessDefinition)!;
-  assert.equal(process.operations.execute.status, 'NOT_EXPOSED');
+  assert.deepEqual(process.operations.execute.tools, ['psft_process_prepare_run', 'psft_process_submit_run']);
   assert.deepEqual([process.operations.create.status, process.operations.create.tools], ['BOUNDED', ['psft_process_create']]);
   assert.equal(process.operations.delete.status, 'NOT_EXPOSED');
 });

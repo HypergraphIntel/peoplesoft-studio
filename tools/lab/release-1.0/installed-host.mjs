@@ -1,0 +1,31 @@
+/** Isolated normal-host upgrade qualification; never reloads the developer's window. */
+import {execFile} from 'node:child_process';import {promisify} from 'node:util';import {mkdtempSync,mkdirSync,readFileSync,writeFileSync,readdirSync,copyFileSync} from 'node:fs';import os from 'node:os';import path from 'node:path';import {createHash,randomBytes} from 'node:crypto';import {createServer} from 'node:net';
+const exec=promisify(execFile),root=process.cwd();if(!process.env.PSLAB_ACCESSID||!process.env.PSLAB_ACCESSPSWD)throw Error('HRDMO lab credentials required.');
+const dir=mkdtempSync(path.join(os.tmpdir(),'psft-v1-upgrade-')),artifacts=path.resolve('tools/lab/results/release-1.0');mkdirSync(artifacts,{recursive:true});
+writeFileSync('/tmp/psft-v1-upgrade-location',dir);
+const env={...process.env};for(const key of Object.keys(env))if(key.startsWith('VSCODE_')||key==='ELECTRON_RUN_AS_NODE')delete env[key];delete env.WAYLAND_DISPLAY;env.XDG_SESSION_TYPE='x11';
+const hash=f=>createHash('sha256').update(readFileSync(f)).digest('hex'),candidate=path.join(dir,'candidate.vsix');
+if(process.env.PSFT_CANDIDATE_VSIX)copyFileSync(process.env.PSFT_CANDIDATE_VSIX,candidate);else await exec(path.join(root,'node_modules/.bin/vsce'),['package','--out',candidate],{cwd:root,env,maxBuffer:4e6});
+await exec('gh',['release','download','v0.9.7','--pattern','*.vsix','--dir',dir],{cwd:root,env,maxBuffer:1e6});
+const old=path.join(dir,'peoplesoft-studio-0.9.7.vsix'),version=JSON.parse(readFileSync('package.json','utf8')).version;
+const user=path.join(dir,'user'),extensions=path.join(dir,'extensions'),workspace=path.join(dir,'workspace'),driver=path.join(extensions,'psft-tests.v1-qualification-driver-0.0.1'),seed=path.join(dir,'seed.json');
+for(const p of [path.join(user,'User'),workspace,driver])mkdirSync(p,{recursive:true});
+const port=async()=>{const s=createServer();await new Promise(r=>s.listen(0,'127.0.0.1',r));const n=s.address().port;await new Promise(r=>s.close(r));return n;};
+const mcpPort=await port(),connection={name:'HRDMO 1.0 qualification',kind:'oracle',connectString:process.env.PSLAB_ORACLE??'127.0.0.1:15210/HRDMO',user:process.env.PSLAB_ACCESSID,peoplecodeAccess:'writable',peoplesoftOperatorId:'JARED'};
+const settings=path.join(user,'User/settings.json');writeFileSync(settings,JSON.stringify({'files.autoSave':'off','files.hotExit':'onExitAndWindowClose','window.restoreWindows':'all','workbench.startupEditor':'none','security.workspace.trust.enabled':false,'update.mode':'none','extensions.autoCheckUpdates':false,'extensions.autoUpdate':false,'chat.disableAIFeatures':true,'peoplesoft.connections':[connection],'peoplesoft.mcp.enabled':true,'peoplesoft.mcp.port':mcpPort,'peoplesoft.mcp.writes':'confirm','peoplesoft.writeNamePrefix':'ZZ_V1_','window.dialogStyle':'custom','peoplesoft.peoplecode.validateAsYouType':false}));
+writeFileSync(path.join(driver,'package.json'),JSON.stringify({name:'v1-qualification-driver',publisher:'psft-tests',version:'0.0.1',engines:{vscode:'^1.90.0'},activationEvents:['onStartupFinished'],main:'./driver.cjs'}));
+writeFileSync(path.join(driver,'driver.cjs'),`exports.activate=()=>{void require(${JSON.stringify(path.join(root,'tools/lab/release-1.0/installed-driver.cjs'))}).run().catch(e=>console.error(e)).finally(()=>require('vscode').commands.executeCommand('workbench.action.quit'))};`);
+const name='ZZ_V1_'+randomBytes(5).toString('hex').toUpperCase(),results={at:new Date().toISOString(),scope:'Isolated Linux normal installed VS Code; published 0.9.7 to current candidate; real SecretStorage and native HRDMO SQL writers via rendered review',name,phases:[],candidateVsix:candidate,candidateSha256:hash(candidate),oldAssetSha256:hash(old)};
+for(const phase of ['seed','upgrade','reload']){
+ console.log('Starting '+phase+' in '+dir);const expectedVersion=phase==='seed'?'0.9.7':version;
+ if(phase!=='reload')await exec('code',['--install-extension',phase==='seed'?old:candidate,'--force','--extensions-dir',extensions,'--user-data-dir',user],{env,maxBuffer:2e6});
+ const installed=path.join(extensions,readdirSync(extensions).find(n=>n.toLowerCase()==='jarednorris.peoplesoft-studio-'+expectedVersion.toLowerCase()));
+ const manifestBytes=readFileSync(path.join(installed,'package.json')),bundleHash=hash(path.join(installed,'dist/extension.js')),workerHash=hash(path.join(installed,'dist/validateWorker.js'));
+ const cdpPort=await port(),input=path.join(dir,phase+'-input.json'),result=path.join(dir,phase+'-result.json');writeFileSync(input,JSON.stringify({root,phase,seed,name,candidate:installed,expectedVersion,settings,connection,cdpUrl:'http://127.0.0.1:'+cdpPort,mcpUrl:'http://127.0.0.1:'+mcpPort+'/mcp',artifactDirectory:artifacts}),{mode:0o600});
+ const host=exec('xvfb-run',['-a','-s','-screen 0 1600x1100x24','/usr/share/code/code','--ozone-platform=x11','--no-sandbox','--disable-gpu','--disable-workspace-trust','--skip-welcome','--skip-release-notes','--new-window','--remote-debugging-port='+cdpPort,'--remote-debugging-address=127.0.0.1','--user-data-dir',user,'--extensions-dir',extensions,workspace],{cwd:root,env:{...env,PSFT_V1_INPUT:input,PSFT_V1_RESULT:result},detached:true,maxBuffer:4e6});
+ const timer=setTimeout(()=>{try{process.kill(-host.child.pid,'SIGTERM');}catch{}},600000);let error;try{await host;}catch(e){error=e;}finally{clearTimeout(timer);}
+ let r;try{r=JSON.parse(readFileSync(result,'utf8'));}catch{r={phase,passed:false,error:'Host terminated without a result'};}
+ r.backups=readdirSync(path.join(user,'Backups'),{recursive:true}).filter(f=>typeof f==='string');r.integrity={manifestUnmodified:readFileSync(path.join(installed,'package.json')).equals(manifestBytes),bundleUnmodified:hash(path.join(installed,'dist/extension.js'))===bundleHash,workerUnmodified:hash(path.join(installed,'dist/validateWorker.js'))===workerHash};r.passed&&=Object.values(r.integrity).every(Boolean);results.phases.push(r);results.passed=results.phases.length===3&&results.phases.every(p=>p.passed);
+ writeFileSync(path.join(artifacts,'linux-upgrade.json'),JSON.stringify(results,null,2)+'\n');if(error||!r.passed)throw Error('Installed '+phase+' failed: '+(r.error??'see private host log')+'; '+dir);
+}
+console.log(JSON.stringify(results,null,2));

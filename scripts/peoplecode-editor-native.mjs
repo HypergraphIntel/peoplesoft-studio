@@ -20,7 +20,7 @@ mkdirSync(path.dirname(report), { recursive: true });
 const hash = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
 try {
   const vsix = path.join(dir, 'candidate.vsix');
-  await exec(path.join(root, 'node_modules/.bin/vsce'), ['package', '--out', vsix], { cwd: root, maxBuffer: 4e6 });
+  if(process.env.PSFT_CANDIDATE_VSIX)copyFileSync(process.env.PSFT_CANDIDATE_VSIX,vsix);else await exec(path.join(root, 'node_modules/.bin/vsce'), ['package', '--out', vsix], { cwd: root, maxBuffer: 4e6 });
   const extensions = path.join(dir, 'extensions');
   await exec('code', ['--install-extension', vsix, '--force', '--extensions-dir', extensions, '--user-data-dir', path.join(dir, 'user')], { maxBuffer: 2e6 });
   const candidate = path.join(extensions, readdirSync(extensions).find((x) => x.toLowerCase().startsWith('jarednorris.peoplesoft-studio-')));

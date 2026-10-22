@@ -1,3 +1,4 @@
+import {RELEASE_SUPPORT,connectionReleaseSupport} from '../model/releaseSupport.js';
 import type { ConnectionConfig } from '../workspace.js';
 import type { EnvironmentInfo } from '../providers/provider.js';
 import { isDatabaseKind } from '../db/open.js';
@@ -149,6 +150,7 @@ export class SettingsService implements Disposable {
     this.prune(entries);
 
     return {
+      releaseSupport: RELEASE_SUPPORT,
       connections: entries.map((entry) => this.connectionView(entry, selectedId)),
       ...(selectedId !== undefined ? { selectedConnectionId: selectedId } : {}),
       connectionsSource: sourceOf(this.config.inspect('connections')),
@@ -260,6 +262,7 @@ export class SettingsService implements Disposable {
       selected: entry.id === selectedId,
       access: describeAccess(config),
       environment: this.environmentOf(entry),
+      releaseSupport: connectionReleaseSupport(config.kind,this.environmentOf(entry)),
       ...(isDatabaseKind(config.kind)
         ? { decoder: effectiveDecoder(config, this.defaultDecoder()), peoplecodeWrite: peoplecodeWriteSettings(config) }
         : {}),

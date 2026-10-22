@@ -140,6 +140,10 @@ export class AeDesignerPanel {
         }
         case 'undo': s.undo(); await AeDesignerPanel.post(open); return;
         case 'redo': s.redo(); await AeDesignerPanel.post(open); return;
+        case 'run': {
+          if (s.dirty || s.token === 'absent') throw new Error('Save the App Engine program before running.');
+          await vscode.commands.executeCommand('psft.process.run', open.host.connection.id, s.doc.name); return;
+        }
         case 'save': await AeDesignerPanel.save(open); return;
         case 'preview': {
           if (!open.host.save) return;
@@ -293,7 +297,7 @@ async function askProgramName(title: string, value: string): Promise<string | un
 
 type Message =
   | { type: 'saveAs' } | { type: 'rename' } | { type: 'delete' }
-  | { type: 'ready' } | { type: 'undo' } | { type: 'redo' } | { type: 'save' } | { type: 'preview' } | { type: 'reload' } | { type: 'validate' }
+  | { type: 'run' } | { type: 'ready' } | { type: 'undo' } | { type: 'redo' } | { type: 'save' } | { type: 'preview' } | { type: 'reload' } | { type: 'validate' }
   | { type: 'op'; op: AeOp }
   | { type: 'openText'; ref: { section: string; variant?: AeVariantKey; step: string }; action: ActionType }
   | { type: 'copy'; ref: { section: string; variant?: AeVariantKey; step: string } }

@@ -40,9 +40,31 @@ authorization.
   optional `dryRun`. Preview and actual save use the existing editor writer.
 
 Only existing definitions can be edited; Oracle saves preserve the calibrated
-counter, reference and readback checks. No scheduling, execution, creation,
-rename, copy or deletion is exposed. Component/group arrays are complete
+counter, reference and readback checks. These metadata tools do not schedule or execute a process. Definition creation has a separate `psft_process_create` workflow; rename, copy and deletion are not exposed here. Component/group arrays are complete
 replacement associations; omitted stored associations are removed.
+
+## Process Scheduler runtime (0.9.8 development)
+
+The Run and Monitor UI configures separate native operator sign-in. On Oracle
+PeopleTools 8.62, the runtime tools expose choices, preparation, submission,
+local history, status and native report access:
+`psft_process_runtime_reference`, `psft_process_runtime_choices`,
+`psft_process_prepare_run`, `psft_process_submit_run`, `psft_process_run_list`,
+`psft_process_run_status`, `psft_process_run_reports`, `psft_process_report_read`.
+
+Prepare writes only a local five-minute confirmation. Submit always asks the
+trusted VS Code approval service, including when MCP writes is `allow`.
+Writable, clean-editor, native baseline and request-cancellation checks repeat
+before the single native scheduling attempt. Runtime effects are not reversible
+Change Review metadata. Uncertain outcomes require explicit native-instance
+reconciliation and never trigger replay. Report downloads retain native report
+permission checks and use bounded HTTPS access and transient same-origin
+repository sign-in cookies. Unsupported browser/MFA flows open in PeopleSoft.
+
+Fixture-backed protocol, rendered UI and HTTP checks pass. A real installed
+scheduler run and exact output remain **pending** because HRDMO's public
+proxy forwards to Integration Gateway over HTTP and its native security rejects
+the transport. See [runtime progress and exact limits](PROCESS_SCHEDULER_RUNTIME.md).
 
 ## PS Query
 

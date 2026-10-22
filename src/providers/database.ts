@@ -1,3 +1,5 @@
+import {readRuntimeMetadata, runtimeBaseline} from './processRuntimeReader.js';
+import type {RuntimeRequest} from '../processRuntime/protocol.js';
 import { readQueryMigration } from './queryWriter.js';
 import { readMenuMigration } from './menuMigration.js';
 import { readContentMigration } from './contentMigration.js';
@@ -1922,6 +1924,16 @@ export class DatabaseProvider implements DefinitionProvider {
 
   async listIntegrationBroker(kind: IbKind, query = '', offset = 0, serviceKind?: 'standard' | 'rest', restRole?: 'consumer' | 'provider') {
     return this.withConnection(c => listIb(c, this.types, kind, query, offset, serviceKind, restRole));
+  }
+
+  async readProcessRuntimeMetadata(operatorId: string) {
+    if (this.platform !== 'oracle') throw new ProviderError('Process runtime metadata is currently supported on Oracle.');
+    return this.withConnection(c => readRuntimeMetadata(c, this.types, operatorId));
+  }
+
+  async readProcessRuntimeBaseline(operatorId: string, request: RuntimeRequest) {
+    if (this.platform !== 'oracle') throw new ProviderError('Process runtime metadata is currently supported on Oracle.');
+    return this.withConnection(c => runtimeBaseline(c, this.types, operatorId, request));
   }
 
   async readIntegrationBroker(kind: IbKind, key: string[]) {

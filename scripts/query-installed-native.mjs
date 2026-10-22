@@ -19,7 +19,7 @@ for (const key of Object.keys(env)) if (key.startsWith('VSCODE_') || key === 'EL
 delete env.WAYLAND_DISPLAY; env.XDG_SESSION_TYPE = 'x11';
 const vsix = path.join(dir, 'candidate.vsix'), extensions = path.join(dir, 'extensions'), user = path.join(dir, 'user');
 console.log('Packaging Query acceptance candidate: ' + dir);
-await exec(path.join(root, 'node_modules/.bin/vsce'), ['package', '--out', vsix], { cwd: root, maxBuffer: 4e6, env });
+if(process.env.PSFT_CANDIDATE_VSIX)copyFileSync(process.env.PSFT_CANDIDATE_VSIX,vsix);else await exec(path.join(root, 'node_modules/.bin/vsce'), ['package', '--out', vsix], { cwd: root, maxBuffer: 4e6, env });
 await exec('code', ['--install-extension', vsix, '--force', '--extensions-dir', extensions, '--user-data-dir', user], { maxBuffer: 2e6, env });
 const candidate = path.join(extensions, readdirSync(extensions).find(x => x.toLowerCase().startsWith('jarednorris.peoplesoft-studio-')));
 const manifestPath = path.join(candidate, 'package.json'), manifestBytes = readFileSync(manifestPath);

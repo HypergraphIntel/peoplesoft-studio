@@ -1,3 +1,5 @@
+import {chromiumExecutable} from './chromium.mjs';
+import {pathToFileURL} from 'node:url';
 /** Production package panel and message boundary with controlled hosts; no native-save claim. */
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
@@ -95,9 +97,9 @@ try {
     html = html.replace('<script nonce="browser-check">', mock + '<script nonce="browser-check">').replace('</body>', run + '</body>');
     const file = path.join(dir, 'package.html'); writeFileSync(file, html);
     const artifact = path.resolve('tools/lab/results/application-package-panel.png'); mkdirSync(path.dirname(artifact), { recursive: true });
-    const { stdout } = await promisify(execFile)('chromium', ['--headless', '--no-sandbox', '--disable-gpu', '--no-first-run', '--disable-background-networking',
-      '--user-data-dir=' + path.join(dir, 'chromium'), '--window-size=1200,850', '--screenshot=' + artifact, '--dump-dom', 'file://' + file], { timeout: 30000, maxBuffer: 2_000_000 });
+    const { stdout } = await promisify(execFile)(await chromiumExecutable(), ['--headless','--disable-crash-reporter', '--no-sandbox', '--disable-gpu', '--no-first-run', '--disable-background-networking',
+      '--user-data-dir=' + path.join(dir, 'chromium'), '--window-size=1200,850', '--screenshot=' + artifact, '--dump-dom', pathToFileURL(file).href], { timeout: 30000, maxBuffer: 2_000_000 });
     assert.match(stdout, /data-browser-result="passed"/);
   });
   panel.dispose(); console.log(`${checks} production package panel checks passed.`);
-} finally { Module._load = original; rmSync(dir, { recursive: true, force: true }); }
+} finally { Module._load = original; rmSync(dir, { recursive: true, force: true, maxRetries: 6, retryDelay: 100 }); }

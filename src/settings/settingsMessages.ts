@@ -1,3 +1,4 @@
+import type {ReleaseSupport,RELEASE_SUPPORT} from '../model/releaseSupport.js';
 import type {
   ConnectionAccess, ConnectionEdit, ConnectionOption, DecoderMode, EditableSettingKey, EnumOption, EnvironmentView,
   PeopleCodeAccess, PeopleCodeSaveMode,
@@ -50,6 +51,7 @@ export interface ConnectionView {
   name: string;
   kind: 'oracle' | 'mssql' | 'db2' | 'projectFile';
   kindLabel: string;
+  releaseSupport: ReleaseSupport;
   /**
    * The sign-on: `twoTier` labels the database login as a proxy; `threeTier`
    * is an application-server connection and the page shows its app-server
@@ -85,8 +87,7 @@ export interface ConnectionView {
   decoder?: { value: DecoderMode; inherited: boolean };
   /**
    * Whether PeopleCode may be saved back to this database, and how (Oracle
-   * only). A permission for the save path: PeopleCode saving itself is not
-   * implemented yet, so PeopleCode still opens read-only either way.
+   * only). A permission for the supported compiler/writer path; unsupported programs remain read-only.
    */
   peoplecodeWrite?: { access: PeopleCodeAccess; saveMode: PeopleCodeSaveMode; operatorId: string };
   test?: ConnectionTestView;
@@ -100,6 +101,7 @@ export interface McpView {
 }
 
 export interface SettingsState {
+  releaseSupport: typeof RELEASE_SUPPORT;
   connections: ConnectionView[];
   /** The workspace's selectedConnectionId, which may name a connection no longer configured. */
   selectedConnectionId?: string;

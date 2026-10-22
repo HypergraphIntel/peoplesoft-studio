@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "PeopleSoft SQL",
+  "scopeName": "source.psft.sql",
+  "patterns": [
+    { "name": "comment.line.double-dash.sql", "begin": "--", "end": "$" },
+    { "name": "comment.block.sql", "begin": "/\\*", "end": "\\*/" },
+    { "name": "string.quoted.single.sql", "begin": "'", "end": "'", "patterns": [{ "match": "''", "name": "constant.character.escape.sql" }] },
+    { "name": "string.quoted.double.sql", "begin": "\"", "end": "\"", "patterns": [{ "match": "\"\"", "name": "constant.character.escape.sql" }] },
+    { "name": "support.function.meta-sql", "match": "%[A-Za-z_][A-Za-z_0-9]*" },
+    { "name": "variable.parameter.sql", "match": ":[A-Za-z_0-9]+" },
+    { "name": "keyword.other.sql", "match": "(?i)\\b(select|from|where|join|inner|outer|left|right|full|cross|on|as|and|or|not|null|is|in|exists|between|like|escape|distinct|all|union|intersect|except|minus|order|by|group|having|asc|desc|insert|into|values|update|set|delete|merge|using|when|matched|then|create|alter|drop|table|view|index|with|case|else|end|over|partition|rows|range|unbounded|preceding|following|current|row|fetch|first|next|only|offset|for|of|commit|rollback)\\b" },
+    { "name": "support.function.sql", "match": "(?i)\\b(count|sum|avg|min|max|coalesce|nullif|cast|convert|nvl|decode|substr|substring|trim|upper|lower|length|round|trunc|to_char|to_date|to_number|row_number|rank|dense_rank)\\b" },
+    { "name": "constant.numeric.sql", "match": "\\b[0-9]+(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?\\b" },
+    { "name": "keyword.operator.sql", "match": "<>|!=|<=|>=|\\|\\||[=<>+*/-]" }
+  ]
+}

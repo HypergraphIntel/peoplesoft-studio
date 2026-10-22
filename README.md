@@ -133,6 +133,15 @@ definitions, outages or any other damage.
    The URL uses the port in the `peoplesoft.mcp.port` setting (7337 by
    default). Restart or reload the client if it was already running.
 
+## 1.0 support qualification
+
+The primary qualification profile is **Oracle / PeopleTools 8.62.09**, with
+**Linux x64 and Windows x64** core clients. Qualification is in progress;
+[the support contract](docs/SUPPORT_MATRIX.md) separates core scope from
+completed native/installed evidence, preview features and planned workflows.
+Settings and the MCP capability catalog expose the same release-support model.
+Run and Monitor remains preview with Low-priority native acceptance deferred.
+
 ## What works now
 
 Goal long-term: replace Application Designer. **Today it reads many common definition types and edits the supported kinds below** -- PeopleCode, records, fields, pages, components, App Engine, menus, Component Interfaces, message channels, SQL, HTML, style sheets, translates, projects and a bounded PS Query workflow. Saving is experimental. The tables distinguish working editors from read-only viewers and features still planned.
@@ -238,7 +247,7 @@ reproducing App Designer's saves; **Read-only** = viewer, from the database;
 | **Message Channels** | Experimental | App Designer's Message Channel window — see [docs/MESSAGE_CHANNELS.md](docs/MESSAGE_CHANNELS.md) |
 | **Pages** (Page designer) | Experimental | App Designer's visual **Layout** view and Order grid. Every control type has its own App Designer property panel (Record / Label / Use / General / Fluid / Image / Options tabs as they apply). On Writable connections: move, resize, delete, relabel, select/group, Copy / Paste, set tab Order, insert controls (Frame, Group Box, Horizontal Rule, Static Text, Static Image, Check Box, Drop Down, Edit Box, Long Edit Box, Radio Button, HTML Area, Push Button), edit each control's captured properties (label, style, use bits, on/off values, record rebind, Allow Deferred Processing, grid/scroll Occurs Count and grid display flags, Page Field Name, anchor, Fluid), Page Properties (General / Use / Fluid), Custom page size, **New Page / New Page Fluid**, and **Page PeopleCode** — all saved as App Designer saves it. See [docs/PAGES_COMPONENTS_MENUS.md](docs/PAGES_COMPONENTS_MENUS.md) and [docs/PAGE_SAVE.md](docs/PAGE_SAVE.md) |
 | **Portal Registry** | Experimental | Select a portal, browse its Structure & Content tree, create folders and component/external content references, and edit properties, parent, sequence and security through the UI or MCP — see [docs/PORTAL_REGISTRY.md](docs/PORTAL_REGISTRY.md) |
-| **Process Definitions** | View / Edit (Oracle) | Tabbed editor and MCP read/edit/rollback preview for scheduling defaults, overrides, output, recovery, components and process groups; no process scheduling or execution — see [docs/PROCESS_DEFINITIONS.md](docs/PROCESS_DEFINITIONS.md) |
+| **Process Definitions** | View / Edit (Oracle) | Tabbed editor and MCP read/edit/rollback preview for scheduling defaults, overrides, output, recovery, components and process groups; App Engine Run and Monitor is in development, with native acceptance pending — see [runtime scope](docs/PROCESS_SCHEDULER_RUNTIME.md) and [definition editing](docs/PROCESS_DEFINITIONS.md) |
 | **Queries** (Windows PS Query workflow) | Experimental | **Open PS Query** / **New PS Query**, also Configuration Tools > PS Query. Oracle / PeopleTools 8.62.09: create, edit, save and Save As with joins (standard, left outer, related record), every criteria operator with prompts, number and date fields, IN/EXISTS subqueries, unions, aggregates with HAVING and DISTINCT, expression columns, translates and effective dating, matching Windows Query's saved rows and SQL. 8.61.15: one record, character fields and at most one equal-to criterion. Headings, ordering, SQL and bounded read-only results with Query access checks. MCP exposes the same operations plus review-only delete and rename. Unsupported shapes remain readable, with a reason saving/running is refused — see [docs/PS_QUERY_WINDOWS.md](docs/PS_QUERY_WINDOWS.md) |
 | **Saving PeopleCode** | Experimental | Writable connections: compile and save, create an event or class that has no program yet, clear a program to delete it — see [Saving PeopleCode](#saving-peoplecode-experimental) |
 | **Configuration Tools** and **Data Migration Tools** panes | Partial | **PS Query**, **Process Definitions**, **Page and Field Configurator**, **Event Mapping** and **Drop Zones** open working editors. Customization Strategy also exposes configuration actions. Administration opens Message Catalog, Text Catalog and URL editors; Portal Registry opens a portal picker and editable Structure & Content tree. Integration Broker opens six searchable editors with New, Preview and Save. Security opens OAuth configuration and legacy inbound SAML inspection. Data Mover Scripts creates script templates, and Import Migration Package opens the existing guarded UI workflow; Data Migration Workbench remains *Coming soon* |
@@ -256,7 +265,7 @@ reproducing App Designer's saves; **Read-only** = viewer, from the database;
 - Editing record shapes and settings no App Designer save has been captured for (see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md))
 - Register Menu Item (portal registration) and menu translations
 - Component Interfaces: Test Component Interface, Java / C templates, CI references
-- Running App Engine programs (the designer and the MCP read, write and validate definitions; they never run them)
+- Accepted Studio scheduler execution: Run and Monitor is implemented as preview; its native submission/report acceptance remains deferred and unverified (see [runtime scope](docs/PROCESS_SCHEDULER_RUNTIME.md))
 - In the component editor: Default Search Action, the search-page link message numbers, the Custom style lists; component edits through the MCP
 - Build: Alter and Create Indexes/Views on SQL Server and DB2, views using rarer meta-SQL (%DatePart, %Join, %DateAdd ...), column type changes and the other uncaptured Alter cases listed in docs/RECORD_SAVE.md; migration of definition families outside the supported Studio package adapters
 - A full language server: compile diagnostics as you type come from Studio's compiler, with field references, functions and definition references (Record.X, Page.X, SQL.X ...) checked against the environment, F12 resolves supported definition references, application class paths and declared functions, and completion covers keywords, the known built-in function catalog, the file's own names, connected record fields and application-class own/inherited members. Broader language tooling remains open.

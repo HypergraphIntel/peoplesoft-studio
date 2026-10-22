@@ -21,7 +21,7 @@ export function registerProcessTools(server: McpServer, workspace: Workspace, ho
     inputSchema: z.object({}), annotations: READ_ONLY
   }, async () => jsonResult({ key: ['process type', 'process name'], fields: PROCESS_FIELDS,
     workflow: 'Find type 20 with psft_search_definitions, read psft_process_get, edit its input, preview with dryRun, then save with the original token. Read back after saving.',
-    limits: ['Edit existing definitions on Oracle; psft_process_create adds new ones as the PRCSDEFN component\'s Add mode does. No copy, rename, delete, schedule or execution.', 'Supply the complete input; omitted components/groups are removed.', 'Choices are installed PSXLATITEM values returned by get. Reference and server/category checks run in the shared writer.', 'dryRun uses the same transactional save and verification, then rolls back. Its returned token is hypothetical; keep the original token for the actual save.'],
+    limits: ['Edit existing definitions on Oracle; psft_process_create adds new ones as the PRCSDEFN component\'s Add mode does. No metadata copy, rename or delete. Native runtime is a separate workflow: psft_process_runtime_reference.', 'Supply the complete input; omitted components/groups are removed.', 'Choices are installed PSXLATITEM values returned by get. Reference and server/category checks run in the shared writer.', 'dryRun uses the same transactional save and verification, then rolls back. Its returned token is hypothetical; keep the original token for the actual save.'],
     evidence: ['docs/PROCESS_DEFINITIONS.md', 'src/providers/processWriter.ts'] }));
 
   server.registerTool('psft_process_get', {

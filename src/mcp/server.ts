@@ -1,3 +1,4 @@
+import {registerProcessRuntimeTools} from './processRuntimeTools.js';
 import type { ReviewService } from '../changeReview/service.js';
 import { registerChangeReviewTools } from './changeReviewTools.js';
 import { routeReviewedMutations, REVIEWED_MUTATION_TOOLS } from './reviewRouting.js';
@@ -266,6 +267,7 @@ export async function startPeopleSoftMcpServer(
         registerAdministrationTools(server, workspace, writeHost);
         registerSecurityTools(server, workspace, writeHost);
         registerProcessTools(server, workspace, writeHost);
+        registerProcessRuntimeTools(server, writeHost);
         registerQueryTools(server, workspace, writeHost);
         registerIbTools(server, workspace, writeHost);
         registerPortalTools(server, workspace, writeHost);

@@ -1200,6 +1200,8 @@ try{
      ui._receive({action:'apply',id,revision:ready.revision});await until(async()=>['APPLIED','CONFLICTED','FAILED'].includes((await reviewService.store.get(id)).status));assert.equal((await reviewService.store.get(id)).status,'APPLIED');};
    await apply(staged.changeSetId);assert.equal((await provider.readIbDefinitionForReview(identity,true)).hash,after.hash);
    const inverse=await reviewCall('psft_prepare_revert',{changeSetId:staged.changeSetId});await apply(inverse.id);assert.equal((await provider.readIbDefinitionForReview(identity,true)).value,null);
+   // The inverse becomes APPLIED before its forward-history bookkeeping finishes.
+   await until(async()=>(await reviewService.store.get(staged.changeSetId)).status==='REVERTED');
    const redo=await reviewCall('psft_prepare_redo',{changeSetId:staged.changeSetId});await apply(redo.id);assert.equal((await provider.readIbDefinitionForReview(identity,true)).hash,after.hash);
    const checkpoint=await reviewCall('psft_ib_definition_get',{connection:'FIXTURE',...identity});
    const deletion=await reviewCall('psft_ib_delete',{connection:'FIXTURE',...identity,expectedToken:checkpoint.token});assert.equal(deletion.persisted,false);

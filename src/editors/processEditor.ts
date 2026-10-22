@@ -81,6 +81,10 @@ export class ProcessEditorProvider implements vscode.CustomEditorProvider<Proces
           if(JSON.stringify(before)===JSON.stringify(after))return;
           doc.edit=after;
           this.changed.fire({document:doc,label:'Edit process definition',undo:async()=>{doc.edit=structuredClone(before);await this.paint(doc);},redo:async()=>{doc.edit=structuredClone(after);await this.paint(doc);}});
+        }else if(message.type==='run'){
+          if(doc.dirty||doc.saving)throw new Error('Save or revert the process definition before running.');
+          if(doc.key.parts[0]!=='Application Engine')throw new Error('Run and Monitor currently supports Application Engine processes.');
+          await vscode.commands.executeCommand('psft.process.run',doc.provider.id,doc.key.parts[1]);
         }else if(message.type==='save'){
           // Run after this message queue has drained, since Save awaits queued edits.
           void vscode.commands.executeCommand('workbench.action.files.save');
