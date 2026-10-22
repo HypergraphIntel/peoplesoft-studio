@@ -113,8 +113,9 @@ EFFDT uses `effectiveDate` (<=), `effectiveDateNotLess` (>=),
 `effectiveDateLess` (<) or `effectiveDateGreater` (>) with `currentDate`, or
 `firstEffectiveDate` / `lastEffectiveDate` with no operand. Row security
 combined with joins, translates, subqueries or unions, nested
-subqueries with unions and effective-dated subquery and union records remain
-refused (nested subqueries are supported); see docs/PS_QUERY_WINDOWS.md.
+subqueries inside a union's select, adding a union to a query with subqueries
+and effective-dated subquery and union records remain refused (nested
+subqueries and top-level subqueries beside a union are supported); see docs/PS_QUERY_WINDOWS.md.
 
 Both save previews execute the shared transactional writer and readback, then
 roll back. They still require writable access and valid write configuration,

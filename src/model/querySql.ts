@@ -63,7 +63,6 @@ export function compileQuerySql(view: QueryView, context: QuerySqlContext): Quer
     : number(sel.SELECTTYPE) === 2 && number(sel.PARENTSELNUM) >= 1 && number(sel.PARENTSELNUM) <= i && [1,2].includes(number(selects[number(sel.PARENTSELNUM)-1].SELECTTYPE));
   if (!selects.length || selects.some((sel,i) => number(sel.SELNUM) !== i+1 || (i ? !parentOk(sel,i)
     : number(sel.SELECTTYPE) !== 1 || number(sel.PARENTSELNUM)))) refuse('Only a top-level select with subqueries (nested ones included) or unions is calibrated.');
-  if (selects.some(sel => number(sel.SELECTTYPE) === 2) && selects.some(sel => number(sel.SELECTTYPE) === 3)) refuse('Subqueries together with unions are not calibrated.');
   const typeOfSelect = (sel: unknown) => number(selects.find(x => number(x.SELNUM) === number(sel))?.SELECTTYPE);
   const recordRows = (sel: unknown) => view.records.filter(r => number(r.SELNUM) === number(sel)).sort((a,b) => number(a.RCDNUM)-number(b.RCDNUM));
   const sources = view.records.map(record => {

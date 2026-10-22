@@ -5,7 +5,7 @@ import { z } from 'zod';
 /**
  * Field operations calibrated with Windows Query saves qry01–qry13; typed criteria with qcr01–qcr10
  * and qnm01–qnm04; joins qjn01–qjn04; aggregates, HAVING and DISTINCT qag01–qag05; expressions
- * qex01–qex03; subqueries qsq01–qsq02; unions qun01; translates and base effective dating qxl01–qxl02; effective-date operators qed01–qed06.
+ * qex01–qex03; subqueries qsq01–qsq04; unions qun01; translates and base effective dating qxl01–qxl02; effective-date operators qed01–qed06.
  */
 export interface QueryFieldInfo {
   type: number;
@@ -161,9 +161,8 @@ function checkShape(view: QueryView): void {
   const parentOk=(sel: Row, i: number)=>n(sel.SELECTTYPE)===3 ? n(sel.PARENTSELNUM)===1
     : n(sel.SELECTTYPE)===2 && n(sel.PARENTSELNUM)>=1 && n(sel.PARENTSELNUM)<=i && [1,2].includes(n(sels[n(sel.PARENTSELNUM)-1].SELECTTYPE));
   if (!sels.length || sels.some((sel,i)=>n(sel.SELNUM)!==i+1 || (i ? !parentOk(sel,i) : n(sel.SELECTTYPE)!==1 || n(sel.PARENTSELNUM)))
-    || sels.some(sel=>view.records.filter(r=>n(r.SELNUM)===n(sel.SELNUM)).some((r,i)=>n(r.RCDNUM)!==i+1) || !view.records.some(r=>n(r.SELNUM)===n(sel.SELNUM)))
-    || sels.some(sel=>n(sel.SELECTTYPE)===2) && sels.some(sel=>n(sel.SELECTTYPE)===3)) {
-    throw new QueryUnsupportedError('Editing is calibrated for a top-level select with its subqueries or unions (not both).');
+    || sels.some(sel=>view.records.filter(r=>n(r.SELNUM)===n(sel.SELNUM)).some((r,i)=>n(r.RCDNUM)!==i+1) || !view.records.some(r=>n(r.SELNUM)===n(sel.SELNUM)))) {
+    throw new QueryUnsupportedError('Editing is calibrated for a top-level select with its subqueries (nested ones included) and unions.');
   }
 }
 
@@ -545,7 +544,8 @@ function setCriteria(view: QueryView, specs: QueryCriterion[], meta: Meta, sel: 
     const info=meta.records[spec.record];
     if (!info) throw new Error(`Supply ${spec.record}'s fields to use it in a subquery.`);
     if (effectiveDated(info)) throw new QueryUnsupportedError('A subquery on an effective-dated record is not calibrated.');
-    if (view.selects.some(x=>n(x.SELECTTYPE)===3)) throw new QueryUnsupportedError('Subqueries in a query with unions are not calibrated.');
+    // qsq04: a top-level subquery in a query with a union is appended after the union's select; subqueries of a union's select are not calibrated.
+    if (n(view.selects.find(x=>n(x.SELNUM)===parent)?.SELECTTYPE)===3) throw new QueryUnsupportedError('Subqueries in a union\'s select are not calibrated.');
     const selnum=numbers.get(spec)!, oldSel=reused.get(spec);
     const oldRecord=oldSel ? snapshot.records.find(r=>n(r.SELNUM)===oldSel && n(r.RCDNUM)===1) : undefined;
     const alias=oldRecord && s(oldRecord.RECNAME)===spec.record && !view.records.some(r=>s(r.CORRNAME)===s(oldRecord.CORRNAME)) ? s(oldRecord.CORRNAME)

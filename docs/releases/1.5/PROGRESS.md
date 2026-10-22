@@ -14,7 +14,7 @@ nothing here is released.
 | V15-1 Package/class lifecycle | Implemented | HTTP/UI fixture, HRDMO previews and rolled-back native create/undo/redo of classes and packages | Installed developer apply/inverse/redo |
 | V15-2 Separate-environment promotion | Implemented | Unit tests, HTTP/UI fixture, HRDMO → HRDEV native trial (8 checks incl. undo/redo, conflicts, partial failure, alternate keys/In-Memory, message channels) | Installed UI promotion between two configured connections; class/subpackage metadata (no calibrated writer) |
 | V15-3 Business application acceptance + Windows AI handoff | Not started | — | — |
-| V15-4 Query/release/editor breadth | In progress | Row security (qrs01, qrs02); effective-date operators (qed01–qed06, [native](../../../tools/lab/results/query-effdt-native-2026-10-22.json)); HAVING OR (qhv01); date Min/Max (qag06); expression-column criteria (qex04); nested subqueries (qsq03) | 8.61 captures need HCDEV RDP (batched) |
+| V15-4 Query/release/editor breadth | In progress | Row security (qrs01, qrs02); effective-date operators (qed01–qed06, [native](../../../tools/lab/results/query-effdt-native-2026-10-22.json)); HAVING OR (qhv01); date Min/Max (qag06); expression-column criteria (qex04); nested subqueries (qsq03); subqueries beside unions (qsq04) | 8.61 captures need HCDEV RDP (batched) |
 | V15-5 Run and Monitor RT-L1–RT-L4 (Low) | Not started | — | Needs server maintenance (gateway TLS) |
 
 ## Batched installed acceptance (one developer session)
@@ -36,7 +36,5 @@ can share one Change Set, one inverse and one redo. Queue:
 
 ## Next action
 
-V15-4: Query families still refused on 8.62 (subqueries with
-unions) via
-Windows Query captures on the VM; then V15-3 business acceptance on
+V15-4: editor/language tooling and release items; then V15-3 business acceptance on
 ps-win-client; V15-5 gateway commands for the developer.

@@ -198,6 +198,13 @@ test('native nested subquery replays qsq03: existing subqueries keep their selec
   const {logical:_,...exists}=criteria[1];
   assert.deepEqual(describeQueryCriteria(dropped).criteria,[exists]);
 });
+test('native subquery in a union query replays qsq04: appended after the union select', () => {
+  const before=snapshot('qsq04-subquery-with-union','before'), after=snapshot('qsq04-subquery-with-union','after');
+  const criteria: QueryCriterion[]=[{field:'ESTABID',operator:'inList',value:{subquery:{record:'AAP_YEAR',field:'ESTABID'}}}];
+  assert.deepEqual(describeQueryCriteria(after).criteria,criteria);
+  compare(applyQueryOp(before,{kind:'criteria',criteria},records.AAP_TBL.fields,all),after,before,'qsq04');
+  assert.throws(()=>applyQueryOp(before,{kind:'criteria',select:2,criteria:[{field:'B.ESTABID',operator:'inList',value:{subquery:{record:'AAP_TBL',field:'ESTABID'}}}]},records.AAP_TBL.fields,all),/union's select/);
+});
 test('native union replays qun01', () => {
   compare(build('ZZ_QRY_UNION01','AAP_TBL',[{kind:'select',field:'ESTABID',selected:true},{kind:'union',record:'AAP_YEAR'},{kind:'select',field:'B.ESTABID',selected:true},
     {kind:'properties',description:'Union calibration',comments:''}]),snapshot('qun01-union','after'),undefined,'qun01');

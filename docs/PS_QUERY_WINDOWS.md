@@ -289,6 +289,7 @@ statement (whitespace aside) and the replay tests reproduce every row.
 | qag06-date-max | new AAP_YEAR query, ESTABID and START_DT with Aggregate Max | TTLTYPE 5 on the date (Sum is disabled for dates); `MAX( TO_CHAR(A.START_DT,'YYYY-MM-DD'))`, GROUP BY ESTABID; Windows' results equal Studio's run. With a WHERE criterion on the same field Windows also writes `MAX( A.START_DT) > ...` into WHERE, which Oracle rejects, so Studio refuses that combination |
 | qex04-expression-column-criterion | `_EXPR` New Criteria on the `A.FEMALE_GOAL * 2` column, equal to 0 | LCRTFLDNUM is the expression column's field row (FLDNUM 3, which now counts USECOUNT 1); the constant is a number expression (FIELDTYPE 2, LENGTH 0); `AND  A.FEMALE_GOAL * 2 = 0`; Windows' results equal Studio's run. Studio names the column `#1` (its expression number) |
 | qsq03-nested-subquery | `_SUB`: inside the IN subquery (B), B.ESTABID in list Subquery (AAP_YEAR ESTABID) | the nested select is appended as SELNUM 4, PARENTSELNUM 2, alias D; the existing subqueries keep 2/B and 3/C; `... FROM PS_AAP_TBL B WHERE B.ESTABID IN (SELECT D.ESTABID FROM PS_AAP_YEAR D)) AND EXISTS ...`; Windows' results equal Studio's run |
+| qsq04-subquery-with-union | `_UNION`: A.ESTABID in list Subquery (AAP_YEAR ESTABID) | the subquery is appended after the union select: SELNUM 3, PARENTSELNUM 1, alias C; `SELECT A.ESTABID FROM PS_AAP_TBL A WHERE ( A.ESTABID IN (SELECT C.ESTABID FROM PS_AAP_YEAR C)) UNION SELECT B.ESTABID FROM PS_AAP_YEAR B`; Windows' results equal Studio's run |
 | qhv01-having-or | `_AGG` HAVING `>= 0` OR `= 0` | the OR row is COMBTYPE 5 (HAVING AND is 4, first 6); `HAVING ( AVG( A.FEMALE_GOAL) >= 0 OR AVG( A.FEMALE_GOAL) = 0)` |
 | qed01-effdt-ge | `_XLAT2`'s EFFDT criterion to Eff Date >= Current Date | CONDTYPE 21, EXPRTYPE 6; `A.EFFDT = (SELECT MIN(A_ED.EFFDT) ... AND A_ED.EFFDT >= SYSDATE)` |
 | qed02-effdt-lt | Eff Date < | CONDTYPE 22, EXPRTYPE 6; MAX, `A_ED.EFFDT < SYSDATE` |
@@ -360,8 +361,8 @@ tab for delivered QA_QI_CNTRTACTLS (EMPLMT_SRCH_QRY) and QA_Q_DB_FY2000
 returns no rows for an operator without row-security data. Delivered queries
 store an ascending sort as a blank ORDERBYDIR. Row security with joins,
 translates, subqueries or unions, and security records keyed by OPRCLASS or
-ROWSECCLASS, remain refused. Refused: subqueries together with
-unions, effective-dated subquery or union records, Count/Average or HAVING on
+ROWSECCLASS, remain refused. Refused: subqueries inside a union's
+select, effective-dated subquery or union records, Count/Average or HAVING on
 date aggregates, WHERE criteria on aggregated fields, expression-column criteria
 other than a WHERE comparison with a constant, and the remaining Windows options
 (tree prompts, Effective Seq, effective-date operands other than Current Date,
