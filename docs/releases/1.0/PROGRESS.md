@@ -1,8 +1,8 @@
 # 1.0 core qualification — complete
 
 Completed October 22, 2026: **V1-1 through V1-5 pass** for the bounded Oracle /
-PeopleTools **8.62.09** core on **Linux x64 and Windows x64**. The development
-package remains **0.9.8, unreleased**. No tag or release was created. The
+PeopleTools **8.62.09** core on **Linux x64 and Windows x64**. This qualified
+core ships in [0.9.8](../0.9.8.md); no version 1.0 is published. The
 [release plan](../../RELEASE_PLAN.md) retains the 1.5/2.0 expansions and the
 explicitly Low-priority scheduler acceptance work.
 
@@ -21,8 +21,10 @@ binds every installed report to the same VSIX and frozen product source.
 
 Product source freeze: `32177c66d62406cc9c29d7e25e83e442b4c2bc7c`.
 The qualification verifier refuses runtime-source drift from that commit.
-The deliverable is `peoplesoft-studio-0.9.8-core-candidate.vsix` in the repository
-root (ignored by Git).
+The tested qualification artifact is `peoplesoft-studio-0.9.8-core-candidate.vsix` in the repository
+root (ignored by Git). The final 0.9.8 release updates packaged release
+documentation only; its separate checksum and runtime equivalence are recorded
+in the [release artifact record](../../../tools/lab/results/release-0.9.8.json).
 
 - VSIX SHA-256: `ae4082f77ce72cf19110aff405bc75dfe607511569b00e263785fac92ce443d0`
 - Extension bundle SHA-256: `37997adb101fdf07de01f1ffa3718963020d32e36ab1794e1be7f1e2dbd1663e`

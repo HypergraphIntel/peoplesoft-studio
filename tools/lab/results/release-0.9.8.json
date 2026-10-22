@@ -1,0 +1,56 @@
+{
+  "at": "2026-10-22T12:12:49.786802+00:00",
+  "version": "0.9.8",
+  "tag": "v0.9.8",
+  "branch": "main",
+  "releaseUrl": "https://github.com/HypergraphIntel/peoplesoft-studio/releases/tag/v0.9.8",
+  "qualificationManifest": "release-1.0/qualification.json",
+  "qualifiedSourceFreeze": "32177c66d62406cc9c29d7e25e83e442b4c2bc7c",
+  "candidate": {
+    "file": "peoplesoft-studio-0.9.8-core-candidate.vsix",
+    "sha256": "ae4082f77ce72cf19110aff405bc75dfe607511569b00e263785fac92ce443d0"
+  },
+  "release": {
+    "file": "peoplesoft-studio-0.9.8.vsix",
+    "sha256": "ee62f059f91e61c15ca9ab9988b1b3fb4ae3c0ddb2aa55f57dc055f743b1349e",
+    "bytes": 3155863,
+    "entries": 155
+  },
+  "runtimeEquivalence": {
+    "passed": true,
+    "identicalEntries": 153,
+    "identicalEntryPathAndHashListSha256": "4e9f58a19d7499ed0065db00596c72a538130e054944ec884208d8d6a7728748",
+    "changedEntries": [
+      {
+        "path": "extension/changelog.md",
+        "candidateSha256": "e80a2392c6581e7dd75f7d6c7b5b5da1a3374a8a9eabfc947e3e2d9cf395787b",
+        "releaseSha256": "f222a7219cc6bb74832d0b333499b3ee93fa0f717bda604c741f09c795cdc959"
+      },
+      {
+        "path": "extension/readme.md",
+        "candidateSha256": "5f37d45673e54ba932af4683a6244fe3392234732cc8a297f8859b98b4870c79",
+        "releaseSha256": "06a4146ee435a566036b4a97963b4371e68fd7386e8cb44d92eb567eae6d2c70"
+      }
+    ],
+    "bundleSha256": "37997adb101fdf07de01f1ffa3718963020d32e36ab1794e1be7f1e2dbd1663e",
+    "workerSha256": "2022a1104d48cd47f48806708a56dfdbd689e7dcf657e913277f287f885b2c01",
+    "boundary": "Only packaged README and CHANGELOG differ; all other uncompressed archive entries, including manifest, runtime bundles, dependencies, editor assets and grammars, are byte-identical to the candidate used for all 65 installed checks. No new installed or scheduler run is claimed."
+  },
+  "releaseVerification": {
+    "verify": {
+      "passed": true,
+      "tests": 2241,
+      "pass": 2240,
+      "skipped": 1,
+      "existingSkip": "Legacy 0x4F golden-fixture calibration TODO",
+      "logSha256": "45082be172cb409a5a6c411f85486940ffaad382c048ccf1910e1cfed82be335"
+    },
+    "mcpWorkflows": {
+      "passed": true,
+      "checks": 70,
+      "kind": "fixture-backed production HTTP MCP; no live database",
+      "logSha256": "7f5d85d1b2ff34e66e68340d726b49d472d23e9f823be29054edc0823457298c"
+    }
+  },
+  "previewBoundary": "Run and Monitor native acceptance remains Low priority; 1.5 and 2.0 expansions retain their documented targets."
+}

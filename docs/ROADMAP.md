@@ -12,8 +12,8 @@ The developer directed larger readiness items toward later releases. The
 
 - **1.0 core gates complete:** dependable bounded Oracle 8.62.09 workflows,
   protected PeopleCode calibration, stable/preview boundaries, Linux/Windows
-  install/upgrade/recovery and exact-artifact qualification. The package remains
-  0.9.8, unreleased; see [completed evidence](releases/1.0/PROGRESS.md).
+  install/upgrade/recovery and exact-artifact qualification. These ship in
+  release 0.9.8; see [completed evidence](releases/1.0/PROGRESS.md).
 - **1.5:** broader structural Change Review, promotion between separate Oracle
   environments, production-style business workflows, Windows AI Build handoff
   and wider Query/editor support. Run and Monitor acceptance stays Low priority.
@@ -23,18 +23,18 @@ The developer directed larger readiness items toward later releases. The
 These are planning targets, not dates or support certifications. Full parity
 remains the long-term objective; it is not the proposed 1.0 completion test.
 
-## Current release: 0.9.7
+## Current release: 0.9.8
 
-Next development version: **0.9.8 — unreleased**. Package metadata and
-[draft release notes](releases/0.9.8.md) are prepared for the Query and
-Integration Broker work described below. No release date is set.
+Released October 22, 2026 with expanded Query authoring, Integration Broker
+Change Review and qualified Linux/Windows core workflows. See the
+[release notes](releases/0.9.8.md) and [upgrade guidance](releases/1.0/UPGRADE.md).
 
 Run and Monitor's local implementation, fixture verification and candidate
 packaging are complete. The developer has deferred its gateway TLS prerequisite
 and real installed scheduler/report/persistence acceptance as **Low priority**;
 see [RT-L1 through RT-L4](PRIORITY_TASKS.md#run-and-monitor--low-priority-follow-up).
 Native runtime acceptance is still pending. No server patch or process was
-submitted during this work, and no tag/release was created.
+submitted during this work. The 0.9.8 release retains the preview boundary.
 
 0.9.4 adds calibrated 8.61.15 Query and standard Integration Broker writes,
 release-aware Page and Field Configurator mapping, application-class signature
@@ -129,8 +129,8 @@ separate unmodified installed VSIX cover designer editing, SQL and result-cell
 values, undo/redo/discard, and reviewed rename/delete with exact inverse
 restoration. Temporary HRDMO queries and deletion markers were cleaned up;
 see [installed evidence](PS_QUERY_WINDOWS.md#installed-acceptance-october-21-2026).
-8.61.15 family calibration remains open. Query development and unreleased
-0.9.8 preparation are recorded on `query-criteria` at the developer's request.
+8.61.15 family calibration remains open. Query development from `query-criteria`
+is integrated into `main` and included in release 0.9.8.
 
 See the [README capability tables](../README.md#what-works-now),
 [MCP reference](MCP_REFERENCE.md), and [changelog](../CHANGELOG.md) for current

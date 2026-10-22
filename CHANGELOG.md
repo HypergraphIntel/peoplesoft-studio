@@ -1,17 +1,16 @@
 # Changelog
 
-## 0.9.8 — Unreleased
+## 0.9.8 — October 22, 2026
 
-Initial preparation only; no release date is set. See the
-[draft release notes](docs/releases/0.9.8.md).
+See the [release notes](docs/releases/0.9.8.md) for scope and qualification evidence.
 
 - **1.0 core qualification:** shared support contract and UI/MCP maturity,
   Linux/Windows installed upgrade/recovery evidence and a four-way CI matrix.
   Fixed Windows history persistence, packaged SQL highlighting/comment settings
-  and invalid PeopleCode language-configuration syntax. Version remains
-  unreleased; native scheduler acceptance stays preview and Low priority.
+  and invalid PeopleCode language-configuration syntax. Native scheduler
+  acceptance stays preview and Low priority.
 
-- **PS Query authoring reaches Windows Query parity on 8.62.09.** Joins
+- **PS Query authoring expands on 8.62.09.** Joins
   (standard, left outer, related record), IN and EXISTS subqueries, unions,
   aggregates with HAVING and DISTINCT, expression columns, translates and
   effective dating join the criteria, prompts and number/date fields. Each

@@ -135,5 +135,6 @@ SecretStorage, prepare the unchanged synthetic fixture, confirm exactly once,
 verify the new native instance reaches Success/Posted, open stdout, download
 and hash the exact 123-byte CSV, reopen history, and verify program/configuration
 preservation. `scripts/process-runtime-installed.mjs` and `.cjs` provide the
-isolated normal-host acceptance runner. A pending/failing run is not acceptance;
-no tag or release is created by this work.
+isolated normal-host acceptance runner. A pending/failing run is not acceptance.
+Release 0.9.8 ships this workflow as preview; publication does not establish
+native scheduler acceptance.

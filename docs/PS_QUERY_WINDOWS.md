@@ -388,8 +388,9 @@ candidate, verifies manifest/bundle/worker integrity and records checksums in
 the report. The tested VSIX is `/tmp/peoplesoft-studio-query-tested.vsix`.
 `npm run verify`, the five direct Query designer regression tests and all 70
 fixture-backed production MCP workflow checks pass. 8.61.15 family calibration
-remains open; the Query work and unreleased 0.9.8 preparation are recorded on
-`query-criteria` at the developer's request.
+remains open. Query development from `query-criteria` is integrated into `main`
+and included in release 0.9.8; these historical reports retain their original
+artifact identities.
 
 ## MCP workflows in 0.9.0
 

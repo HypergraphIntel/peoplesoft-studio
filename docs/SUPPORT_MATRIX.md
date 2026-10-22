@@ -1,7 +1,7 @@
 # 1.0 support contract and qualification
 
 This contract names the qualified bounded 1.0 core. Product status is
-**CORE_READY**; the development package remains **0.9.8, unreleased**.
+**CORE_READY**; the qualified core ships in release **0.9.8**.
 The active evidence tracker is [1.0 progress](releases/1.0/PROGRESS.md).
 The shared product model is `src/model/releaseSupport.ts`, surfaced in Settings,
 tool-pane descriptions, MCP orientation and operation-level capability entries.

@@ -1,6 +1,6 @@
 # Change Review, transactions and history — progress
 
-## Scheduler runtime boundary — 0.9.8 development
+## Scheduler runtime boundary — 0.9.8 preview
 
 Run and Monitor has a separate durable request journal and per-run confirmation.
 It uses the delivered PROCESSREQUEST runtime API, never Change Review apply,
@@ -12,9 +12,12 @@ prerequisite and live acceptance as **Low priority** (RT-L1 through RT-L4).
 [Runtime progress](../PROCESS_SCHEDULER_RUNTIME.md) records the implemented
 scope, fixture evidence and remaining unverified native acceptance.
 
-## Current state — 0.9.7 released
+## Current state — 0.9.8 released
 
-Reconciled October 20, 2026 against the source and recorded native acceptance.
+Reconciled October 22, 2026. The qualified core, expanded Query and bounded
+IB structural/lifecycle review ship in 0.9.8 on `main`. See the
+[release notes](../releases/0.9.8.md) and [core qualification](../releases/1.0/PROGRESS.md).
+The sections below preserve the original implementation and native evidence.
 The 0.9.6 release includes fourteen bounded Oracle adapters: SQL, HTML,
 freeform style sheets, event/application-class PeopleCode, Process, Query,
 Page, Record/AE headers, new Derived/Work records, new AE programs, new

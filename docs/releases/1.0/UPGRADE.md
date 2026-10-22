@@ -1,14 +1,15 @@
 # 1.0 core support and upgrade notes
 
-The development package remains **0.9.8, unreleased**. These notes prepare the
-focused 1.0 core; they do not publish a version or enable preview operations.
+Release **0.9.8** ships the qualified focused 1.0 core. These notes describe
+that release; version 1.0 is not yet published and preview boundaries remain.
 Use the [support matrix](../../SUPPORT_MATRIX.md) for exact operation limits and
 [qualification tracker](PROGRESS.md) for completed checks and remaining gates.
 
 ## Installation and upgrade
 
-Install the candidate with VS Code's **Extensions: Install from VSIX…**, or
-`code --install-extension <candidate.vsix> --force`, using the existing VS Code
+Install `peoplesoft-studio-0.9.8.vsix` from the
+[GitHub release](https://github.com/HypergraphIntel/peoplesoft-studio/releases/tag/v0.9.8) with VS Code's **Extensions: Install from VSIX…**, or
+`code --install-extension peoplesoft-studio-0.9.8.vsix --force`, using the existing VS Code
 profile and workspace. The extension ID remains
 `JaredNorris.peoplesoft-studio`. Reload the window after installation.
 

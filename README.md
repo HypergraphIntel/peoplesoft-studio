@@ -12,16 +12,12 @@ writing the same rows Application Designer writes.
 > **Development status:** a focused 1.0 core is qualified for Oracle /
 > PeopleTools 8.62.09 on Linux and Windows x64. Preview features retain their
 > documented limits; see the [support contract](docs/SUPPORT_MATRIX.md) and
-> [Disclaimer](#disclaimer). The development package remains unreleased.
+> [Disclaimer](#disclaimer). This qualified core ships in release 0.9.8.
 
-Current release: **0.9.7** (project migration of fields, records, pages,
-components and packages with undo and redo; PeopleCode completion from the
-database; Approve and apply); see the
-[release notes](docs/releases/0.9.7.md) and [changelog](CHANGELOG.md).
-
-Next development version: **0.9.8 — unreleased** (expanded PS Query authoring
-and Integration Broker Change Review). Package metadata and
-[draft release notes](docs/releases/0.9.8.md) are prepared; no release date is set.
+Current release: **0.9.8 — October 22, 2026** (expanded PS Query authoring,
+Integration Broker Change Review and qualified Linux/Windows core workflows).
+See the [release notes](docs/releases/0.9.8.md), [changelog](CHANGELOG.md) and
+[download the VSIX](https://github.com/HypergraphIntel/peoplesoft-studio/releases/tag/v0.9.8).
 
 Track completion gates in [1.0 readiness](docs/RELEASE_1_0_READINESS.md).
 

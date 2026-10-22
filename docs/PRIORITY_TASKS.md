@@ -15,7 +15,7 @@ publication date is committed.
 
 V1-1 through V1-5 are **complete** for the exact qualified 0.9.8 candidate;
 [the evidence tracker](releases/1.0/PROGRESS.md) records native/client/CI scope.
-No tag or release was created.
+The qualified core ships in [release 0.9.8](releases/0.9.8.md) on `main`.
 
 | Target | Priority | Next work | Why it matters |
 | --- | --- | --- | --- |
@@ -64,14 +64,12 @@ This historical inventory is retained; the current 1.0 qualification and later r
 
 ## PS Query parity — open tasks (October 21, 2026)
 
-Version preparation: the package and [draft release notes](releases/0.9.8.md)
-now target **0.9.8 — unreleased**. This is initial preparation, not a tag or
-publication; the existing acceptance artifacts retain their tested versions
-and checksums.
+Released in [0.9.8](releases/0.9.8.md) on October 22, 2026. Existing
+acceptance artifacts retain their original tested versions and checksums.
 
 Joins, subqueries, unions, aggregates/HAVING/DISTINCT, expressions, translates,
 effective dating, the designer, migration and review-only delete/rename are
-built on branch `query-criteria` and natively verified on HRDMO
+integrated into `main` from `query-criteria` and natively verified on HRDMO
 8.62.09: 31 Windows Query captures replay exactly, and eight Studio-written
 queries reopen in Windows Query with identical SQL and rows
 ([evidence](../tools/lab/results/query-families-native-2026-10-21.json),
@@ -82,7 +80,7 @@ queries reopen in Windows Query with identical SQL and rows
 | --- | --- | --- |
 | 1. Installed check — complete October 21 | Unmodified candidate VSIX installed in a separate real VS Code 1.143.0 window, private history, HRDMO 8.62.09 | [10 installed checks](../tools/lab/results/query-installed-2026-10-21.json): saved-query editing of criteria/HAVING, joins, aggregates, translates, expressions, subqueries and unions; SQL and every rendered result cell match independent native execution; undo/redo/discard; MCP rename/delete stage without writing, refuse missing destructive consent without writes, apply through rendered approval and undo to exact native snapshots. Cleanup and installed artifact integrity verified. |
 | 2. 8.61.15 calibration | Developer's RDP session to HCDEV (XX_ objects only) | Windows Query 8.61.15 captures of each family, replayed exactly; the 8.61 writer gate (now one record, one equal-to criterion) lifted only where proven. |
-| 3. Commit and push — complete in this checkpoint | Developer requested all changes committed and pushed | Query implementation, native/installed evidence and unreleased 0.9.8 preparation recorded together on `query-criteria`. No merge, tag or release. |
+| 3. Commit and push — complete in this checkpoint | Developer requested all changes committed and pushed | Query implementation and evidence were first committed on `query-criteria`; the complete branch is now integrated into `main` for release 0.9.8. |
 
 Reproduce installed acceptance with HRDMO lab credentials in `PSLAB_ACCESSID`
 and `PSLAB_ACCESSPSWD`: `npm run test:query:installed` (after `npm test` compiles

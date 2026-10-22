@@ -1,6 +1,6 @@
 # Change Review capability and risk matrix
 
-Coverage as of October 21: 0.9.7 released; 0.9.8 preparation and 1.0 qualification are in progress. Each row distinguishes implemented scope, native acceptance
+Coverage as of October 22: 0.9.8 released with focused 1.0 core qualification complete. Each row distinguishes implemented scope, native acceptance
 and remaining work. Historical 0.9.1 release evidence remains in
 [release readiness](../RELEASE_0_9_1.md). Registration inventory is in
 [INVENTORY.md](INVENTORY.md); contracts are in [CONTRACTS.md](CONTRACTS.md).

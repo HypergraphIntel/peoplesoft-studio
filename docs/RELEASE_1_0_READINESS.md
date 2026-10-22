@@ -1,16 +1,16 @@
 # 1.0 readiness
 
-Assessment as of October 22, 2026: 0.9.7 is released. The next development
-version is **0.9.8 — unreleased**; package metadata and
-[draft release notes](releases/0.9.8.md) are prepared, with no release date set.
+Assessment as of October 22, 2026: **0.9.8 is released**, including the
+completed focused 1.0 core qualification. See the
+[release notes](releases/0.9.8.md) for its supported scope and evidence.
 There is meaningful implementation and native verification progress,
 but not feature-complete for the project's long-term full Application Designer
 parity goal. The developer has directed larger items toward later releases;
 [the 1.0 / 1.5 / 2.0 plan](RELEASE_PLAN.md) separates core release gates
 from expansions. The focused support matrix is Oracle / PeopleTools 8.62.09 on Linux and Windows
 x64; [core qualification evidence](releases/1.0/PROGRESS.md) records the release
-gates. No 1.0 publication date is committed. Version 0.9.7 does not
-mean 97 percent complete.
+gates. No 1.0 publication date is committed. Version numbers do not
+measure percentage completion toward full parity.
 
 Keep the long-term completion goal visible while planning staged releases.
 This is an evidence inventory across the whole product, not a requirement to
@@ -48,7 +48,7 @@ acceptance task.
 
 1. Complete: bounded, evidenced 0.9.7 release published. See
    [release notes](releases/0.9.7.md).
-2. Complete (October 21, unreleased): IB structural review now has
+2. Complete (included in 0.9.8): IB structural review now has
    per-operation snapshot, dependency, validation and typed inverse contracts,
    with installed developer-approved evidence for 8.61 and REST consumer
    structural apply/inverse, undo/redo of the added REST provider handler and

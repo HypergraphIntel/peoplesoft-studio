@@ -9,7 +9,7 @@ HTML, style sheets, projects, packages, pages). Core authoring tools are in
 modules. Authoring tools register only when VS Code provides the write host
 (the setting, review/approval integration, and the editors' state).
 
-## Current staged review paths (0.9.8 preparation)
+## Current staged review paths (0.9.8)
 
 On Oracle with Change Review enabled, supported SQL, HTML/freeform style sheet,
 PeopleCode, Query and Process mutations stage durable proposals. Page edits are
