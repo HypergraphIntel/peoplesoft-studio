@@ -200,6 +200,41 @@ function validateAction(sp: string, at: object, a: AeDocAction, add: (d: AeDiagn
   if (a.type === 'S' && a.reuse === 'I' && a.text && !/^\s*insert\b/i.test(a.text)) {
     add({ severity: 'warning', code: 'bulk-insert-not-insert', path: ap, at: where, message: 'ReUse Bulk Insert applies to INSERT statements.' });
   }
+  if (a.text && TEXT_ACTIONS.includes(a.type) && outerJoinSubquery(a.text)) {
+    add({ severity: 'warning', code: 'outer-join-subquery', path: ap, at: where,
+      message: 'An outer join\'s ON condition contains a subquery: Oracle refuses it at run time (ORA-01799), and the program abends at this step.',
+      fix: 'Outer-join to an inline view that applies the condition instead, e.g. LEFT JOIN (SELECT ... FROM PS_NAMES N0 WHERE N0.EFFDT = (SELECT MAX(...) ...)) N ON N.EMPLID = J.EMPLID.' });
+  }
+}
+
+/**
+ * Whether a LEFT, RIGHT or FULL join's ON condition contains a subquery (Oracle ORA-01799, "a column may not be
+ * outer-joined to a subquery"; found when ZZ_BENELIG abended natively on HRDMO, instance 607550). String literals are
+ * skipped; an inline view as the joined table is not a subquery in the condition.
+ */
+export function outerJoinSubquery(sql: string): boolean {
+  const text = sql.replace(/'(?:[^']|'')*'/g, "''");
+  const outer = /\b(?:LEFT|RIGHT|FULL)\s+(?:OUTER\s+)?JOIN\b/gi;
+  for (let m = outer.exec(text); m; m = outer.exec(text)) {
+    let i = m.index + m[0].length;
+    while (/\s/.test(text[i] ?? '')) i++;
+    if (text[i] === '(') {
+      // The joined table is an inline view: step over it.
+      for (let depth = 0; i < text.length; i++) { if (text[i] === '(') depth++; else if (text[i] === ')' && --depth === 0) { i++; break; } }
+    }
+    const on = /\bON\b/i.exec(text.slice(i));
+    if (!on) continue;
+    let depth = 0;
+    for (let j = i + on.index + 2; j < text.length; j++) {
+      const c = text[j];
+      if (c === '(') {
+        if (/^\(\s*SELECT\b/i.test(text.slice(j))) return true;
+        depth++;
+      } else if (c === ')') { if (--depth < 0) break; }
+      else if (depth === 0 && /^\b(?:JOIN|INNER|LEFT|RIGHT|FULL|CROSS|WHERE|GROUP|ORDER|HAVING|UNION|MINUS|INTERSECT)\b/i.test(text.slice(j)) && /\W/.test(text[j - 1] ?? ' ')) break;
+    }
+  }
+  return false;
 }
 
 function dup<T>(values: T[]): T[] {

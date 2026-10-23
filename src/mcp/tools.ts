@@ -104,7 +104,7 @@ function definitionDescriptor(
   };
 }
 
-function resolveConnectionId(
+export function resolveConnectionId(
   workspace: Workspace,
   connection: string
 ): string {

@@ -110,7 +110,10 @@ export class ProcessRuntimeController implements vscode.Disposable {
  }
  private async poll():Promise<void>{
   if(this.polling)return;this.polling=true;
-  try{for(const state of this.panels.values())if(state.panel.visible&&!state.disposed&&state.selected){state.queue=state.queue.then(async()=>{
+  // A background refresh never connects: activating its connection would close the active one (one connection at a
+  // time), as it did to a promotion's target on ps-win-client (NJS-064). Refresh and the panel's actions still connect.
+  const active=new Set(this.workspace.activeProviders.filter(p=>p.isConnected).map(p=>p.id));
+  try{for(const state of this.panels.values())if(state.panel.visible&&!state.disposed&&state.selected&&active.has(state.connection)){state.queue=state.queue.then(async()=>{
     try{const request=(await this.service.list(state.connection)).find(r=>r.id===state.selected);if(request?.instance&&(!request.run?.ended||!request.run.contentIds.length)){await this.service.status(request.id);await this.paint(state);}}
     catch(error){state.message=error instanceof Error?error.message:String(error);state.error=true;await this.paint(state);}
    });await state.queue;}}finally{this.polling=false;}

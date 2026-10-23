@@ -325,7 +325,7 @@ export async function saveFileLayout(c: Connection, oracledb: DbTypes, request: 
   }
 }
 
-export async function deleteFileLayout(c: Connection, oracledb: DbTypes, name: string, openedToken: string, operatorId: string): Promise<{ counters: Counters }> {
+export async function deleteFileLayout(c: Connection, oracledb: DbTypes, name: string, openedToken: string, operatorId: string, dryRun = false): Promise<{ counters: Counters }> {
   try {
     await prepare(c, operatorId, [name]);
     const stored = await readStoredFileLayout(c, oracledb, name, true);
@@ -334,7 +334,8 @@ export async function deleteFileLayout(c: Connection, oracledb: DbTypes, name: s
     const plan = planFileLayoutDelete(name, await readFileLayoutCounters(c, true));
     await run(c, plan.statements);
     if ((await readStoredFileLayout(c, oracledb, name, false)).exists) throw new FileLayoutSaveRefusedError(`${name} still has rows after the delete.`);
-    await c.commit();
+    // A rollback preview (undoing a migration's creation) runs the same statements and checks, then rolls back.
+    if (dryRun) await c.rollback(); else await c.commit();
     return { counters: plan.counters };
   } catch (error) {
     await c.rollback().catch(() => { /* the original error matters more */ });

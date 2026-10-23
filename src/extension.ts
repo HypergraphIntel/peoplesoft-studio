@@ -867,6 +867,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         const targetConfig = (await vscode.window.showQuickPick(workspace.connections.filter(c => c.kind !== 'projectFile' && providerId(c) !== source.id)
           .map(config => ({ label: config.name, config })), { title: `Promote ${project} into which environment?` }))?.config;
         if (!targetConfig) return;
+        const sourceConfig = workspace.configFor(source.id)!;
+        // The target becomes the active connection (its review workspace approves and applies), which disposes the
+        // source: the source is read through a temporary provider instead, as Compare With Environment does.
         const target = await workspace.require(providerId(targetConfig));
         const operatorId = targetConfig.peoplesoftOperatorId?.trim();
         if (!(target instanceof DatabaseProvider) || !workspace.isWritable(target.id) || !operatorId) {
@@ -874,7 +877,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           return;
         }
         const result = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Promoting ${project} to ${target.displayName}` },
-          () => promoteProject(reviewService, source, project, target, operatorId));
+          () => workspace.readFromConnection(sourceConfig, from => promoteProject(reviewService, from as DatabaseProvider, project, target, operatorId)));
         const content = JSON.stringify({ project, source: source.displayName, target: target.displayName, ...result.plan, package: undefined,
           notes: ['Every change is staged into Change Review on the target; nothing is written until you approve and apply there.',
             'SQL record metadata does not build physical tables or move application data.'] }, null, 2);

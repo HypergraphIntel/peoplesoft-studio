@@ -125,6 +125,10 @@ export async function definitionExists(c: Connection, key: DefinitionKey): Promi
     const [r] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSURLDEFN WHERE URL_ID = :n`, { n: key.parts[0] });
     return Number(r?.N ?? 0) > 0;
   }
+  if (key.type === DefinitionType.FileLayout) {
+    const [r] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSFLDDEFN WHERE FLDDEFNNAME = :n`, { n: key.parts[0] });
+    return Number(r?.N ?? 0) > 0;
+  }
   if(key.type===DefinitionType.AppEngineSection){
     const [r]=await select<{N:number}>(c,'SELECT COUNT(*) AS N FROM PSAESECTDEFN WHERE AE_APPLID=:p AND AE_SECTION=:s',{p:key.parts[0],s:key.parts[1]});
     return Number(r?.N??0)>0;

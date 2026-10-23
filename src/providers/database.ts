@@ -49,6 +49,7 @@ import type { UserIndexRows } from './recordWriter.js';
 import { readComponentForMigration as readComponentMigration, createComponentFromMigration as createComponentMigration, deleteComponentForMigration as deleteComponentMigration, type ComponentMigrationData } from './componentMigration.js';
 import { readPageForMigration as readPageMigration, createPageFromMigration as createPageMigration, deletePageForMigration as deletePageMigration, type PageMigrationData, type ProposedDeletions } from './pageMigration.js';
 import { portableChannel, type ChannelMigrationData } from './channelMigration.js';
+import { portableProcess, UNCARRIED_PROCESS_TABLES, type ProcessMigrationData } from './processMigration.js';
 import { readClassScope, readPackageScope, writeClassChange, writePackageChange, classSource, type LifecycleRead, type LifecycleScope } from './classLifecycle.js';
 import { createSubpackage as createSubpackageRow, savePackageProperties as savePackagePropertyRows, deletePackage as deletePackageRows, deleteClass as deleteClassRows, type SubpackageCreateRequest, type PackagePropertiesRequest } from './packageWriter.js';
 import { readApplicationPackage } from './packageReader.js';
@@ -2251,6 +2252,20 @@ export class DatabaseProvider implements DefinitionProvider {
     };
   }
 
+  /** A process definition as a migration carries it (processMigration.ts), with its token; undefined when there is none. */
+  async readProcessForMigration(processType: string, name: string): Promise<{ data: ProcessMigrationData; token: string } | undefined> {
+    return this.withConnection(async (c) => {
+      const key = makeKey(DefinitionType.ProcessDefinition, processType, name), binds = { t: processType, n: name };
+      if (!(await c.execute('SELECT 1 FROM PS_PRCSDEFN WHERE PRCSTYPE = :t AND PRCSNAME = :n', binds)).rows?.length) return undefined;
+      const view = await this.readProcessRows(c, key), childRows: Record<string, number> = {};
+      for (const table of UNCARRIED_PROCESS_TABLES) {
+        const r = await c.execute<{ N: number }>(`SELECT COUNT(*) AS N FROM ${table} WHERE PRCSTYPE = :t AND PRCSNAME = :n`, binds, { outFormat: this.types.OUT_FORMAT_OBJECT });
+        childRows[table] = Number(r.rows?.[0]?.N ?? 0);
+      }
+      return { data: portableProcess(view, childRows), token: processToken(view) };
+    });
+  }
+
   /** Grants a permission list component pages and process groups as the Permission Lists component does (permissionListWriter.ts). */
   async grantPermissionListAccess(request: PermissionGrantRequest): Promise<PermissionGrantResult> {
     if (this.platform !== 'oracle') throw new ProviderError('Permission list grants are currently supported on Oracle.');
@@ -3167,11 +3182,18 @@ export class DatabaseProvider implements DefinitionProvider {
     return result;
   }
 
-  async deleteFileLayoutDefinition(name: string, token: string, operatorId: string): Promise<void> {
+  /** A File Layout as a migration carries it: its document (fileLayoutMigration.ts). */
+  async readFileLayoutForMigration(name: string): Promise<{ data: FileLayoutDocument; token: string } | undefined> {
+    const read = await this.readFileLayoutDocument(name);
+    return read && { data: read.doc, token: read.token };
+  }
+
+  async deleteFileLayoutDefinition(name: string, token: string, operatorId: string, dryRun = false): Promise<void> {
     if (this.platform !== 'oracle') throw new ProviderError('File Layout deletes are currently supported on Oracle.');
-    await this.guard(makeKey(DefinitionType.FileLayout, name), 'delete');
+    if (!dryRun) await this.guard(makeKey(DefinitionType.FileLayout, name), 'delete');
     const types = this.types;
-    await this.withConnection((c) => deleteFileLayout(c, types, name, token, operatorId));
+    await this.withConnection((c) => deleteFileLayout(c, types, name, token, operatorId, dryRun));
+    if (dryRun) return;
     if ((await this.withConnection((c) => readStoredFileLayout(c, types, name, false))).exists) throw new ProviderError(`After COMMIT ${name} still exists.`);
   }
 

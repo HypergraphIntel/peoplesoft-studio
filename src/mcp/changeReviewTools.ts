@@ -4,7 +4,7 @@ import { ReviewService } from '../changeReview/service.js';
 import { canonical, type Json } from '../changeReview/model.js';
 import { jsonResult } from './tools.js';
 import { READ_ONLY, WRITE, writable, type McpWriteHost } from './writeTools.js';
-import { requireProvider } from './tools.js';
+import { resolveConnectionId } from './tools.js';
 import { DatabaseProvider } from '../providers/database.js';
 import { promoteProject } from '../changeReview/promotion.js';
 import type { Workspace } from '../workspace.js';
@@ -39,11 +39,16 @@ export function registerPromotionTool(server: McpServer, service: ReviewService,
     }, async ({ sourceConnection, project, targetConnection }) => {
         const writeHost = host?.();
         if (!writeHost) throw new Error('Promotion requires an enabled write host.');
-        const source = await requireProvider(workspace, sourceConnection);
-        if (!(source instanceof DatabaseProvider) || source.platform !== 'oracle') throw new Error('The promotion source must be an Oracle database connection.');
+        const sourceConfig = workspace.configFor(resolveConnectionId(workspace, sourceConnection));
+        if (!sourceConfig) throw new Error(`No PeopleSoft connection is configured as ${sourceConnection}.`);
+        // The gate makes the target the active connection, which disposes any other: the source is read through a
+        // temporary provider, as Compare With Environment does.
         const gate = await writable(workspace, writeHost, targetConnection, project.trim().toUpperCase());
         if (gate.provider.platform !== 'oracle') throw new Error('The promotion target must be an Oracle database connection with Change Review.');
-        const result = await promoteProject(service, source, project.trim().toUpperCase(), gate.provider, gate.operatorId);
+        const result = await workspace.readFromConnection(sourceConfig, source => {
+            if (!(source instanceof DatabaseProvider) || source.platform !== 'oracle') throw new Error('The promotion source must be an Oracle database connection.');
+            return promoteProject(service, source, project.trim().toUpperCase(), gate.provider, gate.operatorId);
+        });
         const changes = result.plan.changes.map(c => ({ kind: c.asset.kind, name: c.asset.data.name, action: c.action }));
         if (!result.staged) return jsonResult({ status: result.plan.blockers.length ? 'BLOCKED' : 'UNCHANGED', blockers: result.plan.blockers, changes, persisted: false });
         return jsonResult({ status: 'REVIEW_REQUIRED', changeSetId: result.staged.id, revision: result.staged.revision, setStatus: result.staged.status, changes, persisted: false, command: 'psft.changeReview.open' });

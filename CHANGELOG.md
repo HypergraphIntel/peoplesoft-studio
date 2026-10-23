@@ -32,7 +32,9 @@
   Promotion found and fixed: project members created by their parent asset,
   App Engine SQL references as requirements, and undo of records/SQL used by
   a program deleted in the same undo. Migration now also carries alternate
-  search keys, Oracle In-Memory and message channels.
+  search keys, Oracle In-Memory, message channels, process definitions, File
+  Layouts and App Engine step SQL members. The installed command no longer
+  loses its source when it connects the target.
 - **Format Document for PeopleCode (V15-4).** Lays a program out as
   Application Designer does (three-space blocks, wrapped conditions, keyword
   casing and spacing), reproducing App Designer's stored text for 30,114 of

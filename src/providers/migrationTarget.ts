@@ -81,6 +81,19 @@ export async function databaseMigrationTarget(provider: DatabaseProvider, operat
           if ((live?.token ?? 'absent') !== token) throw new Error('Message channel changed after preview.');
           const base = live?.doc ?? await provider.newChannelDocument(asset.data.name);
           await provider.saveChannelDocument({ doc: channelDocumentFor(base, asset.data), openedToken: live?.token ?? 'absent', operatorId, dryRun: true });
+        } else if (asset.kind === 'process') {
+          const live = await provider.readProcessForMigration(asset.data.processType, asset.data.name);
+          if ((live?.token ?? 'absent') !== token) throw new Error('Process definition changed after preview.');
+          // A component the same migration creates is not in the target yet: the rollback preview checks the rest.
+          const pending = new Set<string>();
+          for (const a of assets) if (a.kind === 'component' && !await provider.definitionExists(a.key)) pending.add(a.data.name);
+          const { processType, name, properties, groups } = asset.data, components = asset.data.components.filter(c => !pending.has(c));
+          if (live) await provider.saveProcessDocument({ key: [processType, name], token, edit: { properties, components, groups }, operatorId, dryRun: true });
+          else await provider.createProcessDocument({ processType, name, properties, components, groups, operatorId, dryRun: true });
+        } else if (asset.kind === 'filelayout') {
+          const live = await provider.readFileLayoutForMigration(asset.data.name);
+          if ((live?.token ?? 'absent') !== token) throw new Error('File Layout changed after preview.');
+          await provider.saveFileLayoutDocument({ doc: asset.data, openedToken: token, operatorId, dryRun: true });
         } else if (asset.kind === 'package') {
           const live = await provider.readPackageForMigration(asset.data.name);
           for (const path of live?.data.packages ?? []) if (!asset.data.packages.includes(path)) errors.push(`Target subpackage ${asset.data.name}:${path} is absent from the package; migration never deletes subpackages.`);
@@ -201,6 +214,16 @@ export async function databaseMigrationTarget(provider: DatabaseProvider, operat
         if ((live?.token ?? 'absent') !== token) throw new Error(asset.data.name + ': message channel changed after preview.');
         const base = live?.doc ?? await provider.newChannelDocument(asset.data.name);
         await provider.saveChannelDocument({ doc: channelDocumentFor(base, asset.data), openedToken: live?.token ?? 'absent', operatorId });
+      } else if (asset.kind === 'process') {
+        const live = await provider.readProcessForMigration(asset.data.processType, asset.data.name);
+        if ((live?.token ?? 'absent') !== token) throw new Error(asset.data.name + ': process definition changed after preview.');
+        const { processType, name, properties, components, groups } = asset.data;
+        if (live) await provider.saveProcessDocument({ key: [processType, name], token, edit: { properties, components, groups }, operatorId });
+        else await provider.createProcessDocument({ processType, name, properties, components, groups, operatorId });
+      } else if (asset.kind === 'filelayout') {
+        const live = await provider.readFileLayoutForMigration(asset.data.name);
+        if ((live?.token ?? 'absent') !== token) throw new Error(asset.data.name + ': File Layout changed after preview.');
+        await provider.saveFileLayoutDocument({ doc: asset.data, openedToken: token, operatorId });
       } else {
         for (const section of asset.data.sections) for (const variant of section.variants) for (const step of variant.steps) {
           for (const action of step.actions) if (action.type === 'P' && action.peopleCode) {
@@ -243,6 +266,8 @@ export async function readMigrationAsset(provider: DatabaseProvider, key: import
   if (key.type===DefinitionType.Query) return provider.readQueryForMigration(key);
   if (key.type===DefinitionType.Menu) return provider.readMenuForMigration(key.parts[0]);
   if (key.type === DefinitionType.MessageChannel) return provider.readChannelForMigration(key.parts[0]);
+  if (key.type === DefinitionType.ProcessDefinition) return provider.readProcessForMigration(key.parts[0], key.parts[1] ?? '');
+  if (key.type === DefinitionType.FileLayout) return provider.readFileLayoutForMigration(key.parts[0]);
   if (key.type === DefinitionType.Page) return provider.readPageForMigration(key.parts[0]);
   if (key.type === DefinitionType.Component) return provider.readComponentForMigration(key.parts[0], (key.parts[1] || 'GBL').trim());
   if (key.type === DefinitionType.ApplicationPackage) { const pkg = await provider.readPackageForMigration(key.parts[0]); return pkg && { data: pkg.data, token: pkg.token }; }

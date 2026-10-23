@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as path from 'node:path';
+import { outerJoinSubquery } from '../model/aeValidation.js';
 import {
   ACTION_ORDER, actionSqlId, buildAppEngine, peopleCodeKeyParts, renderAppEngine, unpackPeopleCodeKey, type AppEngineRows
 } from '../model/appEngine.js';
@@ -90,4 +91,14 @@ test('PeopleCode project keys unpack to PSPCMPROG parts: App Engine, component r
     ['GPSC_LNGNR', 'CRNRPKG', 'GBL', 'default', '1900-01-01', 'Step10', 'OnExecute']);
   assert.deepEqual(pcmProgKeyParts(makeKey(DefinitionType.ApplicationClassPeopleCode, 'ZZ_JET_PACK', 'Layout', 'ComponentRegistry')),
     ['ZZ_JET_PACK', 'Layout', 'ComponentRegistry', 'OnExecute']);
+});
+
+test('an outer join whose ON condition holds a subquery is flagged (Oracle ORA-01799); an inline view is not', () => {
+  // ZZ_BENELIG's extract as built, which abended natively (instance 607550), and as corrected.
+  const failing = "INSERT INTO PS_X (A) SELECT N.FIRST_NAME FROM PS_JOB J INNER JOIN PS_BEN_PROG_PARTIC BP ON BP.EMPLID = J.EMPLID AND BP.EFFDT = (SELECT MAX(BP1.EFFDT) FROM PS_BEN_PROG_PARTIC BP1 WHERE BP1.EMPLID = BP.EMPLID) LEFT JOIN PS_NAMES N ON N.EMPLID = J.EMPLID AND N.NAME_TYPE = 'PRI' AND N.EFFDT = (SELECT MAX(N1.EFFDT) FROM PS_NAMES N1 WHERE N1.EMPLID = N.EMPLID) LEFT JOIN PS_PERSONAL_DATA PD ON PD.EMPLID = J.EMPLID WHERE J.EFFDT = (SELECT MAX(J1.EFFDT) FROM PS_JOB J1 WHERE J1.EMPLID = J.EMPLID)";
+  const fixed = "INSERT INTO PS_X (A) SELECT N.FIRST_NAME FROM PS_JOB J INNER JOIN PS_BEN_PROG_PARTIC BP ON BP.EMPLID = J.EMPLID AND BP.EFFDT = (SELECT MAX(BP1.EFFDT) FROM PS_BEN_PROG_PARTIC BP1 WHERE BP1.EMPLID = BP.EMPLID) LEFT JOIN (SELECT N0.EMPLID, N0.FIRST_NAME FROM PS_NAMES N0 WHERE N0.EFFDT = (SELECT MAX(N1.EFFDT) FROM PS_NAMES N1 WHERE N1.EMPLID = N0.EMPLID)) N ON N.EMPLID = J.EMPLID LEFT JOIN PS_PERSONAL_DATA PD ON PD.EMPLID = J.EMPLID WHERE J.EFFDT = (SELECT MAX(J1.EFFDT) FROM PS_JOB J1 WHERE J1.EMPLID = J.EMPLID)";
+  assert.equal(outerJoinSubquery(failing), true);
+  assert.equal(outerJoinSubquery(fixed), false);
+  assert.equal(outerJoinSubquery("SELECT 1 FROM PS_A A LEFT OUTER JOIN PS_B B ON B.K = A.K AND B.X IN (SELECT X FROM PS_C)"), true);
+  assert.equal(outerJoinSubquery("SELECT 1 FROM PS_A A LEFT JOIN PS_B B ON B.K = A.K AND B.D = '(SELECT' WHERE A.K IN (SELECT K FROM PS_C)"), false);
 });

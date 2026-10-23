@@ -10,6 +10,9 @@ import { packageAddress } from './model/appPackages.js';
 import { checkedPageMigration, pageRequirements, type PageMigrationData } from './providers/pageMigration.js';
 import { checkedComponentMigration, componentRequirements, type ComponentMigrationData } from './providers/componentMigration.js';
 import { channelMigrationSchema, type ChannelMigrationData } from './providers/channelMigration.js';
+import { processMigrationSchema, processRequirements, type ProcessMigrationData } from './providers/processMigration.js';
+import { fileLayoutMigrationSchema } from './providers/fileLayoutMigration.js';
+import type { FileLayoutDocument } from './model/fileLayoutDocument.js';
 import { createHash } from 'node:crypto';
 import * as z from 'zod/v4';
 import { DefinitionType, makeKey, type DefinitionKey } from './model/definitions.js';
@@ -19,7 +22,8 @@ import type { RecordLayout } from './model/recordLayout.js';
 import { EDITABLE_USE_BITS, EDITABLE_USE2_BITS, KNOWN_PAGE_CONTROLS, inMemoryMode, type RecordEditField, type RecordPropertyEdits, type RecordTypeEdits } from './model/recordEdit.js';
 import type { AeDocument } from './model/aeDocument.js';
 import { validateAppEngine } from './model/aeValidation.js';
-import { peopleCodeKeyParts } from './model/appEngine.js';
+import { actionSqlId, peopleCodeKeyParts } from './model/appEngine.js';
+import { sqlTypeOf } from './model/aeDocument.js';
 import { projectKeyIdentity } from './projectCompare.js';
 import type { DefinitionSummary } from './providers/provider.js';
 import { prepareSqlText, SQL_TEXT_ROW_LIMIT, type SqlDefinitionData } from './model/sqlDefinition.js';
@@ -51,7 +55,9 @@ export type MigrationAsset =
   | { kind: 'package'; key: DefinitionKey; data: PackageMigrationData }
   | { kind: 'page'; key: DefinitionKey; data: PageMigrationData }
   | { kind: 'component'; key: DefinitionKey; data: ComponentMigrationData }
-  | { kind: 'channel'; key: DefinitionKey; data: ChannelMigrationData };
+  | { kind: 'channel'; key: DefinitionKey; data: ChannelMigrationData }
+  | { kind: 'process'; key: DefinitionKey; data: ProcessMigrationData }
+  | { kind: 'filelayout'; key: DefinitionKey; data: FileLayoutDocument };
 /**
  * An Application Package root, its subpackage paths ('SUB1', 'SUB1:SUB2') and the root's Package Properties when not
  * blank; its classes travel as PeopleCode assets.
@@ -81,6 +87,8 @@ export interface MigrationPackageReader {
   readQueryForMigration?(key: DefinitionKey): Promise<{ data: { name:string; owner:string; view:Json }; token:string } | undefined>;
   readMenuForMigration?(name:string):Promise<{data:MenuMigrationData;token:string}|undefined>;
   readChannelForMigration?(name: string): Promise<{ data: ChannelMigrationData; token: string } | undefined>;
+  readProcessForMigration?(processType: string, name: string): Promise<{ data: ProcessMigrationData; token: string } | undefined>;
+  readFileLayoutForMigration?(name: string): Promise<{ data: FileLayoutDocument; token: string } | undefined>;
   readRecordPeopleCodeForMigration?(name: string): Promise<DefinitionKey[]>;
   readRecordIndexesForMigration?(name: string): Promise<UserIndexRows[]>;
   readContentForMigration?(key: DefinitionKey): Promise<ContentMigrationRead | undefined>;
@@ -135,6 +143,8 @@ export function assetRequirements(asset: MigrationAsset): DefinitionKey[] {
     else if (asset.key.type === DefinitionType.ComponentInterfacePeopleCode) keys.push(makeKey(DefinitionType.ComponentInterface, p[0]));
   } else if (asset.kind === 'channel') {
     for (const field of asset.data.partitions) keys.push(makeKey(DefinitionType.Field, field));
+  } else if (asset.kind === 'process') {
+    keys.push(...processRequirements(asset.data));
   } else if (asset.kind === 'page') {
     keys.push(...pageRequirements(asset.data));
   } else if (asset.kind === 'component') {
@@ -282,6 +292,8 @@ const querySchema = z.custom<Json>(value => {
 const assetSchema = z.discriminatedUnion('kind', [
   z.object({kind:z.literal('menu'),key:keySchema,data:menuMigrationSchema}).strict(),
   z.object({ kind: z.literal('channel'), key: keySchema, data: channelMigrationSchema }).strict(),
+  z.object({ kind: z.literal('process'), key: keySchema, data: processMigrationSchema }).strict(),
+  z.object({ kind: z.literal('filelayout'), key: keySchema, data: fileLayoutMigrationSchema }).strict(),
   z.object({ kind:z.literal('query'), key:keySchema, data:z.object({ name, owner:z.string().max(30), view:querySchema }).strict() }).strict(),
   z.object({ kind: z.literal('html'), key: keySchema, data: textSchema }).strict(),
   z.object({ kind: z.literal('stylesheet'), key: keySchema, data: textSchema }).strict(),
@@ -311,10 +323,12 @@ export function parseMigrationPackage(text: string): StudioMigrationPackage {
   for (const asset of parsed.assets) {
     const expectedType = { field: DefinitionType.Field, record: DefinitionType.Record, sql: DefinitionType.SqlDefinition, ae: DefinitionType.AppEngineProgram,
       html: DefinitionType.HtmlDefinition, stylesheet: DefinitionType.StyleSheet, query: DefinitionType.Query, menu:DefinitionType.Menu, peoplecode: asset.key.type,
-      package: DefinitionType.ApplicationPackage, page: DefinitionType.Page, component: DefinitionType.Component, channel: DefinitionType.MessageChannel }[asset.kind];
+      package: DefinitionType.ApplicationPackage, page: DefinitionType.Page, component: DefinitionType.Component, channel: DefinitionType.MessageChannel, process: DefinitionType.ProcessDefinition, filelayout: DefinitionType.FileLayout }[asset.kind];
     if (asset.kind === 'query') {
       const view=queryView(asset.data.view);
       if (asset.key.type!==DefinitionType.Query || asset.key.parts.length>2 || asset.data.name!==asset.key.parts[0] || asset.data.owner!==asset.data.owner.trim() || asset.data.owner!==(asset.key.parts[1]??'') || String(view.query.QRYNAME).trim()!==asset.data.name || String(view.query.OPRID).trim()!==asset.data.owner) throw new Error('Query migration identity does not match payload.');
+    } else if (asset.kind === 'process') {
+      if (asset.key.type !== DefinitionType.ProcessDefinition || asset.key.parts.length !== 2 || asset.key.parts[0] !== asset.data.processType || asset.key.parts[1] !== asset.data.name) throw new Error('Process migration identity does not match payload.');
     } else if (asset.kind === 'component') {
       if (asset.key.type !== DefinitionType.Component || asset.key.parts.length !== 2 || asset.key.parts[0] !== asset.data.name || asset.key.parts[1] !== asset.data.market) throw new Error('Component migration identity does not match payload.');
     } else if (asset.kind === 'peoplecode') {
@@ -374,14 +388,15 @@ export function parseMigrationPackage(text: string): StudioMigrationPackage {
       if (asset?.kind !== 'package' || path.length && !asset.data.packages.includes(path.join(':'))) throw new Error('Package project member has no migration asset: ' + member.parts.join('.'));
       continue;
     }
-    const parent = [DefinitionType.AppEngineSection, DefinitionType.AppEnginePeopleCode].includes(member.type)
-      ? makeKey(DefinitionType.AppEngineProgram, member.parts[0]) : member.type === DefinitionType.HtmlDefinition ? makeKey(member.type, member.parts[0], '4') : member;
+    const aeSql = aeSqlProgram(member);
+    const parent = aeSql || [DefinitionType.AppEngineSection, DefinitionType.AppEnginePeopleCode].includes(member.type)
+      ? makeKey(DefinitionType.AppEngineProgram, aeSql ?? member.parts[0]) : member.type === DefinitionType.HtmlDefinition ? makeKey(member.type, member.parts[0], '4') : member;
     if (!seen.has(projectKeyIdentity(parent))) throw new Error('Project member has no migration asset: ' + member.parts.join('.'));
-    if ([DefinitionType.AppEngineSection, DefinitionType.AppEnginePeopleCode].includes(member.type)) {
-      const asset = parsed.assets.find(a => a.kind === 'ae' && a.data.name === member.parts[0]);
+    if (aeSql || [DefinitionType.AppEngineSection, DefinitionType.AppEnginePeopleCode].includes(member.type)) {
+      const asset = parsed.assets.find(a => a.kind === 'ae' && a.data.name === (aeSql ?? member.parts[0]));
       if (!asset || asset.kind !== 'ae') throw new Error('AE parent missing.');
       const keys = containedMemberKeys(asset);
-      if (!keys.some(k => projectKeyIdentity(k) === projectKeyIdentity(member))) throw new Error('AE project member has no section or PeopleCode action in the package.');
+      if (!keys.some(k => projectKeyIdentity(k) === projectKeyIdentity(member))) throw new Error('AE project member has no section, SQL or PeopleCode action in the package.');
     }
   }
   for (const asset of parsed.assets) if (asset.kind === 'peoplecode' && asset.key.type === DefinitionType.ApplicationClassPeopleCode) {
@@ -397,6 +412,10 @@ export function parseMigrationPackage(text: string): StudioMigrationPackage {
   return JSON.parse(migrationCanonical(parsed)) as StudioMigrationPackage;
 }
 
+/** An App Engine action's SQL (SQLTYPE 1, or 6 for XSLT) as projects list it: part of its program, named by the SQLID's first 12 characters. */
+const aeSqlProgram = (key: DefinitionKey): string | undefined =>
+  key.type === DefinitionType.SqlDefinition && ['1', '6'].includes((key.parts[1] ?? '').trim()) ? key.parts[0].slice(0, 12).trim() : undefined;
+
 /**
  * The project members an asset brings into being besides itself: an App Engine program's sections and PeopleCode
  * actions, a menu's ItemSelected programs, a package's subpackages (PSPACKAGEDEFN keys as projects list them).
@@ -408,6 +427,10 @@ export function containedMemberKeys(asset: MigrationAsset): DefinitionKey[] {
     for (const variant of section.variants) for (const step of variant.steps) {
       const parts = peopleCodeKeyParts(asset.data.name, section.name, variant, step.name);
       if (parts && step.actions.some(a => a.type === 'P')) keys.push(makeKey(DefinitionType.AppEnginePeopleCode, ...parts));
+      for (const action of step.actions) {
+        const sqlType = sqlTypeOf(action.type);
+        if (sqlType) keys.push(makeKey(DefinitionType.SqlDefinition, actionSqlId(asset.data.name, section.name, step.name, action.type), sqlType));
+      }
     }
   }
   if (asset.kind === 'menu') for (const bar of asset.data.bars) for (const item of bar.items) if (item.peopleCode) keys.push(makeKey(DefinitionType.MenuPeopleCode, asset.data.name, bar.name, item.name, 'ItemSelected'));
@@ -426,11 +449,12 @@ export async function exportMigrationPackage(source: MigrationPackageReader, pro
   const assets = new Map<string, MigrationAsset>();
   const queue = [...items];
   for (const { key } of queue) {
-    const type = [DefinitionType.AppEngineSection, DefinitionType.AppEnginePeopleCode].includes(key.type) ? DefinitionType.AppEngineProgram : key.type;
+    const aeSql = aeSqlProgram(key);
+    const type = aeSql || [DefinitionType.AppEngineSection, DefinitionType.AppEnginePeopleCode].includes(key.type) ? DefinitionType.AppEngineProgram : key.type;
     if (type === DefinitionType.SqlDefinition && (key.parts.length > 2 || (key.parts[1] ?? '0') !== '0')) throw new Error('Only standalone SQLTYPE 0 definitions can be migrated.');
     const isCode = type !== DefinitionType.AppEnginePeopleCode && (type === DefinitionType.ApplicationClassPeopleCode || PEOPLECODE_OBJECTIDS[type] !== undefined);
     const assetKey = isCode ? makeKey(type, ...pcmProgKeyParts(key).slice(0, type === DefinitionType.ApplicationClassPeopleCode ? -1 : undefined))
-      : makeKey(type, key.parts[0], ...(type === DefinitionType.SqlDefinition ? ['0'] : type === DefinitionType.HtmlDefinition ? ['4'] : type === DefinitionType.Query ? [key.parts[1]??''] : type === DefinitionType.Component ? [(key.parts[1] || 'GBL').trim()] : []));
+      : makeKey(type, aeSql ?? key.parts[0], ...(type === DefinitionType.SqlDefinition ? ['0'] : type === DefinitionType.HtmlDefinition ? ['4'] : type === DefinitionType.Query ? [key.parts[1]??''] : type === DefinitionType.Component ? [(key.parts[1] || 'GBL').trim()] : type === DefinitionType.ProcessDefinition ? [key.parts[1] ?? ''] : []));
     if (type === DefinitionType.HtmlDefinition && (key.parts.length > 2 || (key.parts[1] ?? '4') !== '4')) throw new Error('Only HTML CONTTYPE 4 can be migrated.');
     if (assets.has(projectKeyIdentity(assetKey))) continue;
     let asset: MigrationAsset;
@@ -459,6 +483,16 @@ export async function exportMigrationPackage(source: MigrationPackageReader, pro
       const channel = await source.readChannelForMigration(assetKey.parts[0]);
       if (!channel) throw new Error('Message channel not found: ' + assetKey.parts[0]);
       asset = { kind: 'channel', key: assetKey, data: channel.data };
+    } else if (type === DefinitionType.ProcessDefinition) {
+      if (!source.readProcessForMigration) throw new Error('Source cannot read the complete process definition scope.');
+      const process = await source.readProcessForMigration(assetKey.parts[0], assetKey.parts[1]);
+      if (!process) throw new Error('Process definition not found: ' + assetKey.parts.join('.'));
+      asset = { kind: 'process', key: assetKey, data: process.data };
+    } else if (type === DefinitionType.FileLayout) {
+      if (!source.readFileLayoutForMigration) throw new Error('Source cannot read the complete File Layout scope.');
+      const layout = await source.readFileLayoutForMigration(assetKey.parts[0]);
+      if (!layout) throw new Error('File Layout not found: ' + assetKey.parts[0]);
+      asset = { kind: 'filelayout', key: assetKey, data: layout.data };
     } else if (type===DefinitionType.Menu) {
       if(!source.readMenuForMigration)throw Error('Source cannot read complete menu migration scope.');
       const menu=await source.readMenuForMigration(assetKey.parts[0]);if(!menu)throw Error('Menu not found: '+assetKey.parts[0]);
@@ -502,8 +536,8 @@ export async function exportMigrationPackage(source: MigrationPackageReader, pro
       if (!sql) throw new Error('SQL definition not found: ' + key.parts[0]);
       asset = { kind: 'sql', key: assetKey, data: sql.data };
     } else if (type === DefinitionType.AppEngineProgram) {
-      const program = await source.readAppEngineDocument(key.parts[0]);
-      if (!program) throw new Error('App Engine not found: ' + key.parts[0]);
+      const program = await source.readAppEngineDocument(assetKey.parts[0]);
+      if (!program) throw new Error('App Engine not found: ' + assetKey.parts[0]);
       asset = { kind: 'ae', key: assetKey, data: JSON.parse(migrationCanonical(program.doc)) as AeDocument };
     } else throw new Error('No migration adapter for definition type ' + type + ': ' + key.parts.join('.'));
     assets.set(projectKeyIdentity(assetKey), asset);
@@ -551,7 +585,7 @@ export async function previewMigrationImport(pkg: StudioMigrationPackage, target
   plan.blockers.push(...await target.validateMembers?.(pkg.members)??[]);
   if (target.toolsRelease !== pkg.toolsRelease) plan.blockers.push('Source and target PeopleTools release families differ.');
   for (const key of pkg.requirements) if (!await target.exists(key)) plan.blockers.push('Required definition missing: ' + key.parts.join('.'));
-  const kinds=['field', 'channel', 'record', 'sql', 'html', 'stylesheet', 'ae', 'page', 'component', 'menu', 'package', 'peoplecode', 'query'];
+  const kinds=['field', 'channel', 'record', 'filelayout', 'sql', 'html', 'stylesheet', 'ae', 'page', 'component', 'process', 'menu', 'package', 'peoplecode', 'query'];
   const pending = [...pkg.assets].sort((a, b) => kinds.indexOf(a.kind) - kinds.indexOf(b.kind));
   const ordered: MigrationAsset[] = [];
   while (pending.length) {

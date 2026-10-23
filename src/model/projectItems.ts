@@ -48,7 +48,7 @@ export const INSERTABLE_TYPES: ReadonlySet<DefinitionType> = new Set([
   DefinitionType.ApplicationClassPeopleCode, DefinitionType.StyleSheet, DefinitionType.MessageChannel, DefinitionType.UrlDefinition,
   DefinitionType.TranslateValue, DefinitionType.ProcessDefinition, DefinitionType.PagePeopleCode, DefinitionType.ComponentPeopleCode,
   DefinitionType.ComponentRecordPeopleCode, DefinitionType.ComponentRecordFieldPeopleCode, DefinitionType.PortalRegistry,
-  DefinitionType.MessageCatalog
+  DefinitionType.MessageCatalog, DefinitionType.FileLayout
 ]);
 
 export function canInsertIntoProject(type: DefinitionType): boolean {
@@ -92,6 +92,8 @@ const LAYOUTS: Readonly<Partial<Record<DefinitionType, (key: DefinitionKey) => P
   },
   // App Designer's Insert into Project: OBJECTID1 61 (CHNLNAME), the default statuses [chn16].
   [DefinitionType.MessageChannel]: single(36, 61),
+  // App Designer's Insert into Project on HRDMO 2026-10-23 (ZZ_BENELIG_FL): OBJECTID1 71 (FLDDEFNNAME), the default statuses.
+  [DefinitionType.FileLayout]: single(31, 71),
   [DefinitionType.Component]: (key) =>
     ({ objectType: 7, objectIds: [10, 39], objectValues: [name(key), key.parts[1] || 'GBL'] }),
   [DefinitionType.RecordPeopleCode]: (key) => {

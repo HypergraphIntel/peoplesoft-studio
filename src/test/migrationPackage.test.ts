@@ -75,7 +75,7 @@ test('Studio import previews, writes in dependency order, verifies and is idempo
 
 test('unsupported members and corrupted packages cannot silently export or import', async () => {
   const reader = source();
-  reader.listProjectItems = async () => [{ key: makeKey(DefinitionType.FileLayout, 'ZZ_LAYOUT') }];
+  reader.listProjectItems = async () => [{ key: makeKey(DefinitionType.ComponentInterface, 'ZZ_CI') }];
   await assert.rejects(exportMigrationPackage(reader, 'ZZ_PROJECT'), /No migration adapter/);
   const pkg = await exportMigrationPackage(source(), 'ZZ_PROJECT');
   const corrupted = JSON.parse(JSON.stringify(pkg));
@@ -162,7 +162,7 @@ test('orphan AE members are rejected even with a recomputed checksum', async () 
   const pkg = await exportMigrationPackage(source(), 'ZZ_PROJECT');
   const { checksum: _checksum, ...body } = pkg;
   body.members.push(makeKey(DefinitionType.AppEnginePeopleCode, 'ZZ_AE', 'MAIN    GBLdefault  1900-01-01', 'MISSING', 'OnExecute'));
-  assert.throws(() => parseMigrationPackage(JSON.stringify({ ...body, checksum: migrationHash(body) })), /no section or PeopleCode action/);
+  assert.throws(() => parseMigrationPackage(JSON.stringify({ ...body, checksum: migrationHash(body) })), /no section, SQL or PeopleCode action/);
 });
 
 function sqlSource(): MigrationPackageReader {
@@ -196,7 +196,7 @@ test('standalone SQL round-trips all portable metadata and its SQLTYPE project m
 
 test('SQL variants, incomplete readers, noncanonical payloads and changed checksums cannot migrate', async () => {
   const reader = sqlSource();
-  reader.listProjectItems = async () => [{ key: makeKey(DefinitionType.SqlDefinition, 'ZZ_SQL', '1') }];
+  reader.listProjectItems = async () => [{ key: makeKey(DefinitionType.SqlDefinition, 'ZZ_SQL', '2') }];
   await assert.rejects(exportMigrationPackage(reader, 'ZZ_SQL_PRJ'), /SQLTYPE 0/);
   reader.listProjectItems = sqlSource().listProjectItems;
   reader.readSqlForMigration = undefined;
@@ -413,6 +413,8 @@ test('an App Engine asset requires the SQL definitions it names and brings its s
   assert.ok(members.includes(DefinitionType.AppEngineSection + ':ZZ_PROMO.MAIN'));
   assert.ok(members.some(m => m.startsWith(DefinitionType.AppEnginePeopleCode + ':ZZ_PROMO.MAIN.') && m.endsWith('.Rows.OnExecute')));
   assert.equal(members.filter(m => m.endsWith('.Upd.OnExecute')).length, 0, 'a SQL step has no PeopleCode member');
+  // A step's SQL is a project member of its own (PSPROJECTITEM type 30, SQLTYPE 1), carried by the program.
+  assert.deepEqual(members.filter(m => m.startsWith(DefinitionType.SqlDefinition + ':')), [DefinitionType.SqlDefinition + ':ZZ_PROMO    MAINUpd     S.1'.replace('MAIN', 'MAIN    ')]);
 });
 
 test('a migration package records its source environment when the reader can name it, and still parses without one', async () => {

@@ -231,6 +231,32 @@ API, not the installed UI. Eight checks:
   opens the channel. Node rows (environment specific) and translations
   refuse. Undo deletes the channel (rollback-previewed) unless messages name
   it.
+- **App Engine step SQL members** (PSPROJECTITEM type 30, SQLTYPE 1/6, as
+  App Designer lists them for every SQL action) travel with their program:
+  the first 12 characters of the SQLID name it, and the member stays in the
+  target project.
+- **Process definitions:** what the PRCSDEFN component edits (the
+  Process Definition and Options properties Studio's process editor models),
+  components and process groups. The target adds the definition as the
+  component's Add mode does, then saves those values (processWriter.ts). A
+  definition with any other PS_PRCSDEFN column away from its Add-mode default,
+  or rows in the other PRCSDEFN child tables (notification, messages, content
+  distribution, URL links, page transfer, conditions, metadata,
+  translations), refuses. It requires the App Engine program it runs and its
+  components (GBL). No calibrated deletion exists, so a promotion that
+  creates one cannot be undone in Studio yet.
+- **File Layouts:** the File Layout window's document; the target saves it
+  with the File Layout writer. Undo deletes it (rollback-previewed). Project
+  membership: App Designer's Insert into Project writes OBJECTTYPE 31,
+  OBJECTID1 71 (HRDMO, 2026-10-23).
+
+Found by promoting the 1.5 business request (ZZ_BENELIG_PROJ) on
+ps-win-client, 2026-10-23: the installed Promote Project command connected
+the target, which disconnected the source (one connection is active at a
+time) and failed with "HRDMO is not connected". The command and
+`psft_project_promote` now read the source through a temporary provider
+(`Workspace.readFromConnection`), as Compare With Environment does;
+`npm run test:promotion` reproduces the failure without the fix.
 
 Cleanup removed every promoted definition, tombstone and project from HRDEV;
 its ZZ_ counts equal the starting ones. Installed UI promotion between two
