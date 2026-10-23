@@ -50,6 +50,12 @@ every operation is reversible. Failures in an advertised stable path remain
   Designer parity.
 - Browser SAML SSO and broader release-specific security/integration workflows,
   subject to the native capabilities of each PeopleTools release.
+- **Low priority, later:** canonical built-in function case in the PeopleCode
+  encoder. App Designer stores a built-in typed as `none(` as `None(` (seen on
+  Validate, 2026-10-23); Studio's encoder stores it as typed and Format Document
+  keeps it, so such a save is not App Designer's bytes. A corpus-calibration
+  change under the protected baseline; programs already in App Designer's form
+  are unaffected.
 
 These are candidate expansion areas. 2.0 is not a promise that complete
 Application Designer parity is already scoped or estimated.

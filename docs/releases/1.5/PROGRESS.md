@@ -137,14 +137,14 @@ EXTRACT failed natively (ORA-01799) and was corrected through psft_ae_edit with 
   the drift guard, since App Designer edited the page after the redo. Lab ZZ_JOB_DATA1 / ZZ_RPT_LINE / ZZ_AE_LAB01
   stay in the redo state.
 
-**§5 done 2026-10-23** except the compiler finding below.
+**§5 done 2026-10-23.** The compiler finding below is moved to low priority / later (RELEASE_PLAN.md).
 - Format Document: on a stored program (ZZ_BENELIG_RC.ZZ_AS_OF_DT.SaveEdit) App Designer's Validate and Studio's
   formatter both leave the text unchanged. Finding: App Designer canonicalizes built-in function case (`none(` →
   `None(` on Validate, natively), but Studio's encoder stores the name as typed (`6e006f006e0065`) and Format
   Document keeps it: a Studio save of a lower-case built-in is not App Designer's bytes. Needs a corpus-calibration
   fix (encoder function-name canonicalization, protected-baseline gate).
 
-Next: the built-in function case calibration (corpus harness, protected baseline 430/430), then §6 (HCDEV RDP,
+Next: §6 (HCDEV RDP,
 developer starts the session). Open: calibrated process definition deletion so a
 promotion that creates one can be undone.
 
