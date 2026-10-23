@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Route only the native SOAP connector over verified backend TLS. Requires root; never changes IB security.
 
-  sudo python3 nginx-soap-tls.py inspect
+  sudo python3 nginx-soap-tls.py inspect [CA_PEM]
       Changes nothing. Prints the live config's SHA-256, its locations, whether the connector route already exists,
       and the backend listener's certificate chain; saves the chain's issuing CA to /tmp/psft-hrdmo-root.pem and
-      verifies the backend certificate (chain and host name) against it.
+      verifies the backend certificate (chain and host name) against it. When the backend sends only its own
+      certificate, pass the issuing CA exported from psapp01 as CA_PEM.
   sudo python3 nginx-soap-tls.py apply CONFIG_SHA256 CA_SHA256
       Applies the route only if the config and CA still have the hashes inspect printed: backup, dedicated CA file,
       nginx -t, reload; anything failing restores the original config and removes the CA file.
@@ -27,7 +28,7 @@ def reload_checked():
     subprocess.check_call(['/usr/bin/systemctl', 'reload', 'nginx'])
 
 
-def inspect():
+def inspect(supplied_ca=None):
     text = config.read_text()
     print('config', config, 'sha256', sha(config.read_bytes()))
     for line in text.splitlines():
@@ -37,16 +38,25 @@ def inspect():
     shown = subprocess.run(['openssl', 's_client', '-connect', backend, '-servername', backend_name, '-showcerts'],
                            input=b'', capture_output=True, timeout=30).stdout.decode(errors='replace')
     chain = re.findall(r'-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----\n', shown, re.S)
-    if len(chain) < 2: raise SystemExit(f'Backend {backend} sent {len(chain)} certificate(s); the issuing CA must be supplied separately.')
+    if not chain: raise SystemExit(f'Backend {backend} sent no certificate.')
+    if supplied_ca:
+        anchor = re.findall(r'-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----\n', Path(supplied_ca).read_text(), re.S)
+        if len(anchor) != 1: raise SystemExit(f'{supplied_ca} must hold exactly one certificate.')
+        if anchor[0] not in chain: chain += anchor
+    if len(chain) < 2:
+        raise SystemExit(f'Backend {backend} sent {len(chain)} certificate(s); export its issuing CA and run: inspect CA_PEM')
     for i, pem in enumerate(chain):
         subject = subprocess.run(['openssl', 'x509', '-noout', '-subject', '-issuer', '-enddate'], input=pem.encode(), capture_output=True).stdout.decode()
         print(f'chain[{i}]', ' | '.join(subject.split('\n')).strip(' |'))
-    ca.write_text(chain[-1])
-    leaf = Path('/tmp/psft-hrdmo-leaf.pem'); leaf.write_text(chain[0])
-    untrusted = Path('/tmp/psft-hrdmo-untrusted.pem'); untrusted.write_text(''.join(chain[1:-1]))
+    leaf, untrusted = Path('/tmp/psft-hrdmo-leaf.pem'), Path('/tmp/psft-hrdmo-untrusted.pem')
+    # Sticky /tmp (protected_regular) refuses to let root reopen another user's leftover file, so replace each one.
+    for path, pem in ((ca, chain[-1]), (leaf, chain[0]), (untrusted, ''.join(chain[1:-1]))):
+        path.unlink(missing_ok=True); path.write_text(pem)
     verify = ['openssl', 'verify', '-CAfile', str(ca), '-verify_hostname', backend_name]
     if len(chain) > 2: verify += ['-untrusted', str(untrusted)]
-    print(subprocess.run(verify + [str(leaf)], capture_output=True, text=True).stdout.strip() or 'verification FAILED')
+    verified = subprocess.run(verify + [str(leaf)], capture_output=True, text=True)
+    if verified.returncode != 0: raise SystemExit('verification FAILED: ' + (verified.stderr or verified.stdout).strip())
+    print(verified.stdout.strip())
     print('CA saved to', ca, 'sha256', sha(ca.read_bytes()))
     print('If the route is absent, the CA verifies and the config is as expected, run:')
     print(f'  sudo python3 {sys.argv[0]} apply {sha(config.read_bytes())} {sha(ca.read_bytes())}')
@@ -86,7 +96,7 @@ def rollback(backup):
 
 if __name__ == '__main__':
     mode = sys.argv[1] if len(sys.argv) > 1 else ''
-    if mode == 'inspect' and len(sys.argv) == 2: inspect()
+    if mode == 'inspect' and len(sys.argv) in (2, 3): inspect(*sys.argv[2:])
     elif mode == 'apply' and len(sys.argv) == 4: apply(sys.argv[2], sys.argv[3])
     elif mode == 'rollback' and len(sys.argv) == 3: rollback(sys.argv[2])
     else: raise SystemExit(__doc__)

@@ -13,6 +13,8 @@ installed check below uses this one file.
 
 ## 1. Gateway TLS (V15-5 RT-L1) — developer, on gundam-server-01
 
+**Done 2026-10-22, differently:** passed by setting Req Verification to None on the `PRCS_*` operations; the nginx route below was applied, did not change the probe, and was rolled back. See PROGRESS.md.
+
 ```bash
 cd ~/peoplesoft-studio-lab   # any copy of tools/lab/process-runtime/nginx-soap-tls.py
 sudo python3 nginx-soap-tls.py inspect
@@ -37,6 +39,8 @@ reloads, and restores everything if any step fails. To undo it later:
 `(158,554)` to operator authentication.
 
 ## 2. Run and Monitor (V15-5 RT-L2–RT-L4) — installed candidate
+
+**Done 2026-10-22** (instances 607496, 607500, 607501). Lab prerequisites found on the way: psapp01 must resolve its own public host name (the PROCESSREQUEST handler downloads its schema from the IB Target Location), HCMDMO_APP needs more than two PSAPPSRV, and `ZZ_BC_ACC01` is now Always.
 
 1. Install the candidate in a separate VS Code window on Linux. Connect
    HRDMO and sign in as JARED when Run and Monitor asks; the password is typed

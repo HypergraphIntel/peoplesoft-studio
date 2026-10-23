@@ -1,0 +1,38 @@
+{
+  "checkedAt": "2026-10-22T23:28:23.156Z",
+  "scope": "Read-only HRDMO metadata, live published WSDL and anonymous native transport probe; no runtime acceptance",
+  "endpoint": "https://hcm.deathstar.chickenkiller.com/PSIGW/PeopleSoftServiceListeningConnector",
+  "operator": "JARED",
+  "control": {
+    "id": "ZZ_BC_ACC01",
+    "aeProgram": "ZZ_BC_EXPORT",
+    "frequency": "O"
+  },
+  "baseline": {
+    "lastInstance": 607265,
+    "identity": "4bed6d02f096ef5196821516ded9a02f96712a80a09eaf81e02571c120a12dbe",
+    "token": "c14f89492b1857c976d439dc80152278d9fe83eef92d6b527617eea042c5e386",
+    "description": "Synthetic handoff CSV",
+    "control": {
+      "id": "ZZ_BC_ACC01",
+      "aeProgram": "ZZ_BC_EXPORT",
+      "frequency": "O"
+    }
+  },
+  "actions": {
+    "PRCS_FINDREQUESTS": "PRQ_FINDREQUESTS.v1",
+    "PRCS_GETPROCESSNAMES": "PRCS_GETPROCESSNAMES.v1",
+    "PRCS_GETPROMPT": "PRQ_GETPROMPT.v1",
+    "PRCS_GETREPORT": "PRQ_GETREPORT.v1",
+    "PRCS_GETREQUEST": "PRQ_GET_REQUEST.v1",
+    "PRCS_SCHEDULE": "PRQ_SCHEDULE.v1"
+  },
+  "publicProbe": {
+    "http": 500,
+    "fault": "User Password required for Service Operation PRCS_GETPROMPT. (158,535)",
+    "transportRejected": false
+  },
+  "newProcessSubmitted": false,
+  "ibConfigurationChanged": false,
+  "nativeRuntimeAccepted": false
+}

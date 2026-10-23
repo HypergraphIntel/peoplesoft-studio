@@ -26,6 +26,8 @@ export async function runtimeBaseline(c:DbConnection,types:DbTypes,operatorId:st
  if(!control&&!generic)throw Error('Choose a run control already saved for this PeopleSoft operator. Create or edit its parameters in PeopleSoft first.');
  if(generic&&text(generic.AE_APPLID)!==request.process)throw Error('This generic AE run control belongs to '+text(generic.AE_APPLID)+'. Choose its matching process.');
  if(generic&&text(generic.PROCESS_FREQUENCY)==='D')throw Error('This AE run control is set to Do Not Run. Change its frequency in PeopleSoft before submitting.');
+ // A Run Once control that has completed is skipped natively: Success with only (108,517) "Request is not active".
+ if(generic&&text(generic.PROCESS_FREQUENCY)==='O'&&text(generic.AE_PROCESS_STATUS)==='C')throw Error('This Run Once AE run control has already run (instance '+text(generic.PROCESS_INSTANCE)+'), so PeopleSoft would skip it. Set its frequency to Once or Always again in PeopleSoft before submitting.');
  if(request.server&&!(await c.execute('SELECT SERVERNAME FROM PS_SERVERDEFN WHERE SERVERNAME=:s',{s:request.server},options)).rows?.length)throw Error('The selected scheduler server no longer exists.');
  const previous=(await c.execute<{N:number}>("SELECT NVL(MAX(PRCSINSTANCE),0) AS N FROM PSPRCSQUE WHERE OPRID=:o AND PRCSNAME=:p AND PRCSTYPE='Application Engine' AND RUNCNTLID=:r",{o:operatorId,p:request.process,r:request.runControl},options)).rows?.[0]?.N??0;
  return {lastInstance:Number(previous),identity:digest(identity),token:digest({identity,operatorId,request,process,ae,control,generic,previous}),description:text(process.DESCR),control:{id:request.runControl,...(generic?{aeProgram:text(generic.AE_APPLID),frequency:text(generic.PROCESS_FREQUENCY)}:{})}};

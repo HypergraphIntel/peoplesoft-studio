@@ -18,7 +18,8 @@ test('runtime SOAP posts escaped operator/request values using discovered aliase
  const client=new ProcessRuntimeClient(endpoint,{operatorId:'JARED&TEST',password:'private<&password'},fake);
  assert.equal(await client.schedule({process:'ZZ_RUNTIME',runControl:'A&B',server:'PSUNX'}),607999);
  assert.equal(calls.length,2);assert.equal((calls[1].init?.headers as Record<string,string>).SOAPAction,'"PRQ_SCHEDULE.v1"');
- const body=String(calls[1].init?.body);assert.ok(body.includes('JARED&amp;TEST'));assert.ok(body.includes('private&lt;&amp;password'));assert.ok(body.includes('<RunControlId>A&amp;B</RunControlId>'));
+ const body=String(calls[1].init?.body);assert.ok(body.includes('JARED&amp;TEST'));// PeopleSoft ignores the token unless the header is marked mustUnderstand (158,535 natively).
+ assert.ok(body.includes('<wsse:Security soap:mustUnderstand="1" '));assert.ok(body.includes('private&lt;&amp;password'));assert.ok(body.includes('<RunControlId>A&amp;B</RunControlId>'));
  assert.equal(calls[1].init?.redirect,'error');assert.ok(body.includes('<OutputDestinationType>WEB</OutputDestinationType>'));assert.ok(body.includes('<OutputDestinationFormat>TXT</OutputDestinationFormat>'));
  let posts=0;const lost=new ProcessRuntimeClient(endpoint,{operatorId:'JARED',password:'not-retained'},async(_input,init)=>{if(!init?.method)return new Response(wsdl);posts++;throw Error('Lost reply');});
  await assert.rejects(()=>lost.schedule({process:'ZZ_RUNTIME',runControl:'ONCE',server:''}),/outcome before retrying/);assert.equal(posts,1);
@@ -49,3 +50,13 @@ test('report downloading rejects redirected/login pages, oversized bodies and fo
 });
 // Keep the operation contract explicit for additions.
 const operation:RuntimeOperation='PRCS_FINDREQUESTS';assert.equal(operation,'PRCS_FINDREQUESTS');
+test('native calls run one at a time, and a failed call does not block the next',async()=>{
+ let open=0,peak=0,posts=0;
+ const fake:typeof fetch=async(_input,init)=>{if(!init?.method)return new Response(wsdl);open++;peak=Math.max(peak,open);await new Promise(r=>setTimeout(r,5));open--;
+  if(++posts===1)throw Error('socket closed');
+  return new Response(envelope(String(init.body).includes('GetProcessNames')?'<r:GetProcessNamesResponse xmlns:r="urn:response"><ProcessName>ZZ_A</ProcessName></r:GetProcessNamesResponse>':'<r:GetPromptValuesResponse xmlns:r="urn:response"><PromptValue>PSUNX</PromptValue></r:GetPromptValuesResponse>'));};
+ const client=new ProcessRuntimeClient(endpoint,{operatorId:'JARED',password:'pw'},fake);await client.discover();
+ const [first,processes,servers]=await Promise.allSettled([client.servers(),client.processes(),client.servers()]);
+ assert.equal(first.status,'rejected');assert.deepEqual(processes,{status:'fulfilled',value:['ZZ_A']});assert.deepEqual(servers,{status:'fulfilled',value:['PSUNX']});
+ assert.equal(peak,1);assert.equal(posts,3);
+});

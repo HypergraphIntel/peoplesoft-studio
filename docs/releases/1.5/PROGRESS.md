@@ -15,7 +15,7 @@ nothing here is released.
 | V15-2 Separate-environment promotion | Implemented | Unit tests, HTTP/UI fixture, HRDMO → HRDEV native trial (8 checks incl. undo/redo, conflicts, partial failure, alternate keys/In-Memory, message channels) | Installed UI promotion between two configured connections; class/subpackage metadata (no calibrated writer) |
 | V15-3 Business application acceptance + Windows AI handoff | Prepared | Representative request [documents](../../build-requests/samples/benefits-eligibility/) (read correctly by Studio's intake), independent expected-output verifier `tools/lab/benelig-expected.mts` (1,821 rows as of 2026-10-22); ps-win-client inventoried (VS Code present; Node, Claude Code, Codex missing) | [Session](ACCEPTANCE_SESSION.md) §3–4: Windows CLI install and sign-in, intake, approval, Codex build, native run, HRDEV promotion |
 | V15-4 Query/release/editor breadth | In progress | Row security (qrs01, qrs02); effective-date operators (qed01–qed06, [native](../../../tools/lab/results/query-effdt-native-2026-10-22.json)); HAVING OR (qhv01); date Min/Max (qag06); expression-column criteria (qex04); nested subqueries (qsq03); subqueries beside unions (qsq04); PeopleCode Format Document ([evidence](../../../tools/lab/results/peoplecode-format-2026-10-22.json)) | 8.61 captures need HCDEV RDP (batched) |
-| V15-5 Run and Monitor RT-L1–RT-L4 (Low) | Prepared | Gateway script now inspects first and applies only against the hashes it printed (guard, idempotence and rollback tested locally) | [Session](ACCEPTANCE_SESSION.md) §1–2: sudo inspect/apply, JARED sign-in, one confirmed run |
+| V15-5 Run and Monitor RT-L1–RT-L4 (Low) | RT-L1–RT-L4 passed 2026-10-22 (uncertain-outcome reconciliation fixture-only) | RT-L1: public connector probe reaches operator authentication `(158,535)` ([preflight](../../../tools/lab/results/process-runtime-preflight-2026-10-22.json)) after the developer set Req Verification to None on the PROCESSREQUEST `PRCS_*` operations (the gundam nginx 8113 route was tried and rolled back). RT-L2: installed candidate, JARED, instance 607496 Success/Posted, the only new ZZ_BC_EXPORT instance; its run control was a completed Run Once, so the AE skipped with (108,517) — Studio now refuses that at Review. RT-L3: after ZZ_BC_ACC01 was set to Always, instance 607500 Success/Posted; stdout opened in the UI; downloaded CSV 123 bytes, SHA-256 `62d92d41…6b367` (match) RT-L4 (developer, installed): history kept across reload; double click produced exactly one instance (607501) and refused the second; stale run control, expiry, read-only and unsaved-editor requests all refused with no new instance (read-only check: ZZ_BC_EXPORT instances after 607265 are exactly 607496, 607500, 607501) | Native uncertain-outcome reconciliation (needs a deliberately lost response); covered by fixture tests only |
 
 ## Batched installed acceptance (one developer session)
 
@@ -39,8 +39,19 @@ can share one Change Set, one inverse and one redo. Queue:
 
 ## Candidate
 
-`peoplesoft-studio.vsix` built by `npm run package` at c5637317 (full verify passed), SHA-256
-`576795570ea6f3b3b18f1001b3551e84495562dc9855b09095855af001558067`. Rebuild if later commits land before the session.
+`peoplesoft-studio.vsix` rebuilt 2026-10-22 (full verify: 2,270 passed, 0 failed), SHA-256
+`55faf214f31cf0dad51bbfee571349937e5d31533cef30e19a701fd722831444`. RT-L2–RT-L4 ran on the previous build
+(`f1a577ca…e885`); this one adds only the completed-Run-Once refusal. Native findings from the session that changed it:
+
+- The c5637317 candidate sent its UsernameToken without `soap:mustUnderstand="1"`; the gateway ignores such a token
+  and answers `(158,535)`, so sign-in could not pass. Fixed; JARED sign-in verified in the installed candidate.
+- After authentication the PROCESSREQUEST handler on psapp01 downloads its request schema from the IB Target
+  Location (`http://hcm.deathstar…`), which psapp01 could not reach (NetAccessorException). Lab fix by the developer.
+- That download re-enters the gateway and needs a second PSAPPSRV. Studio's parallel process-name/server calls
+  held both PSAPPSRV processes of HCMDMO_APP and deadlocked IntegrationSvc (9 queued). The client now sends native
+  calls one at a time, and a non-scheduling timeout says nothing was submitted. HCMDMO_APP raised to four PSAPPSRV.
+
+Rebuild if later commits land before the session.
 
 ## Next action
 

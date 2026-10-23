@@ -104,6 +104,14 @@ Local native definitions and installed/runtime evidence govern acceptance.
   requires the developer's password. IB service permissions/security have not
   been changed. No TLS validation has been disabled.
 
+**Accepted 2026-10-22 (1.5 session):** RT-L1–RT-L4 passed natively in the installed candidate (instances 607496,
+607500, 607501; CSV 123 bytes, SHA-256 match). Native findings encoded in the client: the WS-Security header needs
+`soap:mustUnderstand="1"` or PeopleSoft ignores the UsernameToken `(158,535)`; native calls are sent one at a time
+because each handler re-enters the gateway for its schema and parallel calls deadlocked a two-PSAPPSRV domain; a
+completed Run Once AE control is refused at Review because PeopleSoft skips it with `(108,517)` yet reports Success.
+The nginx 8113 route below was not needed and was rolled back. Only native uncertain-outcome reconciliation remains
+fixture-only. Details: [1.5 progress](releases/1.5/PROGRESS.md).
+
 Recorded [verification summary](../tools/lab/results/process-runtime-verification-2026-10-21.json) and [native preflight](../tools/lab/results/process-runtime-preflight-2026-10-21.json) retain the exact evidence boundary. The final unaccepted candidate is `/tmp/peoplesoft-studio-runtime-candidate.vsix`; no release was installed in the developer's original window. The isolated acceptance windows were closed while the gateway prerequisite is pending.
 
 ## Limits and remaining acceptance

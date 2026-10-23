@@ -74,12 +74,18 @@ export class ProcessRuntimeClient {
     if(!response.ok)throw Error('Cannot read the native PROCESSREQUEST WSDL (HTTP '+response.status+').');
     return this.actions=parseRuntimeWsdl(new TextDecoder().decode(await boundedBody(response,4*1024*1024)));
   }
-  private async call(operation:RuntimeOperation,request:string,responseRoot:string):Promise<any>{
+  /** One native call at a time: each call holds an app server process while the handler fetches its schema back
+   *  through the gateway, which needs another one. Parallel calls deadlocked a two-PSAPPSRV domain natively. */
+  private queue:Promise<unknown>=Promise.resolve();
+  private call(operation:RuntimeOperation,request:string,responseRoot:string):Promise<any>{
+    const next=this.queue.then(()=>this.send(operation,request,responseRoot));this.queue=next.catch(()=>undefined);return next;
+  }
+  private async send(operation:RuntimeOperation,request:string,responseRoot:string):Promise<any>{
     const actions=this.actions??await this.discover();
-    const security=`<wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"><wsse:UsernameToken><wsse:Username>${xml(this.credentials.operatorId)}</wsse:Username><wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">${xml(this.credentials.password)}</wsse:Password></wsse:UsernameToken></wsse:Security>`;
+    const security=`<wsse:Security soap:mustUnderstand="1" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"><wsse:UsernameToken><wsse:Username>${xml(this.credentials.operatorId)}</wsse:Username><wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">${xml(this.credentials.password)}</wsse:Password></wsse:UsernameToken></wsse:Security>`;
     const body=`<?xml version="1.0" encoding="UTF-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Header>${security}</soap:Header><soap:Body>${request}</soap:Body></soap:Envelope>`;
     let response:Response;
-    try{response=await this.transport(this.endpoint,{method:'POST',redirect:'error',headers:{'content-type':'text/xml; charset=utf-8',SOAPAction:'"'+actions[operation]+'"'},body,signal:AbortSignal.timeout(45000)});}catch{throw Error('The native service response was not received. Check the submission outcome before retrying.');}
+    try{response=await this.transport(this.endpoint,{method:'POST',redirect:'error',headers:{'content-type':'text/xml; charset=utf-8',SOAPAction:'"'+actions[operation]+'"'},body,signal:AbortSignal.timeout(45000)});}catch{throw Error(operation==='PRCS_SCHEDULE'?'The native service response was not received. Check the submission outcome before retrying.':'The native scheduler service did not respond. Nothing was submitted.');}
     if(response.status===401||response.status===403)throw new RuntimeFault('PeopleSoft rejected this operator sign-in or service permission.',true);
     const text=new TextDecoder().decode(await boundedBody(response,4*1024*1024));
     if(!response.ok&&!text.includes('Fault'))throw Error('The native service returned HTTP '+response.status+'.');
