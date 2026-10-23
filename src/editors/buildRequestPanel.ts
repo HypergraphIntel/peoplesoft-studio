@@ -1,11 +1,12 @@
 import { randomBytes } from 'node:crypto';
+import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import * as vscode from 'vscode';
 import {
   agentPrompt, approvalBlocker, buildOrder, isApproved, REQUEST_KINDS, status, STATUS_LABELS, unansweredQuestions, type BuildRequest, type RequestEdit
 } from '../buildRequest/model.js';
 import { routeFor } from '../buildRequest/routes.js';
-import { agentLaunch } from '../buildRequest/handoff.js';
+import { agentLaunch, claudeMcpConfig } from '../buildRequest/handoff.js';
 import type { BuildRequestStore } from '../buildRequest/store.js';
 import { escapeHtml as esc } from './propertiesHtml.js';
 
@@ -157,11 +158,17 @@ export class BuildRequestPanel {
       void vscode.window.showInformationMessage('Prompt copied. Paste it into an agent connected to the PeopleSoft Studio MCP server.');
     } else {
       const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? this.host.store.folder(this.id);
-      const launch = agentLaunch(r, phase, agent, mcp.url);
+      let configFile: string | undefined;
+      if (process.platform === 'win32' && agent === 'claude') {
+        configFile = path.join(this.host.store.folder(this.id), 'claude-mcp-config.json');
+        await fs.writeFile(configFile, claudeMcpConfig(mcp.url));
+      }
+      const launch = agentLaunch(r, phase, agent, mcp.url, configFile);
       const name = `${AGENTS[agent]}: ${r.title}`.slice(0, 60);
       if (process.platform === 'win32') {
         // VS Code quotes literal arguments for the configured Windows shell, including .cmd launchers.
-        const task = new vscode.Task({ type: 'psft-build-request', request: r.id }, vscode.TaskScope.Global, name, 'PeopleSoft Studio',
+        // Phase and agent are part of the identity: VS Code only reveals a task with the same definition while it runs.
+        const task = new vscode.Task({ type: 'psft-build-request', request: r.id, phase, agent }, vscode.TaskScope.Global, name, 'PeopleSoft Studio',
           new vscode.ShellExecution(launch.command, launch.args.map(value => ({ value, quoting: vscode.ShellQuoting.Strong })), { cwd }));
         task.presentationOptions = { reveal: vscode.TaskRevealKind.Always, focus: true, panel: vscode.TaskPanelKind.New };
         await vscode.tasks.executeTask(task);

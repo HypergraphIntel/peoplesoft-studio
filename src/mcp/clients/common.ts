@@ -15,15 +15,60 @@ export interface ExecFailure
   code?: number | string;
 }
 
+/**
+ * Node refuses to spawn a .cmd launcher directly on Windows (EINVAL since
+ * the CVE-2024-27980 fix), so npm's codex.cmd/claude.cmd run through
+ * cmd.exe. Only arguments that need no shell quoting are passed that way.
+ */
+export function windowsShimCommand(
+  command: string,
+  args: string[]
+): { command: string; args: string[] } {
+  const line =
+    [command, ...args];
+
+  if (
+    !line.every(
+      (part) =>
+        /^[\w.:/@-]+$/.test(part)
+    )
+  ) {
+    throw new Error(
+      'This argument cannot be passed safely to a Windows command launcher.'
+    );
+  }
+
+  return {
+    command:
+      process.env.ComSpec ??
+      'cmd.exe',
+    args: [
+      '/d',
+      '/s',
+      '/c',
+      line.join(' ')
+    ]
+  };
+}
+
 export function execFile(
   command: string,
   args: string[]
 ): Promise<ExecResult> {
+  const target =
+    process.platform === 'win32' &&
+    /\.cmd$/i.test(command)
+      ? windowsShimCommand(
+        command,
+        args
+      )
+      : { command, args };
+
   return new Promise(
     (resolve, reject) => {
       childProcess.execFile(
-        command,
-        args,
+        target.command,
+        target.args,
         {
           encoding: 'utf8'
         },

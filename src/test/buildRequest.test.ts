@@ -6,7 +6,7 @@ import path from 'node:path';
 import { deflateRawSync } from 'node:zlib';
 import { extractText } from '../buildRequest/extract.js';
 import { buildOrder, checkSpec, isApproved, status, newRequest, agentPrompt, type BuildSpec } from '../buildRequest/model.js';
-import { agentLaunch } from '../buildRequest/handoff.js';
+import { agentLaunch, claudeMcpConfig } from '../buildRequest/handoff.js';
 import { routeFor } from '../buildRequest/routes.js';
 import { BuildRequestStore } from '../buildRequest/store.js';
 import { DefinitionType as D } from '../model/definitions.js';
@@ -17,7 +17,7 @@ test('Codex and Claude handoff arguments bind this window endpoint and preserve 
   for (const phase of ['analyze', 'build'] as const) {
     const codex = agentLaunch(request, phase, 'codex', 'http://127.0.0.1:39522/mcp');
     assert.equal(codex.command, 'codex');
-    assert.equal(codex.args[1], 'mcp_servers.peoplesoftStudio.url="http://127.0.0.1:39522/mcp"');
+    assert.equal(codex.args[1], 'mcp_servers.peoplesoftStudio.url=http://127.0.0.1:39522/mcp');
     assert.equal(codex.args.at(-1), agentPrompt(request, phase));
     const claude = agentLaunch(request, phase, 'claude', 'http://127.0.0.1:39522/mcp');
     assert.equal(claude.command, 'claude');
@@ -28,6 +28,16 @@ test('Codex and Claude handoff arguments bind this window endpoint and preserve 
       assert.ok(!launch.args.some(a => /bypass|skip-permissions|dangerously/.test(a)));
       assert.ok(!launch.args.some(a => a.includes(request.narrative) || a.includes(request.title)));
     }
+  }
+});
+
+test('Windows handoff arguments carry no quote: PowerShell 5.1 strips double quotes and VS Code leaves single quotes unescaped', () => {
+  const request = newRequest('br-000000000001', '2026-10-20');
+  for (const phase of ['analyze', 'build'] as const) {
+    const claude = agentLaunch(request, phase, 'claude', 'http://127.0.0.1:7337/mcp', 'C:\\Users\\Dev\\claude-mcp-config.json');
+    assert.equal(claude.args[1], 'C:\\Users\\Dev\\claude-mcp-config.json');
+    assert.equal(JSON.parse(claudeMcpConfig('http://127.0.0.1:7337/mcp')).mcpServers.peoplesoftStudio.url, 'http://127.0.0.1:7337/mcp');
+    for (const launch of [claude, agentLaunch(request, phase, 'codex', 'http://127.0.0.1:7337/mcp')]) assert.ok(launch.args.every(a => !/["']/.test(a)), launch.args.join(' '));
   }
 });
 
