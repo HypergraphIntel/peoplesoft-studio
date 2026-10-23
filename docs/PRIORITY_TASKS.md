@@ -11,42 +11,30 @@ by assigning a related feature to a later release. The core profile is Oracle / 
 [qualification evidence](releases/1.0/PROGRESS.md) records completed gates. No
 publication date is committed.
 
-## Current priorities after core qualification
+## Current priorities after 0.9.9
 
 V1-1 through V1-5 are **complete** for the exact qualified 0.9.8 candidate;
 [the evidence tracker](releases/1.0/PROGRESS.md) records native/client/CI scope.
-The qualified core ships in [release 0.9.8](releases/0.9.8.md) on `main`.
+The 1.5 targets V15-1 through V15-5 passed native and installed acceptance and
+ship in [release 0.9.9](releases/0.9.9.md); the [1.5 tracker](releases/1.5/PROGRESS.md)
+records the evidence.
 
 | Target | Priority | Next work | Why it matters |
 | --- | --- | --- | --- |
-| 1.5 / V15-1 | Highest next big win | Structural Page Change Review: insert/delete/rebind/order with native persisted-ID mapping and exact apply/inverse/redo. **Page part implemented** (fixture + HRDMO rollback previews; [PAGE_ADAPTER.md](change-review/PAGE_ADAPTER.md#structural-page-review-v15-1)); installed developer acceptance pending. Record/field, AE structural and package/class lifecycle follow | Makes larger reviewed UI changes possible through one durable workflow |
-| 1.5 / V15-2 | High | Promotion between separate Oracle environments | Turns the bounded package workflow into verified delivery across environments |
-| 1.5 / V15-3 | High | Representative business application acceptance and native Windows AI Build handoff | Proves real requirements-to-application behavior beyond current synthetic/Linux evidence |
-| 1.5 / V15-4 | Normal | Broader Query release/family and language/editor coverage | Expands the currently calibrated contract without protected regressions |
-| 1.5 / V15-5 | Low | Run and Monitor RT-L1–RT-L4 | Explicitly deferred native scheduler acceptance and environment prerequisite |
+| Follow-up / V15-2 | Normal | Calibrated process definition deletion, so a promotion that creates a process definition can be undone | Today such a promotion is applied without undo |
+| Follow-up / V15-2 | Normal | Subpackage and class metadata (descriptions, owners, comments) in migration | Still refused by export |
+| Follow-up / V15-5 | Low | Native lost-response recovery for Run and Monitor (needs a deliberately lost response) | Covered by fixture tests only |
+| 2.0 | Low, later | Canonical built-in function case in the PeopleCode encoder (`none(` stored as `None(`), under the protected baseline | A Studio save of a lower-case built-in is not App Designer's bytes |
 | 2.0 | Planned | Production SQL Server/DB2, cross-platform promotion, Workbench and wider parity/security | Requires platform-specific native evidence and a wider product contract |
 
-## Run and Monitor — Low-priority follow-up
+## Run and Monitor — native acceptance complete
 
-Developer direction at closeout: finish the local implementation and document
-the remaining runtime work as **Low priority**. The workflow, local tests,
-rendered UI/production HTTP checks and candidate package are complete. Isolated
-installed connection/panel preflight passed; a real scheduler run and native
-output acceptance remain unverified. No server change or process submission
-was performed, and no acceptance window remains waiting for credentials.
-
-| ID | Priority | Deferred task | Completion evidence |
-| --- | --- | --- | --- |
-| RT-L1 | Low | Resolve the gateway's backend TLS prerequisite during a later server-maintenance session. Refresh config/certificate evidence before applying the prepared patch. | Keep the public HTTPS URL, TLS validation and IB security; native probe passes the `(158,554)` transport rejection. |
-| RT-L2 | Low | Verify JARED sign-in and a single confirmed synthetic HRDMO run through the final installed candidate, after RT-L1. | Preparation submits nothing; exactly one matching native instance reaches Success/Posted; program and configuration preservation verified. |
-| RT-L3 | Low | Verify native logs, repository authentication and actual UI file download, after RT-L2. | Open stdout; save and hash the exact 123-byte CSV through Download; retain native report authorization. Add save-dialog/byte verification to the runner. |
-| RT-L4 | Low | Verify installed history persistence, refusals and uncertain-outcome reconciliation, after RT-L2. | Reopen/reload retains history; dirty/read-only/stale requests and duplicate clicks cannot submit; recovery links the verified instance without replay. |
-
-[Detailed scope, dependencies and evidence](PROCESS_SCHEDULER_RUNTIME.md#deferred-tasks--low-priority).
-These are deferred acceptance tasks, not completed native runtime capabilities.
-This priority change applies to Run and Monitor only.
-Its release target is **1.5**, still **Low priority** and explicitly
-outside the 1.0 gate; native acceptance remains pending.
+RT-L1 through RT-L4 passed on October 22, 2026 with the installed extension on
+HRDMO (instances 607496, 607500 and 607501; the downloaded CSV matched its
+SHA-256). The gateway prerequisite was met by setting Req Verification to None
+on the PROCESSREQUEST `PRCS_*` operations; the prepared nginx TLS route was not
+needed. Native lost-response recovery remains fixture-tested only. See
+[scope and evidence](PROCESS_SCHEDULER_RUNTIME.md).
 
 ## Earlier priority tasks — October 20, 2026
 
@@ -73,13 +61,13 @@ integrated into `main` from `query-criteria` and natively verified on HRDMO
 8.62.09: 31 Windows Query captures replay exactly, and eight Studio-written
 queries reopen in Windows Query with identical SQL and rows
 ([evidence](../tools/lab/results/query-families-native-2026-10-21.json),
-[PS_QUERY_WINDOWS.md](PS_QUERY_WINDOWS.md)). Installed acceptance is complete;
-8.61.15 calibration remains open:
+[PS_QUERY_WINDOWS.md](PS_QUERY_WINDOWS.md)). Installed acceptance is complete,
+and 8.61.15 calibration followed in 0.9.9:
 
 | Task | Needs | Acceptance required |
 | --- | --- | --- |
 | 1. Installed check — complete October 21 | Unmodified candidate VSIX installed in a separate real VS Code 1.143.0 window, private history, HRDMO 8.62.09 | [10 installed checks](../tools/lab/results/query-installed-2026-10-21.json): saved-query editing of criteria/HAVING, joins, aggregates, translates, expressions, subqueries and unions; SQL and every rendered result cell match independent native execution; undo/redo/discard; MCP rename/delete stage without writing, refuse missing destructive consent without writes, apply through rendered approval and undo to exact native snapshots. Cleanup and installed artifact integrity verified. |
-| 2. 8.61.15 calibration | Developer's RDP session to HCDEV (XX_ objects only) | Windows Query 8.61.15 captures of each family, replayed exactly; the 8.61 writer gate (now one record, one equal-to criterion) lifted only where proven. |
+| 2. 8.61.15 calibration — complete October 23 | Developer's RDP session to HCDEV (XX_ objects only) | Twelve Windows Query 8.61.15 queries, one or more per family, match Studio's rows; the 8.61 writer gate is removed (released in 0.9.9; see [Query families on 8.61.15](PS_QUERY_WINDOWS.md#query-families-on-86115-october-23)). |
 | 3. Commit and push — complete in this checkpoint | Developer requested all changes committed and pushed | Query implementation and evidence were first committed on `query-criteria`; the complete branch is now integrated into `main` for release 0.9.8. |
 
 Reproduce installed acceptance with HRDMO lab credentials in `PSLAB_ACCESSID`

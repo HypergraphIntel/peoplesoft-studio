@@ -14,27 +14,30 @@ The developer directed larger readiness items toward later releases. The
   protected PeopleCode calibration, stable/preview boundaries, Linux/Windows
   install/upgrade/recovery and exact-artifact qualification. These ship in
   release 0.9.8; see [completed evidence](releases/1.0/PROGRESS.md).
-- **1.5:** broader structural Change Review, promotion between separate Oracle
-  environments, production-style business workflows, Windows AI Build handoff
-  and wider Query/editor support. Run and Monitor acceptance stays Low priority.
+- **1.5 targets delivered in release 0.9.9:** structural Change Review,
+  promotion between separate Oracle environments, a production-style business
+  workflow, Windows AI Build handoff, wider Query/editor support and Run and
+  Monitor native acceptance; see the [1.5 tracker](releases/1.5/PROGRESS.md).
 - **2.0:** production SQL Server/DB2, cross-platform promotion, Data Migration
   Workbench and wider designer/security coverage toward the parity goal.
 
 These are planning targets, not dates or support certifications. Full parity
 remains the long-term objective; it is not the proposed 1.0 completion test.
 
-## Current release: 0.9.8
+## Current release: 0.9.9
 
-Released October 22, 2026 with expanded Query authoring, Integration Broker
-Change Review and qualified Linux/Windows core workflows. See the
+Released October 23, 2026 with the 1.5 targets: structural Change Review for
+pages, records, App Engine and Application Packages/classes; promotion between
+Oracle environments; every PS Query family on PeopleTools 8.61.15; PeopleCode
+Format Document; Run and Monitor native acceptance; and the Windows AI handoff.
+See the [release notes](releases/0.9.9.md). Open follow-ups: undo of a
+promotion that creates a process definition, subpackage/class metadata
+migration, native lost-response recovery for Run and Monitor, and canonical
+built-in function case in the encoder (2.0, low priority).
+
+0.9.8 (October 22, 2026) shipped the qualified 1.0 core with expanded Query
+authoring and Integration Broker Change Review; see its
 [release notes](releases/0.9.8.md) and [upgrade guidance](releases/1.0/UPGRADE.md).
-
-Run and Monitor's local implementation, fixture verification and candidate
-packaging are complete. The developer has deferred its gateway TLS prerequisite
-and real installed scheduler/report/persistence acceptance as **Low priority**;
-see [RT-L1 through RT-L4](PRIORITY_TASKS.md#run-and-monitor--low-priority-follow-up).
-Native runtime acceptance is still pending. No server patch or process was
-submitted during this work. The 0.9.8 release retains the preview boundary.
 
 0.9.4 adds calibrated 8.61.15 Query and standard Integration Broker writes,
 release-aware Page and Field Configurator mapping, application-class signature
@@ -70,8 +73,9 @@ Log/Trace opens both stdout files and downloads both exact CSVs. Earlier
 CSV, but was not posted. Write-confirmation timeouts now end in explicit
 expired, cancelled, declined or approved outcomes, and a late click never
 writes. Build Request progress accepts PENDING for deferred work and keeps
-history. All three passed installed checks. Representative production-interface
-and Windows handoff acceptance remain open. See [priority tasks](PRIORITY_TASKS.md),
+history. All three passed installed checks. Representative business-request and
+Windows handoff acceptance followed in 0.9.9 (benefits-eligibility file, built
+by Codex on Windows, 1,821 rows matching an independent verifier). See [priority tasks](PRIORITY_TASKS.md),
 [native intake and metadata](build-requests/NATIVE_ACCEPTANCE.md) and
 [AE/file runtime history](build-requests/AE_FILE_WORKFLOW.md).
 
@@ -129,8 +133,8 @@ separate unmodified installed VSIX cover designer editing, SQL and result-cell
 values, undo/redo/discard, and reviewed rename/delete with exact inverse
 restoration. Temporary HRDMO queries and deletion markers were cleaned up;
 see [installed evidence](PS_QUERY_WINDOWS.md#installed-acceptance-october-21-2026).
-8.61.15 family calibration remains open. Query development from `query-criteria`
-is integrated into `main` and included in release 0.9.8.
+Query development from `query-criteria` is integrated into `main` and included
+in release 0.9.8; 8.61.15 family calibration followed in 0.9.9.
 
 See the [README capability tables](../README.md#what-works-now),
 [MCP reference](MCP_REFERENCE.md), and [changelog](../CHANGELOG.md) for current

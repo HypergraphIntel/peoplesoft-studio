@@ -488,7 +488,8 @@ function setCriteria(view: QueryView, specs: QueryCriterion[], meta: Meta, sel: 
       if ((dated && !none) !== ('currentDate' in (spec.value ?? {}))) throw new QueryUnsupportedError('Effective date criteria compare EFFDT with the current date (First / Last Eff Date take no value); other current-date comparisons are not calibrated.');
       if (dated && (s(locate(view,spec.field!,meta,at).field)!=='EFFDT' || info!.type!==4)) throw new Error('An effective date criterion is on a record\'s EFFDT.');
       if (none ? spec.value || spec.value2 : !spec.value || !!spec.value2!==twoSided) throw new Error(`${spec.field ?? spec.operator} ${spec.operator}: wrong number of operands.`);
-      if (info && info.type!==0 && (list && !sub || twoSided || like)) throw new QueryUnsupportedError(`${spec.operator} is calibrated for character fields only.`);
+      // 8.61.15 XX_QRY_C1_AD: a date between stores two date constants (FIELDTYPE 4, ISO text) as qnm02 does.
+      if (info && info.type!==0 && (list && !sub || twoSided && info.type!==4 || like)) throw new QueryUnsupportedError(`${spec.operator} is calibrated for character fields${twoSided ? ' and dates' : ''} only.`);
       if (twoSided && !('constant' in spec.value! && 'constant' in spec.value2!)) throw new QueryUnsupportedError('Between is calibrated for two constants only.');
       if (list && !('list' in spec.value! || sub)) throw new Error(`${spec.operator} takes a list of values or a subquery.`);
       if (!list && spec.value && 'list' in spec.value) throw new Error(`${spec.operator} takes a single value.`);

@@ -63,6 +63,16 @@ test('criteria, number and date SQL matches what Windows Query shows for the nat
   assert.throws(() => bindQueryPrompts(plan,{'1':'2000-01-01','2':'5 or 1=1'}),/whole number/);
 });
 
+// 8.61.15 XX_QRY_C1_AD's SQL tab: a date between compares two TO_DATE constants.
+test('date between SQL matches Windows Query', () => {
+  const view = snapshot('qnm02-date-const');
+  const between = view.criteria.find(c => Number(c.CONDTYPE) === 4 && Number(c.LCRTFLDNUM) === 2)!;
+  Object.assign(between, {CONDTYPE:10,EXPRTYPE:9,R2CRTEXPNUM:view.expressions.length+1});
+  view.expressions = [...view.expressions, {...view.expressions[0],EXPNUM:view.expressions.length+1,FIELDTYPE:4,EXPRESSIONTEXT:'2030-12-31'}];
+  const years: QuerySqlContext = {record:'AAP_YEAR',table:'PS_AAP_YEAR',recordType:0,querySecurityRecord:'',fields:{ESTABID:{type:0},START_DT:{type:4},FEMALE_GOAL:{type:2}}};
+  assert.match(compileQuerySql(view,years).sql.replace(/\s+/g,' '),/A\.START_DT BETWEEN TO_DATE\('2000-01-01','YYYY-MM-DD'\) AND TO_DATE\('2030-12-31','YYYY-MM-DD'\)\)/);
+});
+
 test('join SQL matches Windows Query for qjn01-qjn04', () => {
   const normalize = (sql: string) => sql.replace(/\s+/g, ' ').replace(/, /g, ',').replace(/\( /g, '(').replace(/ \)/g, ')').trim();
   const year = {record:'AAP_YEAR',table:'PS_AAP_YEAR',recordType:0,querySecurityRecord:'',fields:{ESTABID:{type:0},START_DT:{type:4},FEMALE_GOAL:{type:2}},keys:['ESTABID','START_DT']};

@@ -1,5 +1,9 @@
 # 1.5 developer acceptance session
 
+**Completed October 22–23, 2026; released in [0.9.9](../0.9.9.md).** Results
+are in the [1.5 tracker](PROGRESS.md). The steps below are kept as the record
+of what was run.
+
 Everything left for 1.5 needs the developer: a password, a sign-in, a
 spec approval or an installed-window click. It is batched into this one session,
 in this order. Steps marked **(agent)** are driven by the agent once the step

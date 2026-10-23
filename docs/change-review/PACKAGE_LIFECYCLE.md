@@ -3,7 +3,11 @@
 Development state as of October 22, 2026: implemented, production HTTP/UI
 fixture verified (routing, destructive consent, undo/redo, stale-undo refusal)
 and HRDMO native verified (rollback previews and one rolled-back transaction);
-installed developer-approved acceptance pending.
+installed developer-approved acceptance passed October 23, 2026 (package
+ZZ_ACC15 and class ZZ_ACC15:Greeter created, the class deleted with destructive
+consent and restored by undo with identical source; App Designer opens it).
+A new class cannot be staged in the same Change Set as its new package: the
+class preview needs the package to exist.
 
 ## What stages
 

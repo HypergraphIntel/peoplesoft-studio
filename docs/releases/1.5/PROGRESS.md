@@ -1,61 +1,35 @@
 # 1.5 progress
 
 Working tracker for the [1.5 targets](../../RELEASE_PLAN.md#15--deeper-development-and-delivery-workflows).
-Started October 22, 2026. Native evidence lives in `tools/lab/results/`;
-nothing here is released.
+Started October 22, 2026; all five targets accepted October 23 and released
+in [0.9.9](../0.9.9.md). Native evidence lives in `tools/lab/results/`.
+Open follow-ups: undo of a promotion that creates a process definition (no
+calibrated process deletion), subpackage/class metadata migration, and native
+lost-response recovery for Run and Monitor (fixture-tested only).
 
 ## Status
 
 | Target | State | Evidence | Remaining |
 | --- | --- | --- | --- |
-| V15-1 Page structure | Implemented (b5912ba8) | Unit + transaction tests, HTTP/UI fixture, HRDMO rollback previews and a rolled-back native apply/inverse/redo cycle; App Designer captures ps01–ps04 | Installed developer apply/inverse/redo; App Designer reopen after a returned MAXPNLFLDID |
-| V15-1 Record field structure | Implemented (75351f32) | Transaction tests, HTTP/UI fixture, HRDMO rollback previews and a rolled-back native apply/inverse/redo cycle | Installed developer apply/inverse/redo |
-| V15-1 AE structural edits | Implemented | Unit tests, HTTP/UI fixture, HRDMO reconstruction of all 20 saveable ZZ_ programs, rolled-back native apply/inverse/redo with tombstone projection | Installed developer apply/inverse/redo |
-| V15-1 Package/class lifecycle | Implemented | HTTP/UI fixture, HRDMO previews and rolled-back native create/undo/redo of classes and packages | Installed developer apply/inverse/redo |
-| V15-2 Separate-environment promotion | Implemented | Unit tests, HTTP/UI fixture, HRDMO → HRDEV native trial (8 checks incl. undo/redo, conflicts, partial failure, alternate keys/In-Memory, message channels) | Installed UI promotion between two configured connections; class/subpackage metadata (no calibrated writer) |
-| V15-3 Business application acceptance + Windows AI handoff | Done 2026-10-23 (native run MATCH, HRDEV promotion verified) | ps-win-client set up by the agent (winget Node 24.22.1 + Git 2.55.0; the developer installed Claude Code 2.1.309 / Codex 0.163.0, signed in and set PowerShell `RemoteSigned` for the user). Four Windows defects found and fixed: `.cmd` launchers via `cmd.exe` (`spawn EINVAL`); no quote in handoff arguments (PowerShell 5.1 strips double quotes, VS Code leaves single quotes unescaped: Claude gets an MCP config file, Codex a bare URL, which it reads as a literal); agent tasks identified by phase and agent (a running analysis hid the build). Request br-9e49eca2090e: Claude Code analyzed it, 5 questions answered and spec revision 1 approved 8:20:27 PM by the agent as the developer's delegate; Codex build started, first MCP write approval (field ZZ_AS_OF_DT) expired after 60 s, nothing written; Codex found the spec's AE state record ZZ_BENELIG_WRK breaks Studio's AET rule | Undo of a promotion that creates a process definition (no calibrated deletion); commit the session fixes |
-| V15-4 Query/release/editor breadth | In progress | Row security (qrs01, qrs02); effective-date operators (qed01–qed06, [native](../../../tools/lab/results/query-effdt-native-2026-10-22.json)); HAVING OR (qhv01); date Min/Max (qag06); expression-column criteria (qex04); nested subqueries (qsq03); subqueries beside unions (qsq04); PeopleCode Format Document ([evidence](../../../tools/lab/results/peoplecode-format-2026-10-22.json)) | 8.61 captures need HCDEV RDP (batched) |
-| V15-5 Run and Monitor RT-L1–RT-L4 (Low) | RT-L1–RT-L4 passed 2026-10-22 (uncertain-outcome reconciliation fixture-only) | RT-L1: public connector probe reaches operator authentication `(158,535)` ([preflight](../../../tools/lab/results/process-runtime-preflight-2026-10-22.json)) after the developer set Req Verification to None on the PROCESSREQUEST `PRCS_*` operations (the gundam nginx 8113 route was tried and rolled back). RT-L2: installed candidate, JARED, instance 607496 Success/Posted, the only new ZZ_BC_EXPORT instance; its run control was a completed Run Once, so the AE skipped with (108,517) — Studio now refuses that at Review. RT-L3: after ZZ_BC_ACC01 was set to Always, instance 607500 Success/Posted; stdout opened in the UI; downloaded CSV 123 bytes, SHA-256 `62d92d41…6b367` (match) RT-L4 (developer, installed): history kept across reload; double click produced exactly one instance (607501) and refused the second; stale run control, expiry, read-only and unsaved-editor requests all refused with no new instance (read-only check: ZZ_BC_EXPORT instances after 607265 are exactly 607496, 607500, 607501) | Native uncertain-outcome reconciliation (needs a deliberately lost response); covered by fixture tests only |
+| V15-1 Page structure | Done 2026-10-23 (b5912ba8) | Unit + transaction tests, HTTP/UI fixture, HRDMO rollback previews and a rolled-back native apply/inverse/redo cycle; App Designer captures ps01–ps04; installed apply/inverse/redo (§5: e4f34fc9, 645905bc, 0528903b) and App Designer reopen with the next id 158 | — |
+| V15-1 Record field structure | Done 2026-10-23 (75351f32) | Transaction tests, HTTP/UI fixture, HRDMO rollback previews and a rolled-back native apply/inverse/redo cycle; installed apply/inverse/redo (§5, same Change Set) | — |
+| V15-1 AE structural edits | Done 2026-10-23 | Unit tests, HTTP/UI fixture, HRDMO reconstruction of all 20 saveable ZZ_ programs, rolled-back native apply/inverse/redo with tombstone projection; installed apply/inverse/redo (§5, same Change Set) | — |
+| V15-1 Package/class lifecycle | Done 2026-10-23 | HTTP/UI fixture, HRDMO previews and rolled-back native create/undo/redo of classes and packages; installed create, destructive delete and undo with identical source, App Designer opens the class (§5) | A new class and its new package cannot share a Change Set |
+| V15-2 Separate-environment promotion | Done 2026-10-23 | Unit tests, HTTP/UI fixture, HRDMO → HRDEV native trial (8 checks incl. undo/redo, conflicts, partial failure, alternate keys/In-Memory, message channels); installed UI promotion of ZZ_BENELIG_PROJ on Windows (§4) and MCP promotion + undo of ZZ_RF_PRJ (§5) | Undo of a promotion that creates a process definition; class/subpackage metadata (no calibrated writer) |
+| V15-3 Business application acceptance + Windows AI handoff | Done 2026-10-23 (native run MATCH, HRDEV promotion verified) | ps-win-client set up by the agent (winget Node 24.22.1 + Git 2.55.0; the developer installed Claude Code 2.1.309 / Codex 0.163.0, signed in and set PowerShell `RemoteSigned` for the user). Four Windows defects found and fixed: `.cmd` launchers via `cmd.exe` (`spawn EINVAL`); no quote in handoff arguments (PowerShell 5.1 strips double quotes, VS Code leaves single quotes unescaped: Claude gets an MCP config file, Codex a bare URL, which it reads as a literal); agent tasks identified by phase and agent (a running analysis hid the build). Request br-9e49eca2090e: Claude Code analyzed it, 5 questions answered and spec revision 1 approved 8:20:27 PM by the agent as the developer's delegate; Codex build started, first MCP write approval (field ZZ_AS_OF_DT) expired after 60 s, nothing written; Codex found the spec's AE state record ZZ_BENELIG_WRK breaks Studio's AET rule | Undo of a promotion that creates a process definition (no calibrated deletion) |
+| V15-4 Query/release/editor breadth | Done | Row security (qrs01, qrs02); effective-date operators (qed01–qed06, [native](../../../tools/lab/results/query-effdt-native-2026-10-22.json)); HAVING OR (qhv01); date Min/Max (qag06); expression-column criteria (qex04); nested subqueries (qsq03); subqueries beside unions (qsq04); PeopleCode Format Document ([evidence](../../../tools/lab/results/peoplecode-format-2026-10-22.json)); every Query family on 8.61.15 (§6) | — |
+| V15-5 Run and Monitor RT-L1–RT-L4 (Low) | Done 2026-10-22 (uncertain-outcome reconciliation fixture-only) | RT-L1: public connector probe reaches operator authentication `(158,535)` ([preflight](../../../tools/lab/results/process-runtime-preflight-2026-10-22.json)) after the developer set Req Verification to None on the PROCESSREQUEST `PRCS_*` operations (the gundam nginx 8113 route was tried and rolled back). RT-L2: installed candidate, JARED, instance 607496 Success/Posted, the only new ZZ_BC_EXPORT instance; its run control was a completed Run Once, so the AE skipped with (108,517) — Studio now refuses that at Review. RT-L3: after ZZ_BC_ACC01 was set to Always, instance 607500 Success/Posted; stdout opened in the UI; downloaded CSV 123 bytes, SHA-256 `62d92d41…6b367` (match) RT-L4 (developer, installed): history kept across reload; double click produced exactly one instance (607501) and refused the second; stale run control, expiry, read-only and unsaved-editor requests all refused with no new instance (read-only check: ZZ_BC_EXPORT instances after 607265 are exactly 607496, 607500, 607501) | Native uncertain-outcome reconciliation (needs a deliberately lost response); covered by fixture tests only |
 
-## Batched installed acceptance (one developer session)
+## Installed acceptance
 
-The full ordered session, including the server, Windows and HCDEV steps, is
-[ACCEPTANCE_SESSION.md](ACCEPTANCE_SESSION.md).
+The ordered developer session is [ACCEPTANCE_SESSION.md](ACCEPTANCE_SESSION.md).
+§1–§2 (Run and Monitor) ran October 22; §3–§6 (Windows setup, business request,
+structural review and promotion, 8.61 Query) ran October 23. The log below
+records each step.
 
-Per the developer's preference, installed acceptance waits until several items
-can share one Change Set, one inverse and one redo. Queue:
+## Acceptance log
 
-1. Page: insert + delete + reorder on a ZZ_ lab page; inverse; redo; then
-   App Designer reopen and a fresh App Designer add (MAXPNLFLDID + 1 after the
-   returned high-water mark).
-2. Record: insert/move/remove on ZZ_RPT_LINE; inverse; redo.
-3. App Engine: add a SQL step and a PeopleCode step on ZZ_AE_LAB01; inverse
-   (expect the projected deletion records); redo.
-4. Package/class: create package + class; delete the class (destructive);
-   undo; App Designer opens the re-created class.
-5. Promotion: add an HRDEV connection (127.0.0.1:15210/hrdev, Writable,
-   operator JARED); Promote Project ZZ_RF_PRJ from HRDMO; approve and apply on
-   HRDEV; undo.
-
-## Candidate
-
-`peoplesoft-studio.vsix` rebuilt 2026-10-22 (full verify: 2,270 passed, 0 failed), SHA-256
-`55faf214f31cf0dad51bbfee571349937e5d31533cef30e19a701fd722831444`. RT-L2–RT-L4 ran on the previous build
-(`f1a577ca…e885`); this one adds only the completed-Run-Once refusal. Native findings from the session that changed it:
-
-- The c5637317 candidate sent its UsernameToken without `soap:mustUnderstand="1"`; the gateway ignores such a token
-  and answers `(158,535)`, so sign-in could not pass. Fixed; JARED sign-in verified in the installed candidate.
-- After authentication the PROCESSREQUEST handler on psapp01 downloads its request schema from the IB Target
-  Location (`http://hcm.deathstar…`), which psapp01 could not reach (NetAccessorException). Lab fix by the developer.
-- That download re-enters the gateway and needs a second PSAPPSRV. Studio's parallel process-name/server calls
-  held both PSAPPSRV processes of HCMDMO_APP and deadlocked IntegrationSvc (9 queued). The client now sends native
-  calls one at a time, and a non-scheduling timeout says nothing was submitted. HCMDMO_APP raised to four PSAPPSRV.
-
-Rebuild if later commits land before the session.
-
-## Next action
-
-Session §1–2 done; §3 done (ps-win-client set up, AI clients configured). §4 in progress: request br-9e49eca2090e
+§4 setup, 2026-10-23: request br-9e49eca2090e
 built by Codex from spec revision 2 (approved 2026-10-23 4:59 AM, state record ZZ_BENELIG_AET). HRDMO now has
 ZZ_AS_OF_DT; records ZZ_BENELIG_RC (OPRID, RUN_CNTL_ID, ZZ_AS_OF_DT, COMPANY), _STG, _WRK, _AET; File Layout
 ZZ_BENELIG_FL; AE ZZ_BENELIG (MAIN + OUTPUT, 10 steps); process ZZ_BENELIG (process group ZZ_BENELIG); page
@@ -144,9 +118,18 @@ EXTRACT failed natively (ORA-01799) and was corrected through psft_ae_edit with 
   Document keeps it: a Studio save of a lower-case built-in is not App Designer's bytes. Needs a corpus-calibration
   fix (encoder function-name canonicalization, protected-baseline gate).
 
-Next: §6 (HCDEV RDP,
-developer starts the session). Open: calibrated process definition deletion so a
-promotion that creates one can be undone.
+**§6 done 2026-10-23** (HCDEV 8.61.15, Windows Query over RDP; docs/PS_QUERY_WINDOWS.md "Query families on
+8.61.15"). Twelve private `XX_QRY_*_AD` queries, one or more per family (criteria operators, number/date fields,
+prompts, joins, aggregates/HAVING/DISTINCT, expressions, subqueries, unions, translates, effective dating), compared
+read-only with the rows Studio builds from the same operations: all identical, except that a Windows-made null test
+keeps its new criterion's blank/0 constant (8.62 qcr09 behavior; same SQL). The 8.61 gate in queryWriter.ts is
+removed; date between is accepted on both releases (model and SQL compiler). Studio's writer accepted every shape on
+HCDEV in a rolled-back preview (`XX_QRY_*_ST`), and Studio ran every Windows-made query (X3: 3 rows, as Windows'
+File > Run). The `XX_QRY_*_AD` queries stay on HCDEV (private to the developer's operator) as evidence.
+
+**Released in 0.9.9 (2026-10-23).** Release verification: `npm run verify` and the protected PeopleCode gate
+(`npm run corpus:verify`: REGRESSION GATE PASS, 0 regressed, 430/430 baseline unchanged; EXACT 30,134, compiled
+exact 30,205 of 30,209 HCDEV programs). Open follow-ups are listed at the top.
 
 Do not drive Claude Code or Codex sessions through the VM: the auto-mode classifier refuses all VM input for the
 rest of a session that did ("Create Unsafe Agents"). The developer runs agent sessions; the agent drives the rest.

@@ -94,19 +94,9 @@ export async function saveQuery(c: DbConnection, types: DbTypes, request: QueryS
   if (refusal) throw new Error(refusal);
   if (!/^[A-Z][A-Z0-9_]*$/.test(name)) throw new Error('Invalid query name.');
   try {
-    const release=await requireCalibratedRelease(c,'query');
-    // Typed criteria and number/date fields are calibrated on 8.62.09 (qcr01-qcr10, qnm01-qnm04);
-    // 8.61.15 keeps the one equal-to character criterion its captures established.
-    if (!release.startsWith('8.62.')) {
-      const view=request.view, names=[...new Set(view.fields.map(f=>String(f.FIELDNAME).trim()).filter(Boolean))];
-      const types=names.length?(await c.execute<{FIELDTYPE:number}>(`SELECT FIELDTYPE FROM PSDBFIELD WHERE FIELDNAME IN (${names.map((_,i)=>':f'+i).join(',')})`,
-        Object.fromEntries(names.map((f,i)=>['f'+i,f])))).rows ?? []:[];
-      if (view.records.length>1 || view.selects.length>1 || view.criteria.length>1 || view.criteria.some(c=>Number(c.CONDTYPE)!==2 || ![1,8].includes(Number(c.EXPRTYPE)) || String(c.NEGATION ?? '').trim()
-        || Number(c.LPARENLVL) || Number(c.RPARENLVL)) || types.some(t=>Number(t.FIELDTYPE)!==0) || String(view.selects[0]?.QRYDISTINCT ?? '').trim()
-        || view.fields.some(f=>Number(f.TTLTYPE)!==1 || Number(f.XLATTYPE)!==1 || Number(f.FLDEXPNUM))) {
-        throw new Error(`Joins, subqueries, unions, aggregates, DISTINCT, expressions, translates, multiple, grouped or non-equal criteria and number/date fields are calibrated on PeopleTools 8.62.09; this database is ${release}.`);
-      }
-    }
+    // Every Query family saves on 8.61.15 as on 8.62.09: Windows Query's rows for each match Studio's there
+    // (XX_QRY_*_AD, docs/PS_QUERY_WINDOWS.md "Query families on 8.61.15").
+    await requireCalibratedRelease(c,'query');
     await prepareQueryExecution(c,request.view,request.operatorId);
     validateQuerySaveShape(request.view);
     const [limits]=(await c.execute<{LENGTH:number}>('SELECT LENGTH FROM PSDBFIELD WHERE FIELDNAME=:f',{f:'QRYNAME'})).rows ?? [];

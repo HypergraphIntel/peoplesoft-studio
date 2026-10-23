@@ -218,6 +218,41 @@ Studio neither reads nor writes.
   follows Windows Query. Studio saves only queries whose QRYAPPROVED is `A`,
   so a PIA-made query opens and runs but is refused for saving.
 
+### Query families on 8.61.15 (October 23)
+
+Private queries built in the 8.61.15 Windows Query client (App Designer's Go
+menu) on HCDEV, one per family and shaped like the 8.62.09 verification queries,
+compared read-only with the rows Studio's writer builds from the same typed
+operations (every PSQRY table, keys and stamps aside):
+
+| Query | Shape | Result |
+| --- | --- | --- |
+| `XX_QRY_C1_AD` | AAP_YEAR: not equal 'XX', AND FEMALE_GOAL > 0, AND START_DT between 2000-01-01 and 2030-12-31, OR like 'K%', AND in list, AND FEMALE_GOAL is not null | Same rows but one: the null test |
+| `XX_QRY_C2_AD` | AAP_TBL: NOT ESTABID <> field DESCR, OR ( DESCR is null, AND in list ('A','B') ), OR DESCR like '%' | Same rows but one: the null test |
+| `XX_QRY_C3_AD` | AAP_YEAR: FEMALE_GOAL >= new prompt (Number 6), AND START_DT > new prompt (Date) | Identical, PSQRYBIND included |
+| `XX_QRY_J1_AD` | AAP_YEAR join AAP_TBL (standard; detected key criterion kept), B.DESCR selected, AND B.DESCR like 'GBI%' | Identical |
+| `XX_QRY_J2_AD` | AAP_YEAR left outer join AAP_TBL, related record ESTAB_TBL through A.ESTABID with Eff Date <= Current Date, B.DESCR and C.DESCR selected | Identical |
+| `XX_QRY_A1_AD` | AAP_YEAR: Average FEMALE_GOAL, DISTINCT, WHERE ESTABID like '%', HAVING AVG >= 0 | Identical |
+| `XX_QRY_E1_AD` | AAP_YEAR: expression columns `A.FEMALE_GOAL * 2` (Number 7) and `A.FEMALE_GOAL + 100` (Number 5), FEMALE_GOAL >= expression `0 * 2` | Identical |
+| `XX_QRY_S1_AD` | AAP_YEAR: ESTABID in list Subquery (AAP_TBL ESTABID), AND exists (AAP_TBL where C.ESTABID = A.ESTABID) | Identical |
+| `XX_QRY_U1_AD` | AAP_TBL ESTABID union AAP_YEAR ESTABID | Identical |
+| `XX_QRY_X1_AD` | ESTAB_TBL (Eff Date <=): EFF_STATUS translate Long, effective date Field EFFDT | Identical |
+| `XX_QRY_X2_AD` | ESTAB_TBL added with Eff Date >= Current Date: EFF_STATUS translate Short, Current Date | Identical |
+| `XX_QRY_X3_AD` | ESTAB_TBL added with Last Effective Date | Identical |
+
+- A date between stores two date constants (FIELDTYPE 4, `YYYY-MM-DD`), as a
+  date comparison does (qnm02); Studio now accepts between on date fields on
+  both releases. Between on number fields is still refused.
+- A null test made in Windows Query keeps the constant its new criterion
+  started with: `0` (FIELDTYPE 2) for a number field, a blank for a character
+  field, referenced by R1CRTEXPNUM and counted in EXPCOUNT. qcr09 showed the
+  same on 8.62.09 when an operator changes to is null. Studio writes a new
+  null test with no expression; the SQL and the results are the same.
+
+Every family therefore saves on 8.61.15 as on 8.62.09. Studio's writer
+accepted each shape there in a rolled-back preview (`XX_QRY_*_ST`), and Studio
+ran each Windows-made query with Windows Query's SQL and row count.
+
 ### Other patches
 
 Another patch of 8.61 or 8.62 (8.61.12, say) is accepted when the seven query
@@ -337,10 +372,8 @@ Number 6.0 field as `1`), while Studio returns the database value.
 Authoring is calibrated on **Oracle / PeopleTools 8.62.09 and 8.61.15** for
 directly declared fields of SQL Table records. Subrecord fields are not
 expanded; unrelated subrecord placeholders do not hide the record's direct
-fields (for example ESTAB_TBL's ESTABID, EFFDT and EFF_STATUS). On **8.61.15** that is one record, direct
-character fields and at most one equal-to criterion with a character constant
-or prompt; the writer refuses every other shape there. On **8.62.09** it covers
-everything above: number and date fields; criteria replacing a select's WHERE
+fields (for example ESTAB_TBL's ESTABID, EFFDT and EFF_STATUS). Both releases cover everything above (8.61.15 per
+Query families on 8.61.15): number and date fields; criteria replacing a select's WHERE
 criteria (AND/OR, NOT, parentheses, every comparison, like, null, list,
 between, exists and effective-date operator; constant, field, prompt, list,
 expression and subquery operands); standard, left outer and related-record
@@ -416,7 +449,7 @@ candidate, verifies manifest/bundle/worker integrity and records checksums in
 the report. The tested VSIX is `/tmp/peoplesoft-studio-query-tested.vsix`.
 `npm run verify`, the five direct Query designer regression tests and all 70
 fixture-backed production MCP workflow checks pass. 8.61.15 family calibration
-remains open. Query development from `query-criteria` is integrated into `main`
+was completed on October 23 (Query families on 8.61.15). Query development from `query-criteria` is integrated into `main`
 and included in release 0.9.8; these historical reports retain their original
 artifact identities.
 

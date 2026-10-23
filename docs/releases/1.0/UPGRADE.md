@@ -2,6 +2,13 @@
 
 Release **0.9.8** ships the qualified focused 1.0 core. These notes describe
 that release; version 1.0 is not yet published and preview boundaries remain.
+
+**0.9.9** upgrades the same way: install `peoplesoft-studio-0.9.9.vsix` from its
+[GitHub release](https://github.com/HypergraphIntel/peoplesoft-studio/releases/tag/v0.9.9)
+over 0.9.8 in the same profile and reload. It keeps credentials, drafts and
+Change Review history, and changes no stored setting. Promotion uses two Oracle
+connections configured in the same profile. Migration packages that contain the
+new asset kinds (process definitions, File Layouts) are refused by 0.9.8. See the [0.9.9 notes](../0.9.9.md).
 Use the [support matrix](../../SUPPORT_MATRIX.md) for exact operation limits and
 [qualification tracker](PROGRESS.md) for completed checks and remaining gates.
 

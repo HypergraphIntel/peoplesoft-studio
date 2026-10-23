@@ -7,7 +7,7 @@ const preview=(detail:string,target:'1.5'|'2.0'='1.5'):ReleaseSupport=>({level:'
 export const RELEASE_SUPPORT={
  target:'1.0',qualification:'CORE_READY',
  primary:{database:'Oracle',toolsRelease:'8.62',nativePatch:'8.62.09',clients:['Linux x64','Windows x64']},
- compatibility:'PeopleTools 8.61.15 retains its documented bounded compatibility; it is not full 8.62 Query parity.',
+ compatibility:'PeopleTools 8.61.15 has calibrated Query authoring equal to 8.62.09 and retains its other documented bounded scopes; it is not the primary qualified profile.',
  experimental:'SQL Server/DB2 and unqualified releases/patches remain experimental. macOS has no installed acceptance claim.',
  principle:'Core identifies the qualified bounded release scope, not permission or complete platform parity. Exact native/installed evidence, connection gates and operation limits still apply.',
  coreWorkflows:[
@@ -19,9 +19,9 @@ export const RELEASE_SUPPORT={
   'Current bounded Change Review, history, typed inverse/redo and supported Oracle migration packages'
  ],
  limits:[
-  'Structural Page/Record/AE review expansion and class lifecycle are 1.5 work; existing legacy save confirmations still apply outside review adapters.',
-  'Separate-environment promotion requires its own 1.5 acceptance; package import does not copy application data or make DDL/data reversible.',
-  'Run and Monitor is preview with native acceptance deferred as Low priority.',
+  'Structural Page/Record/AE review, class/package lifecycle and separate-environment promotion (1.5) passed native and installed acceptance but are outside the qualified 1.0 core; legacy save confirmations still apply outside review adapters.',
+  'Promotion is Oracle to Oracle; a promotion that creates a process definition cannot be undone. Package import does not copy application data or make DDL/data reversible.',
+  'Run and Monitor passed native acceptance (RT-L1 to RT-L4) outside the 1.0 core; lost-response recovery is fixture-tested only.',
   'Production SQL Server/DB2, cross-platform promotion, Data Migration Workbench and broader security/designer parity target 2.0.'
  ]
 } as const;
@@ -35,8 +35,8 @@ export function connectionReleaseSupport(kind:string,environment?:{status:string
 }
 export function toolReleaseSupport(label:string,planned=false):ReleaseSupport{
  if(planned)return {level:'PLANNED',label:'Planned',detail:'No implemented workflow; no authority to write.',target:label==='Data Migration Workbench'?'2.0':'1.5'};
- if(['PS Query','Process Definitions','Import Migration Package…'].includes(label))return core(label==='Import Migration Package…'?'Bounded Oracle definition packages and review; separate-environment promotion remains preview.':'Bounded Oracle metadata/query workflow; runtime submission is separate.');
- if(label==='Run and Monitor')return preview('Native scheduler acceptance is deferred as Low priority. Do not infer runtime acceptance from metadata or fixture tests.');
+ if(['PS Query','Process Definitions','Import Migration Package…'].includes(label))return core(label==='Import Migration Package…'?'Bounded Oracle definition packages and review; separate-environment promotion is accepted outside the 1.0 core.':'Bounded Oracle metadata/query workflow; runtime submission is separate.');
+ if(label==='Run and Monitor')return preview('Native acceptance RT-L1 to RT-L4 passed on Oracle 8.62.09 (Application Engine, existing run controls, run now); outside the 1.0 core. Lost-response recovery is fixture-tested only.');
  if(label==='Data Mover Scripts')return {level:'READ_ONLY',label:'Templates only',detail:'Creates local script templates; Studio does not execute Data Mover.',target:'1.0'};
  return preview('Available within documented native limits; not part of the primary core qualification contract.',label==='SAML'?'2.0':'1.5');
 }
@@ -44,8 +44,8 @@ const coreTypes=new Set([D.Record,D.Field,D.TranslateValue,D.Page,D.Query,D.Proc
 export function definitionReleaseSupport(type:D,operation:string,exposed:boolean):ReleaseSupport{
  if(!exposed)return {level:'NOT_EXPOSED',label:'Not exposed',detail:'No tool route is available for this operation.',target:'1.5'};
  if(operation==='execute'&&(type===D.ProcessDefinition||type===D.AppEngineProgram))return toolReleaseSupport('Run and Monitor');
- if(operation==='migrate')return core('Bounded Oracle package adapters retain their recorded native scope. Separate-environment promotion remains preview pending its own 1.5 qualification.');
- if(type===D.ApplicationClassPeopleCode&&['create','copy','rename','delete'].includes(operation))return preview('Standalone class lifecycle review needs combined package/class metadata and parent side effects. Bounded package migration has a separate contract.');
+ if(operation==='migrate')return core('Bounded Oracle package adapters retain their recorded native scope. Separate-environment promotion passed native and installed acceptance outside the 1.0 core.');
+ if(type===D.ApplicationClassPeopleCode&&['create','copy','rename','delete'].includes(operation))return preview('Class and package lifecycle review passed native and installed acceptance (1.5) outside the 1.0 core; stage a new package before its new class. Bounded package migration has a separate contract.');
  if([D.MenuPeopleCode,D.ComponentRecordPeopleCode].includes(type)&&['create','edit','copy','rename','delete'].includes(operation))return preview('This event writer retains its existing guards, but standalone installed/native reviewed save acceptance is not recorded. Menu migration has separate native evidence.');
  if(coreTypes.has(type))return core('Bounded operations on the declared Oracle profile; consult the exact tool schema and documented review/legacy-save limits. Recorded core qualification does not expand those operation limits.');
  return preview('A routed tool is not certification. Consult the family reference and native evidence.');

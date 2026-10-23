@@ -79,7 +79,8 @@ separate work.
 
 Development state as of October 22, 2026: implemented, transaction tested,
 production HTTP/UI fixture verified and HRDMO rollback-preview verified;
-installed developer-approved acceptance pending.
+installed developer-approved apply/inverse/redo passed October 23, 2026
+(ZZ_RPT_LINE in Change Set e4f34fc9).
 
 `psft_edit_record` stages, besides description/comments, the record grid's
 field structure on existing SQL Table and Derived/Work records:
@@ -125,7 +126,7 @@ the checkpoint exactly and redo equals the after-image; nothing persisted.
 Development state as of October 22, 2026: implemented, unit tested, production
 HTTP/UI fixture verified and HRDMO native verified (rollback previews and one
 rolled-back apply/inverse/redo transaction); installed developer-approved
-acceptance pending.
+apply/inverse/redo passed October 23, 2026 (ZZ_AE_LAB01 in Change Set e4f34fc9).
 
 Every `psft_ae_edit` operation now stages: program properties, state records,
 temporary tables, sections, steps and actions with their SQL and PeopleCode.

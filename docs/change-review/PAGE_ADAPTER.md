@@ -184,8 +184,11 @@ structure remain outside this result.
 
 Development state as of October 22, 2026: implemented, unit/transaction tested,
 production HTTP/UI fixture verified (71 checks) and native rollback-preview
-verified on HRDMO. Developer-approved installed apply/inverse/redo and an
-App Designer reopen after a returned high-water mark are still pending.
+verified on HRDMO. Developer-approved installed apply/inverse/redo passed on
+October 23, 2026 (ZZ_JOB_DATA1, Change Set e4f34fc9, inverse 645905bc, redo
+0528903b): control 123 returned under its id, MAXPNLFLDID returned to 156, and
+the redo re-created the Static Text as 157. App Designer then reopened the page
+and gave a new native control 158.
 
 ### Native identity: the writer assigns, the review records
 

@@ -10,7 +10,7 @@ Version 1 carries custom field definitions, SQL Table and Derived/Work record me
 
 Standalone SQL migration is calibrated for Oracle. It carries SQLTYPE 0 text, short description, full comments and Owner ID, excluding installation-local versions and audit stamps. The supported shape is non-effective-dated, with one GBL / default DBTYPE / 1900-01-01 text, description and hash row, SEQNUM 0, and at most 14,000 text characters. Effective-dated, platform/market variants, split text, translations and incomplete/orphaned rows stop migration. Export reads the entire scope rather than selecting the display reader's preferred variant. SQL text uses native CRLF/trailing-whitespace normalization; comments retain their complete text. SQL comment bind-marker restrictions from the existing writer also apply.
 
-Unsupported project members or record/field settings stop export with a concrete error. They are never silently omitted. Pages, components, Application Packages with their classes, SubRecord definitions and subrecord rows in Derived/Work records, SQL Table user-defined indexes, translate values and every stored field property now migrate (see the sections below). Still unsupported: alternate search key indexes, custom index DDL, subrecords in SQL Tables, nested subrecords, subpackage and class descriptions/owners/comments, and updates to existing indexed records or SubRecords. Existing readers for App Designer XML remain available for compatibility; that format is not the Studio package format. Older Studio builds reject unknown asset kinds rather than silently dropping them; field/record/AE-only version 1 packages remain compatible.
+Unsupported project members or record/field settings stop export with a concrete error. They are never silently omitted. Pages, components, Application Packages with their classes, SubRecord definitions and subrecord rows in Derived/Work records, SQL Table user-defined indexes, translate values and every stored field property now migrate (see the sections below). Alternate search keys, Oracle In-Memory settings, message channels, process definitions, File Layouts and App Engine step SQL members also migrate (sections below). Still unsupported: custom index DDL, subrecords in SQL Tables, nested subrecords, subpackage and class descriptions/owners/comments, and updates to existing indexed records or SubRecords. Existing readers for App Designer XML remain available for compatibility; that format is not the Studio package format. Older Studio builds reject unknown asset kinds rather than silently dropping them; field/record/AE-only version 1 packages remain compatible.
 
 Packages include the source PeopleTools release family, project member keys, explicit external prerequisites, and a SHA-256 content checksum. Credentials, database connection strings, application data, and installation-local version/update stamps are not included. The checksum detects changed content; it is not a digital signature.
 
@@ -66,7 +66,7 @@ Current local verification: 2,149 passed / one skipped, compile/bundle, activati
 
 ## Bounded Query migration
 
-The Query asset carries all seven supported native table scopes and preserves public/own-private ownership, selected fields, supported headings/order, one criterion/prompts and descriptions/comments. Writer-controlled audit/version stamps are excluded. One record and one select with at most one criterion are supported; joins, unions, additional native/translation tables, orphan rows and unsupported approval/logging states are refused. Target preview executes the real Query writer inside rollback and requires its complete semantic after-image to equal the package. Existing Query access grants and the configured Operator ID still apply; migration never grants access or changes the owner to bypass a private-query restriction.
+The Query asset carries all seven supported native table scopes and preserves public/own-private ownership, fields, headings/order, criteria and prompts, joins, subqueries, unions, aggregates, expressions, translates and descriptions/comments. Writer-controlled audit/version stamps are excluded. Any shape the Query writer validates migrates, on 8.62.09 and 8.61.15 alike; additional native/translation tables, orphan rows and unsupported approval/logging states are refused. (The first version, October 20, carried one record with at most one criterion.) Target preview executes the real Query writer inside rollback and requires its complete semantic after-image to equal the package. Existing Query access grants and the configured Operator ID still apply; migration never grants access or changes the owner to bypass a private-query restriction.
 
 Query membership now uses native OBJECTTYPE 10 / IDs 30,25 and preserves the public blank-owner slot. Native HRDMO acceptance passed export, vacant-target creation/readback, unchanged repeat import with stable counters, and durable reviewed Query/project creation. [Query evidence](../tools/lab/results/query-migration-native-2026-10-20.json). The text trial additionally passed Record-only export with automatic associated PeopleCode and unchanged preview: [six checks](../tools/lab/results/text-migration-native-2026-10-20.json). These are same-database provider/ReviewService trials with test API approval, not installed UI, Windows or cross-database certification.
 
@@ -215,6 +215,20 @@ API, not the installed UI. Eight checks:
    AUXFLAGMASK, field In-Memory marks); undo removes it.
 8. A message channel (ZZ_CHNL_E2E4) promotes with its properties and stored
    partition fields exactly; undo deletes it.
+
+### Installed acceptance (October 23, 2026)
+
+- **UI, Windows:** on ps-win-client, Promote Project to Another Environment…
+  promoted the business request's ZZ_BENELIG_PROJ from HRDMO to HRDEV
+  (13 definitions; Change Sets cb771030ce97 and 4eeb42533dcf, the second
+  carrying the corrected App Engine and the project membership). A fresh
+  export from HRDEV reads all 13 definitions back unchanged with all 25
+  project members. The project includes a process definition, so it was
+  applied without undo.
+- **MCP, Linux:** `psft_project_promote` staged ZZ_RF_PRJ (record, SQL, App
+  Engine, project; 5 members) on HRDEV (5baae41c). The developer applied it,
+  then applied the undo (11b7ab05), which left HRDEV with none of the
+  definitions.
 
 ### Broader shapes added with promotion
 

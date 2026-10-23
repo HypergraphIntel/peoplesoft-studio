@@ -1,13 +1,11 @@
 # Process Scheduler: run and monitor
 
-Status: local implementation, verification and candidate packaging are complete
-for unreleased 0.9.8. The developer deferred the remaining server prerequisite
-and live acceptance tasks as **Low priority**. Native runtime acceptance remains
-unverified; passing local checks does not change that boundary.
-
-The [priority backlog](PRIORITY_TASKS.md#run-and-monitor--low-priority-follow-up)
-records the deferred tasks. No server deployment, password prompt or scheduler
-submission is waiting to run automatically.
+Status: native acceptance complete. RT-L1 through RT-L4 passed on October 22,
+2026 with the installed extension on HRDMO 8.62.09, and the workflow ships in
+[release 0.9.9](releases/0.9.9.md) outside the qualified 1.0 core. Native
+lost-response recovery remains fixture-tested only. The sections below keep the
+implementation record; the acceptance note under *Current validation* has the
+results.
 
 ## Acceptance scope
 
@@ -55,10 +53,10 @@ Local native definitions and installed/runtime evidence govern acceptance.
 - [x] Expose the supported workflow through discoverable MCP tools.
 - [x] Verify protocol, stale/duplicate/failure behavior and production UI routing.
 - [x] Package candidate and verify isolated installed connection/panel preflight.
-- [ ] Low priority: prove a real installed run, logs and exact downloaded output.
+- [x] Prove a real installed run, logs and exact downloaded output (RT-L1–RT-L4, October 22).
 
 
-## Current validation and native prerequisite
+## Current validation and native prerequisite (history to October 21)
 
 - Full `npm run verify` passes (2,237 tests: 2,236 passed, one existing skip).
   Fifteen runtime tests cover WSDL aliases, native fault detail, request escaping,
@@ -112,7 +110,7 @@ completed Run Once AE control is refused at Review because PeopleSoft skips it w
 The nginx 8113 route below was not needed and was rolled back. Only native uncertain-outcome reconciliation remains
 fixture-only. Details: [1.5 progress](releases/1.5/PROGRESS.md).
 
-Recorded [verification summary](../tools/lab/results/process-runtime-verification-2026-10-21.json) and [native preflight](../tools/lab/results/process-runtime-preflight-2026-10-21.json) retain the exact evidence boundary. The final unaccepted candidate is `/tmp/peoplesoft-studio-runtime-candidate.vsix`; no release was installed in the developer's original window. The isolated acceptance windows were closed while the gateway prerequisite is pending.
+Recorded [verification summary](../tools/lab/results/process-runtime-verification-2026-10-21.json) and [native preflight](../tools/lab/results/process-runtime-preflight-2026-10-21.json) retain the exact evidence boundary.
 
 ## Limits and remaining acceptance
 
@@ -127,26 +125,11 @@ process types, cross-origin repositories and browser/MFA automation are outside
 this first scope. Binary files use Download; text preview is limited to 2 MiB,
 downloads to 20 MiB and MCP text to 128 KiB. HTML/sign-in/error pages are refused.
 
-### Deferred tasks — Low priority
+### Acceptance tasks — complete
 
-| ID | Task | Completion evidence |
+| ID | Task | Result (October 22, 2026) |
 | --- | --- | --- |
-| RT-L1 | Resolve the public gateway's backend TLS prerequisite when server maintenance is convenient. Reinspect the live config and public lab CA before using the prepared hash-guarded patch; its temporary files and hashes may become stale. | Public HTTPS URL unchanged; certificate verification and native IB permissions retained; native read-only probe advances past `(158,554)` to operator authentication. No server work is part of the current closeout. |
-| RT-L2 | Verify JARED sign-in and one explicitly confirmed synthetic App Engine run through the final installed candidate. Depends on RT-L1. | No queue write during preparation; exactly one new matching native instance after confirmation; Success and Posted verified independently; preserve the process/program and restore any run-control/tracing changes. |
-| RT-L3 | Complete native report and output acceptance. Depends on RT-L2. | Native report authorization and repository sign-in work; stdout opens in the installed UI; the actual UI Download action saves the exact 123-byte CSV with SHA-256 `62d92d414fc02901271744facb65c61b5d9bbecc6f7edfecc31fc734f11b6367`. MCP text read alone is not UI download acceptance. Extend the current runner to exercise the save dialog and saved bytes. |
-| RT-L4 | Complete installed persistence and refusal/recovery acceptance. Depends on RT-L2. | History survives reopen/reload; dirty/read-only/stale requests refuse without a new submission; controlled uncertain-outcome reconciliation never replays scheduling; preserve the tested VSIX/installed bundle hashes and record bounded native evidence. Existing fixture checks remain separate evidence. |
-
-These tasks are deferred by the developer, rather than prerequisites for closing
-the local implementation task. They must be completed before describing this
-workflow as natively accepted. The broader features excluded above remain future
-scope, not work silently added to this closeout.
-
-After the public connector reaches native TLS: package/install the final
-candidate, have the developer enter JARED's operator password into VS Code
-SecretStorage, prepare the unchanged synthetic fixture, confirm exactly once,
-verify the new native instance reaches Success/Posted, open stdout, download
-and hash the exact 123-byte CSV, reopen history, and verify program/configuration
-preservation. `scripts/process-runtime-installed.mjs` and `.cjs` provide the
-isolated normal-host acceptance runner. A pending/failing run is not acceptance.
-Release 0.9.8 ships this workflow as preview; publication does not establish
-native scheduler acceptance.
+| RT-L1 | Native connector reaches operator authentication | Passed after the developer set Req Verification to None on the PROCESSREQUEST `PRCS_*` operations; the probe reaches `(158,535)`. The prepared nginx TLS route (gundam, port 8113) was tried and rolled back. |
+| RT-L2 | JARED sign-in and one confirmed run | Instance 607496 Success/Posted, the only new instance. Its run control was a completed Run Once, which PeopleSoft skips with `(108,517)`; Studio now refuses that at Review. |
+| RT-L3 | Native logs and UI download | Instance 607500 Success/Posted after ZZ_BC_ACC01 was set to Always; stdout opened in the UI; the downloaded CSV is 123 bytes with SHA-256 `62d92d414fc02901271744facb65c61b5d9bbecc6f7edfecc31fc734f11b6367`. |
+| RT-L4 | Installed persistence and refusals | History survived reload; a double click produced exactly one instance (607501) and refused the second; stale run control, expiry, read-only and unsaved-editor requests were refused with no new instance. Lost-response recovery is fixture-tested only. |

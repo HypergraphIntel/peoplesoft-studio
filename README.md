@@ -12,12 +12,14 @@ writing the same rows Application Designer writes.
 > **Development status:** a focused 1.0 core is qualified for Oracle /
 > PeopleTools 8.62.09 on Linux and Windows x64. Preview features retain their
 > documented limits; see the [support contract](docs/SUPPORT_MATRIX.md) and
-> [Disclaimer](#disclaimer). This qualified core ships in release 0.9.8.
+> [Disclaimer](#disclaimer). This qualified core ships in releases 0.9.8 and later.
 
-Current release: **0.9.8 — October 22, 2026** (expanded PS Query authoring,
-Integration Broker Change Review and qualified Linux/Windows core workflows).
-See the [release notes](docs/releases/0.9.8.md), [changelog](CHANGELOG.md) and
-[download the VSIX](https://github.com/HypergraphIntel/peoplesoft-studio/releases/tag/v0.9.8).
+Current release: **0.9.9 — October 23, 2026** (structural Change Review for
+pages, records, App Engine and Application Packages; promotion between Oracle
+environments; every PS Query family on PeopleTools 8.61.15; Run and Monitor
+native acceptance; Windows AI handoff). See the
+[release notes](docs/releases/0.9.9.md), [changelog](CHANGELOG.md) and
+[download the VSIX](https://github.com/HypergraphIntel/peoplesoft-studio/releases/tag/v0.9.9).
 
 Track completion gates in [1.0 readiness](docs/RELEASE_1_0_READINESS.md).
 
@@ -165,11 +167,14 @@ Integration Broker, administration and Portal Registry authoring remain
 available. Current development migration packages cover fields (every stored
 property and translate values), records with SubRecords and SQL Table user
 indexes, standalone SQL, HTML, freeform style sheets, stored PeopleCode, bounded
-PS Query, scoped menus, App Engine, Application Packages with classes, pages and
-components. Target preview stages changes and project membership into durable
-Change Review for developer approval and verified application, and every
-migrated type can be undone and redone from history.
-MCP exposes export and preview; the UI opens the persistent review. See
+PS Query, scoped menus, App Engine (with its step SQL), Application Packages with
+classes, pages, components, message channels, process definitions and File
+Layouts. Target preview stages changes and project membership into durable
+Change Review for developer approval and verified application, and migrated
+types can be undone and redone from history (except the creation of a process
+definition). **Promote Project to Another Environment…** and
+`psft_project_promote` stage the same import on a different Oracle environment.
+MCP exposes export, preview and promotion; the UI opens the persistent review. See
 [Project migration](docs/PROJECT_MIGRATION.md) for scope and limits.
 
 ### Definition types (App Designer's Open Definition)
@@ -184,7 +189,7 @@ reproducing App Designer's saves; **Read-only** = viewer, from the database;
 | Application Package | Yes | [Package tree workspace](docs/APPLICATION_PACKAGES.md): open/create roots, insert empty subpackages and classes, open and save class PeopleCode; package properties read-only |
 | Field | Yes | Editor: length, labels and description; create. MCP additionally sets Character format to Uppercase or Mixed Case |
 | HTML | Yes | Read, create and save — see [docs/HTML_SAVE.md](docs/HTML_SAVE.md) |
-| Project | Yes | Browse, open XML exports, create and add supported members, including AE sections and AE PeopleCode. Studio migration packages support fields (every stored property and translate values), records with SubRecords and SQL Table user indexes, standalone SQL, HTML, freeform style sheets, stored PeopleCode, bounded PS Query, scoped menus, App Engine, Application Packages with classes, pages and components; target comparison, stale-target guards, verified readback and reviewed undo/redo apply |
+| Project | Yes | Browse, open XML exports, create and add supported members, including AE sections and AE PeopleCode. Studio migration packages support fields (every stored property and translate values), records with SubRecords and SQL Table user indexes, standalone SQL, HTML, freeform style sheets, stored PeopleCode, bounded PS Query, scoped menus, App Engine, Application Packages with classes, pages, components, message channels, process definitions and File Layouts; promotion to another Oracle environment; target comparison, stale-target guards, verified readback and reviewed undo/redo apply |
 | Record | Yes | Editor (Field / Use / Edits); editable; create; translate values; delete — see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md) |
 | SQL | Yes | Read, create and save |
 | Style Sheet | Yes | Freeform: read as CSS, create and save — see [docs/STYLESHEET_SAVE.md](docs/STYLESHEET_SAVE.md). Classic / sub: a read-only class list |
@@ -244,8 +249,8 @@ reproducing App Designer's saves; **Read-only** = viewer, from the database;
 | **Message Channels** | Experimental | App Designer's Message Channel window — see [docs/MESSAGE_CHANNELS.md](docs/MESSAGE_CHANNELS.md) |
 | **Pages** (Page designer) | Experimental | App Designer's visual **Layout** view and Order grid. Every control type has its own App Designer property panel (Record / Label / Use / General / Fluid / Image / Options tabs as they apply). On Writable connections: move, resize, delete, relabel, select/group, Copy / Paste, set tab Order, insert controls (Frame, Group Box, Horizontal Rule, Static Text, Static Image, Check Box, Drop Down, Edit Box, Long Edit Box, Radio Button, HTML Area, Push Button), edit each control's captured properties (label, style, use bits, on/off values, record rebind, Allow Deferred Processing, grid/scroll Occurs Count and grid display flags, Page Field Name, anchor, Fluid), Page Properties (General / Use / Fluid), Custom page size, **New Page / New Page Fluid**, and **Page PeopleCode** — all saved as App Designer saves it. See [docs/PAGES_COMPONENTS_MENUS.md](docs/PAGES_COMPONENTS_MENUS.md) and [docs/PAGE_SAVE.md](docs/PAGE_SAVE.md) |
 | **Portal Registry** | Experimental | Select a portal, browse its Structure & Content tree, create folders and component/external content references, and edit properties, parent, sequence and security through the UI or MCP — see [docs/PORTAL_REGISTRY.md](docs/PORTAL_REGISTRY.md) |
-| **Process Definitions** | View / Edit (Oracle) | Tabbed editor and MCP read/edit/rollback preview for scheduling defaults, overrides, output, recovery, components and process groups; App Engine Run and Monitor is in development, with native acceptance pending — see [runtime scope](docs/PROCESS_SCHEDULER_RUNTIME.md) and [definition editing](docs/PROCESS_DEFINITIONS.md) |
-| **Queries** (Windows PS Query workflow) | Experimental | **Open PS Query** / **New PS Query**, also Configuration Tools > PS Query. Oracle / PeopleTools 8.62.09: create, edit, save and Save As with joins (standard, left outer, related record), every criteria operator with prompts, number and date fields, IN/EXISTS subqueries, unions, aggregates with HAVING and DISTINCT, expression columns, translates and effective dating, matching Windows Query's saved rows and SQL. 8.61.15: one record, character fields and at most one equal-to criterion. Headings, ordering, SQL and bounded read-only results with Query access checks. MCP exposes the same operations plus review-only delete and rename. Unsupported shapes remain readable, with a reason saving/running is refused — see [docs/PS_QUERY_WINDOWS.md](docs/PS_QUERY_WINDOWS.md) |
+| **Process Definitions** | View / Edit (Oracle) | Tabbed editor and MCP read/edit/rollback preview for scheduling defaults, overrides, output, recovery, components and process groups; App Engine Run and Monitor submits, monitors and downloads output on Oracle 8.62.09 (native acceptance RT-L1 to RT-L4 passed; outside the 1.0 core) — see [runtime scope](docs/PROCESS_SCHEDULER_RUNTIME.md) and [definition editing](docs/PROCESS_DEFINITIONS.md) |
+| **Queries** (Windows PS Query workflow) | Experimental | **Open PS Query** / **New PS Query**, also Configuration Tools > PS Query. Oracle / PeopleTools 8.62.09: create, edit, save and Save As with joins (standard, left outer, related record), every criteria operator with prompts, number and date fields, IN/EXISTS subqueries, unions, aggregates with HAVING and DISTINCT, expression columns, translates and effective dating, matching Windows Query's saved rows and SQL; also row security, nested subqueries, HAVING OR and every effective-date operator. PeopleTools 8.61.15: the same, calibrated against Windows Query there. Headings, ordering, SQL and bounded read-only results with Query access checks. MCP exposes the same operations plus review-only delete and rename. Unsupported shapes remain readable, with a reason saving/running is refused — see [docs/PS_QUERY_WINDOWS.md](docs/PS_QUERY_WINDOWS.md) |
 | **Saving PeopleCode** | Experimental | Writable connections: compile and save, create an event or class that has no program yet, clear a program to delete it — see [Saving PeopleCode](#saving-peoplecode-experimental) |
 | **Configuration Tools** and **Data Migration Tools** panes | Partial | **PS Query**, **Process Definitions**, **Page and Field Configurator**, **Event Mapping** and **Drop Zones** open working editors. Customization Strategy also exposes configuration actions. Administration opens Message Catalog, Text Catalog and URL editors; Portal Registry opens a portal picker and editable Structure & Content tree. Integration Broker opens six searchable editors with New, Preview and Save. Security opens OAuth configuration and legacy inbound SAML inspection. Data Mover Scripts creates script templates, and Import Migration Package opens the existing guarded UI workflow; Data Migration Workbench remains *Coming soon* |
 | **OAuth / SAML** | Partial | OAuth applications: public configuration, audiences and role inspection; calibrated edits for existing CUSTOM / Client Only / Client Credentials applications on Oracle 8.62.09. Legacy inbound SAML mappings are read-only; 8.63 browser SAML SSO remains planned. Secrets and tokens are excluded — see [Security tools](docs/SECURITY.md) |
@@ -258,15 +263,15 @@ reproducing App Designer's saves; **Read-only** = viewer, from the database;
 
 ## What does **not** work yet
 
-- Migration of the explicitly refused shapes (alternate search keys, custom index DDL, translations, subpackage/class metadata, nested or SQL Table subrecords, updates to indexed records), of definition families outside those listed in [Project migration](docs/PROJECT_MIGRATION.md), and between database platforms
+- Migration of the explicitly refused shapes (custom index DDL, translations, subpackage/class metadata, nested or SQL Table subrecords, updates to indexed records), undo of a promotion that creates a process definition, of definition families outside those listed in [Project migration](docs/PROJECT_MIGRATION.md), and between database platforms
 - Editing record shapes and settings no App Designer save has been captured for (see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md))
 - Register Menu Item (portal registration) and menu translations
 - Component Interfaces: Test Component Interface, Java / C templates, CI references
-- Accepted Studio scheduler execution: Run and Monitor is implemented as preview; its native submission/report acceptance remains deferred and unverified (see [runtime scope](docs/PROCESS_SCHEDULER_RUNTIME.md))
+- Run and Monitor beyond its first scope (other process types, jobs, recurrence, cancel/restart, creating run controls); native lost-response recovery is fixture-tested only (see [runtime scope](docs/PROCESS_SCHEDULER_RUNTIME.md))
 - In the component editor: Default Search Action, the search-page link message numbers, the Custom style lists; component edits through the MCP
 - Build: Alter and Create Indexes/Views on SQL Server and DB2, views using rarer meta-SQL (%DatePart, %Join, %DateAdd ...), column type changes and the other uncaptured Alter cases listed in docs/RECORD_SAVE.md; migration of definition families outside the supported Studio package adapters
 - A full language server: compile diagnostics as you type come from Studio's compiler, with field references, functions and definition references (Record.X, Page.X, SQL.X ...) checked against the environment, F12 resolves supported definition references, application class paths and declared functions, and completion covers keywords, the known built-in function catalog, the file's own names, connected record fields and application-class own/inherited members. Broader language tooling remains open.
-- PS Query: row-security SQL, nested subqueries and the wider shapes on 8.61.15 are not yet editable/executable. Excel export and printing are planned.
+- PS Query: row security combined with joins, translates, subqueries or unions; subqueries inside a union's select; between on number fields. Excel export and printing are planned.
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the longer path.
 
@@ -342,10 +347,11 @@ compile the program in Application Designer as well (see the Disclaimer). See
 - **Outline** — class / method / function / property symbols
 - **Snippets** — `if`, `for`, `try`, `locs`, `msgbox`, `sqlexec`, …
 - **Validate PeopleCode** — compiles the program in the editor with PeopleSoft Studio's compiler (the one saves use) for the connection's PeopleTools release, and shows where it stops in Problems; Application Designer has the last word. It runs **as you type** (half a second after typing stops, on a background thread, so a 600 KB class does not hold up the editor) unless `peoplesoft.peoplecode.validateAsYouType` (or the Language Server, `peoplesoft.peoplecode.languageServer.enabled`) is off -- both, with the delay, the environment checks and unknown-function warnings, are under Settings > PeopleCode Editor; the command validates on demand. Against a database it also does what App Designer's compiler does with the environment: in Record and Component Record PeopleCode a bare field name of the program's record is accepted and shown as App Designer stores it (`RECORD.FIELD`), with a quick fix to write it so before saving; a name that is not a field, or a `RECORD.FIELD` the database does not have, is "Field ... not defined. (2,17)"; and a call to a function neither declared nor a known built-in is reported as App Designer's "Unknown function" (2,15); a definition reference (`Record.X`, `Page.X`, `Component.X`, `SQL.X` ...) the database lacks is noted -- App Designer compiles these without checking, warning only for `Image.X` ("No definition of IMAGE.X found. (2,68)"), which Studio reports the same way. Completion offers a record's fields after `RECORD.`, every built-in function App Designer compiles, and inside an application class the class's own members after `%This.` (its private ones too) with those it inherits, following `extends` through the class's imports
+- **Format Document** — lays a program out as Application Designer does (three-space blocks, wrapped conditions, keyword casing and spacing); it reproduces App Designer's stored text for 30,114 of 30,208 HCDEV programs and applies only when the formatted text compiles to the same program
 - **Find References** — where an identifier (a whole word) or any text occurs in every PeopleCode program of the connection, from the word at the cursor; on a database one search of the stored source, so every program is covered. Pick an occurrence to open it at that line
 - **Compare Project** (Projects view) — text and modeled record/field metadata compared with another connection. Read failures remain errors; missing definitions require a successful absence check. Differences open as snapshots side by side.
 - **Administration tools** — Message Catalog, HCM Text Catalog and URL Definitions have searchable editors with create/edit, concurrency checks and readback verification. See [Administration](docs/ADMINISTRATION.md).
-- **Export Migration Package... / Import Migration Package...** — versioned Studio JSON packages, target preview, guarded writers, readback verification and a migration receipt. Supported: fields (every stored property and translate values), records with SubRecords and SQL Table user indexes, standalone SQL, HTML, freeform style sheets, stored PeopleCode, bounded PS Query, scoped menus, App Engine, Application Packages with classes, pages and components.
+- **Export Migration Package... / Import Migration Package...** — versioned Studio JSON packages, target preview, guarded writers, readback verification and a migration receipt. Supported: fields (every stored property and translate values), records with SubRecords and SQL Table user indexes, standalone SQL, HTML, freeform style sheets, stored PeopleCode, bounded PS Query, scoped menus, App Engine, Application Packages with classes, pages, components, message channels, process definitions and File Layouts. **Promote Project to Another Environment…** exports, previews and stages the import on a different Oracle environment.
 - **Review Project Migration...** (Projects view or command palette) — a saveable report of members, optional target comparison, explicit dependencies, and unresolved coverage. On Writable database connections, select dependencies to include through the existing project writer. Export/import uses Studio migration packages without Application Designer. See [Project migration](docs/PROJECT_MIGRATION.md).
 - **Compare With Environment** — a definition side by side with the same one in another connection (a database or a project export), in VS Code's diff editor. The other side is read once, without making that connection the active one
 
@@ -420,8 +426,10 @@ inputs, operation limits, rollback previews and validation.
 
 The 0.9.1 workflow adds durable Change Sets, persistent semantic review,
 checkpoint/history and reviewed reversal for bounded MCP paths, with crash and
-lost-reply reconciliation, continuation undo/redo and creation reversal. It does
-not yet cover every object type. Track
+lost-reply reconciliation, continuation undo/redo and creation reversal. Since
+0.9.9 it also stages structural Page, Record and App Engine edits and Application
+Package/class creation and deletion with exact undo/redo. It does not yet cover
+every object type. Track
 verified implementation and remaining native acceptance in
 [Change Review progress](docs/change-review/PROGRESS.md).
 

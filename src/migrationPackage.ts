@@ -285,7 +285,7 @@ const querySchema = z.custom<Json>(value => {
   try {
     if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).sort().join(',') !== 'binds,criteria,expressions,fields,query,records,selects') return false;
     const view=queryView(value as Json); validateQuerySaveShape(view);
-    // Any shape the Query writer validates; the target's preview save compiles its SQL and applies the release gate.
+    // Any shape the Query writer validates; the target's preview save compiles its SQL and checks the calibrated release.
     return migrationCanonical(querySnapshot(view))===migrationCanonical(value);
   } catch { return false; }
 }, 'Unsupported Query migration snapshot');

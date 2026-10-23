@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 0.9.9 — October 23, 2026
+
+See the [release notes](docs/releases/0.9.9.md) for scope and evidence. This
+release delivers the 1.5 targets V15-1 through V15-5, each accepted natively
+and in an installed session.
+
+- **Query authoring on PeopleTools 8.61.15 (1.5, V15-4).** Every Query
+  family now saves on 8.61.15 as on 8.62.09: criteria, number and date
+  fields, prompts, joins, aggregates with HAVING and DISTINCT, expressions,
+  subqueries, unions, translates and effective dating. Windows Query's rows
+  for each family matched Studio's there. Between now also accepts two date
+  constants (both releases).
 - **Structural Page Change Review (1.5, V15-1).** `psft_edit_page` now stages
   inserted and deleted controls, tab order and a new `set_binding` (Edit Box
   rebind with its field's default label and format family) as exact native
@@ -9,7 +21,8 @@
   controls under their own ids and returns MAXPNLFLDID after removing added
   ones; redo restores the reviewed controls. Deletes of controls that
   translations or configurator rows still name are refused. Installed
-  developer acceptance is pending.
+  acceptance (with Record and App Engine changes in one Change Set) applied,
+  inverted and redid exactly; App Designer reopened the page afterwards.
 - **Structural Record Change Review (V15-1).** `psft_edit_record` stages
   field structure — insert, remove and move fields and subrecords, Use,
   Edits, defaults and labels — with exact undo/redo: a removed field returns
@@ -49,6 +62,20 @@
   can be combined with OR (qhv01), and date columns take Min and Max (qag06). Expression
   columns can be compared with a constant in WHERE, named `#N` (qex04), and
   subqueries can nest (qsq03) and sit beside a union (qsq04).
+- **Run and Monitor native acceptance (V15-5).** RT-L1 to RT-L4 passed on
+  HRDMO with the installed extension: one instance per confirmed run, logs,
+  the downloaded CSV matching its SHA-256, history across reload, and refusal
+  of duplicate, stale, expired, read-only and unsaved-editor requests. The
+  WS-Security header now carries `soap:mustUnderstand="1"`, native calls are
+  sent one at a time, and a completed Run Once run control is refused at
+  Review. Lost-response recovery remains fixture-tested only.
+- **Windows AI handoff (V15-3).** Configure AI Client runs npm's `.cmd`
+  launchers through `cmd.exe`; handoff arguments carry no quotes (Claude Code
+  gets its MCP configuration as a file, Codex the bare URL); analysis and build
+  tasks no longer hide each other. A Codex-built benefits-eligibility
+  application ran and matched its independent verifier (1,821 rows).
+- **App Engine validation** warns `outer-join-subquery`: Oracle refuses a
+  subquery in an outer join's ON condition (ORA-01799).
 - **Page writer corrections from App Designer captures (ps01–ps04).** Related
   Field references (ASSOCFIELDNUM) now follow their control through deletes,
   inserts and reorders, and turn off when the control is deleted, as App

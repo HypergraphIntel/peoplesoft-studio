@@ -67,13 +67,22 @@ test('numeric and date constants and prompts replay qnm02-qnm04', () => {
   for (const [name,criteria] of cases) compare(applyQueryOp(snapshot(name,'before'),{kind:'criteria',criteria},metadata),snapshot(name,'after'),snapshot(name,'before'),name);
 });
 
+test('a date between stores two date constants as Windows Query does (8.61.15 XX_QRY_C1_AD)', () => {
+  const view=applyQueryOp(snapshot('qnm01-create','after'),{kind:'criteria',criteria:[
+    {field:'START_DT',operator:'between',value:{constant:'2000-01-01'},value2:{constant:'2030-12-31'}}]},metadata);
+  const [row]=view.criteria;
+  assert.deepEqual([row.CONDTYPE,row.EXPRTYPE,row.R1CRTEXPNUM,row.R2CRTEXPNUM],[10,9,1,2]);
+  assert.deepEqual(view.expressions.map(e=>[e.EXPNUM,e.FIELDTYPE,e.EXPRESSIONTEXT]),[[1,4,'2000-01-01'],[2,4,'2030-12-31']]);
+  assert.throws(()=>applyQueryOp(view,{kind:'criteria',criteria:[{field:'START_DT',operator:'between',value:{constant:'01/01/2000'},value2:{constant:'2030-12-31'}}]},metadata),/YYYY-MM-DD/);
+});
+
 test('typed criteria refuse uncalibrated and inconsistent shapes', () => {
   const base=snapshot('qnm01-create','after');
   const refuse=(criteria: QueryCriterion[], pattern: RegExp)=>assert.throws(()=>applyQueryOp(base,{kind:'criteria',criteria},metadata),pattern);
   refuse([{field:'FEMALE_GOAL',operator:'greater',value:{constant:'five'}}],/enter a number/);
   refuse([{field:'START_DT',operator:'greater',value:{constant:'01/01/2000'}}],/YYYY-MM-DD/);
   refuse([{field:'START_DT',operator:'greater',value:{constant:'2001-02-30'}}],/YYYY-MM-DD/);
-  refuse([{field:'FEMALE_GOAL',operator:'between',value:{constant:'1'},value2:{constant:'2'}}],/character fields only/);
+  refuse([{field:'FEMALE_GOAL',operator:'between',value:{constant:'1'},value2:{constant:'2'}}],/character fields and dates only/);
   refuse([{field:'ESTABID',operator:'between',value:{constant:'A'}}],/wrong number of operands/);
   refuse([{field:'ESTABID',operator:'isNull',value:{constant:'A'}}],/wrong number of operands/);
   refuse([{field:'ESTABID',operator:'equal',value:{list:['A']}}],/single value/);

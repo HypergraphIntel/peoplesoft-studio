@@ -354,10 +354,14 @@ implementation, test and native-verification status -- is
 `docs/APP_ENGINE_MATRIX.md`.
 
 
-## Scheduler workflow (0.9.8 development)
+## Scheduler workflow
 
 The saved, clean designer exposes **Run and Monitor** for selecting an existing
 process/run control and reviewing an exact runtime request. Native operator
 sign-in, confirmation, status and report access are separate from metadata
-editing and Change Review. Real installed scheduler acceptance remains pending;
-see [Process Scheduler runtime](PROCESS_SCHEDULER_RUNTIME.md).
+editing and Change Review. Native acceptance (RT-L1 to RT-L4) passed with the
+installed extension in 0.9.9; see [Process Scheduler runtime](PROCESS_SCHEDULER_RUNTIME.md).
+
+Validation warns `outer-join-subquery` when SQL puts a subquery in a LEFT,
+RIGHT or FULL JOIN's ON condition: Oracle refuses it (ORA-01799) when the
+step runs.

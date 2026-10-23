@@ -4,7 +4,9 @@ Planning checkpoint: October 21, 2026; qualification execution: October 22. The 
 items from the readiness discussion can move to 1.5 or 2.0. The assignments
 below are release targets, not release dates. The selected 1.0 support
 matrix is recorded in [the support contract](SUPPORT_MATRIX.md). The qualified
-core ships in release 0.9.8 (October 22, 2026); version 1.0 is not yet published.
+core ships in release 0.9.8 (October 22, 2026). The 1.5 targets below were
+delivered in release 0.9.9 (October 23, 2026), outside that qualified core.
+Versions 1.0 and 1.5 are not yet published.
 
 Full Application Designer parity remains the long-term goal. It is not the
 completion test for the focused 1.0 defined here. Existing functionality stays
@@ -30,6 +32,13 @@ every operation is reversible. Failures in an advertised stable path remain
 1.0 work even if a related expansion is targeted later.
 
 ## 1.5 — deeper development and delivery workflows
+
+All five targets passed their acceptance boundary on October 22–23, 2026 and
+ship in [0.9.9](releases/0.9.9.md); the [1.5 tracker](releases/1.5/PROGRESS.md)
+records the evidence. Open follow-ups: undo of a promotion that creates a
+process definition (process deletion is not calibrated), subpackage/class
+metadata migration, and native lost-response recovery for Run and Monitor
+(fixture-tested only).
 
 | Target | Work carried forward | Acceptance boundary |
 | --- | --- | --- |
@@ -68,5 +77,6 @@ finish every item before 1.0; the release assignments above distinguish
 the gate from later expansions. [Priority tasks](PRIORITY_TASKS.md) links the
 active release gate and the scheduler's explicitly Low-priority follow-up.
 The planning change itself did not publish a version. The subsequent
-[0.9.8 release](releases/0.9.8.md) ships the qualified core and retains these
-1.5/2.0 targets; no 1.0 publication date is committed.
+[0.9.8 release](releases/0.9.8.md) ships the qualified core, and
+[0.9.9](releases/0.9.9.md) adds the accepted 1.5 targets. The 2.0 targets
+remain; no 1.0 publication date is committed.

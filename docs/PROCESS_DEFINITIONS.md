@@ -158,5 +158,10 @@ also available in the AE designer, Configuration Tools and Command Palette.
 It uses the delivered PROCESSREQUEST service and an existing operator run
 control, with separate operator sign-in and an explicit confirmation per run.
 It does not change process definitions or application parameters.
-Local/fixture verification passes; installed runtime acceptance is pending the
-HRDMO gateway transport prerequisite. See [scope and progress](PROCESS_SCHEDULER_RUNTIME.md).
+Native acceptance (RT-L1 to RT-L4) passed with the installed extension in
+0.9.9. See [scope and evidence](PROCESS_SCHEDULER_RUNTIME.md).
+
+Project migration and promotion carry a process definition's modeled
+properties, components and process groups (0.9.9); other columns and child
+tables refuse export. Creating one through a promotion has no undo yet,
+because process definition deletion is not calibrated.

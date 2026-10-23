@@ -180,7 +180,8 @@ export function compileQuerySql(view: QueryView, context: QuerySqlContext): Quer
       let right = '';
       if ([16,17].includes(cond)) { if (exprtype !== 0) refuse('This null criterion is not calibrated.'); }
       else if ([10,11].includes(cond)) {
-        if (exprtype !== 9 || type !== 0) refuse('Only Const-Const between on character fields is calibrated.');
+        // qcr07; 8.61.15 XX_QRY_C1_AD: a date between is BETWEEN TO_DATE(...) AND TO_DATE(...).
+        if (exprtype !== 9 || (type !== 0 && type !== 4)) refuse('Only Const-Const between on character and date fields is calibrated.');
         right = ` ${constant(expression('R1'))} AND ${constant(expression('R2'))}`;
       } else if ([8,9].includes(cond)) {
         if (exprtype === 4) right = ` ${subquery()}`;

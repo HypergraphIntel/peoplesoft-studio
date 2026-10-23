@@ -1,22 +1,24 @@
 # Change Review, transactions and history — progress
 
-## Scheduler runtime boundary — 0.9.8 preview
+## Current state — 0.9.9 released
 
-Run and Monitor has a separate durable request journal and per-run confirmation.
-It uses the delivered PROCESSREQUEST runtime API, never Change Review apply,
-SQL queue writes or metadata writer replay. Runtime application data effects
-cannot be undone through metadata checkpoints. No approval/apply authority was
-added to Change Review MCP tools. Local implementation, verification and
-candidate packaging are complete. The developer deferred the gateway HTTPS
-prerequisite and live acceptance as **Low priority** (RT-L1 through RT-L4).
-[Runtime progress](../PROCESS_SCHEDULER_RUNTIME.md) records the implemented
-scope, fixture evidence and remaining unverified native acceptance.
+Reconciled October 23, 2026. Release [0.9.9](../releases/0.9.9.md) adds the
+1.5 structural review: Page controls (insert, delete, tab order, Edit Box
+rebinding), Record field structure, App Engine structure and Application
+Package/class creation and deletion, each with exact undo/redo, plus promotion
+between Oracle environments through Change Review. All passed installed
+developer-approved acceptance on October 23 ([1.5 tracker](../releases/1.5/PROGRESS.md));
+COVERAGE.md has the per-adapter evidence.
 
-## Current state — 0.9.8 released
+Run and Monitor keeps its separate durable request journal and per-run
+confirmation. It uses the delivered PROCESSREQUEST runtime API, never Change
+Review apply, SQL queue writes or metadata writer replay, and runtime effects
+cannot be undone through metadata checkpoints. Its native acceptance (RT-L1 to
+RT-L4) passed in 0.9.9; see [runtime scope](../PROCESS_SCHEDULER_RUNTIME.md).
 
-Reconciled October 22, 2026. The qualified core, expanded Query and bounded
-IB structural/lifecycle review ship in 0.9.8 on `main`. See the
-[release notes](../releases/0.9.8.md) and [core qualification](../releases/1.0/PROGRESS.md).
+The qualified core, expanded Query and bounded IB structural/lifecycle review
+shipped in [0.9.8](../releases/0.9.8.md) ([core qualification](../releases/1.0/PROGRESS.md)).
+
 The sections below preserve the original implementation and native evidence.
 The 0.9.6 release includes fourteen bounded Oracle adapters: SQL, HTML,
 freeform style sheets, event/application-class PeopleCode, Process, Query,

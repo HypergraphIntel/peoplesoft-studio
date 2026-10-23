@@ -80,15 +80,13 @@ test('Query save commits the verified plan while a stale token rolls back before
   assert.ok(!stale.statements.some(sql => sql.startsWith('DELETE FROM')));
 });
 
-test('typed criteria save on 8.62.09 and are refused on 8.61.15, where one equal-to criterion stays calibrated', async () => {
+test('typed criteria and the other Query families save on 8.62.09 and 8.61.15', async () => {
   const criteria = { kind: 'criteria' as const, criteria: [{ field: 'DESCR', operator: 'like' as const, value: { constant: 'A%' } }, { field: 'DESCR', operator: 'isNotNull' as const, logical: 'OR' as const }] };
-  const newer = adapter();
-  assert.equal((await saveQuery(newer.c, ADAPTER_TYPES, { view: applyQueryOp(newer.view, criteria, { DESCR }), openedToken: 'absent', operatorId: 'JARED' })).written, true);
-  assert.equal(newer.tables.PSQRYCRITERIA.length, 2);
-  const older = adapter(['8.61', 15]);
-  await assert.rejects(saveQuery(older.c, ADAPTER_TYPES, { view: applyQueryOp(older.view, criteria, { DESCR }), openedToken: 'absent', operatorId: 'JARED', dryRun: true }), /calibrated on PeopleTools 8.62.09; this database is 8.61.15/);
-  assert.ok(!older.statements.some(sql => sql.startsWith('INSERT INTO')));
-  const single = adapter(['8.61', 15]);
-  const equal = applyQueryOp(single.view, { kind: 'constant', field: 'DESCR', value: 'A' }, { DESCR });
-  assert.equal((await saveQuery(single.c, ADAPTER_TYPES, { view: equal, openedToken: 'absent', operatorId: 'JARED', dryRun: true })).written, false);
+  for (const release of [undefined, ['8.61', 15] as [string, number]]) {
+    const db = adapter(release);
+    const view = applyQueryOp(applyQueryOp(db.view, criteria, { DESCR }), { kind: 'distinct', distinct: true }, { DESCR });
+    assert.equal((await saveQuery(db.c, ADAPTER_TYPES, { view, openedToken: 'absent', operatorId: 'JARED' })).written, true);
+    assert.equal(db.tables.PSQRYCRITERIA.length, 2);
+    assert.equal(db.tables.PSQRYSELECT[0].QRYDISTINCT, 'Y');
+  }
 });

@@ -43,7 +43,7 @@ Only existing definitions can be edited; Oracle saves preserve the calibrated
 counter, reference and readback checks. These metadata tools do not schedule or execute a process. Definition creation has a separate `psft_process_create` workflow; rename, copy and deletion are not exposed here. Component/group arrays are complete
 replacement associations; omitted stored associations are removed.
 
-## Process Scheduler runtime (0.9.8 development)
+## Process Scheduler runtime
 
 The Run and Monitor UI configures separate native operator sign-in. On Oracle
 PeopleTools 8.62, the runtime tools expose choices, preparation, submission,
@@ -61,10 +61,11 @@ reconciliation and never trigger replay. Report downloads retain native report
 permission checks and use bounded HTTPS access and transient same-origin
 repository sign-in cookies. Unsupported browser/MFA flows open in PeopleSoft.
 
-Fixture-backed protocol, rendered UI and HTTP checks pass. A real installed
-scheduler run and exact output remain **pending** because HRDMO's public
-proxy forwards to Integration Gateway over HTTP and its native security rejects
-the transport. See [runtime progress and exact limits](PROCESS_SCHEDULER_RUNTIME.md).
+Fixture-backed protocol, rendered UI and HTTP checks pass, and native
+acceptance RT-L1 to RT-L4 passed on HRDMO with the installed extension (0.9.9):
+confirmed runs, logs, exact downloaded output, history and refusals. Native
+lost-response recovery is fixture-tested only. See
+[runtime scope and evidence](PROCESS_SCHEDULER_RUNTIME.md).
 
 ## PS Query
 
@@ -107,8 +108,8 @@ exists/notExists; `#N` names expression column N, compared with a constant), an 
 operands `constant`, `field`, `prompt`, `list`, `currentDate`, `expression` or
 `subquery` `{record, field, criteria}` (inside it an unaliased field is the
 subquery's record; `A.FIELD` correlates). Authoring is calibrated for Oracle
-PeopleTools 8.62.09 and 8.61.15 (8.61.15: one record, character fields and at
-most one equal-to constant/prompt criterion). Effective dating on a record's
+PeopleTools 8.62.09 and 8.61.15 (every shape on both, calibrated against
+Windows Query on each). Effective dating on a record's
 EFFDT uses `effectiveDate` (<=), `effectiveDateNotLess` (>=),
 `effectiveDateLess` (<) or `effectiveDateGreater` (>) with `currentDate`, or
 `firstEffectiveDate` / `lastEffectiveDate` with no operand. Row security
