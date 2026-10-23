@@ -55,6 +55,27 @@ Rebuild if later commits land before the session.
 
 ## Next action
 
-Everything left needs the developer (passwords, sign-ins, spec approval, installed clicks). Run
-[ACCEPTANCE_SESSION.md](ACCEPTANCE_SESSION.md) in order; the agent drives each step once the developer's part
-of it is done.
+Session §1–2 done; §3 done (ps-win-client set up, AI clients configured). §4 in progress: request br-9e49eca2090e
+built by Codex from spec revision 2 (approved 2026-10-23 4:59 AM, state record ZZ_BENELIG_AET). HRDMO now has
+ZZ_AS_OF_DT; records ZZ_BENELIG_RC (OPRID, RUN_CNTL_ID, ZZ_AS_OF_DT, COMPANY), _STG, _WRK, _AET; File Layout
+ZZ_BENELIG_FL; AE ZZ_BENELIG (MAIN + OUTPUT, 10 steps); process ZZ_BENELIG (process group ZZ_BENELIG); page
+ZZ_BENELIG_PG, component ZZ_BENELIG_CMP.GBL, menu ZZ_BENELIG_MNU; project ZZ_BENELIG_PROJ (24 items). No portal
+content reference (private navigation). Codex sessions on the VM are closed.
+
+Remaining, all driven on ps-win-client with `python3 -I tools/lab/vm.py` (one command per call; the developer's
+allow rule covers it) or read-only from Linux:
+
+1. Build tables PS_ZZ_BENELIG_RC and PS_ZZ_BENELIG_STG: Studio on the VM, open project ZZ_BENELIG_PROJ, Build…,
+   Create Tables, against HRDMO. Verify read-only (ALL_TABLES).
+2. PIA (Chrome on the VM, HCMDMO): permission list ZZ_BENELIG with menu ZZ_BENELIG_MNU / ZZ_BENELIG_CMP /
+   ZZ_BENELIG_PG (Add, Update/Display) and process group ZZ_BENELIG; role ZZ_BENELIG holding it, added to JARED.
+3. Run control: .../psc/HCMDMO/EMPLOYEE/HRMS/c/ZZ_BENELIG_MNU.ZZ_BENELIG_CMP.GBL, add ZZ_BENELIG_ACC01,
+   As Of Date 2026-11-02, Company blank.
+4. Run and Monitor (VM, Scheduler sign-in as JARED): ZZ_BENELIG / ZZ_BENELIG_ACC01, one run, Success/Posted,
+   download the CSV, copy it to Linux, `npx tsx tools/lab/benelig-expected.mts 2026-11-02 --compare <csv>` must
+   print MATCH (the approved spec agrees with the verifier's readings).
+5. Promote Project ZZ_BENELIG_PROJ to HRDEV (127.0.0.1:15210/hrdev, Writable, JARED), apply, verify every
+   definition reads back identical, undo available. Then §5 and §6.
+
+Do not drive Claude Code or Codex sessions through the VM: the auto-mode classifier refuses all VM input for the
+rest of a session that did ("Create Unsafe Agents"). The developer runs agent sessions; the agent drives the rest.
