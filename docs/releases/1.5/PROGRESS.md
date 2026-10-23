@@ -115,8 +115,37 @@ source; Run and Monitor polls stole the active connection; process/File Layout/A
 project items and existence check; AE validation `outer-join-subquery`. Build-request finding: the Codex-built
 EXTRACT failed natively (ORA-01799) and was corrected through psft_ae_edit with the developer's approval.
 
-Next: rebuild the candidate (includes the AE validation warning), commit, then §5 (installed structural Change
-Review, Linux) and §6 (HCDEV RDP, developer starts the session). Open: calibrated process definition deletion so a
+**§5 in progress 2026-10-23** (installed candidate `36b22791…f28c9` in the developer's Linux VS Code, committed
+00fc9eb0; MCP staging, developer approve-and-apply in Change Review):
+
+- One Change Set (e4f34fc9) page ZZ_JOB_DATA1 (delete 123, add Static Text, 112 last) + record ZZ_RPT_LINE (DESCR
+  in, ZZ_RPT_COUNT out) + AE ZZ_AE_LAB01 (AccSQL, AccPC): APPLIED, inverse 645905bc APPLIED (123 back under its id at
+  its place, MAXPNLFLDID returned to 156, ZZ_RPT_COUNT restored, steps removed), redo 0528903b APPLIED (static text
+  re-created as 157). App Designer reopened the page and a native Static Text got PNLFLDID 158 (leftover lab control
+  158 "Text" on ZZ_JOB_DATA1, to remove).
+- Promotion via `psft_project_promote` ZZ_RF_PRJ HRDMO → HRDEV (5baae41c: record, SQL, AE, project, 5 members)
+  APPLIED, undo 11b7ab05 APPLIED (HRDEV back to none of them).
+- Package/class: package ZZ_ACC15 created (c4e14d8e), class ZZ_ACC15:Greeter created (c64077e9), deleted with
+  destructive approval (de3fc7b8; PSPCMPROGDEL marker written), undone (6c970fe8: class back with identical source,
+  marker cleared); App Designer opens the re-created class with the same text. A new class cannot be staged in the
+  same Change Set as its new package (the class preview needs the package to exist).
+- Query designer (installed, VM): private ZZ_ACC15_Q1 (ESTAB_TBL: Eff Date >= current date, `#1` expression
+  criterion, nested IN subquery AAP_TBL → AAP_YEAR; 0 rows) and ZZ_ACC15_Q2 (AAP_YEAR: Max START_DT, Average
+  FEMALE_GOAL, HAVING OR; 2 rows) staged together (1014fc32), applied, opened in Studio's designer with the SQL of the
+  native captures. Windows Query comparison skipped (sign-on password); the families were Windows-verified 10-21/22.
+- Leftover control 158 removed (d2b6261f). Undoing the redo is refused ("Live state changed since application"):
+  the drift guard, since App Designer edited the page after the redo. Lab ZZ_JOB_DATA1 / ZZ_RPT_LINE / ZZ_AE_LAB01
+  stay in the redo state.
+
+**§5 done 2026-10-23** except the compiler finding below.
+- Format Document: on a stored program (ZZ_BENELIG_RC.ZZ_AS_OF_DT.SaveEdit) App Designer's Validate and Studio's
+  formatter both leave the text unchanged. Finding: App Designer canonicalizes built-in function case (`none(` →
+  `None(` on Validate, natively), but Studio's encoder stores the name as typed (`6e006f006e0065`) and Format
+  Document keeps it: a Studio save of a lower-case built-in is not App Designer's bytes. Needs a corpus-calibration
+  fix (encoder function-name canonicalization, protected-baseline gate).
+
+Next: the built-in function case calibration (corpus harness, protected baseline 430/430), then §6 (HCDEV RDP,
+developer starts the session). Open: calibrated process definition deletion so a
 promotion that creates one can be undone.
 
 Do not drive Claude Code or Codex sessions through the VM: the auto-mode classifier refuses all VM input for the
