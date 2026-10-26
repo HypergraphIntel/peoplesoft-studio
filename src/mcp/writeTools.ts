@@ -135,6 +135,17 @@ const pageOperation = z.discriminatedUnion('op', [
   z.object({ op: z.literal('set_order'), order: z.array(z.number().int()).min(1) })
     .describe('The tab order (Order tab): every stored control id, first to last. Levels follow from it.'),
   z.object({
+    op: z.literal('set_fluid'), id: z.number().int(),
+    styleClasses: z.string().max(100).optional().describe('Style Classes (PSPNLFIELDEXT.FFSTYLELONG\'s first slot); "" for none.'),
+    small: z.string().max(100).optional().describe('Small form-factor override.'), medium: z.string().max(100).optional().describe('Medium override.'),
+    large: z.string().max(100).optional().describe('Large override.'), extraLarge: z.string().max(100).optional().describe('Extra Large override.'),
+    suppressClasses: z.boolean().optional().describe('Suppress System-Supplied Style Classes.'),
+    suppressSmall: z.boolean().optional(), suppressMedium: z.boolean().optional(), suppressLarge: z.boolean().optional(), suppressExtraLarge: z.boolean().optional(),
+    labelAfter: z.boolean().optional().describe('Label Rendering: After Control.'),
+    labelsInGridCells: z.boolean().optional().describe('Include Labels in Grid Cells.'),
+    structureBasic: z.boolean().optional().describe('Control Structure: Basic.')
+  }).describe('A control\'s Fluid tab (fr08-fr20), on a Fluid page only; settings not given keep their stored values.'),
+  z.object({
     op: z.literal('set_properties'), description: z.string().max(30).optional(), comments: z.string().optional(),
     width: z.number().optional().describe('Page size; setting it makes the Page Size choice Custom.'), height: z.number().optional(),
     ownerId: z.string().optional().describe('Owner ID (PSXLATITEM OBJECTOWNERID); "" for none.'),
@@ -307,7 +318,8 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
       'set Display Only / Invisible, delete (by the ids psft_get_page_layout gives), and set the page Description, ' +
       'Comments, size, Owner ID, style sheet, background, deferred processing, Adjust Layout for Hidden Fields, popup menu, ' +
       'the page type with a secondary page\'s OK & Cancel, Close Box and Disable Modal, ' +
-      'Fluid Page, and the Fluid tab\'s style classes and Suppress System-Specific Style Classes. Coordinates are pixels from the page\'s top-left. ' +
+      'Fluid Page, and the Fluid tab\'s style classes and Suppress System-Specific Style Classes; on a Fluid page, set_fluid sets a control\'s Fluid tab ' +
+      '(style classes, suppress per form factor, label after control, labels in grid cells, basic structure). Coordinates are pixels from the page\'s top-left. ' +
       'Every save assigns each control\'s scroll level from the tab order and runs App Designer\'s checks (No data for scroll, More than one data ' +
       'record in scroll, Invalid field level, Invalid related display); a page that fails them is not saved unless saveInvalid is true ' +
       '(App Designer\'s "Invalid page. Do you still want to save?" Yes). ' +
@@ -338,26 +350,45 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
   server.registerTool('psft_page_create', {
     title: 'Create a page',
     description:
-      'Create a classic page as App Designer\'s New Page and first save do: the same operations psft_edit_page takes, applied to a blank page ' +
+      'Create a page as App Designer does. Without layoutPage it is File > New > Page and its first save: the same operations psft_edit_page takes, applied to a blank classic page ' +
       '(at least one control -- App Designer will not save an empty page), with its checks and saveInvalid. A run control page is typically a ' +
-      'Subpage control showing PRCSRUNCNTL_SBP (record substitution PRCSRUNCNTL) plus the run control record\'s fields. Refused if the page exists. ' +
+      'Subpage control showing PRCSRUNCNTL_SBP (record substitution PRCSRUNCNTL) plus the run control record\'s fields. ' +
+      'With layoutPage it is New Page Fluid (n02): a copy of that Layout Page (PNLTYPE 7, e.g. PSL_APPS_CONTENT) with Fluid Page on, then the operations, if any, as a second save -- ' +
+      'App Designer creates the Fluid page first and the developer edits it after. Read the result with psft_get_page_layout for the template\'s control ids; ' +
+      'the Layout Page\'s Activate PeopleCode is not copied (psft_save_peoplecode). Refused if the page exists. ' +
       'Rows follow the connected PeopleTools release\'s tables: a column a later release added (8.62\'s Smart Prompt, PSPNLFIELDEXT.PTDISABLESMARTPROM) is left out on an earlier one, as its App Designer does. ' +
       'Created with the legacy per-write confirmation (no Change Review adapter covers page creation). ' + GATES,
-    inputSchema: z.object({ connection: z.string().min(1), page: z.string().min(1), operations: z.array(pageOperation).min(1),
+    inputSchema: z.object({ connection: z.string().min(1), page: z.string().min(1), operations: z.array(pageOperation).optional(),
+      layoutPage: z.string().min(1).optional().describe('New Page Fluid: the Layout Page (PNLTYPE 7) to start from.'),
       saveInvalid: z.boolean().optional().describe('Create it even though App Designer\'s page checks fail (its "Invalid page ... save anyway" Yes).') }),
     annotations: WRITE
-  }, async ({ connection, page, operations, saveInvalid }) => {
+  }, async ({ connection, page, operations = [], layoutPage, saveInvalid }) => {
     const name = page.trim().toUpperCase();
     if (!PAGE_NAME.test(name)) throw new Error(`${name || '(blank)'} is not a page name (a letter, then up to 17 letters, digits or _).`);
+    if (!layoutPage && !operations.length) throw new Error('A classic page needs at least one operation adding a control (App Designer will not save an empty page); give layoutPage for a Fluid page.');
     const key: DefinitionKey = { type: DefinitionType.Page, parts: [name] };
     const gate = await writable(workspace, host, connection, name);
     if (await gate.provider.pageInfo(name)) throw new Error(`A page named ${name} already exists; change it with psft_edit_page.`);
-    const blank = buildPageLayout(name, { page: { PNLNAME: name, VERSION: 0, ...NEW_PAGE }, fields: [], components: [] });
-    const { controls, properties } = applyPageOperations(blank, operations as PageOperation[]);
-    await approve(host, gate, key, `create page ${name}`,
-      `${operations.length} operation${operations.length === 1 ? '' : 's'}:\n${operations.map((o) => describeOperation(o)).join('\n')}`);
-    const r = await gate.provider.createPage({ pnlName: name, operatorId: gate.operatorId, controls, properties, ...(saveInvalid ? { saveInvalid } : {}) });
-    return done(gate, key, { created: true, version: r.version, controls: r.fieldCount });
+    const summary = `${operations.length} operation${operations.length === 1 ? '' : 's'}:\n${operations.map((o) => describeOperation(o)).join('\n')}`;
+    if (!layoutPage) {
+      const blank = buildPageLayout(name, { page: { PNLNAME: name, VERSION: 0, ...NEW_PAGE }, fields: [], components: [] });
+      const { controls, properties } = applyPageOperations(blank, operations as PageOperation[]);
+      await approve(host, gate, key, `create page ${name}`, summary);
+      const r = await gate.provider.createPage({ pnlName: name, operatorId: gate.operatorId, controls, properties, ...(saveInvalid ? { saveInvalid } : {}) });
+      return done(gate, key, { created: true, version: r.version, controls: r.fieldCount });
+    }
+    const template = layoutPage.trim().toUpperCase();
+    if (!(await gate.provider.layoutPages()).some((l) => l.name === template)) throw new Error(`${template} is not a Layout Page (PNLTYPE 7); New Page Fluid starts from one.`);
+    await approve(host, gate, key, `create Fluid page ${name}`, `New Page Fluid from Layout Page ${template}` + (operations.length ? `, then ${summary}` : '.'));
+    const created = await gate.provider.createPage({ pnlName: name, operatorId: gate.operatorId, template });
+    if (!operations.length) return done(gate, key, { created: true, fluid: true, layoutPage: template, version: created.version, controls: created.fieldCount });
+    // The second save, as the developer's edit of the new Fluid page: the operations against the page as created.
+    const { layout } = await gate.provider.readPageLayout(key);
+    const bindings = await resolvePageBindings(operations as PageOperation[], (record, field) => gate.provider.pageFieldBinding(record, field));
+    const { controls, properties, order } = applyPageOperations(layout, operations as PageOperation[], bindings);
+    const r = await gate.provider.savePage({ pnlName: name, openedVersion: layout.version, operatorId: gate.operatorId, controls, properties,
+      ...(order ? { order } : {}), ...(saveInvalid ? { saveInvalid } : {}) });
+    return done(gate, key, { created: true, fluid: true, layoutPage: template, version: r.version, controls: r.fieldCount, inserted: r.inserted, updated: r.updated, deleted: r.deleted });
   });
 
   server.registerTool('psft_create_record', {

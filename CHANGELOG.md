@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **Fluid pages and components through the MCP.** `psft_page_create` takes
+  `layoutPage` to create a Fluid page as App Designer's New Page Fluid does
+  (a copy of the Layout Page, proven live in wp08), then applies any
+  operations as a second save. A new `set_fluid` page operation sets a
+  control's Fluid tab on a Fluid page (fr08-fr20). `psft_component_create`
+  and `psft_component_edit` take `fluid` for the component Fluid tab (Fluid
+  Mode, header actions, search page type and the rest), naming only what
+  changes; each of App Designer's 18 Fluid-tab saves (f378-f387, h389-h398)
+  replays through it exactly. Not yet covered: a content reference's own
+  Fluid settings and a Fluid page's style sheet (no captures).
+
 ## 0.9.9 — October 23, 2026
 
 See the [release notes](docs/releases/0.9.9.md) for scope and evidence. This

@@ -241,3 +241,23 @@ test('set_binding rebinds an Edit Box with its field\'s default label and format
   await assert.rejects(resolvePageBindings([{ op: 'set_binding', id: 1, record: 'R', field: 'NOPE' }], async () => undefined), /not a field on record R/);
   assert.throws(() => applyPageOperations(layout, [{ op: 'set_binding', id: 2, record: 'derived_address', field: 'postal' }], bindings), /only an Edit Box can be rebound/);
 });
+
+test('set_fluid sets a control\'s Fluid tab (fr08-fr20 columns), only on a Fluid page, keeping what it does not name', () => {
+  const ctl = field({ FIELDNUM: 1, FIELDTYPE: 4, RECNAME: 'R', FIELDNAME: 'F', FIELDUSETMP: 0x8, EXT_FFSTYLELONG: 'psc-a| | | | ', EXT_FIELDUSETEMP2: 0x800 });
+  const classic = buildPageLayout('P', view([ctl]));
+  assert.throws(() => applyPageOperations(classic, [{ op: 'set_fluid', id: 1, labelAfter: true }]), /not a Fluid page/);
+
+  const fluid = buildPageLayout('P', { ...view([ctl]), page: { PNLTYPE: 0, VERSION: 3, DESCR: 'A page', PNLUSE: 0x400B } });
+  const [c] = applyPageOperations(fluid, [
+    { op: 'set_fluid', id: 1, small: 'zz-fs', suppressClasses: true, suppressMedium: true, labelAfter: true, structureBasic: true },
+    { op: 'set_fluid', id: 1, structureBasic: false }
+  ]).controls;
+  assert.deepEqual(c.fluidClasses, ['psc-a', 'zz-fs', '', '', '']);
+  assert.equal(c.fieldUseTmp, 0x8 | 0x400000 | 0x2000000);
+  assert.equal(c.fieldUseTemp2, 0x800 | 0x10);
+
+  // Fluid Page turned on earlier in the same operations opens the tab, as on App Designer's page after wp17.
+  const [d] = applyPageOperations(classic, [{ op: 'set_properties', fluidPage: true }, { op: 'set_fluid', id: 1, suppressExtraLarge: true }]).controls;
+  assert.equal(d.fieldUseTemp2, 0x800 | 0x80);
+  assert.equal(d.fluidClasses, undefined);
+});

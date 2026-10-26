@@ -2,7 +2,7 @@ import type { PageLayout } from './pageLayout.js';
 import { FIELD_USE_DISPLAY_ONLY, FIELD_USE_INVISIBLE } from './pageLayout.js';
 import { pageUseRefusal } from './pageUse.js';
 import { NEW_CONTROL_FIELDTYPE, NEW_CONTROL_FIELDUSE, NEW_CONTROL_SIZE, type NewControlKind } from '../providers/pageControlTemplates.js';
-import type { EditedControl, EditedPageProperties } from '../providers/pageWriter.js';
+import { FLUID_USETEMP2, FLUID_USETMP, fluidClassSlots, type EditedControl, type EditedPageProperties } from '../providers/pageWriter.js';
 
 /*
  * Page edits as a list of operations -- what the MCP's psft_edit_page takes --
@@ -30,6 +30,10 @@ export type PageOperation =
   | { op: 'set_level'; id: number; level: number | null }
   /** The tab order (the Order tab): every stored control's id, first to last; added controls go where App Designer puts them. */
   | { op: 'set_order'; order: number[] }
+  /** A control's Fluid tab (fr08-fr20), offered only on a Fluid page; settings not given keep their stored values. */
+  | { op: 'set_fluid'; id: number; styleClasses?: string; small?: string; medium?: string; large?: string; extraLarge?: string;
+      suppressClasses?: boolean; suppressSmall?: boolean; suppressMedium?: boolean; suppressLarge?: boolean; suppressExtraLarge?: boolean;
+      labelAfter?: boolean; labelsInGridCells?: boolean; structureBasic?: boolean }
   | { op: 'set_properties'; description?: string; comments?: string; width?: number; height?: number;
       ownerId?: string; styleSheet?: string; background?: string; deferProc?: boolean; adjustLayout?: boolean; popupMenu?: string;
       pageType?: number; pageSize?: string; okCancel?: boolean; closeBox?: boolean; disableModal?: boolean;
@@ -193,6 +197,31 @@ export function applyPageOperations(layout: PageLayout, operations: readonly Pag
           throw new PageOperationError(`set_order lists every control on the page once, by id: ${stored.join(', ')}.`);
         }
         order = [...o.order];
+        break;
+      }
+      case 'set_fluid': {
+        const c = find(o.id);
+        // App Designer offers a control's Fluid tab only on a Fluid page (wp17 turned Fluid Page on for fr08-fr20).
+        if (!(properties.fluidPage ?? p.fluidPage)) throw new PageOperationError(`${layout.name} is not a Fluid page; a control's Fluid tab needs Fluid Page on (set_properties fluidPage).`);
+        const slots = ['styleClasses', 'small', 'medium', 'large', 'extraLarge'] as const;
+        if (slots.some((k) => o[k] !== undefined)) {
+          const classes = c.fluidClasses ? [...c.fluidClasses] : fluidClassSlots((c as { ffStyleLong?: string }).ffStyleLong);
+          slots.forEach((k, i) => {
+            const v = o[k];
+            if (v === undefined) return;
+            if (v.length > 100) throw new PageOperationError('A style class entry holds up to 100 characters.');
+            classes[i] = v;
+          });
+          c.fluidClasses = classes;
+        }
+        for (const [k, bit] of Object.entries(FLUID_USETMP)) {
+          const v = o[k as keyof typeof FLUID_USETMP];
+          if (v !== undefined) c.fieldUseTmp = v ? (c.fieldUseTmp ?? 0) | bit : (c.fieldUseTmp ?? 0) & ~bit;
+        }
+        for (const [k, bit] of Object.entries(FLUID_USETEMP2)) {
+          const v = o[k as keyof typeof FLUID_USETEMP2];
+          if (v !== undefined) c.fieldUseTemp2 = v ? (c.fieldUseTemp2 ?? 0) | bit : (c.fieldUseTemp2 ?? 0) & ~bit;
+        }
         break;
       }
       case 'set_properties': {

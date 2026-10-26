@@ -1,8 +1,9 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import { DefinitionType, type DefinitionKey } from '../model/definitions.js';
-import type { ComponentDefinition } from '../model/componentDefinition.js';
+import { COMPONENT_TYPES, HEADER_ACTIONS_ORDER, SEARCH_PAGE_TYPES } from '../model/componentFlags.js';
 import { defaultItemLabel, NEW_COMPONENT_ACTIONS, type ComponentItemEdit, type ComponentPropertyEdits } from '../providers/componentWriter.js';
+import { applyFluid, storedFluid, storedProperties } from './componentEdits.js';
 import { DatabaseProvider } from '../providers/database.js';
 import { Workspace } from '../workspace.js';
 import { jsonResult, requireProvider } from './tools.js';
@@ -11,10 +12,10 @@ import { approve, GATES, READ_ONLY, writable, WRITE, type McpWriteHost } from '.
 /*
  * Components through the MCP, on the component writer App Designer proved
  * (componentWriter.ts: c01-c08b create and edit, the Internet/Fluid/Style tabs
- * replayed): create one, and change its pages and Use-tab properties. The
- * Internet, Fluid and Style tabs are left as stored (as App Designer's
- * defaults on create). Component PeopleCode is psft_save_peoplecode (types
- * 46/47/48); registering it on a menu is psft_menu_edit.
+ * replayed): create one, and change its pages, Use-tab properties and Fluid
+ * tab (f378-f387, h388-h398). The Internet and Style tabs are left as stored
+ * (as App Designer's defaults on create). Component PeopleCode is
+ * psft_save_peoplecode (types 46/47/48); registering it on a menu is psft_menu_edit.
  */
 
 const pageItem = z.object({
@@ -39,6 +40,17 @@ const useProperties = {
   includeInNavigation: z.boolean().optional()
 };
 
+const fluidTab = z.object({
+  fluidMode: z.boolean().optional().describe('Fluid Mode (FLUIDMODE); App Designer writes only this column when it is checked (f378).'),
+  layoutOnly: z.boolean().optional(), smallFormFactor: z.boolean().optional().describe('Small Form Factor Optimized.'),
+  noSystemHeader: z.boolean().optional(), noSystemSide: z.boolean().optional(),
+  componentType: z.number().int().refine((n) => n in COMPONENT_TYPES).optional().describe('Component Type: 0 Standard, 2 Master/Detail.'),
+  searchPageType: z.number().int().refine((n) => n in SEARCH_PAGE_TYPES).optional().describe('Search Page Type: 0 None, 1 Standard, 2 Master/Detail.'),
+  configurableSearch: z.boolean().optional().describe('Enable Configurable Search (cleared, with Notify, when Fluid Mode is off -- s399).'),
+  headerActions: z.partialRecord(z.enum(HEADER_ACTIONS_ORDER), z.boolean()).optional().describe('Header Toolbar Actions to check or clear by label; those not named keep their stored values.'),
+  disableAllActions: z.boolean().optional()
+}).strict().describe('The Fluid tab; settings not given keep their stored values (a new component\'s are App Designer\'s defaults: all off, Standard, search page None).');
+
 function item(i: z.infer<typeof pageItem>): ComponentItemEdit {
   const page = i.page.trim().toUpperCase();
   return { pageName: page, itemName: (i.itemName ?? page).trim().toUpperCase(), itemLabel: i.label ?? defaultItemLabel(page), folderTabLabel: i.folderTabLabel ?? '', hidden: !!i.hidden };
@@ -60,13 +72,6 @@ async function checkRecords(provider: DatabaseProvider, p: ComponentPropertyEdit
   }
 }
 
-/** The stored Use/General properties, as the writer takes them (other tabs absent: left as stored). */
-export function storedProperties(d: ComponentDefinition): ComponentPropertyEdits {
-  const u = d.properties.use;
-  return { description: d.properties.general.description, comments: d.properties.general.comments, searchRecord: u.searchRecord, addSearchRecord: u.addSearchRecord,
-    detailPage: u.detailPage, forceSearch: u.forceSearch, actions: { ...u.actions }, disableSave: u.disableSave, includeInNavigation: u.includeInNavigation };
-}
-
 function applyProperties(base: ComponentPropertyEdits, edit: Partial<Record<keyof typeof useProperties, unknown>>): ComponentPropertyEdits {
   const out = { ...base, actions: { ...base.actions } };
   for (const [k, v] of Object.entries(edit)) {
@@ -80,7 +85,8 @@ function describe(items: ComponentItemEdit[], p: ComponentPropertyEdits): string
   const acts = Object.entries(p.actions).filter(([, on]) => on).map(([a]) => a).join(', ') || 'none';
   return `Pages: ${items.map((i) => `${i.pageName}${i.hidden ? ' (hidden)' : ''} "${i.itemLabel}"`).join(', ')}\n` +
     `Search record ${p.searchRecord}${p.addSearchRecord ? `, add search ${p.addSearchRecord}` : ''}; actions ${acts}${p.disableSave ? '; Disable Saving Page' : ''}` +
-    `${p.description ? `\nDescription: ${p.description}` : ''}`;
+    `${p.description ? `\nDescription: ${p.description}` : ''}` +
+    `${p.fluid ? `\nFluid tab: Fluid Mode ${p.fluid.fluidMode ? 'on' : 'off'}${Object.keys(p.fluid.headerActions).length ? `; header actions ${JSON.stringify(p.fluid.headerActions)}` : ''}` : ''}`;
 }
 
 export function registerComponentTools(server: McpServer, workspace: Workspace, host: McpWriteHost | undefined): void {
@@ -105,15 +111,15 @@ export function registerComponentTools(server: McpServer, workspace: Workspace, 
   server.registerTool('psft_component_create', {
     title: 'Create a component',
     description: 'Create a component as App Designer\'s New Component and first save do (c01): its pages in order and its Use-tab properties; the Internet, ' +
-      'Fluid and Style tabs take App Designer\'s defaults; Actions default to Add and Update/Display, as App Designer opens them. A search record is required. A classic run control component is usually search record ' +
+      'Style tabs take App Designer\'s defaults and fluid sets the Fluid tab (a Fluid component: fluidMode true, its pages Fluid pages from psft_page_create layoutPage); Actions default to Add and Update/Display, as App Designer opens them. A search record is required. A classic run control component is usually search record ' +
       'PRCSRUNCNTL with Add and Update/Display (1,504 of 1,523 on HRDMO). Register it on a menu with psft_menu_edit and give it security ' +
       'separately. Refused if it exists. ' + GATES,
     inputSchema: z.object({
       connection: z.string().min(1), component: z.string().min(1).max(18), market: z.string().default('GBL'),
-      pages: z.array(pageItem).min(1), ...useProperties, searchRecord: z.string().min(1)
+      pages: z.array(pageItem).min(1), ...useProperties, searchRecord: z.string().min(1), fluid: fluidTab.optional()
     }).strict(),
     annotations: WRITE
-  }, async ({ connection, component, market, pages, ...props }) => {
+  }, async ({ connection, component, market, pages, fluid, ...props }) => {
     const name = component.trim().toUpperCase(), mkt = market.trim().toUpperCase();
     if (!/^[A-Z][A-Z0-9_#@$]{0,17}$/.test(name)) throw new Error(`${name} is not a component name.`);
     if (!/^[A-Z0-9]{1,3}$/.test(mkt)) throw new Error('Market is up to 3 letters or digits.');
@@ -123,6 +129,7 @@ export function registerComponentTools(server: McpServer, workspace: Workspace, 
     const items = pages.map(item);
     const properties = applyProperties({ description: '', comments: '', searchRecord: '', addSearchRecord: '', detailPage: '', forceSearch: false,
       actions: { ...NEW_COMPONENT_ACTIONS }, disableSave: false, includeInNavigation: true }, props);
+    if (fluid) properties.fluid = applyFluid(storedFluid(undefined), fluid);
     await checkPages(gate.provider, items);
     await checkRecords(gate.provider, properties);
     await approve(host, gate, key, `create component ${name}.${mkt}`, describe(items, properties));
@@ -134,14 +141,14 @@ export function registerComponentTools(server: McpServer, workspace: Workspace, 
   server.registerTool('psft_component_edit', {
     title: 'Edit a component',
     description: 'Change an existing component\'s pages and Use-tab properties as App Designer\'s save does (c02-c08b). pages, when given, replaces the page ' +
-      'list in that order (read it first with psft_get_component); properties not given keep their stored values, and the Internet/Fluid/Style tabs are ' +
+      'list in that order (read it first with psft_get_component); properties not given keep their stored values, fluid changes the Fluid tab, and the Internet/Style tabs are ' +
       'left as stored. expectedVersion rejects a stale edit. ' + GATES,
     inputSchema: z.object({
       connection: z.string().min(1), component: z.string().min(1), market: z.string().default('GBL'), expectedVersion: z.number().int().nonnegative().optional(),
-      pages: z.array(pageItem).min(1).optional(), ...useProperties
+      pages: z.array(pageItem).min(1).optional(), ...useProperties, fluid: fluidTab.optional()
     }).strict(),
     annotations: WRITE
-  }, async ({ connection, component, market, expectedVersion, pages, ...props }) => {
+  }, async ({ connection, component, market, expectedVersion, pages, fluid, ...props }) => {
     const name = component.trim().toUpperCase(), mkt = market.trim().toUpperCase();
     const key: DefinitionKey = { type: DefinitionType.Component, parts: [name, mkt] };
     const gate = await writable(workspace, host, connection, name);
@@ -151,6 +158,7 @@ export function registerComponentTools(server: McpServer, workspace: Workspace, 
     if (expectedVersion !== undefined && expectedVersion !== version) throw new Error('The component changed since it was read; read it again before editing.');
     const items = pages ? pages.map(item) : d.items.map((i) => ({ pageName: i.pageName, itemName: i.itemName, itemLabel: i.itemLabel, folderTabLabel: i.folderTabLabel, hidden: i.hidden }));
     const properties = applyProperties(storedProperties(d), props);
+    if (fluid) properties.fluid = applyFluid(storedFluid(d), fluid);
     if (pages) await checkPages(gate.provider, items);
     await checkRecords(gate.provider, properties);
     await approve(host, gate, key, `edit component ${name}.${mkt}`, describe(items, properties));
