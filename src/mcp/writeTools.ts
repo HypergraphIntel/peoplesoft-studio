@@ -232,7 +232,7 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
       'signature comments (/+ &param as Type +/, /+ Returns Type +/, /+ Extends/implements Pkg:Class.method +/) into each method, get and set ' +
       'body, replacing any already there; the stored source is returned as storedSource. Read the current source with ' +
       'psft_get_peoplecode first and send the whole program. Read psft_peoplecode_reference before writing PeopleCode and run psft_validate_peoplecode first: ' +
-      'a save is refused when the code breaks a rule App Designer\'s compiler enforces (PC001-PC010). ' + 'An SQL definition is refused when a colon-number bind marker appears in a comment: PeopleSoft counts markers in the whole text, so it becomes an extra bind. '  + GATES,
+      'a save is refused when the code breaks a rule App Designer\'s compiler enforces (PC001-PC022). ' + 'An SQL definition is refused when a colon-number bind marker appears in a comment: PeopleSoft counts markers in the whole text, so it becomes an extra bind. '  + GATES,
     inputSchema: z.object({ connection: z.string().min(1), type: z.number().int(), parts: z.array(z.string()).min(1), source: z.string() }),
     annotations: WRITE
   }, async ({ connection, type, parts, source }) => {
