@@ -39,6 +39,8 @@ import {
 
 import {
   DEFINITION_TYPE_GUIDE,
+  completeKey,
+  keyPartsProblem,
   typeCodeSummary
 } from './definitionTypes.js';
 
@@ -177,14 +179,14 @@ export function keyFromInput(
   type: number,
   parts: string[]
 ): DefinitionKey {
-  return {
+  return completeKey({
     type:
       type as DefinitionType,
     parts:
       parts.map(
         part => part.trim()
       )
-  };
+  });
 }
 
 function equalsIgnoreCase(
@@ -622,7 +624,14 @@ export function registerPeopleSoftTools(
           key.type
         )
       ) {
-        const text = isPeopleCode(key.type) ? await readPeopleCodeSource(provider, key) : await provider.readText(key);
+        let text: string;
+        try {
+          text = isPeopleCode(key.type) ? await readPeopleCodeSource(provider, key) : await provider.readText(key);
+        } catch (error) {
+          const problem = keyPartsProblem(key);
+          if (problem) throw new Error(`${problem} ${error instanceof Error ? error.message : String(error)}`);
+          throw error;
+        }
 
         return jsonResult({
           connection: {

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { DatabaseProvider } from '../providers/database.js';
 import { DefinitionType, TYPE_LABELS, isPeopleCode } from '../model/definitions.js';
 import { PEOPLECODE_OBJECTIDS, peopleCodeKeyFromValues, peopleCodeTypeOf } from '../model/peopleCodeKeys.js';
-import { DEFINITION_TYPE_GUIDE, typeCodeSummary } from '../mcp/definitionTypes.js';
+import { DEFINITION_TYPE_GUIDE, completeKey, keyPartsProblem, typeCodeSummary } from '../mcp/definitionTypes.js';
 
 const oracle = new DatabaseProvider({ name: 'DEV', platform: 'oracle', connectString: 'h:1521/X', user: 'SYSADM', password: '' });
 
@@ -58,4 +58,20 @@ test('Message Catalog entries and App Engine sections can be searched', () => {
 
 test('a kind of PeopleCode with no key shape is refused, not guessed at', async () => {
   await assert.rejects(oracle.search({ type: DefinitionType.FileLayoutPeopleCode, namePattern: 'X' }), /does not support/);
+});
+
+test('an HTML or XSLT definition named alone gets its fixed content type (E70)', () => {
+  assert.deepEqual(completeKey({ type: DefinitionType.HtmlDefinition, parts: ['ZZ_FIXTURES'] }).parts, ['ZZ_FIXTURES', '4']);
+  assert.deepEqual(completeKey({ type: DefinitionType.Xslt, parts: ['ZZ_XSL'] }).parts, ['ZZ_XSL', '6']);
+  // A full key and other types are left as given.
+  assert.deepEqual(completeKey({ type: DefinitionType.HtmlDefinition, parts: ['ZZ_FIXTURES', '4'] }).parts, ['ZZ_FIXTURES', '4']);
+  assert.deepEqual(completeKey({ type: DefinitionType.SqlDefinition, parts: ['ZZ_SQL'] }).parts, ['ZZ_SQL']);
+});
+
+test('a key with too few parts is explained, optional and repeated parts are not required (E70)', () => {
+  const problem = keyPartsProblem({ type: DefinitionType.Component, parts: ['ZZ_COMP'] });
+  assert.match(problem ?? '', /component, market \(GBL \.\.\.\); 1 given \(ZZ_COMP\)/);
+  assert.equal(keyPartsProblem({ type: DefinitionType.Component, parts: ['ZZ_COMP', 'GBL'] }), undefined);
+  assert.equal(keyPartsProblem({ type: DefinitionType.Query, parts: ['ZZ_QUERY'] }), undefined);
+  assert.equal(keyPartsProblem({ type: DefinitionType.ApplicationClassPeopleCode, parts: ['ZZ_PKG', 'Cls'] }), undefined);
 });

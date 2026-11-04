@@ -1,4 +1,5 @@
 import {
+  DefinitionKey,
   DefinitionType,
   typeLabel
 } from '../model/definitions.js';
@@ -60,6 +61,35 @@ export const DEFINITION_TYPE_GUIDE: readonly DefinitionTypeGuide[] = [
   { type: DefinitionType.IbRouting, keyParts: ['routing', 'effective date YYYY-MM-DD'], databaseSearch: true },
   { type: DefinitionType.IbDocument, keyParts: ['package', 'document', 'version'], databaseSearch: true }
 ];
+
+/**
+ * The last key part of HTML and XSLT definitions is a fixed content type (4
+ * and 6), so a caller that names only the definition means that one.
+ */
+const FIXED_LAST_PART: ReadonlyMap<DefinitionType, string> = new Map([
+  [DefinitionType.HtmlDefinition, '4'],
+  [DefinitionType.Xslt, '6']
+]);
+
+/** The key with the fixed last part added when the caller gave only the name. */
+export function completeKey(key: DefinitionKey): DefinitionKey {
+  const last = FIXED_LAST_PART.get(key.type);
+  return last !== undefined && key.parts.length === 1 ? { type: key.type, parts: [...key.parts, last] } : key;
+}
+
+/**
+ * For a read that failed: when the key has fewer parts than its type takes,
+ * the message names the parts, because the database error alone (for example
+ * NJS-105 for a missing number) does not say what was wrong.
+ */
+export function keyPartsProblem(key: DefinitionKey): string | undefined {
+  const guide = DEFINITION_TYPE_GUIDE.find(g => g.type === key.type);
+  if (!guide) return undefined;
+  const required = guide.keyParts.filter(p => !/optional|default|^\.\.\./.test(p)).length;
+  if (key.parts.length >= required) return undefined;
+  return `${typeLabel(key.type)} (type ${key.type}) take the key parts ${guide.keyParts.join(', ')}; ` +
+    `${key.parts.length} given (${key.parts.join(', ')}).`;
+}
 
 /** "0 Records, 2 Fields, ..." for a tool description. */
 export function typeCodeSummary(): string {
