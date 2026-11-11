@@ -1,17 +1,17 @@
 # 1.0 readiness
 
-Assessment as of October 23, 2026: **0.9.9 is released**. 0.9.8 shipped the
-completed focused 1.0 core qualification ([release notes](releases/0.9.8.md));
-0.9.9 adds the accepted 1.5 targets outside that core
-([release notes](releases/0.9.9.md)).
+Assessment as of November 2, 2026: **1.0.0 is released**
+([release notes](releases/1.0.0.md)). 0.9.8 shipped the completed focused 1.0
+core qualification ([release notes](releases/0.9.8.md)); 0.9.9 added the
+accepted 1.5 targets outside that core ([release notes](releases/0.9.9.md)).
 There is meaningful implementation and native verification progress,
 but not feature-complete for the project's long-term full Application Designer
 parity goal. The developer has directed larger items toward later releases;
 [the 1.0 / 1.5 / 2.0 plan](RELEASE_PLAN.md) separates core release gates
 from expansions. The focused support matrix is Oracle / PeopleTools 8.62.09 on Linux and Windows
 x64; [core qualification evidence](releases/1.0/PROGRESS.md) records the release
-gates. No 1.0 publication date is committed. Version numbers do not
-measure percentage completion toward full parity.
+gates. Version numbers do not measure percentage completion toward full
+parity: 1.0 is the focused core, not parity.
 
 Keep the long-term completion goal visible while planning staged releases.
 This is an evidence inventory across the whole product, not a requirement to

@@ -420,6 +420,7 @@ test('PC022: a method or property named after a keyword is refused; Create, Valu
   assert.deepEqual(codes(cls('private\n   method Alias(&r As string) Returns string;', 'method Alias\n   /+ &r as String +/\n   /+ Returns String +/\n   Return &r;\nend-method;'), true), ['PC022']);
   assert.deepEqual(codes(cls('   method Step();', 'method Step\nend-method;'), true), ['PC022']);
   assert.deepEqual(codes(cls('   property string Error readonly;', ''), true), ['PC022']);
+  assert.deepEqual(codes(cls('   property object Doc readonly;', ''), true), ['PC022']);
   assert.deepEqual(codes(cls('   property string Value readonly;\n   method Create();', 'method Create\nend-method;'), true), []);
   assert.deepEqual(codes(cls('   method AddStep();', 'method AddStep\nend-method;'), true), []);
 });

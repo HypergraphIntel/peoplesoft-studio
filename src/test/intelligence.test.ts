@@ -454,6 +454,14 @@ test('definition and page captures (def-capture, ae-capture, page-capture): watc
   const page = JSON.parse(readFileSync('tools/corpus/save-protocol/results/eb01-display-zero/delta.json', 'utf8'));
   assert.deepEqual(sanitizedDeltaOf(page), { tables: [{ table: 'PSPNLDEFN', inserted: 0, deleted: 0, updated: 1 }, { table: 'PSPNLFIELD', inserted: 0, deleted: 0, updated: 1 }], counters: { PDM: 1, SYS: 1 } });
   assert.throws(() => observationFromCapture(page, { observation: 'x' }), /give it/);
+  // A query capture: every QRYNAME/OPRID table by ROWID, its own release, PSVERSION as before / after pairs.
+  const query = JSON.parse(readFileSync('tools/corpus/save-protocol/results/qcr02-and-like/delta.json', 'utf8'));
+  assert.deepEqual(sanitizedDeltaOf(query), { tables: [{ table: 'PSQRYCRITERIA', inserted: 2, deleted: 1, updated: 0 }, { table: 'PSQRYDEFN', inserted: 1, deleted: 1, updated: 0 },
+    { table: 'PSQRYEXPR', inserted: 2, deleted: 1, updated: 0 }, { table: 'PSQRYFIELD', inserted: 2, deleted: 2, updated: 0 }, { table: 'PSQRYRECORD', inserted: 1, deleted: 1, updated: 0 },
+    { table: 'PSQRYSELECT', inserted: 1, deleted: 1, updated: 0 }], counters: { QDM: 1, SYS: 1 } });
+  assert.equal(observationFromCapture(query, { observation: 'x' }).environment.peopleToolsRelease, '8.62.09');
+  assert.throws(() => observationFromCapture(query, { observation: 'x', peopleToolsRelease: '8.61.15' }), /says PeopleTools 8.62.09/);
+  assert.ok(!JSON.stringify(sanitizedDeltaOf(query)).includes('ZZ_QRY'), 'counts only');
   // A renamed case keeps its old name in the file: the directory read is the ID.
   const renamed = JSON.parse(readFileSync('tools/corpus/save-protocol/results/r03-sqltable-key-and-fields/delta.json', 'utf8'));
   const o = observationFromCapture(renamed, { observation: 'x', caseName: 'r03-sqltable-key-and-fields' });

@@ -1,0 +1,108 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-6d61d60266f4f095c98efab1",
+  "fingerprint": "6d61d60266f4f095c98efab15a9dff136d3165aad84eec4dbf1bd9ac6276ab67",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSQRYFIELD",
+      "headingType": "HDGTYPE",
+      "text": 2,
+      "newFieldDefault": 3,
+      "headingText": "HEADING"
+    }
+  },
+  "title": "A query field's Heading Text is PSQRYFIELD.HDGTYPE 2 with the text in HEADING; a new field's HDGTYPE is 3",
+  "statement": "Choosing Heading Text stores PSQRYFIELD.HDGTYPE 2 and the text in HEADING; a newly selected field has HDGTYPE 3 and a blank HEADING. The other heading choices' codes are not captured.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-14T14:45:53.622Z",
+      "method": "save-capture",
+      "experimentId": "qry02-heading",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry02-heading (full sweep): HDGTYPE 3 -> 2 and HEADING blank -> the entered text; the field was HDGTYPE 3 when created (qry01).",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry02-heading"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "537054898cda940bf437e3f25f92343ce3d54278ae88f06e0ada727eb96a351a"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:25:27.848Z",
+    "updatedAt": "2026-10-26T20:25:27.848Z",
+    "schemaVersion": 1
+  }
+}

@@ -1,7 +1,7 @@
 import type { DbBinds as BindParameters, DbConnection as Connection, DbTypes } from '../db/connection.js';
 import {
   checkStoredProgram, compileForSave, diffPrograms, expectedProgram, fingerprint, planProgram,
-  prepareSourceForSave, SaveRefusedError, storedClassSource, storedText, targetForKey, validateOperatorId,
+  prepareSourceForSave, recordLicenseCode, SaveRefusedError, storedClassSource, storedText, targetForKey, validateOperatorId,
   type PcmKey, type StoredProgram
 } from '../peoplecode/writeback/savePlan.js';
 import { writeScopeRefusal } from './writeScope.js';
@@ -226,6 +226,7 @@ export async function savePeopleCode(
     // PSAPPCLASSDEFN row, any subpackage on its path that does not exist yet,
     // and the root package's VERSION moved to the new APM.
     const creatingClass = creating && request.createClass === true;
+    let inheritedLicense: string | undefined;
     let classPlan: ClassCreatePlan | undefined;
     if (creating) {
       if (prepareSourceForSave(request.source) === '') throw new SaveRefusedError('There is nothing to create: the program is empty.');
@@ -248,6 +249,12 @@ export async function savePeopleCode(
         const [{ N }] = await select<{ N: number }>(c,
           `SELECT COUNT(*) AS N FROM PSRECFIELD WHERE RECNAME = :r AND FIELDNAME = :f`, { r: parts[0], f: parts[1] });
         if (Number(N) === 0) throw new SaveRefusedError(`${parts[1]} is not a field of ${parts[0]}.`);
+        // A new program on a web library record takes the record's LICENSE_CODE, as App Designer gives it (E37).
+        if (/^WEBLIB/.test(parts[0])) {
+          const values = await select<{ L: string }>(c,
+            `SELECT DISTINCT LICENSE_CODE AS L FROM PSPCMPROG WHERE OBJECTID1 = 1 AND OBJECTVALUE1 = :r AND PROGSEQ = 0 AND TRIM(LICENSE_CODE) IS NOT NULL`, { r: parts[0] });
+          inheritedLicense = recordLicenseCode(values.map((v) => String(v.L)));
+        }
       }
     }
     const stored: StoredProgram = creating
@@ -305,7 +312,7 @@ export async function savePeopleCode(
 
     let expected: StoredProgram | undefined;
     if (plan) {
-      expected = expectedProgram(key, plan, { version: next.pcm, lastupddttm, operatorId: request.operatorId });
+      expected = expectedProgram(key, plan, { version: next.pcm, lastupddttm, operatorId: request.operatorId }, creating ? undefined : stored, inheritedLicense);
       // 11
       for (const row of expected.text) {
         await expectRows(c,

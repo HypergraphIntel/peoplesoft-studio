@@ -1,0 +1,101 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-bb1a5532a3f11100ff635a4e",
+  "fingerprint": "bb1a5532a3f11100ff635a4ec9c26d425c9ff64cb035bc75a96fe91a25eee06a",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "field",
+    "objectType": "Field"
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "RDM": 1,
+      "XTM": 1,
+      "SYS": 1,
+      "operation": "delete"
+    }
+  },
+  "title": "File > Delete of a field moves RDM and XTM (PSVERSION and PSLOCK) and SYS by 1, translate values or not",
+  "statement": "App Designer's Delete of a field moves RDM and XTM by one in PSVERSION and PSLOCK and SYS by one, whether or not the field has translate values. The field's own rows are outside these captures.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T11:48:42.362Z",
+      "method": "save-capture",
+      "experimentId": "dl03-native-field-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture dl03-native-field-delete (a field with translate values): RDM +1, XTM +1 in PSVERSION and PSLOCK, SYS +1.",
+      "delta": {
+        "tables": [],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1,
+          "XTM": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "dl03-native-field-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PROJECT_MIGRATION.md"
+        }
+      ],
+      "digest": "fafcf0aa8ea9350b19d8c99b5a1dc33fd3c64febbda8cef7b7f6db9d3b965322"
+    },
+    {
+      "observedAt": "2026-10-21T11:55:13.998Z",
+      "method": "save-capture",
+      "experimentId": "dl08-native-field-without-translates-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture dl08-native-field-without-translates-delete: RDM +1, XTM +1 in PSVERSION and PSLOCK, SYS +1.",
+      "delta": {
+        "tables": [],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1,
+          "XTM": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "dl08-native-field-without-translates-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PROJECT_MIGRATION.md"
+        }
+      ],
+      "digest": "613558e5e17f5832caf26dce46ddebb73010cab62763f16b7cc8f14cb9feef10"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:30:41.372Z",
+    "updatedAt": "2026-10-26T20:30:41.677Z",
+    "schemaVersion": 1
+  }
+}

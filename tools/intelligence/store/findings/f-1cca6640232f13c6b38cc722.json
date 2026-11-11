@@ -1,0 +1,82 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-1cca6640232f13c6b38cc722",
+  "fingerprint": "1cca6640232f13c6b38cc7227e28457c3fc9e0f3ed4b4304d72d72654be8fc78",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "propagate-starts",
+    "facts": {
+      "table": "PSFLDFIELDDEFN",
+      "column": "FLDSTART",
+      "scope": "thisAndLaterFields"
+    }
+  },
+  "title": "Propagate (>>>) n on a FIXED File Layout field adds n to its start and every later field's",
+  "statement": "The field properties' propagate (>>>) with n adds n to PSFLDFIELDDEFN.FLDSTART of the field and of every field starting after it; earlier fields are unchanged. One capture, n = 4.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:21:23.017Z",
+      "method": "save-capture",
+      "experimentId": "fl09-propagate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl09-propagate: PLAN_TYPE 12 -> 16 and the nine fields after it +4 (14 -> 18 ... 68 -> 72); EMPLID (start 1) unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 10
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl09-propagate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "caf9d27cdcc07504cbc1cfbf437219ef6a519c08b274669a3ddce58fe9b89456"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:21:23.025Z",
+    "updatedAt": "2026-10-26T20:21:23.025Z",
+    "schemaVersion": 1
+  }
+}

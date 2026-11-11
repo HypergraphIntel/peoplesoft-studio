@@ -36,6 +36,29 @@ test('set_use turns Allow Deferred Processing off for one field and leaves the r
   assert.equal(out.controls.find((c) => c.pnlFldId === 1)?.fieldUse, 0);
 });
 
+test('a grid added in the same operations can be given its occurs level (it has no stored FIELDTYPE yet)', () => {
+  const layout = buildPageLayout('P', view([field({ FIELDNUM: 1, FIELDTYPE: 4, RECNAME: 'PARENT', FIELDNAME: 'NAME' })]));
+  const out = applyPageOperations(layout, [
+    { op: 'add', kind: 'scrollArea', left: 8, top: 40, width: 600, height: 300, record: 'CHILD' },
+    { op: 'add', kind: 'grid', left: 20, top: 200, width: 400, height: 100, record: 'GRANDCHILD' },
+    { op: 'set_occurs_level', id: -2, level: 2 }
+  ]).controls.filter((c) => c.pnlFldId < 0);
+  assert.equal(out[1].occursLevel, 2);
+  assert.throws(() => applyPageOperations(layout, [
+    { op: 'add', kind: 'editBox', left: 8, top: 8, record: 'PARENT', field: 'NAME' }, { op: 'set_occurs_level', id: -1, level: 2 }
+  ]), /is not a Scroll Bar, Grid or Scroll Area/);
+});
+
+test('an added control given a width is a custom size, a grid column included; unsized it keeps its kind\'s', () => {
+  const layout = buildPageLayout('P', view([field({ FIELDNUM: 1, FIELDTYPE: 19, RECNAME: 'CHILD', FIELDLEFT: 8, FIELDTOP: 8, FIELDRIGHT: 508, FIELDBOTTOM: 208 })]));
+  const out = applyPageOperations(layout, [
+    { op: 'add', kind: 'editBox', left: 0, top: 0, record: 'CHILD', field: 'DESCR254', width: 380, intoGrid: 1 },
+    { op: 'add', kind: 'editBox', left: 0, top: 0, record: 'CHILD', field: 'CODE', intoGrid: 1 },
+    { op: 'add', kind: 'editBox', left: 20, top: 220, record: 'PARENT', field: 'NAME', width: 200 }
+  ]).controls.filter((c) => c.pnlFldId < 0);
+  assert.deepEqual(out.map((c) => c.fieldSizeType), [2, 0, 2]);
+});
+
 test('a control keeps its stored rectangle; the shape follows FIELDTYPE', () => {
   const layout = buildPageLayout('P', view([
     field({ FIELDNUM: 1, FIELDTYPE: 4, RECNAME: 'JOB', FIELDNAME: 'EMPLID', LBLTEXT: 'Person ID',
@@ -260,4 +283,11 @@ test('set_fluid sets a control\'s Fluid tab (fr08-fr20 columns), only on a Fluid
   const [d] = applyPageOperations(classic, [{ op: 'set_properties', fluidPage: true }, { op: 'set_fluid', id: 1, suppressExtraLarge: true }]).controls;
   assert.equal(d.fieldUseTemp2, 0x800 | 0x80);
   assert.equal(d.fluidClasses, undefined);
+});
+
+test('a label longer than PSPNLFIELD.LBLTEXT is refused before the database, naming the control (E27, E40, E46, E55, E69, E78)', () => {
+  const layout = buildPageLayout('P', view([field({ FIELDTYPE: 0 })]));
+  assert.doesNotThrow(() => applyPageOperations(layout, [{ op: 'set_label', id: 1, text: 'x'.repeat(60) }]));
+  assert.throws(() => applyPageOperations(layout, [{ op: 'set_label', id: 1, text: 'x'.repeat(124) }]), /Control 1: a label holds at most 60 characters.*has 124/);
+  assert.throws(() => applyPageOperations(layout, [{ op: 'add', kind: 'staticText', left: 0, top: 0, label: 'y'.repeat(73) }]), /Added control 1: .*at most 60/);
 });

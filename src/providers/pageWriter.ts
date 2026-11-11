@@ -10,7 +10,7 @@ import {
   newControlRows, isRecordBound, type ColumnValues, type FieldInfo, type NewControl, type NewControlDataRows
 } from './pageControlTemplates.js';
 import { checkPageScrolls, occursLevels, SCROLL_FIELD_TYPES, type CheckedControl, type PageProblem } from '../model/pageLevels.js';
-import { pageUseRefusal } from '../model/pageUse.js';
+import { pageLabelRefusal, pageUseRefusal } from '../model/pageUse.js';
 
 /*
  * Saving a page's layout, as App Designer does (docs/PAGE_SAVE.md, cases
@@ -722,6 +722,11 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
     }
   }
   if (restored.length && (added.length || !order)) throw new PageSaveRefusedError('Restored controls are placed by a complete tab order, without other added controls.');
+  // The editor, the MCP and reviewed restores all pass here: no label longer than LBLTEXT reaches Oracle.
+  for (const c of all) {
+    const refusal = pageLabelRefusal(c.pnlFldId > 0 ? `Control ${c.pnlFldId}` : 'An added control', c.lblText);
+    if (refusal) throw new PageSaveRefusedError(refusal);
+  }
 
   for (const c of controls) {
     if (!storedById.has(c.pnlFldId)) {

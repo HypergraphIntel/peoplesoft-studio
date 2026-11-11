@@ -1,0 +1,106 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-d56dae7b02da2aa40d2f4874",
+  "fingerprint": "d56dae7b02da2aa40d2f4874d59132ca4701fe548dc31c7749b1b1dce8419546",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "style-sheet",
+    "objectType": "Style sheet"
+  },
+  "assertion": {
+    "kind": "delete-tombstone",
+    "facts": {
+      "tables": "PSCONTDEL,PSSTYLSHEETDEL",
+      "CONTTYPE": 9,
+      "contVersion": "newCRM",
+      "styleVersion": "newSSM",
+      "CRM": 1,
+      "SSM": 1,
+      "SYS": 1,
+      "rowsDeleted": "PSCONTDEFN,PSCONTENT,PSSTYLSHEETDEFN"
+    }
+  },
+  "title": "Deleting a freeform style sheet writes PSCONTDEL (CONTTYPE 9) at the new CRM and PSSTYLSHEETDEL at the new SSM",
+  "statement": "App Designer's Delete of a freeform style sheet deletes its PSCONTDEFN, PSCONTENT and PSSTYLSHEETDEFN rows, inserts PSCONTDEL (CONTTYPE 9) at the new CRM and PSSTYLSHEETDEL at the new SSM, and moves CRM, SSM and SYS by one. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-20T20:18:23.227Z",
+      "method": "save-capture",
+      "experimentId": "td03-native-css-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture td03-native-css-delete: three rows deleted; PSCONTDEL CONTTYPE 9 VERSION 67 = CRM after; PSSTYLSHEETDEL VERSION 75 = SSM after; CRM, SSM, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCONTDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTENT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSTYLSHEETDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSTYLSHEETDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CRM": 1,
+          "SSM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "td03-native-css-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/TEXT_DELETION.md"
+        }
+      ],
+      "digest": "c255dc20ec0137e28ed162d8960d35434f0986ded330a794f56fbe3655f82228"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:31:31.795Z",
+    "updatedAt": "2026-10-26T20:31:31.795Z",
+    "schemaVersion": 1
+  }
+}

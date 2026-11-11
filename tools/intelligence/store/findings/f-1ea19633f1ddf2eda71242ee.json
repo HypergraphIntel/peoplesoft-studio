@@ -1,0 +1,137 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-1ea19633f1ddf2eda71242ee",
+  "fingerprint": "1ea19633f1ddf2eda71242ee237c2060a8136e6157d69762985f9611dbaf03ea",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "unit-replay-passes",
+    "facts": {
+      "test": "src/test/queryCriteria.test.ts",
+      "reference": "Windows Query captures (tools/corpus/save-protocol/results)",
+      "allPass": true
+    }
+  },
+  "title": "PeopleSoft Studio's Query model replays Windows Query's captured saves: every replay test passes",
+  "statement": "src/test/queryCriteria.test.ts rebuilds Windows Query's captured saves (qcr, qnm, qjn, qag, qhv, qex, qsq, qun, qxl, qed; HRDMO, PeopleTools 8.62.09) through Studio's Query document and requires Windows Query's rows exactly; every top-level test passed in the recorded run. Evidence about Studio, not PeopleSoft (rule 3).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:35:24.530Z",
+      "method": "unit-replay",
+      "experimentId": "queryCriteria.test",
+      "runId": "2026-10-26",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "tool": "node:test"
+      },
+      "observation": "Run of src/test/queryCriteria.test.ts (node:test, TAP): 18 top-level tests, all passed.",
+      "actual": "18 passed, 0 failed, 0 skipped",
+      "testResults": [
+        {
+          "name": "native criteria captures qcr02-qcr10 replay exactly as one typed criteria operation",
+          "outcome": "pass"
+        },
+        {
+          "name": "native first saves qcr01 and qnm01 are reproduced from a new document",
+          "outcome": "pass"
+        },
+        {
+          "name": "numeric and date constants and prompts replay qnm02-qnm04",
+          "outcome": "pass"
+        },
+        {
+          "name": "a date between stores two date constants as Windows Query does (8.61.15 XX_QRY_C1_AD)",
+          "outcome": "pass"
+        },
+        {
+          "name": "typed criteria refuse uncalibrated and inconsistent shapes",
+          "outcome": "pass"
+        },
+        {
+          "name": "native joins qjn01-qjn04 replay: standard, criteria after a join, left outer and related effective-dated",
+          "outcome": "pass"
+        },
+        {
+          "name": "native aggregates, HAVING and DISTINCT replay qag01-qag05",
+          "outcome": "pass"
+        },
+        {
+          "name": "native date aggregate replays qag06: Max on START_DT; a WHERE criterion on it is refused",
+          "outcome": "pass"
+        },
+        {
+          "name": "native expression-column criterion replays qex04: the expression column is \\#N",
+          "outcome": "pass"
+        },
+        {
+          "name": "native HAVING OR replays qhv01: COMBTYPE 5",
+          "outcome": "pass"
+        },
+        {
+          "name": "native expressions replay qex01-qex03",
+          "outcome": "pass"
+        },
+        {
+          "name": "native subqueries replay qsq01-qsq02",
+          "outcome": "pass"
+        },
+        {
+          "name": "native nested subquery replays qsq03: existing subqueries keep their selects, the nested one is appended",
+          "outcome": "pass"
+        },
+        {
+          "name": "native subquery in a union query replays qsq04: appended after the union select",
+          "outcome": "pass"
+        },
+        {
+          "name": "native union replays qun01",
+          "outcome": "pass"
+        },
+        {
+          "name": "native translates and base effective dating replay qxl01-qxl02",
+          "outcome": "pass"
+        },
+        {
+          "name": "native effective-date operators replay qed01-qed06: the EFFDT criterion changes operator in place",
+          "outcome": "pass"
+        },
+        {
+          "name": "every native capture round-trips: its described criteria replace themselves exactly",
+          "outcome": "pass"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/test/queryCriteria.test.ts"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "561daf72293ed8ab7846bceff54b50a4a8ec8edd643de667ce0286e12ce9340e"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:35:24.536Z",
+    "updatedAt": "2026-10-26T20:35:24.536Z",
+    "schemaVersion": 1
+  }
+}

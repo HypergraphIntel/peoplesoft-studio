@@ -1,0 +1,82 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-23e84b7c6ebee5ad9fe3095e",
+  "fingerprint": "23e84b7c6ebee5ad9fe3095e5f029bc746539a86079db847a8b1f5b8786e3579",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "project",
+    "objectType": "Project"
+  },
+  "assertion": {
+    "kind": "recreate-clears-tombstone",
+    "facts": {
+      "table": "PSPROJECTDEL",
+      "deleted": true,
+      "newVersion": "newPJM"
+    }
+  },
+  "title": "Saving a new project under a deleted name deletes that name's PSPROJECTDEL row",
+  "statement": "Creating a project whose name has a PSPROJECTDEL row deletes that row and writes PSPROJECTDEFN at the new PJM. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-20T21:20:40.317Z",
+      "method": "save-capture",
+      "experimentId": "qp02-native-project-recreate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture qp02-native-project-recreate: PSPROJECTDEL (VERSION 191) deleted; PSPROJECTDEFN inserted at VERSION 192 = PJM after.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPROJECTDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPROJECTDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PJM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qp02-native-project-recreate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/QUERY_PROJECT_DELETION.md"
+        }
+      ],
+      "digest": "6536f1adf4d6e74e8b6496ccf335b5a988f8036a02edabadcee4c66b811cd6fd"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:31:32.658Z",
+    "updatedAt": "2026-10-26T20:31:32.658Z",
+    "schemaVersion": 1
+  }
+}

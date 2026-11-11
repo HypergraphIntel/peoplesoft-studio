@@ -1,0 +1,619 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-84ffd590822a18b20702596a",
+  "fingerprint": "84ffd590822a18b20702596ae9c45d0e1cfce8543868293d65093442230b358b",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "counter": "FLM",
+      "psversionStep": 1,
+      "pslockStep": 1,
+      "sysStep": 1,
+      "versionColumn": "PSFLDDEFN.VERSION",
+      "versionIsNewCounter": true
+    }
+  },
+  "title": "A File Layout save moves FLM (PSVERSION and PSLOCK) and SYS by 1; PSFLDDEFN.VERSION is the new FLM",
+  "statement": "Saving a File Layout in App Designer -- created, changed, or saved as a new name -- moves FLM by one in PSVERSION and PSLOCK and SYS by one in PSVERSION, and stamps PSFLDDEFN.VERSION with the new FLM. Rename also moves PJM (a separate finding).",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:20:02.116Z",
+      "method": "save-capture",
+      "experimentId": "fl01-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl01-create (File > New, Insert > Record, Save): FLM +1 in PSVERSION and PSLOCK, SYS +1; PSFLDDEFN.VERSION 32 = the new FLM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 12,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl01-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "ef54f592ef772f4c81904183ac0153ad3bc694c8b4d96040c5030c129d597f73"
+    },
+    {
+      "observedAt": "2026-10-26T20:20:02.410Z",
+      "method": "save-capture",
+      "experimentId": "fl02-props-csv",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl02-props-csv (Format CSV): FLM +1 in PSVERSION and PSLOCK, SYS +1; PSFLDDEFN.VERSION 33 = the new FLM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl02-props-csv"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "849de127781b0969361288b86f994bc211aea2b331f58dc5107b0101c04d2726"
+    },
+    {
+      "observedAt": "2026-10-26T20:20:02.700Z",
+      "method": "save-capture",
+      "experimentId": "fl03-csv-options",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl03-csv-options (CSV options): FLM +1 in PSVERSION and PSLOCK, SYS +1; PSFLDDEFN.VERSION 34 = the new FLM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl03-csv-options"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "cfa932d20ba80674f98ac2d9015e27f4333a01e668c2191138339c06907750e8"
+    },
+    {
+      "observedAt": "2026-10-26T20:20:03.003Z",
+      "method": "save-capture",
+      "experimentId": "fl04-segment-props",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl04-segment-props (segment properties): FLM +1 in PSVERSION and PSLOCK, SYS +1; PSFLDDEFN.VERSION 35 = the new FLM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 12
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl04-segment-props"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "cbc09930317242a5f306ff0b34d52597c05f018df0fd56873219273925943032"
+    },
+    {
+      "observedAt": "2026-10-26T20:20:03.308Z",
+      "method": "save-capture",
+      "experimentId": "fl05-field-props",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl05-field-props (field properties): FLM +1 in PSVERSION and PSLOCK, SYS +1; PSFLDDEFN.VERSION 36 = the new FLM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl05-field-props"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "36b8a262a20482c6144a6f69e3111a19d8bbc99f7dd0cc052d19fd43d9623108"
+    },
+    {
+      "observedAt": "2026-10-26T20:20:03.609Z",
+      "method": "save-capture",
+      "experimentId": "fl06-add-segments",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl06-add-segments (Insert Segment and ChildSegment): FLM +1 in PSVERSION and PSLOCK, SYS +1; PSFLDDEFN.VERSION 37 = the new FLM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl06-add-segments"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "4f22216bf6f946acdb0420d81339b4a234bbc598973d4ce7494dd77ec562188e"
+    },
+    {
+      "observedAt": "2026-10-26T20:20:03.905Z",
+      "method": "save-capture",
+      "experimentId": "fl07-create-fixed",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl07-create-fixed (a second new layout): FLM +1 in PSVERSION and PSLOCK, SYS +1; PSFLDDEFN.VERSION 38 = the new FLM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 11,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl07-create-fixed"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "d0639bf7fba68709071be37a30de9ba81cd10746b73c8b208ae4d95e971a4571"
+    },
+    {
+      "observedAt": "2026-10-26T20:20:04.216Z",
+      "method": "save-capture",
+      "experimentId": "fl08-fixed-length",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl08-fixed-length (a FIXED field length): FLM +1 in PSVERSION and PSLOCK, SYS +1; PSFLDDEFN.VERSION 39 = the new FLM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl08-fixed-length"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "575c0c1fa285a8e2f3d4d2a65dc8d3833b470b70d83ae8c04a1b1042a69038cf"
+    },
+    {
+      "observedAt": "2026-10-26T20:20:04.526Z",
+      "method": "save-capture",
+      "experimentId": "fl09-propagate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl09-propagate (propagate): FLM +1 in PSVERSION and PSLOCK, SYS +1; PSFLDDEFN.VERSION 40 = the new FLM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 10
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl09-propagate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "c8d80e9d9e22e76d97883cf3c160cf99aff59cc1985c230d591e2875cdc0e8ca"
+    },
+    {
+      "observedAt": "2026-10-26T20:20:04.829Z",
+      "method": "save-capture",
+      "experimentId": "fl10-delete-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl10-delete-field (delete a field): FLM +1 in PSVERSION and PSLOCK, SYS +1; PSFLDDEFN.VERSION 41 = the new FLM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 7
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl10-delete-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "d5d58f5e9612981b459d459dec0be435a9ae33cc484981455c70baa39d962f57"
+    },
+    {
+      "observedAt": "2026-10-26T20:20:05.134Z",
+      "method": "save-capture",
+      "experimentId": "fl11-move-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl11-move-field (move a field): FLM +1 in PSVERSION and PSLOCK, SYS +1; PSFLDDEFN.VERSION 42 = the new FLM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl11-move-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "d37789f531ac35e88e69771df4d2338fdc1ac82f61ef2080ac920eba70f73496"
+    },
+    {
+      "observedAt": "2026-10-26T20:20:05.429Z",
+      "method": "save-capture",
+      "experimentId": "fl12-save-as",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl12-save-as (Save As): FLM +1 in PSVERSION and PSLOCK, SYS +1; PSFLDDEFN.VERSION 43 = the new FLM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 10,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl12-save-as"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "86c31e91f3197475a95b6db64d952a6c40520c15c3cbd69cc6325d8d073f8ce7"
+    },
+    {
+      "observedAt": "2026-10-26T20:20:05.751Z",
+      "method": "save-capture",
+      "experimentId": "fl15-create-xml",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl15-create-xml (a new XML layout): FLM +1 in PSVERSION and PSLOCK, SYS +1; PSFLDDEFN.VERSION 46 = the new FLM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 12,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl15-create-xml"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "4e4a8c6b73668d1de6f200f0a120b58fffca0689b0aa692f065a4d656cd6ba63"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:20:02.123Z",
+    "updatedAt": "2026-10-26T20:20:05.758Z",
+    "schemaVersion": 1
+  }
+}

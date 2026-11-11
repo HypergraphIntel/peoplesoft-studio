@@ -1,0 +1,471 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-de78f1fc8bf73942fc96ff9c",
+  "fingerprint": "de78f1fc8bf73942fc96ff9cc71303b5474065dc2cf731241be1b1465743d09a",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSQRYFIELD",
+      "column": "TTLTYPE",
+      "none": 1,
+      "sum": 2,
+      "count": 3,
+      "min": 4,
+      "max": 5,
+      "average": 6
+    }
+  },
+  "title": "A query field's Aggregate None / Sum / Count / Min / Max / Average is PSQRYFIELD.TTLTYPE 1 / 2 / 3 / 4 / 5 / 6",
+  "statement": "Field Properties Aggregate is stored in PSQRYFIELD.TTLTYPE: 1 None, 2 Sum, 3 Count, 4 Min, 5 Max, 6 Average. AGGREGATEFUNC is not used for these.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-14T14:48:17.497Z",
+      "method": "save-capture",
+      "experimentId": "qry04-count",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry04-count: Aggregate Count, TTLTYPE 1 -> 3.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry04-count"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "69b230f844056d7069bd861ca27b36528fa367e1b1bfd9c22cd5064c04bd8fdc"
+    },
+    {
+      "observedAt": "2026-10-14T14:50:05.809Z",
+      "method": "save-capture",
+      "experimentId": "qry05-min",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry05-min: Aggregate Min, TTLTYPE 3 -> 4.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry05-min"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "cc837d887651b1a0c476a399a45b4bb2abdfff025755e2b1345fee19a0e5a315"
+    },
+    {
+      "observedAt": "2026-10-14T14:51:38.480Z",
+      "method": "save-capture",
+      "experimentId": "qry06-max",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry06-max: Aggregate Max, TTLTYPE 4 -> 5.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry06-max"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "bf29b27a0a751bc570274c92d2468b6b0f2f5676ce53dacd57f16356684d7a97"
+    },
+    {
+      "observedAt": "2026-10-14T15:02:57.619Z",
+      "method": "save-capture",
+      "experimentId": "qry07-none",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry07-none: Aggregate None, TTLTYPE 5 -> 1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry07-none"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "972d2ea34978462d4c7359925532a1deaee9cb16fa90c0caf51068aed1f5d047"
+    },
+    {
+      "observedAt": "2026-10-22T00:10:20.920Z",
+      "method": "save-capture",
+      "experimentId": "qag01-sum",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qag01-sum: a new query with Sum on a number field stores TTLTYPE 2.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qag01-sum"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "4d16cd8aceda2d6de6180634796aca280645e55c8c648f5106f620549bf6fd0e"
+    },
+    {
+      "observedAt": "2026-10-22T00:10:52.854Z",
+      "method": "save-capture",
+      "experimentId": "qag02-average",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qag02-average: Aggregate Average, TTLTYPE 2 -> 6.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qag02-average"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "3752fe27efa7968c5f7d72712171bc27e6cba1fe802da86195830fa45db98028"
+    },
+    {
+      "observedAt": "2026-10-22T21:58:22.028Z",
+      "method": "save-capture",
+      "experimentId": "qag06-date-max",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qag06-date-max: Max on a date field stores TTLTYPE 5.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qag06-date-max"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "2cc3d2df2bdd5a9087b704b5db9d29ee37a607e7019130b2622f969698b79df1"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:25:25.867Z",
+    "updatedAt": "2026-10-26T20:25:27.564Z",
+    "schemaVersion": 1
+  }
+}

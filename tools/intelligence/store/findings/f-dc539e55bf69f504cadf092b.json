@@ -1,0 +1,159 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-dc539e55bf69f504cadf092b",
+  "fingerprint": "dc539e55bf69f504cadf092bcbc4e8eb6dfde090df6a3d5bbe16977184f9f1f1",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "component",
+    "objectType": "Component"
+  },
+  "assertion": {
+    "kind": "native-delete",
+    "facts": {
+      "rows": "PSPNLGRPDEFN,PSPNLGROUP,PSPNLGRPDEFNEXT",
+      "PGM": 1,
+      "MDM": 1,
+      "SYS": 1,
+      "pcmWithPeopleCode": 1
+    }
+  },
+  "title": "File > Delete of a component removes its PSPNLGRPDEFN, PSPNLGROUP and PSPNLGRPDEFNEXT rows and moves PGM, MDM and SYS by 1; its PeopleCode goes too, PCM +1",
+  "statement": "App Designer's Delete of a component deletes its PSPNLGRPDEFN, PSPNLGROUP and PSPNLGRPDEFNEXT rows and moves PGM and MDM (PSVERSION and PSLOCK) and SYS by one; component PeopleCode is deleted with it and moves PCM by one. A tombstone table (PSPNLGRPDEL) is outside these captures.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T11:47:26.351Z",
+      "method": "save-capture",
+      "experimentId": "dl02-native-component-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture dl02-native-component-delete: 1 PSPNLGRPDEFN, 3 PSPNLGROUP, 1 PSPNLGRPDEFNEXT and one program's PSPCMPROG, PSPCMNAME, PSPCMTXT deleted; PGM, MDM, PCM and SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGROUP",
+            "inserted": 0,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PCM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "dl02-native-component-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PROJECT_MIGRATION.md"
+        }
+      ],
+      "digest": "3285457a543ac23d07d8b84193cc4bdcddbc8e89cf9a829d1560790dcbd7a90a"
+    },
+    {
+      "observedAt": "2026-10-21T11:54:22.384Z",
+      "method": "save-capture",
+      "experimentId": "dl07-native-component-without-peoplecode-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture dl07-native-component-without-peoplecode-delete: 1 PSPNLGRPDEFN, 3 PSPNLGROUP, 1 PSPNLGRPDEFNEXT deleted; PGM, MDM and SYS +1, PCM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLGROUP",
+            "inserted": 0,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLGRPDEFNEXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "MDM": 1,
+          "PGM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "dl07-native-component-without-peoplecode-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PROJECT_MIGRATION.md"
+        }
+      ],
+      "digest": "6c46ba1c98a647337d563d7464aa521fec5d8df70a400d0db021fb590c3eba42"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:30:40.798Z",
+    "updatedAt": "2026-10-26T20:30:41.082Z",
+    "schemaVersion": 1
+  }
+}

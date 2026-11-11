@@ -1,0 +1,102 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-614c6e11d42216d7b3aca2cf",
+  "fingerprint": "614c6e11d42216d7b3aca2cf5d247e7694e74f449b5abfdc09eae9e80d78413c",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "exists-criterion",
+    "facts": {
+      "CONDTYPE": 12,
+      "EXPRTYPE": 4,
+      "leftField": "none",
+      "correlatedCriterion": "subquerySelect",
+      "countsBothFields": true
+    }
+  },
+  "title": "An exists criterion has no left field; its correlation is a criterion in the subquery naming the outer field",
+  "statement": "AND exists stores a criterion with CONDTYPE 12, EXPRTYPE 4 and R1CRTSELNUM the subquery, and no left field; the subquery's correlated criterion (field = outer field) lives in the subquery's select and counts a use of both fields. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-22T00:23:25.774Z",
+      "method": "save-capture",
+      "experimentId": "qsq02-exists",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qsq02-exists: criterion 2 CONDTYPE 12, EXPRTYPE 4, R1CRTSELNUM 3, LCRTSELNUM / LCRTFLDNUM 0; select 3 criterion 1 C.ESTABID = A.ESTABID (R1CRTSELNUM 1); both fields USECOUNT +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 3,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qsq02-exists"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "7ed48d580d0f4bdc6f28f0e42d5678025a78d1147b1944a2f6654961b050d385"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:27:40.258Z",
+    "updatedAt": "2026-10-26T20:27:40.258Z",
+    "schemaVersion": 1
+  }
+}

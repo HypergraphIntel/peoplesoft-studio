@@ -1,0 +1,3619 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-3c7681ae69b69f1158a517f2",
+  "fingerprint": "3c7681ae69b69f1158a517f26564fac2ebd7725bd9a5ade2e63e16eb0c597342",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "counter-step",
+    "facts": {
+      "counter": "QDM",
+      "psversionStep": 1,
+      "pslockStep": 1,
+      "sysStep": 1,
+      "versionColumn": "PSQRYDEFN.VERSION",
+      "versionIsNewCounter": true
+    }
+  },
+  "title": "A PS Query save moves QDM (PSVERSION and PSLOCK) and SYS by 1; PSQRYDEFN.VERSION is the new QDM",
+  "statement": "Saving a query in Windows Query -- new, changed, or saved as a new name -- moves QDM by one in PSVERSION and PSLOCK and SYS by one in PSVERSION, and stamps PSQRYDEFN.VERSION with the new QDM.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-22T00:10:20.920Z",
+      "method": "save-capture",
+      "experimentId": "qag01-sum",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qag01-sum: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 104 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qag01-sum"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "11083aa470765c60b9d32c43c1afd7a0cdf703bfca7e8ed17bef2fa68dccd15a"
+    },
+    {
+      "observedAt": "2026-10-22T00:10:52.854Z",
+      "method": "save-capture",
+      "experimentId": "qag02-average",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qag02-average: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 105 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qag02-average"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "404521471c36a9e1c7fdbed1a35daa7c055e4ef8be2216dcbf8823ef9103218a"
+    },
+    {
+      "observedAt": "2026-10-22T00:13:02.432Z",
+      "method": "save-capture",
+      "experimentId": "qag03-having",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qag03-having: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 106 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qag03-having"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "4bde44673f78d36995acc4d65d8888d6536584d23bf9cabe4d6f60e9edc2c270"
+    },
+    {
+      "observedAt": "2026-10-22T00:14:02.680Z",
+      "method": "save-capture",
+      "experimentId": "qag04-distinct",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qag04-distinct: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 107 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qag04-distinct"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "7ec1b75c3abb2575c8f890248597b60eee941f8cb0ed32747e510118c1d0887f"
+    },
+    {
+      "observedAt": "2026-10-22T00:45:42.070Z",
+      "method": "save-capture",
+      "experimentId": "qag05-where-and-having",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qag05-where-and-having: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 116 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qag05-where-and-having"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "5bc28feb7a3a382db1428f001eb1bdc5227727bd815abc71b9e8278952fa6996"
+    },
+    {
+      "observedAt": "2026-10-22T21:58:22.028Z",
+      "method": "save-capture",
+      "experimentId": "qag06-date-max",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qag06-date-max: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 235 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qag06-date-max"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "66171bc3aecd29bb343931c16b52adbaa49924cf110936842d900d19488bf598"
+    },
+    {
+      "observedAt": "2026-10-21T23:22:15.792Z",
+      "method": "save-capture",
+      "experimentId": "qcr01-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qcr01-create: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 84 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qcr01-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "b0c1e081e9899f39ee3f18d1f82ac881b58dc03956935631e18849ed8328d642"
+    },
+    {
+      "observedAt": "2026-10-21T23:23:29.625Z",
+      "method": "save-capture",
+      "experimentId": "qcr02-and-like",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qcr02-and-like: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 85 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qcr02-and-like"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "4e70009b3922850fbc6aa4a79e91eb50a904a503869bc37a7e1e3d6bb2a0cfc4"
+    },
+    {
+      "observedAt": "2026-10-21T23:24:20.565Z",
+      "method": "save-capture",
+      "experimentId": "qcr03-or",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qcr03-or: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 86 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qcr03-or"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "3d571b53f53c9f9fa493976d3aa14261e463008bf547d652bf7a5201fc003308"
+    },
+    {
+      "observedAt": "2026-10-21T23:25:19.863Z",
+      "method": "save-capture",
+      "experimentId": "qcr04-greater",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qcr04-greater: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 87 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qcr04-greater"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "69b7317484d9f5cbcae44f99e88d29dbe5828eed51695e3824223284a7ff257b"
+    },
+    {
+      "observedAt": "2026-10-21T23:26:02.563Z",
+      "method": "save-capture",
+      "experimentId": "qcr05-group",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qcr05-group: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 88 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qcr05-group"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "7f00021c5a1ef201954206dfc04d953e6feea31573b15dc171e5720e8cfb4c20"
+    },
+    {
+      "observedAt": "2026-10-21T23:27:14.436Z",
+      "method": "save-capture",
+      "experimentId": "qcr06-not",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qcr06-not: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 89 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qcr06-not"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "f054d8bc15430b1c498bdcf2c0f8d89dc2c8ad8dd6660dda4e44646090aafe86"
+    },
+    {
+      "observedAt": "2026-10-21T23:28:31.228Z",
+      "method": "save-capture",
+      "experimentId": "qcr07-between",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qcr07-between: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 90 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 4,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qcr07-between"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "25cc54c9134357f8397e11dddca781e1c176c41d82265018994c5719882f7238"
+    },
+    {
+      "observedAt": "2026-10-21T23:29:42.090Z",
+      "method": "save-capture",
+      "experimentId": "qcr08-in-list",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qcr08-in-list: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 91 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 3,
+            "deleted": 4,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qcr08-in-list"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "dcfca97ff9462f4801ae30097e0e83cef3d4240e267483ca78981f0eb31e5bd6"
+    },
+    {
+      "observedAt": "2026-10-21T23:30:23.001Z",
+      "method": "save-capture",
+      "experimentId": "qcr09-is-null",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qcr09-is-null: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 92 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qcr09-is-null"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "0df40af10450d592630f95d7418d73bb419988a13ab5e6ea4099a2e58c60eb5f"
+    },
+    {
+      "observedAt": "2026-10-21T23:31:12.370Z",
+      "method": "save-capture",
+      "experimentId": "qcr10-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qcr10-field: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 93 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 2,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qcr10-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "2d36cd3c550530349af49d490bd0242c3f1277ed557928cf38e617a0b04228ac"
+    },
+    {
+      "observedAt": "2026-10-22T21:40:42.451Z",
+      "method": "save-capture",
+      "experimentId": "qed01-effdt-ge",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qed01-effdt-ge: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 228 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qed01-effdt-ge"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "ccf057b9298d41ed912bb6d678a15222dba310d83d4b39826fa63d5f39a8433d"
+    },
+    {
+      "observedAt": "2026-10-22T21:41:07.922Z",
+      "method": "save-capture",
+      "experimentId": "qed02-effdt-lt",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qed02-effdt-lt: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 229 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qed02-effdt-lt"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "b514566d71c5c4153b50e685c7a655c7270c465655a33443360612bc73484fad"
+    },
+    {
+      "observedAt": "2026-10-22T21:41:20.152Z",
+      "method": "save-capture",
+      "experimentId": "qed03-effdt-gt",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qed03-effdt-gt: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 230 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qed03-effdt-gt"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "fb41e8acdaedd1585b41e1928759f06a1ddede83974097f579f74d7616a2f5db"
+    },
+    {
+      "observedAt": "2026-10-22T21:41:32.703Z",
+      "method": "save-capture",
+      "experimentId": "qed04-effdt-first",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qed04-effdt-first: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 231 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qed04-effdt-first"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "f914e310c2893979a7d9de800dcc2ad0a3e605dd35a8a7619ce9e0d39a9ff189"
+    },
+    {
+      "observedAt": "2026-10-22T21:41:44.772Z",
+      "method": "save-capture",
+      "experimentId": "qed05-effdt-last",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qed05-effdt-last: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 232 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qed05-effdt-last"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "28066511569dc783e0632fce86008804b7470c73bb1cf5fb548091bdc114564d"
+    },
+    {
+      "observedAt": "2026-10-22T21:41:55.931Z",
+      "method": "save-capture",
+      "experimentId": "qed06-effdt-le-restore",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qed06-effdt-le-restore: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 233 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qed06-effdt-le-restore"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "2dfd90cb172794380147d3c48573816def2b6f7fb1d26c7e468fb8dfafa8d1fe"
+    },
+    {
+      "observedAt": "2026-10-22T00:16:09.939Z",
+      "method": "save-capture",
+      "experimentId": "qex01-expression-column",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qex01-expression-column: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 108 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qex01-expression-column"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "c9f17089b4cdb5fb1260676ff726afbe9490698e42a97c3169641ff60bbf8510"
+    },
+    {
+      "observedAt": "2026-10-22T00:17:25.648Z",
+      "method": "save-capture",
+      "experimentId": "qex02-second-expression",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qex02-second-expression: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 109 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 4,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qex02-second-expression"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "27a37c5b2b5506ca2a60354513b4a0d23938141b4d205f0359c1108b31a7c9bd"
+    },
+    {
+      "observedAt": "2026-10-22T00:18:26.405Z",
+      "method": "save-capture",
+      "experimentId": "qex03-expression-criterion",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qex03-expression-criterion: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 110 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 4,
+            "deleted": 4,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qex03-expression-criterion"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "b309b0d4f26e361e2e0c8e607233bd6e6bffd23962f2cecdde3993c33be65c03"
+    },
+    {
+      "observedAt": "2026-10-22T22:01:06.313Z",
+      "method": "save-capture",
+      "experimentId": "qex04-expression-column-criterion",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qex04-expression-column-criterion: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 236 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 4,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 4,
+            "deleted": 4,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qex04-expression-column-criterion"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "017dc16b2c1fcdcb5f4114a25fd6a069bb32fbeaf03d89d61a7c5d2a0378f05f"
+    },
+    {
+      "observedAt": "2026-10-22T21:53:55.868Z",
+      "method": "save-capture",
+      "experimentId": "qhv01-having-or",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qhv01-having-or: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 234 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qhv01-having-or"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "81b18eb87e15862f563cdba20a27f8d3c229df39925f2c0e9120272cc26cccad"
+    },
+    {
+      "observedAt": "2026-10-21T23:57:57.664Z",
+      "method": "save-capture",
+      "experimentId": "qjn01-standard-join",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qjn01-standard-join: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 100 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 4,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qjn01-standard-join"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "bb55c5c21a64361902965ac78bc8929cdb1a88f30daab75cae588c336ab6a8c4"
+    },
+    {
+      "observedAt": "2026-10-21T23:59:04.473Z",
+      "method": "save-capture",
+      "experimentId": "qjn02-criterion-after-join",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qjn02-criterion-after-join: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 101 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 4,
+            "deleted": 4,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qjn02-criterion-after-join"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "ea669191739ea9db04d4ac9cb86174aea346697667bfd322a8357da7e08408e8"
+    },
+    {
+      "observedAt": "2026-10-22T00:00:42.000Z",
+      "method": "save-capture",
+      "experimentId": "qjn03-left-outer",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qjn03-left-outer: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 102 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qjn03-left-outer"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "0688019e5808f1d500e9434490255e30e385d5baacff7958e77a830ee9df6542"
+    },
+    {
+      "observedAt": "2026-10-22T00:02:20.539Z",
+      "method": "save-capture",
+      "experimentId": "qjn04-related-join",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qjn04-related-join: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 103 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 4,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qjn04-related-join"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "26d6206297a342f5d0861f6c04d794c085641deb3cfe2d1ba3770c8d444c639a"
+    },
+    {
+      "observedAt": "2026-10-21T23:33:57.416Z",
+      "method": "save-capture",
+      "experimentId": "qnm01-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qnm01-create: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 94 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qnm01-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "36622be1e352c709602c51300ad9d0455b41924c0714af5a91d561e17355af55"
+    },
+    {
+      "observedAt": "2026-10-21T23:34:52.452Z",
+      "method": "save-capture",
+      "experimentId": "qnm02-date-const",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qnm02-date-const: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 95 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qnm02-date-const"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "222282c1f213339ef778137931f3230b1af86600bd5c0f3db1ce20c00c1fe7c6"
+    },
+    {
+      "observedAt": "2026-10-21T23:35:40.717Z",
+      "method": "save-capture",
+      "experimentId": "qnm03-date-prompt",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qnm03-date-prompt: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 96 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qnm03-date-prompt"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "a73ce9361046da34f10e3c310b84f9f9ab7e1c6caa725fea71412131a74736cc"
+    },
+    {
+      "observedAt": "2026-10-21T23:37:03.124Z",
+      "method": "save-capture",
+      "experimentId": "qnm04-number-prompt",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qnm04-number-prompt: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 97 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qnm04-number-prompt"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "23c13cb63d126fa391359a258507ef261af838c1a04d27adda16fc62a363686f"
+    },
+    {
+      "observedAt": "2026-10-14T14:42:54.617Z",
+      "method": "save-capture",
+      "experimentId": "qry01-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry01-create: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 3 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry01-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "2cca81430edb997ea834b8659fee1fe184693e05a9c3027a222f254a693bd515"
+    },
+    {
+      "observedAt": "2026-10-14T14:45:53.622Z",
+      "method": "save-capture",
+      "experimentId": "qry02-heading",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry02-heading: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 4 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry02-heading"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "59bf3d26d988af3b2fc03c22b2d8009ae6b5db7ef47e017261712588c048d9a5"
+    },
+    {
+      "observedAt": "2026-10-14T14:47:08.922Z",
+      "method": "save-capture",
+      "experimentId": "qry03-order",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry03-order: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 5 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry03-order"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "df15b0b4b0bf35ddeaa08eaa3498ae52d46accffdfad3885c4e706e1a1241c6b"
+    },
+    {
+      "observedAt": "2026-10-14T14:48:17.497Z",
+      "method": "save-capture",
+      "experimentId": "qry04-count",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry04-count: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 6 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry04-count"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "45969739f122bee7b3d13e5e63ae50dbf5271ff8b73c0516612666a700c48de2"
+    },
+    {
+      "observedAt": "2026-10-14T14:50:05.809Z",
+      "method": "save-capture",
+      "experimentId": "qry05-min",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry05-min: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 7 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry05-min"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "26f64338413c3370ab47a6f024feac051dd5cf6ee8b27d42a18a73e0c4ef2c42"
+    },
+    {
+      "observedAt": "2026-10-14T14:51:38.480Z",
+      "method": "save-capture",
+      "experimentId": "qry06-max",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry06-max: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 8 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry06-max"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "e7320391fbd309840a54d9beb53754e30853c360479c8851aa0e1aa718c6cd55"
+    },
+    {
+      "observedAt": "2026-10-14T15:02:57.619Z",
+      "method": "save-capture",
+      "experimentId": "qry07-none",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry07-none: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 9 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry07-none"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "9235ad41b9ca7e2e0be951e2bf2ccd9a8768c559a80f572f7dae646b9c9164b3"
+    },
+    {
+      "observedAt": "2026-10-14T15:04:42.849Z",
+      "method": "save-capture",
+      "experimentId": "qry08-prompt",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry08-prompt: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 10 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry08-prompt"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "fc3afdc731cb47f33139654e17ca2f99d65ce605744237d3d228ea43e6bbac87"
+    },
+    {
+      "observedAt": "2026-10-14T15:09:20.640Z",
+      "method": "save-capture",
+      "experimentId": "qry09-add-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry09-add-field: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 11 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry09-add-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "7826b0f87a21fded686cc8e5335b9e48da9b079df76231bab84669bc7758cb6c"
+    },
+    {
+      "observedAt": "2026-10-14T15:10:20.419Z",
+      "method": "save-capture",
+      "experimentId": "qry10-no-criteria",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry10-no-criteria: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 12 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry10-no-criteria"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "bd7c1fab54b7e52731a8442b85743425a0e7a8a67a884307caf96985d8ba08ae"
+    },
+    {
+      "observedAt": "2026-10-14T15:12:57.302Z",
+      "method": "save-capture",
+      "experimentId": "qry11-public-copy",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry11-public-copy: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 13 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry11-public-copy"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "f71db45cf13469bb313ae9c259ba6e6d72524f3174adf40579b821dad58be366"
+    },
+    {
+      "observedAt": "2026-10-14T15:22:41.989Z",
+      "method": "save-capture",
+      "experimentId": "qry12-unselect-first",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry12-unselect-first: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 14 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry12-unselect-first"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "bec88d0cabd425831a0ac99a819697bee3582cea794d59e75de9873048ff1d3b"
+    },
+    {
+      "observedAt": "2026-10-14T15:31:20.782Z",
+      "method": "save-capture",
+      "experimentId": "qry13-text-prompt",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry13-text-prompt: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 15 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry13-text-prompt"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "b38f235afe11210212674846c8f779cd1be1f4093604d94a5b33f383ecbadf59"
+    },
+    {
+      "observedAt": "2026-10-22T00:20:53.573Z",
+      "method": "save-capture",
+      "experimentId": "qsq01-in-subquery",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qsq01-in-subquery: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 111 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qsq01-in-subquery"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "73183cc333bea3c61f5d2e77c0977cee73c311aaee7417574e1140bca0d1ce11"
+    },
+    {
+      "observedAt": "2026-10-22T00:23:25.774Z",
+      "method": "save-capture",
+      "experimentId": "qsq02-exists",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qsq02-exists: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 112 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 3,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qsq02-exists"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "3a1813344c574c6097875cd51bf005aa5ecc57f64fcd441081a3146f6775b9ef"
+    },
+    {
+      "observedAt": "2026-10-22T22:07:45.129Z",
+      "method": "save-capture",
+      "experimentId": "qsq03-nested-subquery",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qsq03-nested-subquery: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 237 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 4,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 4,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 4,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 4,
+            "deleted": 3,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qsq03-nested-subquery"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "ae7b05ef25301a36341f48e0f0f721198f0ae0b3749d000be9b11908a171f294"
+    },
+    {
+      "observedAt": "2026-10-22T22:18:40.535Z",
+      "method": "save-capture",
+      "experimentId": "qsq04-subquery-with-union",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qsq04-subquery-with-union: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 238 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qsq04-subquery-with-union"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "4484a40dc153fb9f09778a661302e39600071662c202a88d51b534d47c66a20c"
+    },
+    {
+      "observedAt": "2026-10-22T00:24:55.919Z",
+      "method": "save-capture",
+      "experimentId": "qun01-union",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qun01-union: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 113 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qun01-union"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "e032b0cf6130b5233cd23ec1f5a78f60fada4830519f19bc32b6ce3a041c5883"
+    },
+    {
+      "observedAt": "2026-10-22T00:27:24.652Z",
+      "method": "save-capture",
+      "experimentId": "qxl01-translate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qxl01-translate: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 114 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qxl01-translate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "746baa306f2d43085a07a2153ea16e68cb6d5f3b029bf08cbeb6b34eeda8edc3"
+    },
+    {
+      "observedAt": "2026-10-22T00:41:09.107Z",
+      "method": "save-capture",
+      "experimentId": "qxl02-short-current",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qxl02-short-current: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 115 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qxl02-short-current"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "86b517b17b39bec645617155a89694d46575b406242426ec4bc60df2d4abb00f"
+    },
+    {
+      "observedAt": "2026-10-14T16:02:50.213Z",
+      "method": "save-capture",
+      "experimentId": "qry14-properties-saved",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry14-properties-saved: QDM +1 in PSVERSION and PSLOCK, SYS +1; PSQRYDEFN.VERSION 16 = the new QDM.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry14-properties-saved"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "7fab7d805a33f6fce426d5c3fc1c997ae82627c73a122de3172a735ff2cd63f5"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:24:29.656Z",
+    "updatedAt": "2026-10-26T20:24:58.114Z",
+    "schemaVersion": 1
+  }
+}

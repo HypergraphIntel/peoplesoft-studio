@@ -188,9 +188,10 @@ export function checkPeopleCodeSemantics(source: string, opts: { applicationClas
     // PC022: a method or property named after a PeopleCode keyword. App Designer refused "method Alias(&rec As string)"
     // with 2,42 "Syntax error: expecting Identifier" (a lab class, 8.61 lab, 2026-11-03), and a property named Error
     // earlier. Delivered classes use only Create, Value and Component of the keywords as member names (1,510 classes in
-    // the 8.61 lab snapshot), so those three stay allowed and every other keyword is refused.
+    // the 8.61 lab snapshot), so those three stay allowed and every other keyword is refused. Doc is reserved too though
+    // it is not an encoder token: App Designer refused "&x.Doc" with 2,49 "Dot not followed by Id" (8.61 lab, 2026-11-05).
     if (parsed.unitKind === 'class') {
-      const reserved = new Set(['alias', 'and', 'as', 'break', 'catch', 'componentlife', 'constant', 'else', 'error', 'evaluate', 'exit', 'false', 'for', 'function', 'global', 'if', 'import', 'library', 'local', 'not', 'null', 'or', 'panelgroup', 'ref', 'repeat', 'return', 'returns', 'step', 'then', 'throw', 'to', 'true', 'try', 'until', 'warning', 'when', 'while']);
+      const reserved = new Set(['alias', 'and', 'as', 'break', 'catch', 'componentlife', 'constant', 'doc', 'else', 'error', 'evaluate', 'exit', 'false', 'for', 'function', 'global', 'if', 'import', 'library', 'local', 'not', 'null', 'or', 'panelgroup', 'ref', 'repeat', 'return', 'returns', 'step', 'then', 'throw', 'to', 'true', 'try', 'until', 'warning', 'when', 'while']);
       for (const x of parsed.members) {
         if ((x.kind === 'method' || x.kind === 'property') && reserved.has(x.name.toLowerCase())) {
           add('PC022', x.sourceIndex, `${x.kind === 'method' ? 'Method' : 'Property'} ${x.name} is named after a PeopleCode keyword: App Designer refuses it (2,42, "Syntax error: expecting Identifier"). Rename it (e.g. Template${x.name}).`);

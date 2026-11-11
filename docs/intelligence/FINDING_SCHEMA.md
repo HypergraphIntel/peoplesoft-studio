@@ -8,7 +8,7 @@ page describes it; the code is authoritative.
 | Field | Type | Notes |
 |---|---|---|
 | `type` | `metadata-mapping` · `save-protocol` · `serialization` · `bytecode-pattern` · `version-difference` · `object-relationship` · `roundtrip-comparison` · `compile-difference` · `behavior` | The kind of claim |
-| `subject.subsystem` | `page-designer` · `component` · `record` · `field` · `menu` · `app-engine` · `peoplecode` · `application-class` · `component-interface` · `message-channel` · `integration-broker` · `project` · `sql` · `html` · `style-sheet` · `customization` · `event-mapping` · `portal-registry` · `security` · `build` · `other` | The Studio subsystem it informs |
+| `subject.subsystem` | `page-designer` · `component` · `record` · `field` · `menu` · `app-engine` · `peoplecode` · `application-class` · `component-interface` · `message-channel` · `integration-broker` · `project` · `sql` · `html` · `style-sheet` · `customization` · `event-mapping` · `portal-registry` · `security` · `build` · `query` · `file-layout` · `other` | The Studio subsystem it informs |
 | `subject.objectType` | text ≤ 64 | The PeopleSoft object type |
 | `subject.tables`, `subject.properties` | identifiers, ≤ 64 each | Names only, never data |
 | `assertion.kind` | identifier | The claim's shape: `column-mapping`, `row-resave`, `counter-step`, `hash-algorithm`, `code-labels`… |

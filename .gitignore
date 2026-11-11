@@ -34,3 +34,6 @@ dist-test/
 *ou_fid*
 *[Ff]idelity*
 *FIDELITY*
+# Lab projects built through the MCP -- local only.
+/docs/ess-*/
+/docs/dlp/

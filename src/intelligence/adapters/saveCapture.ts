@@ -16,7 +16,9 @@ interface DeltaFile {
   format?: string;
   case?: string;
   peopleToolsRelease?: string;
-  markers?: { after?: { timestamp?: string } };
+  /** A query capture's name for the release. */
+  release?: string;
+  markers?: { after?: { timestamp?: string; CAPTURED_AT?: string } };
   summary?: {
     psversion?: Record<string, { delta?: number }>;
     watchTablesChanged?: Record<string, { inserted?: number; deleted?: number; updated?: number }>;
@@ -28,9 +30,11 @@ interface DeltaFile {
  * The capture formats this adapter reads: the full sweep, and the definition
  * captures (watch tables only, no release). A page capture
  * (tools/lab/page-capture.mts) watches one page's rows and only the PDM, RDM
- * and SYS counters: another counter's move cannot show in it.
+ * and SYS counters: another counter's move cannot show in it. A query capture
+ * (tools/lab/query-capture.mts) holds every table keyed by QRYNAME and OPRID,
+ * by ROWID, with its release and PSVERSION's rows as before / after pairs.
  */
-export const CAPTURE_FORMATS = ['save-protocol-delta/1', 'def-capture/1', 'ae-capture/1', 'page-capture/1'] as const;
+export const CAPTURE_FORMATS = ['save-protocol-delta/1', 'def-capture/1', 'ae-capture/1', 'page-capture/1', 'query-property-capture/1'] as const;
 
 interface WatchTable { inserted?: unknown[]; deleted?: unknown[]; updated?: Array<{ key: Record<string, string>; changes: Record<string, { before: unknown; after: unknown }> }> }
 
@@ -44,6 +48,11 @@ export function sanitizedDeltaOf(delta: unknown, options: { keepBackground?: boo
     const s = d.summary ?? {};
     changed = { ...(s.otherTablesChanged ?? {}), ...(s.watchTablesChanged ?? {}) };
     counters = Object.fromEntries(Object.entries(s.psversion ?? {}).map(([k, v]) => [k, Number(v.delta ?? 0)]));
+  } else if (d.format === 'query-property-capture/1') {
+    const tables = (delta as { tables?: Record<string, { inserted?: unknown[]; deleted?: unknown[]; updated?: Array<{ before?: Record<string, string>; after?: Record<string, string> }> }> }).tables ?? {};
+    changed = Object.fromEntries(Object.entries(tables).map(([t, o]) => [t, { inserted: o.inserted?.length ?? 0, deleted: o.deleted?.length ?? 0, updated: o.updated?.length ?? 0 }])
+      .filter(([, c]) => (c as { inserted: number }).inserted + (c as { deleted: number }).deleted + (c as { updated: number }).updated > 0));
+    counters = Object.fromEntries((tables.PSVERSION?.updated ?? []).map((u) => [u.after?.OBJECTTYPENAME ?? '', Number(u.after?.VERSION) - Number(u.before?.VERSION)]));
   } else {
     // A definition capture: its watch tables, by key; counters from PSVERSION's rows.
     changed = Object.fromEntries(Object.entries(d.watch ?? {}).map(([t, o]) => [t, { inserted: o.inserted?.length ?? 0, deleted: o.deleted?.length ?? 0, updated: o.updated?.length ?? 0 }])
@@ -69,11 +78,11 @@ export function observationFromCapture(delta: unknown, words: {
 }): Observation {
   const d = delta as DeltaFile;
   const caseId = words.caseName ?? d.case;
-  const recorded = String(d.peopleToolsRelease ?? '').trim();
+  const recorded = String(d.peopleToolsRelease ?? d.release ?? '').trim();
   if (recorded && words.peopleToolsRelease && words.peopleToolsRelease !== recorded) throw new Error(`The capture says PeopleTools ${recorded}, not ${words.peopleToolsRelease}.`);
   const release = recorded || String(words.peopleToolsRelease ?? '').trim();
   if (!/^\d\.\d{2}(\.\d{2})?$/.test(release)) throw new Error(`The capture does not say its PeopleTools release (${release || 'missing'}): give it.`);
-  const at = d.markers?.after?.timestamp;
+  const at = d.markers?.after?.timestamp ?? d.markers?.after?.CAPTURED_AT;
   const observedAt = at && !Number.isNaN(Date.parse(at)) ? new Date(Date.parse(at)).toISOString() : new Date().toISOString();
   return {
     observedAt, method: 'save-capture', ...(caseId ? { experimentId: caseId } : {}), ...(words.runId ? { runId: words.runId } : {}),

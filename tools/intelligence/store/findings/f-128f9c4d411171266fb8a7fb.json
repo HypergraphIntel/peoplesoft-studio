@@ -1,0 +1,87 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-128f9c4d411171266fb8a7fb",
+  "fingerprint": "128f9c4d411171266fb8a7fb2b2aeb2a023270d49e1036579e6b6df12c75d26a",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSFLDFIELDDEFN",
+      "length": "FLDLENGTH",
+      "trimSpaces": "FLDTRIMSPACES",
+      "defaultValue": "FLDFIELDDFLT",
+      "description": "DESCR100",
+      "upper": "FLDUPPER",
+      "stripCharacters": "FLDSTRIPCHAR",
+      "padField": "PTFLDPADFIELD"
+    }
+  },
+  "title": "A File Layout field's length, trim, default, description, upper case, strip characters and pad are PSFLDFIELDDEFN columns",
+  "statement": "File Field properties are stored on PSFLDFIELDDEFN: Length FLDLENGTH, Trim Spaces FLDTRIMSPACES, Default Value FLDFIELDDFLT, description DESCR100, Uppercase FLDUPPER, Strip Characters FLDSTRIPCHAR, Pad Field PTFLDPADFIELD. One capture changed them together; the pairing comes from the column names.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:21:22.443Z",
+      "method": "save-capture",
+      "experimentId": "fl05-field-props",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl05-field-props: EMPLID FLDLENGTH 11 -> 15, FLDTRIMSPACES 0 -> 1, FLDFIELDDFLT ' ' -> 'X', DESCR100 set, FLDUPPER 0 -> 1, FLDSTRIPCHAR ' ' -> '-~', PTFLDPADFIELD 0 -> 1; no other field changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl05-field-props"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "969cd83dff0f1624fbf5f965a68b6621ca7a229a65d15b9c09fe7ed2727b3bc4"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:21:22.451Z",
+    "updatedAt": "2026-10-26T20:21:22.451Z",
+    "schemaVersion": 1
+  }
+}

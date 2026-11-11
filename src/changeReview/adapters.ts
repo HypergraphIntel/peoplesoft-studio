@@ -170,7 +170,7 @@ export function databaseReviewAdapters(workspace: Workspace, host: () => McpWrit
             authorizationState: (e, key) => authorizationState(e, defn(key)),
             warnings: async (e, key) => [...await warnings(e, defn(key)), kind === 'class'
                 ? 'Application Class lifecycle: creating, deleting or saving one class with its PeopleCode, as App Designer does (c04-c06, dl09). A new class\'s subpackages must already exist. Deleting a class leaves a PSPCMPROGDEL marker that re-creating it clears.'
-                : 'Application Package lifecycle: creating a root package with its subpackages and properties (c03, c05, pk01), or deleting an empty package (dl04). Classes are their own reviewed objects.'],
+                : 'Application Package lifecycle: creating a root package with its subpackages and properties (c03, c05, pk01), adding subpackages to an existing package or removing empty ones (c05; subpackage delete captured 2026-11-11), or deleting an empty package (dl04). Classes are their own reviewed objects.'],
             read: async (e, key) => { const p = await provider(e), live = await p.readLifecycleForReview(kind, parts(key)); return { value: live.value as unknown as Json, token: live.token }; },
             validate: async (e, key, before, after) => {
                 try {

@@ -1,5 +1,21 @@
 # Change Review, transactions and history — progress
 
+## November 4, 2026 — owner-requested MCP reliability notes
+
+Recorded [User Settings implementation lessons](MCP-USER-SETTINGS-LESSONS-2026-11-04.md)
+and linked them from the priority tracker. **Documentation/intake only; no
+Studio fix, package, native write, commit or publication performed.** Key cases:
+sparse record and unsigned class after-images committed then failed exact
+verification; native type48 project-key representation mismatch; description,
+dropdown and label preflight gaps; unsupported IScript CommitWork; insufficient
+first-failure diagnostics and unclear UNCERTAIN reporting. Existing **E37** is
+explicit: licensed WEBLIB updates are refused by the MCP, forcing repeated
+developer App Designer saves. Native saves preserved the license, but broader
+writer support requires calibration rather than clearing metadata or weakening
+guards. The note separates agent mistakes from product boundaries and defines
+acceptance checks for each proposed improvement. Existing release/qualification
+claims below are unchanged.
+
 ## Current state — 0.9.9 released
 
 Reconciled October 23, 2026. Release [0.9.9](../releases/0.9.9.md) adds the

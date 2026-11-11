@@ -1,0 +1,106 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-e86ae7d679b4df6eaea491ac",
+  "fingerprint": "e86ae7d679b4df6eaea491ac3b941ca3ef430ce17ac0d2b53ab93a0b391971ca",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSQRYSELECT",
+      "column": "QRYDISTINCT",
+      "on": "Y"
+    }
+  },
+  "title": "Query Properties Distinct is PSQRYSELECT.QRYDISTINCT 'Y'",
+  "statement": "Distinct is stored per select in PSQRYSELECT.QRYDISTINCT, 'Y' on and blank off.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-22T00:14:02.680Z",
+      "method": "save-capture",
+      "experimentId": "qag04-distinct",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qag04-distinct: QRYDISTINCT blank -> 'Y'; nothing else but VERSION.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qag04-distinct"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "e1ad330cd967409a21c3f4f686696daec3600de59ad350a6b6dcd8b3e0a95d8c"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:27:37.454Z",
+    "updatedAt": "2026-10-26T20:27:37.454Z",
+    "schemaVersion": 1
+  }
+}

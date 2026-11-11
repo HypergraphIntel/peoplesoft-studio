@@ -1,0 +1,224 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-29b09ad694d073411027dab7",
+  "fingerprint": "29b09ad694d073411027dab715f98f58c91d4728683383c5430691a6559747b6",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "code-table",
+    "facts": {
+      "table": "PSQRYRECORD",
+      "column": "JOINTYPE",
+      "firstOrStandard": 1,
+      "related": 3,
+      "leftOuter": 5,
+      "joinedTo": "JOINRCDNUM",
+      "relatedField": "JOINFLDNUM"
+    }
+  },
+  "title": "A query record's join is PSQRYRECORD.JOINTYPE: standard 1, related record 3 (JOINRCDNUM, JOINFLDNUM), left outer 5 (JOINRCDNUM)",
+  "statement": "Each record of a select is a PSQRYRECORD row with the next alias (CORRNAME A, B, C ...): the first record and a standard join JOINTYPE 1; a related-record join JOINTYPE 3 with JOINRCDNUM / JOINFLDNUM naming the record and field it hangs from; a left outer join JOINTYPE 5 with JOINRCDNUM the record joined to.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T23:57:57.664Z",
+      "method": "save-capture",
+      "experimentId": "qjn01-standard-join",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qjn01-standard-join: AAP_YEAR A JOINTYPE 1, AAP_TBL B JOINTYPE 1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 4,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qjn01-standard-join"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "4ffd8434a72839326e4437e43db261d4795c8ea012c77b84c9b1895339f459e1"
+    },
+    {
+      "observedAt": "2026-10-22T00:00:42.000Z",
+      "method": "save-capture",
+      "experimentId": "qjn03-left-outer",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qjn03-left-outer: AAP_TBL B JOINTYPE 5, JOINRCDNUM 1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qjn03-left-outer"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "10e76e3cdf3a5d576f186d54eb017a873a2d3920cfe9b82ef3338e7340499d38"
+    },
+    {
+      "observedAt": "2026-10-22T00:02:20.539Z",
+      "method": "save-capture",
+      "experimentId": "qjn04-related-join",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qjn04-related-join: ESTAB_TBL C JOINTYPE 3, JOINRCDNUM 1, JOINFLDNUM 1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 4,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qjn04-related-join"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "5074e0b0e4b4ef0b3d701a68bd045ee388c2e391e45f9fd8802ef085a5460c66"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:27:26.329Z",
+    "updatedAt": "2026-10-26T20:27:26.879Z",
+    "schemaVersion": 1
+  }
+}

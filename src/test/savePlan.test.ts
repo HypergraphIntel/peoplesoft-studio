@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import * as path from 'node:path';
-import {
+import { preservedLicenseCode, recordLicenseCode,
   checkStoredProgram, compileForSave, diffPrograms, expectedProgram, fingerprint, planProgram,
   prepareSourceForSave, SaveRefusedError, splitProgramRows, splitSourceRows, targetForKey,
   validateOperatorId, type StoredProgram
@@ -238,4 +238,55 @@ test('the pre-edit gate reproduces a stored program the save-time rules would re
   // is still refused, semantic rules or not.
   const tampered = { ...stored, text: stored.text.map((r) => ({ ...r, text: r.text.replace('Return True;', 'Return False;') })) };
   assert.throws(() => checkStoredProgram(tampered, target, TOOLS_RELEASE), SaveRefusedError);
+});
+
+test('PROGEXTENDS records an implemented interface, as App Designer does', () => {
+  // HRDMO: all 45 implementing classes saved by 8.62.09 store the interface in PROGEXTENDS;
+  // the 143 of 1,677 holding blank were saved by older releases (blank PTTOOLSREL).
+  const ids = (...v: number[]) => [...v, ...Array(7 - v.length).fill(0)];
+  const vals = (...v: string[]) => [...v, ...Array(7 - v.length).fill(' ')];
+  const key = { objectIds: ids(104, 107, 12), objectValues: vals('ZZ_PCODE_LAB_EM', 'Handler', 'OnExecute') };
+  const target = targetForKey(key);
+  const source = 'import PT_RCF:ServiceInterface;\n\nclass Handler implements PT_RCF:ServiceInterface\n   method execute();\nend-class;\n\nmethod execute\n   /+ Extends/implements PT_RCF:ServiceInterface.execute +/\nend-method;\n';
+
+  const compiled = compileForSave(source, target, TOOLS_RELEASE);
+  assert.equal(compiled.progextends.trim(), 'PT_RCF:ServiceInterface');
+
+  const plan = planProgram(source, compiled);
+  const stored = expectedProgram(key, plan, { version: 1, lastupddttm: '2026-01-01-00.00.00.000000', operatorId: 'PS' });
+  assert.doesNotThrow(() => checkStoredProgram(stored, target, TOOLS_RELEASE));
+
+  // An older release's blank is accepted; another type is not.
+  const withExtends = (value: string) => ({ ...stored, program: stored.program.map((r) => ({ ...r, progextends: value })) });
+  assert.doesNotThrow(() => checkStoredProgram(withExtends(' '), target, TOOLS_RELEASE));
+  assert.throws(() => checkStoredProgram(withExtends('PT_RCF:Other'), target, TOOLS_RELEASE), /PROGEXTENDS does not match/);
+});
+
+test('E37: a web library program keeps its LICENSE_CODE on update; elsewhere the value is still refused', () => {
+  const ids = (...v: number[]) => [...v, ...Array(7 - v.length).fill(0)];
+  const vals = (...v: string[]) => [...v, ...Array(7 - v.length).fill(' ')];
+  const source = 'Function IScript_Hello()\n   %Response.Write("hi");\nEnd-Function;\n';
+  const license = Buffer.alloc(32, 7).toString('base64');
+  const licensed = (key: { objectIds: number[]; objectValues: string[] }) => {
+    const target = targetForKey(key), plan = planProgram(source, compileForSave(source, target, TOOLS_RELEASE));
+    const stored = expectedProgram(key, plan, { version: 1, lastupddttm: '2026-01-01-00.00.00.000000', operatorId: 'PS' });
+    return { target, plan, stored: { ...stored, program: stored.program.map((r) => ({ ...r, licenseCode: license })) } };
+  };
+  // A WEBLIB_ record's program, as App Designer stores it: accepted, and the save writes the same value back.
+  const web = licensed({ objectIds: ids(1, 2, 12), objectValues: vals('WEBLIB_ZZ_LIC', 'ISCRIPT1', 'FieldFormula') });
+  assert.equal(preservedLicenseCode(web.stored), license);
+  assert.doesNotThrow(() => checkStoredProgram(web.stored, web.target, TOOLS_RELEASE));
+  const next = expectedProgram(web.stored.key, web.plan, { version: 2, lastupddttm: '2026-01-02-00.00.00.000000', operatorId: 'PS' }, web.stored);
+  assert.ok(next.program.every((r) => r.licenseCode === license), 'the update keeps the value byte for byte');
+  // Creating takes the record's value when its other programs agree (App Designer's), and blank when there is none.
+  assert.ok(expectedProgram(web.stored.key, web.plan, { version: 2, lastupddttm: 'X', operatorId: 'PS' }).program.every((r) => r.licenseCode.trim() === ''));
+  assert.equal(recordLicenseCode([license, license]), license);
+  assert.equal(recordLicenseCode([license, Buffer.alloc(32, 9).toString('base64')]), undefined, 'disagreeing programs: no value is guessed');
+  assert.equal(recordLicenseCode(['short']), undefined);
+  assert.ok(expectedProgram(web.stored.key, web.plan, { version: 2, lastupddttm: 'X', operatorId: 'PS' }, undefined, license).program.every((r) => r.licenseCode === license));
+  // Outside a web library, or not the observed 32-byte base64 shape: still outside what the writer reproduces.
+  const other = licensed({ objectIds: ids(1, 2, 12), objectValues: vals('ZZ_REC', 'ISCRIPT1', 'FieldFormula') });
+  assert.throws(() => checkStoredProgram(other.stored, other.target, TOOLS_RELEASE), /LICENSE_CODE/);
+  const odd = { ...web.stored, program: web.stored.program.map((r) => ({ ...r, licenseCode: 'not-a-license' })) };
+  assert.throws(() => checkStoredProgram(odd, web.target, TOOLS_RELEASE), /LICENSE_CODE/);
 });

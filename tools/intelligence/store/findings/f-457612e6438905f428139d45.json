@@ -1,0 +1,167 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-457612e6438905f428139d45",
+  "fingerprint": "457612e6438905f428139d45a4d13593c6d57cecc4161c87eecd46586a9b3300",
+  "type": "serialization",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "strip-chars-terminator",
+    "facts": {
+      "table": "PSFLDFIELDDEFN",
+      "column": "FLDSTRIPCHAR",
+      "terminator": "~",
+      "blankStoredAs": "~"
+    }
+  },
+  "title": "OK on a File Layout field's properties stores Strip Characters with a '~' terminator; none entered is '~'",
+  "statement": "PSFLDFIELDDEFN.FLDSTRIPCHAR holds the Strip Characters followed by '~'; after OK in the field's properties a field with none holds '~', not blank. Fields never opened keep blank.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:21:20.667Z",
+      "method": "save-capture",
+      "experimentId": "fl05-field-props",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl05-field-props: EMPLID FLDSTRIPCHAR ' ' -> '-~' (entered '-').",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl05-field-props"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "67e63375b382ee8f6b46585f5c905615cd982c255aede248cb4dff32373305e6"
+    },
+    {
+      "observedAt": "2026-10-26T20:21:20.966Z",
+      "method": "save-capture",
+      "experimentId": "fl08-fixed-length",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl08-fixed-length: EMPLID FLDSTRIPCHAR ' ' -> '~' (nothing entered).",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl08-fixed-length"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "de4c47189f22c5207789c7437891257b3f8c428f39cddd3ec17639f80ab436bb"
+    },
+    {
+      "observedAt": "2026-10-26T20:21:21.274Z",
+      "method": "save-capture",
+      "experimentId": "fl09-propagate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl09-propagate: PLAN_TYPE FLDSTRIPCHAR ' ' -> '~' (nothing entered).",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 10
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl09-propagate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "37c22d8c340228aaa4b144594f4cbd068219a6b6622608e17c0f454d2ce4cb6c"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:21:20.674Z",
+    "updatedAt": "2026-10-26T20:21:21.281Z",
+    "schemaVersion": 1
+  }
+}

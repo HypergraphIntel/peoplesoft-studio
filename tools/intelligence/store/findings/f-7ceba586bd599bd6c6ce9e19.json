@@ -1,0 +1,87 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-7ceba586bd599bd6c6ce9e19",
+  "fingerprint": "7ceba586bd599bd6c6ce9e1953699035b2e74a133f93f404a82982db498454ab",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "save-as",
+    "facts": {
+      "copied": "PSFLDDEFN,PSFLDSEGDEFN,PSFLDFIELDDEFN",
+      "version": "newFLM"
+    }
+  },
+  "title": "File Layout Save As copies every definition, segment and field row under the new name at the new FLM",
+  "statement": "Save As of a File Layout inserts its PSFLDDEFN, PSFLDSEGDEFN and PSFLDFIELDDEFN rows under the new name with PSFLDDEFN.VERSION the new FLM, leaving the original unchanged; FLM and SYS +1. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:21:24.149Z",
+      "method": "save-capture",
+      "experimentId": "fl12-save-as",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl12-save-as: 1 PSFLDDEFN (VERSION 43 = FLM after), 1 PSFLDSEGDEFN and 10 PSFLDFIELDDEFN rows inserted under the new name; nothing of the source layout changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 10,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl12-save-as"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "0db2587e267b9f742ee39e3fadb3c522a608378c14a32a287a9a2c4117cfabeb"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:21:24.155Z",
+    "updatedAt": "2026-10-26T20:21:24.155Z",
+    "schemaVersion": 1
+  }
+}

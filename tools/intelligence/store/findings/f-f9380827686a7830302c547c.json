@@ -1,0 +1,92 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-f9380827686a7830302c547c",
+  "fingerprint": "f9380827686a7830302c547c804e1d04998cc261e36a352879e688e4bb0f6a4e",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "segment-insert",
+    "facts": {
+      "definitionSegCount": "topLevelSegments",
+      "childParentColumn": "FLDSEGPARENT",
+      "parentSegCount": "children",
+      "newFLDIDSEQNO": 1,
+      "newFLDMAXSEGLEN": 0,
+      "newQualifier": "layout",
+      "newDelimiter": ","
+    }
+  },
+  "title": "Inserting File Layout segments: PSFLDDEFN.FLDSEGCOUNT counts top-level segments, a child names its parent in FLDSEGPARENT",
+  "statement": "Insert Segment adds a PSFLDSEGDEFN row with FLDIDSEQNO 1, FLDMAXSEGLEN 0, the layout's qualifier and delimiter ','; PSFLDDEFN.FLDSEGCOUNT counts the top-level segments; Insert ChildSegment adds a row whose FLDSEGPARENT is the parent and the parent's FLDSEGCOUNT counts its children; FLDSEQNO numbers segments among their siblings. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:21:23.298Z",
+      "method": "save-capture",
+      "experimentId": "fl06-add-segments",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl06-add-segments: TRAILER inserted (FLDSEQNO 2, FLDSEGCOUNT 1) and DETAIL under it (FLDSEGPARENT TRAILER, FLDSEQNO 1), both FLDIDSEQNO 1, FLDMAXSEGLEN 0, the layout's double-quote qualifier, delimiter ','; PSFLDDEFN.FLDSEGCOUNT 1 -> 2; a file field in DETAIL starts at 1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl06-add-segments"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "103807343389e78c0d5cff8b9fb0e04222fa60c4a04764fe1afc4cfe662a3fa7"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:21:23.305Z",
+    "updatedAt": "2026-10-26T20:21:23.305Z",
+    "schemaVersion": 1
+  }
+}

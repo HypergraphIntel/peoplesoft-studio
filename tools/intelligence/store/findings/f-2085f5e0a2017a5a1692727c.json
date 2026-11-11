@@ -1,0 +1,79 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-2085f5e0a2017a5a1692727c",
+  "fingerprint": "2085f5e0a2017a5a1692727c3a40249ac27a8a79b09918fee16d76e0b9b454e6",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSFLDDEFN",
+      "qualifierOptional": "FLDQUALIFIEROPT",
+      "convertTabs": "FLDCONVERTTABS",
+      "stripWhiteSpace": "FLDSTRIPSPACE",
+      "interpretBackslash": "FLDINTRPBACKSLASH",
+      "backslashQuote": "FLDEMBQUOTEFMT"
+    }
+  },
+  "title": "A CSV File Layout's five options are PSFLDDEFN.FLDQUALIFIEROPT, FLDCONVERTTABS, FLDSTRIPSPACE, FLDINTRPBACKSLASH and FLDEMBQUOTEFMT",
+  "statement": "Turning on the CSV options of File Layout Properties sets PSFLDDEFN.FLDQUALIFIEROPT, FLDCONVERTTABS, FLDSTRIPSPACE, FLDINTRPBACKSLASH and FLDEMBQUOTEFMT from 0 to 1. The capture turned all five on in one save, so which check box is which column comes from the column names, not from the rows.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:20:35.697Z",
+      "method": "save-capture",
+      "experimentId": "fl03-csv-options",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl03-csv-options: FLDQUALIFIEROPT, FLDCONVERTTABS, FLDSTRIPSPACE, FLDINTRPBACKSLASH and FLDEMBQUOTEFMT each 0 -> 1 in one save; nothing else but VERSION.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl03-csv-options"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "fc5307e69b5e03ae7693adc579661485904b948ee47fc374cbb75ecbe58719d2"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:20:35.704Z",
+    "updatedAt": "2026-10-26T20:20:35.704Z",
+    "schemaVersion": 1
+  }
+}

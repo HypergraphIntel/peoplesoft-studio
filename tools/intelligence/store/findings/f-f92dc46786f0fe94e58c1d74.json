@@ -1,0 +1,75 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-f92dc46786f0fe94e58c1d74",
+  "fingerprint": "f92dc46786f0fe94e58c1d7425679a09018097157cfcda5ee401b42f65d319d5",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "app-designer-accepts",
+    "facts": {
+      "writer": "fileLayoutWriter",
+      "appDesignerSaveChanged": "only the edit, VERSION, stamp"
+    }
+  },
+  "title": "App Designer opens a File Layout PeopleSoft Studio's writer made and saves an edit of it changing only that edit",
+  "statement": "App Designer opened a File Layout created by Studio's File Layout writer and saved a description edit: only PSFLDDEFN.DESCR and the row's VERSION and stamp changed, with FLM and SYS +1. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:21:24.429Z",
+      "method": "save-capture",
+      "experimentId": "nfl01-ad-edit-of-writer",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture nfl01-ad-edit-of-writer: App Designer's save of a layout Studio's writer created changed PSFLDDEFN.DESCR (the edit) and its VERSION (to the new FLM) and stamp; no segment or field row changed; FLM +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "nfl01-ad-edit-of-writer"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "398823f213b53a77c7c2ddb182f70fb7a54328ca04cae0697e1b2106ac090f68"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:21:24.436Z",
+    "updatedAt": "2026-10-26T20:21:24.436Z",
+    "schemaVersion": 1
+  }
+}

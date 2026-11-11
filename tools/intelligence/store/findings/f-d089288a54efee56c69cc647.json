@@ -1,0 +1,101 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-d089288a54efee56c69cc647",
+  "fingerprint": "d089288a54efee56c69cc6479e42399ae01e070c927054f95ef3f1a3e104b158",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "effective-dated-new-query",
+    "facts": {
+      "hiddenEffdt": "FLDNUM1",
+      "CONDTYPE": 20,
+      "EXPRTYPE": 6,
+      "countsAsUse": false
+    }
+  },
+  "title": "A new query on an effective-dated record starts with a hidden EFFDT field and an Eff Date <= Current Date criterion",
+  "statement": "Windows Query adds the record's EFFDT as hidden field 1 and criterion 1 on it (CONDTYPE 20, EXPRTYPE 6) to a new query whose first record is effective-dated; the criterion is not a use of EFFDT. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-22T00:27:24.652Z",
+      "method": "save-capture",
+      "experimentId": "qxl01-translate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qxl01-translate: field 1 A.EFFDT hidden (HDGTYPE 1, no column); criterion 1 CONDTYPE 20, EXPRTYPE 6, COMBTYPE 3; EFFDT's USECOUNT 1 comes from the translate's XLATFLDNUM, not the criterion (qxl02 drops it to 0 with the criterion kept).",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qxl01-translate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "0f6bec2d75dcea3026e34f1bc699b018ce6414b95d879a4932c874f7a22686cb"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:27:41.099Z",
+    "updatedAt": "2026-10-26T20:27:41.099Z",
+    "schemaVersion": 1
+  }
+}

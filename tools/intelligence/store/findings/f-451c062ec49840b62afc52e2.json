@@ -1,0 +1,91 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-451c062ec49840b62afc52e2",
+  "fingerprint": "451c062ec49840b62afc52e200c17ba331e8f2b82a568239c3561a75b5a282f2",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "record-id-shifts-starts",
+    "facts": {
+      "table": "PSFLDFIELDDEFN",
+      "column": "FLDSTART",
+      "shift": "FLDSEGIDLENGTH",
+      "prompt": "118,14",
+      "answer": "Yes",
+      "FLDMAXSEGLEN": "unchanged"
+    }
+  },
+  "title": "Giving a FIXED segment a record ID and answering Yes to (118,14) adds the ID length to every field's start, without recomputing Max Rec Length",
+  "statement": "Setting a segment's File Record ID with ID length n and answering Yes to 'Increment start positions for all fields? (118,14)' adds n to every field's PSFLDFIELDDEFN.FLDSTART in the segment; FLDMAXSEGLEN is not changed. One capture, n = 1; the No answer is not captured.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:21:20.375Z",
+      "method": "save-capture",
+      "experimentId": "fl04-segment-props",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl04-segment-props: FLDSEGIDLENGTH 0 -> 1 and all 12 field starts +1 (1 -> 2 ... 90 -> 91); FLDMAXSEGLEN unchanged (120).",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 12
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl04-segment-props"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "4dd0f0133bc1607b8f931b45327ace9a4782046b74bdb575a83d86e8a2576f53"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:21:20.382Z",
+    "updatedAt": "2026-10-26T20:21:20.382Z",
+    "schemaVersion": 1
+  }
+}

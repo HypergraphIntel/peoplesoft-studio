@@ -1,0 +1,200 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-71652153e9d3936a57cb315b",
+  "fingerprint": "71652153e9d3936a57cb315bd981447876c8c5d38f845c119bed891f0fbbe814",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "application-class",
+    "objectType": "Application Package"
+  },
+  "assertion": {
+    "kind": "native-delete",
+    "facts": {
+      "rows": "PSPACKAGEDEFN,PSAPPCLASSDEFN,classPrograms",
+      "APM": 1,
+      "SYS": 1,
+      "pcm": "1 + 1 per class"
+    }
+  },
+  "title": "Deleting an application package removes its package and class rows and their programs; APM and SYS +1, PCM +1 plus one per class",
+  "statement": "App Designer's Delete of an application package deletes every PSPACKAGEDEFN row of its root, its PSAPPCLASSDEFN rows and each class's PSPCMPROG, PSPCMNAME and PSPCMTXT rows; APM and SYS move by one and PCM by one plus one per class (PSVERSION and PSLOCK). A tombstone table (PSPACKAGEDEL) is outside these captures.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T11:49:57.028Z",
+      "method": "save-capture",
+      "experimentId": "dl04-native-package-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture dl04-native-package-delete: a root and a subpackage (2 PSPACKAGEDEFN), one class and its program deleted; APM +1, PCM +2, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAPPCLASSDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPACKAGEDEFN",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "APM": 1,
+          "PCM": 2,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "dl04-native-package-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PROJECT_MIGRATION.md"
+        }
+      ],
+      "digest": "66651e5d3c8b64625338b9e444744d80e308e58dc984e2eb043be4aff9685f98"
+    },
+    {
+      "observedAt": "2026-10-21T11:51:23.573Z",
+      "method": "save-capture",
+      "experimentId": "dl05-native-package-two-classes-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture dl05-native-package-two-classes-delete: 2 PSPACKAGEDEFN, two classes and their programs deleted; APM +1, PCM +3, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAPPCLASSDEFN",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSPACKAGEDEFN",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "APM": 1,
+          "PCM": 3,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "dl05-native-package-two-classes-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PROJECT_MIGRATION.md"
+        }
+      ],
+      "digest": "29230e3b8942362310966548c05bf9c3365b07270cf4b67549c51b34c007e7e2"
+    },
+    {
+      "observedAt": "2026-10-21T11:56:08.204Z",
+      "method": "save-capture",
+      "experimentId": "dl10-native-empty-package-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture dl10-native-empty-package-delete: 2 PSPACKAGEDEFN deleted, no classes; APM +1, PCM +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPACKAGEDEFN",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "APM": 1,
+          "PCM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "dl10-native-empty-package-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PROJECT_MIGRATION.md"
+        }
+      ],
+      "digest": "b086a858d588087719c08c660c6aedfe2f700097182ff84b68e0b58ffadd9ff9"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:30:41.982Z",
+    "updatedAt": "2026-10-26T20:30:42.574Z",
+    "schemaVersion": 1
+  }
+}

@@ -1,0 +1,313 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-9c5c4ace42cc71f3f2ccfa06",
+  "fingerprint": "9c5c4ace42cc71f3f2ccfa06ecdc8515b23d06174a196c49e06b63f07644d5d7",
+  "type": "serialization",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "constant-expression",
+    "facts": {
+      "table": "PSQRYEXPR",
+      "characterFIELDTYPE": 0,
+      "numberFIELDTYPE": 2,
+      "dateFIELDTYPE": 4,
+      "dateText": "YYYY-MM-DD",
+      "promptFIELDTYPE": 0
+    }
+  },
+  "title": "A query constant's PSQRYEXPR.FIELDTYPE is 0 for character, 2 for number, 4 for date (text YYYY-MM-DD); a prompt expression's is 0",
+  "statement": "A constant operand is a PSQRYEXPR row whose EXPRESSIONTEXT is the value -- a date as YYYY-MM-DD whatever was typed -- and FIELDTYPE 0 character, 2 number, 4 date; a prompt's ':n' expression has FIELDTYPE 0.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T23:22:15.792Z",
+      "method": "save-capture",
+      "experimentId": "qcr01-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qcr01-create: character constant, FIELDTYPE 0, text ZZZ.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qcr01-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "19c76d3c70dde3e8578ad7b0467960021b38ae7ed371841b1889af71bec326d6"
+    },
+    {
+      "observedAt": "2026-10-21T23:33:57.416Z",
+      "method": "save-capture",
+      "experimentId": "qnm01-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qnm01-create: number constant, FIELDTYPE 2, text 5.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qnm01-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "ae4e54d701bf392c57dee94c2af90e1639ea8034e58432af2f6a647fe2e52664"
+    },
+    {
+      "observedAt": "2026-10-21T23:34:52.452Z",
+      "method": "save-capture",
+      "experimentId": "qnm02-date-const",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qnm02-date-const: date constant entered 01/01/2000, FIELDTYPE 4, text 2000-01-01.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qnm02-date-const"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "4352ab3d7a76a475f134e2efdfdae7e5a2ead3c2823ad0508e3ed18c5e22427d"
+    },
+    {
+      "observedAt": "2026-10-21T23:35:40.717Z",
+      "method": "save-capture",
+      "experimentId": "qnm03-date-prompt",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qnm03-date-prompt: the date constant becomes ':1', FIELDTYPE 4 -> 0.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qnm03-date-prompt"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "e66f21c64daa047d7094f79368640a2aa8e751c05056fff430b92d77c268af60"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:26:23.138Z",
+    "updatedAt": "2026-10-26T20:26:23.994Z",
+    "schemaVersion": 1
+  }
+}

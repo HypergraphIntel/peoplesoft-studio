@@ -1,0 +1,100 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-cb557f7eb00574106677bf41",
+  "fingerprint": "cb557f7eb00574106677bf41b3d8ed3b8c756be07a1264ef1af5ff8b3ec57ece",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "sql",
+    "objectType": "SQL definition"
+  },
+  "assertion": {
+    "kind": "recreate-clears-tombstone",
+    "facts": {
+      "table": "PSSQLDEL",
+      "deleted": true,
+      "newVersion": "newSRM"
+    }
+  },
+  "title": "Saving a new SQL definition under a deleted name deletes that name's PSSQLDEL row",
+  "statement": "Creating a SQL definition whose name has a PSSQLDEL row deletes that row and writes the definition at the new SRM. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-20T20:20:21.178Z",
+      "method": "save-capture",
+      "experimentId": "td04-native-sql-recreate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture td04-native-sql-recreate: PSSQLDEL (VERSION 219) deleted; PSSQLDEFN, PSSQLDESCR, PSSQLTEXTDEFN, PSSQLHASH inserted, PSSQLDEFN.VERSION 220 = SRM after.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDESCR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "td04-native-sql-recreate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/TEXT_DELETION.md"
+        }
+      ],
+      "digest": "3d0c1d2c64e80e36fedc5453aaed106d2a5c68aca529f1afab50695a69f30550"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:31:30.941Z",
+    "updatedAt": "2026-10-26T20:31:30.941Z",
+    "schemaVersion": 1
+  }
+}

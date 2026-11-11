@@ -1,0 +1,105 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-5983f339313905f89bf8f0c1",
+  "fingerprint": "5983f339313905f89bf8f0c1433b646d2ab826d602a0b6bd6892ace17abd056d",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "save-as-public",
+    "facts": {
+      "OPRID": "blank",
+      "rowsCopied": true,
+      "createStampsNew": true,
+      "sourceUnchanged": true
+    }
+  },
+  "title": "Saving a private query As a public one copies its rows with a blank OPRID and new creation stamps, leaving the source",
+  "statement": "Save As with Public on writes every definition row under the new name with PSQRYDEFN.OPRID (and every row's OPRID) blank, CREATEOPRID and CREATEDTTM new, VERSION the new QDM; the private source's rows are not touched. One save.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-14T15:12:58.304Z",
+      "method": "save-capture",
+      "experimentId": "qry11-public-copy-sweep",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry11-public-copy-sweep (full sweep; qry11-public-copy is the narrow view of the same save): PSQRYDEFN, PSQRYSELECT, PSQRYRECORD, two PSQRYFIELD and PSQRYBIND inserted with OPRID blank and a new CREATEDTTM; no row of the source query changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry11-public-copy-sweep"
+        },
+        {
+          "kind": "capture-case",
+          "ref": "qry11-public-copy"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "7a1b5b93a9e4977f0356ac6a1501ac7f11379703b8184befb784d2b1dd3b13b7"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:25:29.229Z",
+    "updatedAt": "2026-10-26T20:25:29.229Z",
+    "schemaVersion": 1
+  }
+}

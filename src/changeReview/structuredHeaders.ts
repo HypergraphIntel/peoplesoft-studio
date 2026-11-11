@@ -1,7 +1,7 @@
 import { canonical, differences, type Json } from './model.js';
 import type { ObjectDiffProvider } from './semanticDiff.js';
 import { structuredSnapshot, type StructuredFamily } from '../providers/structuredSnapshot.js';
-import { editStateFor, setRecordProperties, type StoredRecord, type Row, type RecordEditField, type RecordEditState } from '../model/recordEdit.js';
+import { editStateFor, setRecordProperties, NEW_RECFIELD_VALUES, type StoredRecord, type Row, type RecordEditField, type RecordEditState } from '../model/recordEdit.js';
 import type { RecordSaveRequest } from '../providers/recordWriter.js';
 import type { AeDocument } from '../model/aeDocument.js';
 
@@ -109,6 +109,32 @@ export function recordStructureRequest(name: string, beforeValue: unknown, after
         ...(head.DESCRLONG !== base.DESCRLONG ? { definition: (head.DESCRLONG as string | null) ?? '' } : {})
     });
     return { edit: properties, operatorId };
+}
+
+/**
+ * The editor state a Record proposal already staged in a Change Set stands for, so that a later psft_edit_record on the
+ * same record in that set applies its operations on top of it (E22: rebuilding from the live record silently dropped the
+ * earlier edit). A field the earlier proposal inserted carries its settings (Use, Edits, default, label) as an inserted
+ * field, not a frozen restore row, so later operations can still change them; its row is otherwise App Designer's new-row
+ * values, which is what the earlier edit wrote. A restore row with other columns is not an editor insertion and is refused.
+ */
+export function recordEditFromProposal(name: string, beforeValue: unknown, proposedValue: unknown, version: number): RecordEditState {
+    const { edit } = recordStructureRequest(name, beforeValue, proposedValue, version, 'X');
+    const t = (v: unknown) => String(v ?? '').trim();
+    const editable = new Set(['RECNAME', 'FIELDNAME', 'FIELDNUM', 'USEEDIT', 'USEEDIT2', 'EDITTABLE', 'DEFRECNAME', 'DEFFIELDNAME', 'LABEL_ID',
+        'DEFGUICONTROL', 'SUBRECORD', 'LASTUPDDTTM', 'LASTUPDOPRID', 'VERSION']);
+    return { ...edit, fields: edit.fields.map(f => {
+        if (!f.restore) return f;
+        const r = f.restore;
+        const fresh = NEW_RECFIELD_VALUES;
+        for (const [k, v] of Object.entries(r)) {
+            if (editable.has(k) || !(k in fresh)) continue;
+            if (t(v) !== t(fresh[k])) throw new Error(`${f.name}: the staged proposal inserts it with ${k} set, which a further edit cannot carry; revise the staged object in one call.`);
+        }
+        if (f.isSubrecord) return { name: f.name, useEdit: 0, useEdit2: 0, isNew: true, isSubrecord: true };
+        return { name: f.name, useEdit: Number(r.USEEDIT), useEdit2: Number(r.USEEDIT2 ?? 0), isNew: true, editTable: t(r.EDITTABLE),
+            defaultRecord: t(r.DEFRECNAME), defaultField: t(r.DEFFIELDNAME), labelId: t(r.LABEL_ID), pageControl: Number(r.DEFGUICONTROL) };
+    }) };
 }
 
 export function aeHeaderDocument(name: string, beforeValue: unknown, afterValue: unknown, live: AeDocument): AeDocument {

@@ -1,0 +1,96 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-96e149da29e5bd9fece97f6e",
+  "fingerprint": "96e149da29e5bd9fece97f6e9c4a9e3a90dcccac6431c30bc4b43e638a740e23",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "delete-tombstone",
+    "facts": {
+      "table": "PSFLDDEL",
+      "version": "newFLM",
+      "FLM": 1,
+      "SYS": 1,
+      "rowsDeleted": "PSFLDDEFN,PSFLDSEGDEFN,PSFLDFIELDDEFN"
+    }
+  },
+  "title": "Deleting a File Layout removes its definition, segment and field rows and writes PSFLDDEL at the new FLM",
+  "statement": "App Designer's Delete of a File Layout deletes its PSFLDDEFN, PSFLDSEGDEFN and PSFLDFIELDDEFN rows, inserts the name into PSFLDDEL with VERSION the new FLM, and moves FLM and SYS by one. One capture.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:20:33.725Z",
+      "method": "save-capture",
+      "experimentId": "fl14-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl14-delete: 1 PSFLDDEFN, 1 PSFLDSEGDEFN and 10 PSFLDFIELDDEFN rows deleted; PSFLDDEL inserted with VERSION 45 = FLM after; FLM +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl14-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "d55528dcd0550ee3dc31eeaa584df31830e57bce064ccaa731e41545498b2f3d"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:20:33.732Z",
+    "updatedAt": "2026-10-26T20:20:33.732Z",
+    "schemaVersion": 1
+  }
+}

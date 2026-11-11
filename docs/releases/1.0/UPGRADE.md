@@ -1,7 +1,15 @@
 # 1.0 core support and upgrade notes
 
-Release **0.9.8** ships the qualified focused 1.0 core. These notes describe
-that release; version 1.0 is not yet published and preview boundaries remain.
+Release **0.9.8** shipped the qualified focused 1.0 core, and **1.0.0**
+publishes it as version 1.0. Preview boundaries remain.
+
+**1.0.0** upgrades the same way: install `peoplesoft-studio-1.0.0.vsix` from its
+[GitHub release](https://github.com/HypergraphIntel/peoplesoft-studio/releases/tag/v1.0.0)
+over 0.9.8 or 0.9.9 in the same profile and reload. It keeps credentials, drafts
+and Change Review history, and changes no stored setting. A PeopleCode save that
+passed before may now be refused by one of the new rules PC011 to PC021: each
+refuses a program that App Designer or PIA would refuse. See the
+[1.0.0 notes](../1.0.0.md).
 
 **0.9.9** upgrades the same way: install `peoplesoft-studio-0.9.9.vsix` from its
 [GitHub release](https://github.com/HypergraphIntel/peoplesoft-studio/releases/tag/v0.9.9)

@@ -29,6 +29,9 @@ dist-test/**
 tsconfig.json
 esbuild.mjs
 
+# A stray empty file at the repository root (not part of the extension)
+RulesProvider
+
 # Packaged or unpacked extensions (a VSIX must not carry an earlier one)
 *.vsix
 peoplesoft-studio/**

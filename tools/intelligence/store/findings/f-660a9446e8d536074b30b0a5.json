@@ -1,0 +1,106 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-660a9446e8d536074b30b0a5",
+  "fingerprint": "660a9446e8d536074b30b0a54e46b6b40c89813741e0b79359336a4d26e53db8",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSQRYCRITERIA",
+      "openParen": "LPARENLVL",
+      "closeParen": "RPARENLVL"
+    }
+  },
+  "title": "Grouping query criteria sets LPARENLVL 1 on the first and RPARENLVL 1 on the last criterion of the group",
+  "statement": "Group Criteria over a run of criteria stores LPARENLVL 1 on the first and RPARENLVL 1 on the last; the others are unchanged.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T23:26:02.563Z",
+      "method": "save-capture",
+      "experimentId": "qcr05-group",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qcr05-group: criteria 2-3 grouped, criterion 2 LPARENLVL 0 -> 1, criterion 3 RPARENLVL 0 -> 1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qcr05-group"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "c44a1256a6052e400cca39cb06261b6c2bdb9bf379ae2fa9a0e260e726191713"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:26:19.737Z",
+    "updatedAt": "2026-10-26T20:26:19.737Z",
+    "schemaVersion": 1
+  }
+}

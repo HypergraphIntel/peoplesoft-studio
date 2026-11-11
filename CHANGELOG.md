@@ -1,7 +1,112 @@
 # Changelog
 
-## Unreleased
+## 1.0.1 — unreleased
 
+MCP reliability fixes from the open issue list (E-tasks in
+[PRIORITY_TASKS](docs/PRIORITY_TASKS.md)).
+
+- **A second record edit in one Change Set no longer drops the first (E22).**
+  Two `psft_edit_record` calls on the same record in one set (insert a field,
+  then another) staged the second against the live record, so the first
+  insert was silently lost. The second call now builds on the proposal
+  already staged, and a field it inserted can still be moved or changed. A
+  second `psft_edit_page` on a page already in the set, or an edit of a
+  definition staged for deletion, is now refused with a message instead of
+  replacing what was staged; give all of a page's operations in one call.
+  A second `psft_ae_edit` on the same program is refused the same way.
+- **Page labels over 60 characters are refused before the database (E27,
+  E40, E46, E55, E69, E78).** `psft_page_create` and `psft_edit_page` sent
+  longer Static Text and control labels to Oracle, which failed with
+  ORA-12899 (PSPNLFIELD.LBLTEXT holds 60). The operations, and the page
+  writer itself, now refuse them first, naming the control and the limit.
+- **Record default constants over 18 characters are refused up front (E48).**
+  A default constant is stored in PSRECFIELD.DEFFIELDNAME (18 characters);
+  Studio allowed 254, so `set_default` with a URL failed in Oracle. The
+  check now gives the limit and suggests FieldDefault PeopleCode instead.
+- **Web library PeopleCode carries App Designer's license code (E37).** App
+  Designer writes a PSPCMPROG.LICENSE_CODE on web library (WEBLIB_)
+  programs, and Studio refused to replace such a program, so IScript edits on
+  HCDEV had to be pasted into App Designer. Captured in App Designer: every
+  program of a WEBLIB record gets the same value, and a program deleted and
+  created again gets it back; across HCDEV and HRDMO all 158 programs on both
+  carry identical values, so it is a fixed function of the record name.
+  Studio now keeps the value on update and gives a new program the value its
+  record's other programs hold, as App Designer does. A brand-new web library
+  record's first program still gets a blank value (it runs; the function is
+  not one Studio can compute).
+- **Change Review refuses an unreproducible stored program at validation.**
+  A PeopleCode change whose stored program the writer cannot reproduce
+  (unusual PSPCMPROG metadata, or source that does not re-encode) passed
+  validation and stopped the set half-applied as UNCERTAIN; validation now
+  runs the writer's stored-program check first.
+- **The MCP can create a subpackage, with undo (E11, E35, E52, E74).**
+  `psft_create_package` takes a subpackage path (`ROOT:Sub` or
+  `ROOT:Sub:Sub2`). With Change Review it stages, and undo removes it the way
+  App Designer's Delete and Save do (captured on HRDMO: PBM and SYS per
+  Delete, one package save, no deletion marker); without Change Review it is
+  written with the per-write confirmation. Several subpackages saved
+  together now move the package version once, as App Designer does. Apply
+  the subpackage before staging the classes that go in it.
+- **`set_use` refuses two key kinds in one change (E58).** Asking for
+  `key` and `altSearch` together saved only the alternate search flag, so
+  the table's unique index was one column short. Key, duplicate order key
+  and alternate search key exclude one another, and the request is now
+  refused with that explanation.
+- **HTML definitions can be named without their content type in
+  `psft_add_to_project` (E60)**, as in every other MCP tool since the E70 fix.
+## 1.0.0 — November 2, 2026
+
+PeopleSoft Studio 1.0. The dependable core qualified on October 22 (gates V1-1
+to V1-5, shipped in 0.9.8 on Oracle / PeopleTools 8.62.09, Linux and Windows)
+becomes the 1.0 release. Its [support contract](docs/SUPPORT_MATRIX.md) is
+unchanged, and the 1.5 workflows from 0.9.9 keep their limits outside it.
+This release also adds Fluid pages and components through the MCP, eleven new
+PeopleCode rules (PC011 to PC021) and three widened ones (PC004, PC007, PC008),
+each catching before a save a program App Designer or PIA refuses, and the
+fixes below. See the
+[release notes](docs/releases/1.0.0.md) and [upgrade notes](docs/releases/1.0/UPGRADE.md).
+
+- **New PeopleCode rule PC011: no member call on a `create` expression.**
+  `&p = create PKG:Factory().Create(&cfg);` passed Studio's checks but
+  failed in PIA: PeopleCode applies no member access to a `create`
+  expression, so its type stays the created class (App Designer 2,47). The
+  validator and save now refuse it. None of the 5,612 `create` expressions
+  in the HCDEV snapshot does this.
+- **PC008 now covers SQLExec outputs.** Reading a value with `SQLExec` straight
+  into a class instance variable or property passed Studio's checks and
+  failed at run time ("SqlExec: parameter 2 is neither a record object nor a
+  name"); the arguments after the SQL's bind values are now checked as
+  `Fetch` outputs are.
+- **New PeopleCode rule PC013: readonly properties are assigned through their
+  variable.** `%This.RecordId = ...` for a readonly property passed
+  Studio's checks but failed in PIA ("property cannot be changed"); inside
+  the class it is `&RecordId = ...`, as every delivered class does.
+- **New PeopleCode rule PC012: no parameter named after a stored property.**
+  `method Reader(&config ...)` in a class with `property ... Config;`
+  passed Studio's checks but failed in PIA ("Duplicate parameter name"): a
+  property without get/set blocks is stored like an instance variable. None
+  of the 1,640 delivered classes does it.
+- **PC007 now covers properties of Application Class objects.**
+  `If All(&res.ErrorCode)` with `&res` an Application Class object failed in
+  PIA ("Field or temporary variable name required"). `None`, `All` and
+  their relatives take fields, Locals and parameters; the check now refuses
+  such a property, as it already did `%This` properties. Built-in objects
+  (`&field.Value`, `&cref.Label`) are unaffected, as delivered code uses them.
+- **A push button added with a label shows its label.** Studio saved every
+  new push button as an Image button (PBDISPLAYTYPE 2), so a button added
+  with a `label` showed no text. One given a label is now a Text button
+  (PBDISPLAYTYPE 0), as App Designer saves it when Text is chosen on the
+  Label tab.
+- **Application Packages with owned subpackages migrate.** A subpackage's
+  owner ID now travels with its package and is written when the target
+  creates the subpackage, as App Designer's project copy writes it. Before,
+  any package with an owned subpackage refused export (153 of 1,871 packages
+  on the HRDMO demo). Subpackage descriptions and comments and class
+  descriptions still refuse; none exist there.
+- **Discovery findings for File Layouts and PS Query.** New `file-layout`
+  and `query` subsystems in Studio Knowledge, with findings recorded from the
+  File Layout and Windows Query captures, native deletions and tombstones,
+  page structure and drop zones (326 findings in the research store).
 - **Fluid pages and components through the MCP.** `psft_page_create` takes
   `layoutPage` to create a Fluid page as App Designer's New Page Fluid does
   (a copy of the Layout Page, proven live in wp08), then applies any
@@ -12,6 +117,55 @@
   changes; each of App Designer's 18 Fluid-tab saves (f378-f387, h389-h398)
   replays through it exactly. Not yet covered: a content reference's own
   Fluid settings and a Fluid page's style sheet (no captures).
+- **Eight more PeopleCode rules (PC014 to PC021), and PC004 covers
+  properties.** Each was a program that passed Studio's checks and then failed
+  in App Designer or at run time on the lab databases:
+  - PC014: a declaration that names several variables and initialises them
+    (`Local integer &i, &n = 0;`, App Designer 2,42).
+  - PC015: `GetRow().ParentRow`, since ParentRow is a Rowset property (2,52).
+  - PC016: a declared class method with no body. App Designer's syntax check
+    accepts it; the class stops at run time (2,81).
+  - PC017: a string literal over 999 characters, which crashes App Designer
+    and the application server when they load the program.
+  - PC018: `True`, `False` or `Null` after a dot (2,49).
+  - PC019: an `array of integer` given `CreateArrayRept` or `CreateArray` of a
+    number literal (run time 180,604; Validate Syntax accepts it).
+  - PC020: `%Request.Method`, where the property is `HTTPMethod` (2,50).
+  - PC021: a method of the class that returns a value, called through `%This`
+    as a statement on its own (2,45, "Invalid start of statement").
+  - PC004 now also refuses a Local named after a property with no get/set
+    block (2,39), and any Local (array types included), method parameter or
+    instance variable whose name matches a class Constant ignoring case (2,66).
+    Before, a Local declared with an array type escaped every PC004 check.
+
+  `psft_peoplecode_reference` adds guidance on reading one row
+  (`SelectByKey`, `SelectByKeyEffDt` or `%SelectAll`) and on save events,
+  which run for every row whether it changed or not.
+- **A keyless Derived/Work record is refused as a search record.** It
+  gives a component no level 0 row. The refusal says what to use instead:
+  INSTALLATION as the search record, with one INSTALLATION field, invisible,
+  at level 0 of the page.
+- **"No data for scroll" counts only table and view fields.** The page check
+  (App Designer 15,19) now refuses a scroll that holds only Derived/Work
+  fields, as App Designer does. A grid filled by PeopleCode takes the new
+  `set_scroll_use` page operation (No Auto Select, No Auto Update, No Row
+  Insert and No Row Delete) over a Dynamic View. A grid column added with a
+  width now keeps it in PIA. Before, it was saved as Standard size, which PIA
+  ignores, so a long field drew a column 2,540 pixels wide. A grid added in the
+  same operations can now be given its occurs level.
+- **An implementing class saves as App Designer saves it.** PROGEXTENDS now
+  records the interface a class `implements`, as all 45 implementing classes
+  saved by 8.62.09 on HRDMO hold it. The older blank form is still accepted
+  on readback.
+- **App Engine validation checks SQL object call sites again.** The
+  bind-and-column check of `SQL.NAME` calls in App Engine PeopleCode read the
+  SQL text as a LOB object and saw no markers. It now reads the text as a
+  string, joins a long statement's rows, and prefers the platform's own text.
+- **Clearer record and field guidance in the MCP.** `insert_field EFFDT`
+  explains that it makes the record effective-dated and how to keep a plain
+  date instead. `psft_create_field` explains that a decimal Number's length
+  counts the decimal point, and that a translate field is at most 4
+  characters.
 
 ## 0.9.9 — October 23, 2026
 

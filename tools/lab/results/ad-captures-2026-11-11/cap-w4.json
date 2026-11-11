@@ -1,0 +1,118 @@
+{
+ "PSVERSION": [
+  {
+   "OBJECTTYPENAME": "APM",
+   "VERSION": 459
+  },
+  {
+   "OBJECTTYPENAME": "PBM",
+   "VERSION": 68
+  },
+  {
+   "OBJECTTYPENAME": "PCM",
+   "VERSION": 1288
+  },
+  {
+   "OBJECTTYPENAME": "PJM",
+   "VERSION": 560
+  },
+  {
+   "OBJECTTYPENAME": "RDM",
+   "VERSION": 752
+  },
+  {
+   "OBJECTTYPENAME": "SYS",
+   "VERSION": 7187
+  }
+ ],
+ "PSLOCK": [
+  {
+   "OBJECTTYPENAME": "APM",
+   "VERSION": 459
+  },
+  {
+   "OBJECTTYPENAME": "PBM",
+   "VERSION": 68
+  },
+  {
+   "OBJECTTYPENAME": "PCM",
+   "VERSION": 1288
+  },
+  {
+   "OBJECTTYPENAME": "PJM",
+   "VERSION": 560
+  },
+  {
+   "OBJECTTYPENAME": "RDM",
+   "VERSION": 752
+  },
+  {
+   "OBJECTTYPENAME": "SYS",
+   "VERSION": 2
+  }
+ ],
+ "PSPACKAGEDEFN": [
+  {
+   "PACKAGEID": "ZZ_SUBPKG_LAB",
+   "PACKAGEROOT": "ZZ_SUBPKG_LAB",
+   "QUALIFYPATH": ".",
+   "PACKAGELEVEL": 0,
+   "PACKAGEREF": " ",
+   "DESCR": " ",
+   "VERSION": 459,
+   "LASTUPDDTTM": "Wed Nov 11 2026 09:10:51 GMT-0600 (Central Standard Time)",
+   "LASTUPDOPRID": "JARED",
+   "OBJECTOWNERID": " ",
+   "DESCRLONG": null
+  }
+ ],
+ "PSPACKAGEDEL": [],
+ "PSAPPCLASSDEFN": [],
+ "PSRECDEFN": [
+  {
+   "RECNAME": "WEBLIB_ZZ_LIC",
+   "RECTYPE": 2,
+   "VERSION": 752,
+   "FIELDCOUNT": 2,
+   "LASTUPDOPRID": "JARED"
+  }
+ ],
+ "PSPCMPROG": [],
+ "PSPCMTXT": [],
+ "PSPCMPROGDEL": [
+  {
+   "OBJECTID1": 1,
+   "OBJECTVALUE1": "WEBLIB_ZZ_LIC",
+   "OBJECTID2": 2,
+   "OBJECTVALUE2": "ISCRIPT2",
+   "OBJECTID3": 12,
+   "OBJECTVALUE3": "FieldFormula",
+   "OBJECTID4": 0,
+   "OBJECTVALUE4": " ",
+   "OBJECTID5": 0,
+   "OBJECTVALUE5": " ",
+   "OBJECTID6": 0,
+   "OBJECTVALUE6": " ",
+   "OBJECTID7": 0,
+   "OBJECTVALUE7": " ",
+   "VERSION": 1286
+  },
+  {
+   "OBJECTID1": 1,
+   "OBJECTVALUE1": "WEBLIB_ZZ_LIC",
+   "OBJECTID2": 2,
+   "OBJECTVALUE2": "ISCRIPT1",
+   "OBJECTID3": 12,
+   "OBJECTVALUE3": "FieldFormula",
+   "OBJECTID4": 0,
+   "OBJECTVALUE4": " ",
+   "OBJECTID5": 0,
+   "OBJECTVALUE5": " ",
+   "OBJECTID6": 0,
+   "OBJECTVALUE6": " ",
+   "OBJECTID7": 0,
+   "OBJECTVALUE7": " ",
+   "VERSION": 1288
+  }
+ ]
+}

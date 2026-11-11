@@ -395,6 +395,13 @@ export function setUse(state: RecordEditState, index: number, change: UseChange)
     const v = change[name];
     if (v !== undefined) useEdit2 = v ? useEdit2 | bit : useEdit2 & ~bit;
   }
+  // Key, Duplicate Order Key and Alternate Search Key exclude one another (no HRDMO field has two). Asking for two in one
+  // change silently kept only the last, so a table's unique index was built one column short (E58): refuse it instead.
+  const kinds = (['key', 'dupOrder', 'altSearch'] as const).filter((k) => change[k] === true);
+  if (kinds.length > 1) {
+    throw new RecordSaveRefusedError(`${f.name}: ${kinds.join(' and ')} cannot both be set; a field is a key, a duplicate order key or an alternate search key. ` +
+      'A key that is also searched on is key + searchKey.');
+  }
   for (const [name, bit] of CHANGE_BITS) {
     const v = change[name];
     if (v === undefined) continue;
@@ -464,7 +471,9 @@ export function setDefault(state: RecordEditState, index: number, value: { const
   let defaultField = '';
   if (value && 'constant' in value) {
     defaultField = value.constant.trim();
-    if (defaultField.length > 254) throw new RecordSaveRefusedError('A default constant is at most 254 characters.');
+    // The constant is stored in PSRECFIELD.DEFFIELDNAME, the column that holds a default's field name: 18 characters.
+    // A 24-character URL reached Oracle as ORA-12899 (E48, HCDEV 8.61, 2026-11-01).
+    if (defaultField.length > 18) throw new RecordSaveRefusedError(`A default constant is at most 18 characters (PSRECFIELD.DEFFIELDNAME); "${defaultField}" has ${defaultField.length}. Set a longer value in FieldDefault PeopleCode or a setup table instead.`);
   } else if (value) {
     defaultRecord = value.record.trim().toUpperCase();
     defaultField = value.field.trim().toUpperCase();

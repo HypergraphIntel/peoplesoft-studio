@@ -1,0 +1,174 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-7656c396686af745eda7eed7",
+  "fingerprint": "7656c396686af745eda7eed78bfc67d523585f90d71e7dd78ed0c3b17f412ca5",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSFLDDEFN",
+      "column": "FLDFORMAT",
+      "FIXED": 0,
+      "CSV": 1,
+      "XML": 2
+    }
+  },
+  "title": "A File Layout's Format FIXED / CSV / XML is PSFLDDEFN.FLDFORMAT 0 / 1 / 2",
+  "statement": "File Layout Properties Format is PSFLDDEFN.FLDFORMAT: 0 FIXED, 1 CSV, 2 XML. Choosing CSV also wrote the definition qualifier '\"' and delimiter ','.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:20:34.851Z",
+      "method": "save-capture",
+      "experimentId": "fl02-props-csv",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl02-props-csv: FLDFORMAT 0 -> 1, FLDQUALIFIER ' ' -> '\"', FLDDELIMITER ' ' -> ','.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl02-props-csv"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "2182f7d605c9b1d62f9991ab2edaebb1df4868ecf47ffce8dfed1a80939a490b"
+    },
+    {
+      "observedAt": "2026-10-26T20:20:35.125Z",
+      "method": "save-capture",
+      "experimentId": "fl15-create-xml",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl15-create-xml: a new layout saved as XML has FLDFORMAT 2, FLDDELIMITER ',' and FLDXMLBUFFSIZE 0.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 12,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl15-create-xml"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "c10abe3e74aace41de52c0646a3500fcecb5424df904b718d44061ef588976ef"
+    },
+    {
+      "observedAt": "2026-10-26T20:20:35.407Z",
+      "method": "save-capture",
+      "experimentId": "fl01-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl01-create: a new layout (FIXED, the default) has FLDFORMAT 0.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 12,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl01-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "100428ae86448e92b666258c35f876156eabf66262777dd2dd83376cbfc7d60b"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:20:34.858Z",
+    "updatedAt": "2026-10-26T20:20:35.414Z",
+    "schemaVersion": 1
+  }
+}

@@ -4,9 +4,10 @@ Planning checkpoint: October 21, 2026; qualification execution: October 22. The 
 items from the readiness discussion can move to 1.5 or 2.0. The assignments
 below are release targets, not release dates. The selected 1.0 support
 matrix is recorded in [the support contract](SUPPORT_MATRIX.md). The qualified
-core ships in release 0.9.8 (October 22, 2026). The 1.5 targets below were
+core shipped first in release 0.9.8 (October 22, 2026). The 1.5 targets below were
 delivered in release 0.9.9 (October 23, 2026), outside that qualified core.
-Versions 1.0 and 1.5 are not yet published.
+Version 1.0.0 (November 2, 2026) publishes the qualified core as 1.0; see the
+[1.0.0 notes](releases/1.0.0.md). Version 1.5 is not yet published.
 
 Full Application Designer parity remains the long-term goal. It is not the
 completion test for the focused 1.0 defined here. Existing functionality stays
@@ -78,5 +79,6 @@ the gate from later expansions. [Priority tasks](PRIORITY_TASKS.md) links the
 active release gate and the scheduler's explicitly Low-priority follow-up.
 The planning change itself did not publish a version. The subsequent
 [0.9.8 release](releases/0.9.8.md) ships the qualified core, and
-[0.9.9](releases/0.9.9.md) adds the accepted 1.5 targets. The 2.0 targets
-remain; no 1.0 publication date is committed.
+[0.9.9](releases/0.9.9.md) adds the accepted 1.5 targets, and
+[1.0.0](releases/1.0.0.md) publishes the core as version 1.0. The 2.0 targets
+remain.

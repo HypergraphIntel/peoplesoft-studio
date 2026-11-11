@@ -1,0 +1,167 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-7803e1d9995af9d4c2b69ab7",
+  "fingerprint": "7803e1d9995af9d4c2b69ab7662af05240205f1e5f274723640f05c0b51eda7b",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "code-table",
+    "facts": {
+      "table": "PSQRYFIELD",
+      "column": "XLATTYPE",
+      "none": 1,
+      "short": 2,
+      "long": 3,
+      "dateColumn": "XLATEXPRTYPE",
+      "dateField": 2,
+      "currentDate": 6,
+      "fieldColumn": "XLATFLDNUM",
+      "fieldCountsAsUse": true
+    }
+  },
+  "title": "A query field's Translate is PSQRYFIELD.XLATTYPE 1 none / 2 short / 3 long; its effective date XLATEXPRTYPE 2 field (XLATFLDNUM) / 6 current date",
+  "statement": "Translate on a field is PSQRYFIELD.XLATTYPE: 1 none, 2 short, 3 long. The translate's effective date is XLATEXPRTYPE 6 Current Date or 2 a field, named by XLATFLDNUM, which counts as one use of that field.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-22T00:27:24.652Z",
+      "method": "save-capture",
+      "experimentId": "qxl01-translate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qxl01-translate: EFF_STATUS XLATTYPE 3, XLATEXPRTYPE 2, XLATFLDNUM 1 (EFFDT, USECOUNT 1).",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qxl01-translate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "467de142664c049df6db2c34d887fd235203fed97999fabea5747d4443156220"
+    },
+    {
+      "observedAt": "2026-10-22T00:41:09.107Z",
+      "method": "save-capture",
+      "experimentId": "qxl02-short-current",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qxl02-short-current: XLATTYPE 3 -> 2, XLATEXPRTYPE 2 -> 6, XLATFLDNUM 1 -> 0; EFFDT USECOUNT 1 -> 0.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qxl02-short-current"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "df793ccbe36505f4a25b5fbc0fdc66a406f3dfbb1b3182a8525eb0ba76852d2b"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:27:40.540Z",
+    "updatedAt": "2026-10-26T20:27:40.825Z",
+    "schemaVersion": 1
+  }
+}

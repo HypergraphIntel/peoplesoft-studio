@@ -1,0 +1,98 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-2696718c3300bb56b4190641",
+  "fingerprint": "2696718c3300bb56b41906416ca54384f67c4d4e02ab2771129df60ac863e83f",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "html",
+    "objectType": "HTML definition"
+  },
+  "assertion": {
+    "kind": "delete-tombstone",
+    "facts": {
+      "table": "PSCONTDEL",
+      "key": "CONTNAME,CONTTYPE",
+      "CONTTYPE": 4,
+      "version": "newCRM",
+      "CRM": 1,
+      "SYS": 1,
+      "rowsDeleted": "PSCONTDEFN,PSCONTENT"
+    }
+  },
+  "title": "Deleting an HTML definition removes its PSCONTDEFN and PSCONTENT rows and writes PSCONTDEL (CONTTYPE 4) at the new CRM",
+  "statement": "App Designer's Delete of an HTML definition deletes its PSCONTDEFN and PSCONTENT rows, inserts PSCONTDEL (CONTNAME, CONTTYPE 4) with VERSION the new CRM, and moves CRM and SYS by one. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-20T20:13:36.511Z",
+      "method": "save-capture",
+      "experimentId": "td02-native-html-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture td02-native-html-delete: PSCONTDEFN and PSCONTENT deleted; PSCONTDEL CONTTYPE 4, VERSION 66 = CRM after; CRM +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCONTDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTENT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSERVERSTAT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "CRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "td02-native-html-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/TEXT_DELETION.md"
+        }
+      ],
+      "digest": "fe2a5d76c8c4d0eefd3a641b68419f722a865a21896f8432c296f858ea5e4a94"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:31:31.224Z",
+    "updatedAt": "2026-10-26T20:31:31.224Z",
+    "schemaVersion": 1
+  }
+}

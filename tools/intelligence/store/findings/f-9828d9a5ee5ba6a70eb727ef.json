@@ -1,0 +1,106 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-9828d9a5ee5ba6a70eb727ef",
+  "fingerprint": "9828d9a5ee5ba6a70eb727efb5ad22755e37f98e379859296d00312079f1d459",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "expression-column-criterion",
+    "facts": {
+      "LCRTFLDNUM": "expressionColumnField",
+      "columnUseCount": 1,
+      "constantFIELDTYPE": 2
+    }
+  },
+  "title": "A query criterion on an expression column names the column's PSQRYFIELD row as its left field",
+  "statement": "New Criteria on an expression column writes a criterion whose LCRTFLDNUM is the column's own PSQRYFIELD row, which then counts one use; its constant takes the expression's number type. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-22T22:01:06.313Z",
+      "method": "save-capture",
+      "experimentId": "qex04-expression-column-criterion",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qex04-expression-column-criterion (Windows Query saving a query first written by Studio): criterion 2 LCRTFLDNUM 3 (the EXP column), CONDTYPE 2, EXPRTYPE 1; field 3 USECOUNT 0 -> 1; new expression FIELDTYPE 2.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 4,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 4,
+            "deleted": 4,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qex04-expression-column-criterion"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "40591aa5af4efa542446a9fcaa865540b515c0d1b6ee7e23d52ecdd34ce6c11b"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:27:38.574Z",
+    "updatedAt": "2026-10-26T20:27:38.574Z",
+    "schemaVersion": 1
+  }
+}

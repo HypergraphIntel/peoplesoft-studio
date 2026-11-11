@@ -1,0 +1,102 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-4ac2a296a76eea9d90a3c443",
+  "fingerprint": "4ac2a296a76eea9d90a3c443f48f8305bfb48c39599cc212a90efafbd8fa2033",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "related-join",
+    "facts": {
+      "addsEffdtCriterion": true,
+      "CONDTYPE": 20,
+      "EXPRTYPE": 6,
+      "joinFieldCountsAsUse": true,
+      "effdtFieldHidden": true
+    }
+  },
+  "title": "A related-record join of an effective-dated record adds a hidden EFFDT field with an Eff Date <= Current Date criterion",
+  "statement": "Joining a related record that is effective-dated adds its EFFDT as a hidden PSQRYFIELD and a criterion on it, CONDTYPE 20 EXPRTYPE 6, AND-ed after the existing criteria; the field the join hangs from (JOINFLDNUM) counts one use. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-22T00:02:20.539Z",
+      "method": "save-capture",
+      "experimentId": "qjn04-related-join",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qjn04-related-join: C.EFFDT inserted hidden (HDGTYPE 1, no column) with criterion 2 CONDTYPE 20, EXPRTYPE 6, COMBTYPE 1; A.ESTABID USECOUNT 0 -> 1; RCDCOUNT 2 -> 3.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 4,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qjn04-related-join"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "520d7d0f42e824971426c0af4aafc144c39619b41172689ec11ce7aab6834f50"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:27:27.723Z",
+    "updatedAt": "2026-10-26T20:27:27.723Z",
+    "schemaVersion": 1
+  }
+}

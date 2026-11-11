@@ -1,0 +1,106 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-f5a752d5869915faebfa400d",
+  "fingerprint": "f5a752d5869915faebfa400d06d0905e1c9add4781c1eca1dd864444e7f48cf6",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "is-null-keeps-expression",
+    "facts": {
+      "table": "PSQRYCRITERIA",
+      "R1CRTEXPNUM": "kept",
+      "expressionKept": true
+    }
+  },
+  "title": "Changing a query criterion to is null keeps its old expression and R1CRTEXPNUM",
+  "statement": "A criterion changed to is null (EXPRTYPE 0) keeps its R1CRTEXPNUM and the PSQRYEXPR row it points to; EXPCOUNT does not change. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T23:30:23.001Z",
+      "method": "save-capture",
+      "experimentId": "qcr09-is-null",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qcr09-is-null: CONDTYPE 14 -> 16, EXPRTYPE 1 -> 0; R1CRTEXPNUM stays 2 and expression 2 ('A%') is still written; EXPCOUNT stays 3.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qcr09-is-null"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "be3a6834c843159eb59552919ba7bd866d3e50dc00d6ce13b83492745e59499a"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:26:22.854Z",
+    "updatedAt": "2026-10-26T20:26:22.854Z",
+    "schemaVersion": 1
+  }
+}

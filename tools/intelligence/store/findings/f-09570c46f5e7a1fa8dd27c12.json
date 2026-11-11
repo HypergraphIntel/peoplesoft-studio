@@ -1,0 +1,166 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-09570c46f5e7a1fa8dd27c12",
+  "fingerprint": "09570c46f5e7a1fa8dd27c126431f994449896caaf1d996255b5d5a5813bac1b",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "date-separator-cleared",
+    "facts": {
+      "table": "PSFLDFIELDDEFN",
+      "column": "FLDDATESEPARATOR",
+      "cleared": "nonDateFieldOnOk"
+    }
+  },
+  "title": "OK on a non-date File Layout field's properties clears its date separator",
+  "statement": "A new layout writes FLDDATESEPARATOR '/' on every field; OK in the field properties of a field that is not a date, time or datetime saves it blank. Date fields after OK are not captured.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:21:21.582Z",
+      "method": "save-capture",
+      "experimentId": "fl05-field-props",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl05-field-props: EMPLID (Character) FLDDATESEPARATOR '/' -> ' ' on OK.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl05-field-props"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "efc38edfea017c3473e41e1f9aece9cc7bc18d36b37918a17b4b26f72f6679df"
+    },
+    {
+      "observedAt": "2026-10-26T20:21:21.872Z",
+      "method": "save-capture",
+      "experimentId": "fl08-fixed-length",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl08-fixed-length: EMPLID (Character) FLDDATESEPARATOR '/' -> ' ' on OK.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl08-fixed-length"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "6e5b3534919a32d995de960559c6fdac62dd92717f400a431ed9056aee1be9fb"
+    },
+    {
+      "observedAt": "2026-10-26T20:21:22.153Z",
+      "method": "save-capture",
+      "experimentId": "fl09-propagate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl09-propagate: PLAN_TYPE (Character) FLDDATESEPARATOR '/' -> ' ' on OK.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 10
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl09-propagate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "a82665a77bc74548fe5c6b1d40e54e8f0d195109e9327fc5129ab89341c605ed"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:21:21.590Z",
+    "updatedAt": "2026-10-26T20:21:22.160Z",
+    "schemaVersion": 1
+  }
+}

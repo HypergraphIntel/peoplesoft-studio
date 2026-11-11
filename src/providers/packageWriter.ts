@@ -31,19 +31,47 @@ export interface SubpackageCreateRequest {
   path: string[];
   openedVersion: number;
   operatorId: string;
+  /**
+   * The subpackage's own OBJECTOWNERID, at most 4; blank when omitted, as App Designer's New creates it (pk02). Only
+   * a project copy sets one: App Designer's Copy From File writes each package node's owner as the file gives it.
+   */
+  ownerId?: string;
   dryRun?: boolean;
 }
 
 /** Package rows/counters use the observed c05/c06 package-save protocol, without creating a class. */
 export async function createSubpackage(c: Connection, request: SubpackageCreateRequest): Promise<{ version: number; lastupddttm: string }> {
-  const { root, path, operatorId } = request;
+  const { path, ownerId, ...rest } = request;
+  return createSubpackages(c, { ...rest, paths: [path], ...(ownerId ? { ownerIds: { [path.join(':')]: ownerId } } : {}) });
+}
+
+export interface SubpackagesCreateRequest {
+  root: string;
+  /** Each new subpackage's full path below the root, parents before children (a parent may be new in the same save). */
+  paths: string[][];
+  openedVersion: number;
+  operatorId: string;
+  /** OBJECTOWNERID by 'A:B' path; blank when absent, as App Designer's New creates it (pk02). */
+  ownerIds?: Record<string, string>;
+  dryRun?: boolean;
+}
+
+/**
+ * Inserting subpackages and saving the package once (c05; 2026-11-11 HRDMO ZZ_SUBPKG_LAB: three subpackages, one of them
+ * nested, in one save): one PSPACKAGEDEFN row each (PACKAGEREF / DESCR ' ', no DESCRLONG), every package row at the new
+ * APM with the save's stamp, PSVERSION APM and SYS + 1 and PSLOCK APM + 1 once for the save, however many were inserted.
+ */
+export async function createSubpackages(c: Connection, request: SubpackagesCreateRequest): Promise<{ version: number; lastupddttm: string }> {
+  const { root, paths, operatorId } = request;
   try {
     const operatorError = validateOperatorId(operatorId);
     if (operatorError) throw new PackageCreateRefusedError(operatorError);
-    if (!/^[A-Z0-9_]{1,30}$/.test(root) || path.length < 1 || path.length > 2 ||
-        path.some(id => !/^[A-Za-z][A-Za-z0-9_]{0,29}$/.test(id))) {
+    if (!/^[A-Z0-9_]{1,30}$/.test(root) || paths.length < 1 ||
+        paths.some(path => path.length < 1 || path.length > 2 || path.some(id => !/^[A-Za-z][A-Za-z0-9_]{0,29}$/.test(id)))) {
       throw new PackageCreateRefusedError('Choose a valid package path, at most two subpackages deep.');
     }
+    const owners = request.ownerIds ?? {};
+    if (Object.values(owners).some(o => !/^[A-Z0-9_]{0,4}$/.test(o))) throw new PackageCreateRefusedError('The owner ID is at most four characters (A-Z, 0-9, _).');
     const scope = writeScopeRefusal(root);
     if (scope) throw new PackageCreateRefusedError(scope);
     const [head] = await select<{ V: number }>(c,
@@ -52,17 +80,21 @@ export async function createSubpackage(c: Connection, request: SubpackageCreateR
       throw new PackageCreateRefusedError('The package changed or was removed since it was opened. Refresh it and try again.');
     }
     if (!(await operatorExists(c, operatorId))) throw new PackageCreateRefusedError(`PeopleSoft operator ${operatorId} does not exist.`);
-    if (path.length === 2) {
-      const parent = await select<{ L: number }>(c,
-        `SELECT PACKAGELEVEL AS L FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :p AND QUALIFYPATH = ':' FOR UPDATE`, { r: root, p: path[0] });
-      if (parent.length !== 1 || Number(parent[0].L) !== 1) throw new PackageCreateRefusedError('The parent subpackage no longer exists. Refresh the package.');
+    const ordered = [...paths].sort((a, b) => a.length - b.length);
+    const adding = new Set(ordered.map(p => p.join(':').toUpperCase()));
+    if (adding.size !== ordered.length) throw new PackageCreateRefusedError('A subpackage is listed twice.');
+    for (const path of ordered) {
+      if (path.length === 2 && !adding.has(path[0].toUpperCase())) {
+        const parent = await select<{ L: number }>(c,
+          `SELECT PACKAGELEVEL AS L FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :p AND QUALIFYPATH = ':' FOR UPDATE`, { r: root, p: path[0] });
+        if (parent.length !== 1 || Number(parent[0].L) !== 1) throw new PackageCreateRefusedError(`The parent subpackage ${root}:${path[0]} does not exist. Refresh the package.`);
+      }
+      const [{ N: occupied }] = await select<{ N: number }>(c,
+        `SELECT (SELECT COUNT(*) FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND UPPER(PACKAGEID) = UPPER(:p) AND QUALIFYPATH = :q)
+              + (SELECT COUNT(*) FROM PSAPPCLASSDEFN WHERE PACKAGEROOT = :r AND UPPER(APPCLASSID) = UPPER(:p) AND QUALIFYPATH = :q) AS N FROM DUAL`,
+        { r: root, p: path.at(-1)!, q: packageQualifyPath(path, path.length) });
+      if (Number(occupied)) throw new PackageCreateRefusedError(`${path.at(-1)} already exists in this package.`);
     }
-    const name = path.at(-1)!, qualify = packageQualifyPath(path, path.length);
-    const [{ N: occupied }] = await select<{ N: number }>(c,
-      `SELECT (SELECT COUNT(*) FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND UPPER(PACKAGEID) = UPPER(:p) AND QUALIFYPATH = :q)
-            + (SELECT COUNT(*) FROM PSAPPCLASSDEFN WHERE PACKAGEROOT = :r AND UPPER(APPCLASSID) = UPPER(:p) AND QUALIFYPATH = :q) AS N FROM DUAL`,
-      { r: root, p: name, q: qualify });
-    if (Number(occupied)) throw new PackageCreateRefusedError(`${name} already exists in this package.`);
     const versions = await select<{ T: string; V: number }>(c,
       `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSVERSION WHERE OBJECTTYPENAME IN ('APM', 'SYS') FOR UPDATE`);
     const locks = await select<{ V: number }>(c, `SELECT VERSION AS V FROM PSLOCK WHERE OBJECTTYPENAME = 'APM' FOR UPDATE`);
@@ -75,26 +107,104 @@ export async function createSubpackage(c: Connection, request: SubpackageCreateR
     const version = next('APM'), sys = next('SYS');
     const [{ TS: stamp }] = await select<{ TS: string }>(c, `SELECT TO_CHAR(CAST(SYSTIMESTAMP AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM DUAL`);
     const [{ N: count }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :r`, { r: root });
-    await expectRows(c,
-      `INSERT INTO PSPACKAGEDEFN (PACKAGEID, PACKAGEROOT, QUALIFYPATH, PACKAGELEVEL, PACKAGEREF, DESCR, VERSION,
-        LASTUPDDTTM, LASTUPDOPRID, OBJECTOWNERID, DESCRLONG)
-       VALUES (:p, :r, :q, :l, ' ', ' ', :v, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), :op, ' ', NULL)`,
-      { p: name, r: root, q: qualify, l: path.length, v: version, ts: stamp, op: operatorId }, 1, 'Inserting subpackage');
+    for (const path of ordered) {
+      await expectRows(c,
+        `INSERT INTO PSPACKAGEDEFN (PACKAGEID, PACKAGEROOT, QUALIFYPATH, PACKAGELEVEL, PACKAGEREF, DESCR, VERSION,
+          LASTUPDDTTM, LASTUPDOPRID, OBJECTOWNERID, DESCRLONG)
+         VALUES (:p, :r, :q, :l, ' ', ' ', :v, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), :op, :o, NULL)`,
+        { p: path.at(-1)!, r: root, q: packageQualifyPath(path, path.length), l: path.length, v: version, ts: stamp, op: operatorId, o: owners[path.join(':')] || ' ' }, 1, 'Inserting subpackage');
+    }
     await expectRows(c, `UPDATE PSPACKAGEDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op WHERE PACKAGEROOT = :r`,
-      { v: version, ts: stamp, op: operatorId, r: root }, Number(count) + 1, 'Updating package');
-    await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'APM'`, { v: version }, 1, 'Updating PSVERSION APM');
-    await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: sys }, 1, 'Updating PSVERSION SYS');
-    await expectRows(c, `UPDATE PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'APM'`, { v: Number(locks[0].V) + 1 }, 1, 'Updating PSLOCK APM');
+      { v: version, ts: stamp, op: operatorId, r: root }, Number(count) + ordered.length, 'Updating package');
+    await bumpPackageSave(c, version, sys, Number(locks[0].V) + 1);
     const [{ N: verified }] = await select<{ N: number }>(c,
       `SELECT COUNT(*) AS N FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND VERSION = :v AND LASTUPDOPRID = :op AND LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT})`,
       { r: root, v: version, op: operatorId, ts: stamp });
-    const created = await select<{ L: number }>(c,
-      `SELECT PACKAGELEVEL AS L FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :p AND QUALIFYPATH = :q`, { r: root, p: name, q: qualify });
-    if (Number(verified) !== Number(count) + 1 || created.length !== 1 || Number(created[0].L) !== path.length) {
-      throw new PackageCreateRefusedError('Subpackage readback did not match the save; rolled back.');
+    if (Number(verified) !== Number(count) + ordered.length) throw new PackageCreateRefusedError('Subpackage readback did not match the save; rolled back.');
+    for (const path of ordered) {
+      const created = await select<{ L: number; O: string }>(c,
+        `SELECT PACKAGELEVEL AS L, OBJECTOWNERID AS O FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :p AND QUALIFYPATH = :q`,
+        { r: root, p: path.at(-1)!, q: packageQualifyPath(path, path.length) });
+      if (created.length !== 1 || Number(created[0].L) !== path.length || String(created[0].O).trim() !== (owners[path.join(':')] ?? '')) {
+        throw new PackageCreateRefusedError('Subpackage readback did not match the save; rolled back.');
+      }
     }
     if (request.dryRun) await c.rollback(); else await c.commit();
     return { version, lastupddttm: stamp };
+  } catch (error) {
+    await c.rollback().catch(() => {});
+    throw error;
+  }
+}
+
+async function bumpPackageSave(c: Connection, apm: number, sys: number, lockApm: number): Promise<void> {
+  await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'APM'`, { v: apm }, 1, 'Updating PSVERSION APM');
+  await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: sys }, 1, 'Updating PSVERSION SYS');
+  await expectRows(c, `UPDATE PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'APM'`, { v: lockApm }, 1, 'Updating PSLOCK APM');
+}
+
+/**
+ * Deleting empty subpackages in App Designer's package editor, then saving (2026-11-11 HRDMO ZZ_SUBPKG_LAB: a level-1
+ * subpackage, a level-2 one, and a parent with its child plus a sibling before one save):
+ *
+ *   each Delete      PSVERSION PBM + 1, PSLOCK PBM + 1, SYS + 1 -- once per Delete, a parent and its children are one
+ *   the save         their PSPACKAGEDEFN rows go; every remaining package row at the new APM with the save's stamp;
+ *                    PSVERSION APM + 1, PSLOCK APM + 1, SYS + 1
+ *
+ * No PSPACKAGEDEL marker is written (that is the root's own deletion, dl04). A subpackage holding classes is refused:
+ * deleting it deletes its classes, which are their own reviewed objects.
+ */
+export async function deleteSubpackages(c: Connection, request: { root: string; paths: string[][]; openedVersion: number; operatorId: string; dryRun?: boolean }) {
+  const { root, operatorId } = request;
+  try {
+    const operatorError = validateOperatorId(operatorId);
+    if (operatorError) throw new PackageCreateRefusedError(operatorError);
+    const scope = writeScopeRefusal(root);
+    if (scope) throw new PackageCreateRefusedError(scope);
+    if (!request.paths.length || request.paths.some(p => p.length < 1 || p.length > 2)) throw new PackageCreateRefusedError('Name the subpackages to delete by their paths below the root.');
+    const [head] = await select<{ V: number }>(c,
+      `SELECT VERSION AS V FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :r AND QUALIFYPATH = '.' FOR UPDATE`, { r: root });
+    if (!head || !Number.isSafeInteger(request.openedVersion) || Number(head.V) !== request.openedVersion) {
+      throw new PackageCreateRefusedError('The package changed or was removed since it was opened. Refresh it and try again.');
+    }
+    if (!(await operatorExists(c, operatorId))) throw new PackageCreateRefusedError(`PeopleSoft operator ${operatorId} does not exist.`);
+    const all = await select<{ P: string; Q: string; L: number }>(c,
+      `SELECT PACKAGEID AS P, QUALIFYPATH AS Q, PACKAGELEVEL AS L FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :r FOR UPDATE`, { r: root });
+    const pathOf = (r: { P: string; Q: string; L: number }) => Number(r.L) === 1 ? [String(r.P).trim()] : [String(r.Q).trim(), String(r.P).trim()];
+    // The Deletes: the top-most named nodes; a named child of a named parent goes with its parent.
+    const named = new Set(request.paths.map(p => p.join(':')));
+    const actions = request.paths.filter(p => !(p.length === 2 && named.has(p[0])));
+    const doomed = all.filter(r => Number(r.L) > 0 && actions.some(a => pathOf(r).slice(0, a.length).join(':') === a.join(':')));
+    for (const a of actions) if (!doomed.some(r => pathOf(r).join(':') === a.join(':'))) throw new PackageCreateRefusedError(`${root}:${a.join(':')} does not exist.`);
+    if ([...named].some(n => !doomed.some(r => pathOf(r).join(':') === n))) throw new PackageCreateRefusedError('A named subpackage is not in this package.');
+    for (const a of actions) {
+      const [{ N }] = await select<{ N: number }>(c,
+        `SELECT COUNT(*) AS N FROM PSAPPCLASSDEFN WHERE PACKAGEROOT = :r AND (QUALIFYPATH = :q OR QUALIFYPATH LIKE :qq)`,
+        { r: root, q: a.join(':'), qq: a.join(':') + ':%' });
+      if (Number(N)) throw new PackageCreateRefusedError(`${root}:${a.join(':')} holds classes; delete them first (they are their own reviewed objects).`);
+    }
+    const versions = await select<{ T: string; V: number }>(c,
+      `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSVERSION WHERE OBJECTTYPENAME IN ('APM', 'PBM', 'SYS') FOR UPDATE`);
+    const locks = await select<{ T: string; V: number }>(c, `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSLOCK WHERE OBJECTTYPENAME IN ('APM', 'PBM') FOR UPDATE`);
+    const of = (rows: { T: string; V: number }[], type: string, table: string) => {
+      const row = rows.find(v => String(v.T).trim() === type);
+      if (!row) throw new PackageCreateRefusedError(`${table} ${type} is missing.`);
+      return Number(row.V);
+    };
+    const n = actions.length;
+    const pbm = of(versions, 'PBM', 'PSVERSION') + n, lockPbm = of(locks, 'PBM', 'PSLOCK') + n;
+    const apm = of(versions, 'APM', 'PSVERSION') + 1, lockApm = of(locks, 'APM', 'PSLOCK') + 1, sys = of(versions, 'SYS', 'PSVERSION') + n + 1;
+    const [{ TS: stamp }] = await select<{ TS: string }>(c, `SELECT TO_CHAR(CAST(SYSTIMESTAMP AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM DUAL`);
+    for (const r of doomed) {
+      await expectRows(c, `DELETE FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :p AND QUALIFYPATH = :q`, { r: root, p: r.P, q: r.Q }, 1, 'Deleting subpackage');
+    }
+    await expectRows(c, `UPDATE PSPACKAGEDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op WHERE PACKAGEROOT = :r`,
+      { v: apm, ts: stamp, op: operatorId, r: root }, all.length - doomed.length, 'Updating package');
+    await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'PBM'`, { v: pbm }, 1, 'Updating PSVERSION PBM');
+    await expectRows(c, `UPDATE PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'PBM'`, { v: lockPbm }, 1, 'Updating PSLOCK PBM');
+    await bumpPackageSave(c, apm, sys, lockApm);
+    if (request.dryRun) await c.rollback(); else await c.commit();
+    return { version: apm, lastupddttm: stamp, deleted: doomed.map(pathOf) };
   } catch (error) {
     await c.rollback().catch(() => {});
     throw error;

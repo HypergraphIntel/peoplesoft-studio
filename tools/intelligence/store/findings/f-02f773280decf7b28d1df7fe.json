@@ -1,0 +1,165 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-02f773280decf7b28d1df7fe",
+  "fingerprint": "02f773280decf7b28d1df7febd8fce3f9028640439c45d0d62a4cbe1137bdefa",
+  "type": "serialization",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "expression-column",
+    "facts": {
+      "table": "PSQRYEXPR",
+      "fieldToken": " :%SELNUM.FLDNUM",
+      "columnName": "EXPn_headingLength",
+      "link": "PSQRYFIELD.FLDEXPNUM",
+      "HDGTYPE": 2,
+      "headingIsText": true,
+      "referencedFieldHidden": true,
+      "usePerToken": true
+    }
+  },
+  "title": "A query expression column is a PSQRYEXPR with field references as ' :%SELNUM.FLDNUM' and a PSQRYFIELD EXPn_<heading length> pointing to it by FLDEXPNUM",
+  "statement": "An expression added as a column is a PSQRYEXPR row (FIELDTYPE and LENGTH as entered) whose text writes each field reference as ' :%SELNUM.FLDNUM'; the column is a PSQRYFIELD named EXP<n>_<length of its heading> with FLDEXPNUM n, HDGTYPE 2 and the expression text as HEADING. A referenced field not yet in the query is added hidden; each reference counts one use.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-22T00:16:09.939Z",
+      "method": "save-capture",
+      "experimentId": "qex01-expression-column",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qex01-expression-column: A.FEMALE_GOAL * 2, Number 7: PSQRYEXPR 1 FIELDTYPE 2 LENGTH 7 text ' :%1.2 * 2'; field 2 A.FEMALE_GOAL hidden USECOUNT 1; field 3 EXP1_18, FLDEXPNUM 1, HDGTYPE 2, an 18-character heading.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qex01-expression-column"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "25eb15667c25dc01c0f20350e05fad99402226a9178d83fd6300972711898760"
+    },
+    {
+      "observedAt": "2026-10-22T00:17:25.648Z",
+      "method": "save-capture",
+      "experimentId": "qex02-second-expression",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qex02-second-expression: A.FEMALE_GOAL + 100, Number 5: PSQRYEXPR 2 LENGTH 5 text ' :%1.2 + 100'; field 4 EXP2_20, FLDEXPNUM 2; FEMALE_GOAL USECOUNT 1 -> 2.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 4,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qex02-second-expression"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "0854bc35ae933a4ee512a6af532a1a52f5a6b2b2bffab47e9a52373f97630a94"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:27:38.022Z",
+    "updatedAt": "2026-10-26T20:27:38.297Z",
+    "schemaVersion": 1
+  }
+}

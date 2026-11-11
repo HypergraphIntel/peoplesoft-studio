@@ -1,0 +1,116 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-b9aeec7e0001b58ab6fddf50",
+  "fingerprint": "b9aeec7e0001b58ab6fddf501b25851be218cbf0d0b5a0a98ec6748a5e5f0cb8",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "create-defaults",
+    "facts": {
+      "table": "PSQRYFIELD",
+      "HDGTYPE": 3,
+      "TTLTYPE": 1,
+      "XLATTYPE": 1,
+      "XLATEXPRTYPE": 6,
+      "COLUMNNUM": "next",
+      "QRYFLDNAME": "alias.FIELD"
+    }
+  },
+  "title": "A newly selected query field: QRYFLDNAME alias.FIELD, next COLUMNNUM, HDGTYPE 3, TTLTYPE 1, XLATTYPE 1, XLATEXPRTYPE 6",
+  "statement": "Selecting a field writes a PSQRYFIELD row named by the record alias and field (A.DESCR), at the next output column, with HDGTYPE 3, TTLTYPE 1 (no aggregate), XLATTYPE 1 (no translate) and XLATEXPRTYPE 6; PSQRYSELECT.FLDCOUNT counts it.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-14T15:09:20.640Z",
+      "method": "save-capture",
+      "experimentId": "qry09-add-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry09-add-field: field 2 A.DESCR inserted with COLUMNNUM 2, HDGTYPE 3, TTLTYPE 1, XLATTYPE 1, XLATEXPRTYPE 6; FLDCOUNT 1 -> 2.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry09-add-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "e61c3528a270ac0d0e17d7a8af9e721d47bf597d2281343600fff29c63c0034f"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:25:28.674Z",
+    "updatedAt": "2026-10-26T20:25:28.674Z",
+    "schemaVersion": 1
+  }
+}

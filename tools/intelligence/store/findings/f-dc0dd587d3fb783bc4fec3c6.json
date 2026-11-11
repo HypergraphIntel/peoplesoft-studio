@@ -1,0 +1,163 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-dc0dd587d3fb783bc4fec3c6",
+  "fingerprint": "dc0dd587d3fb783bc4fec3c6ca890b15e603ff8075e04fbbe5b4ce4be5047770",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "join-key-criterion",
+    "facts": {
+      "table": "PSQRYCRITERIA",
+      "EXPRTYPE": 2,
+      "CONDTYPE": 2,
+      "leftOuterQRYOJSELNUM": "recordNumber",
+      "countsAsUse": false,
+      "joinedKeyField": "hidden"
+    }
+  },
+  "title": "Joining a record in Windows Query adds a key criterion (field = field) that counts as no use of either field",
+  "statement": "A standard or left outer join adds a PSQRYCRITERIA row joining the key (CONDTYPE 2, EXPRTYPE 2, R1CRTSELNUM / R1CRTFLDNUM the other record's field); a left outer join's criterion carries QRYOJSELNUM 2 (the joined record's number in the captured case). Neither field's USECOUNT counts it. One standard and one outer join captured.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T23:57:57.664Z",
+      "method": "save-capture",
+      "experimentId": "qjn01-standard-join",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qjn01-standard-join: criterion 1 A.ESTABID = B.ESTABID (CONDTYPE 2, EXPRTYPE 2, R1CRTFLDNUM 3), QRYOJSELNUM 0; B.ESTABID added hidden (HDGTYPE 1, COLUMNNUM 0); both fields USECOUNT 0.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 4,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qjn01-standard-join"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "f6b91f18653649e1b84f8f49e6ccf69f7755397f2bc0cd8028e0e9305b2c9d91"
+    },
+    {
+      "observedAt": "2026-10-22T00:00:42.000Z",
+      "method": "save-capture",
+      "experimentId": "qjn03-left-outer",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qjn03-left-outer: criterion 1 A.ESTABID = B.ESTABID with QRYOJSELNUM 2; both fields USECOUNT 0.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qjn03-left-outer"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "143417ae12926b58528642017a687922e43da1ba13b59908cb2958e2a10f8105"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:27:27.157Z",
+    "updatedAt": "2026-10-26T20:27:27.435Z",
+    "schemaVersion": 1
+  }
+}

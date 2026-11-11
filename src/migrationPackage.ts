@@ -59,10 +59,10 @@ export type MigrationAsset =
   | { kind: 'process'; key: DefinitionKey; data: ProcessMigrationData }
   | { kind: 'filelayout'; key: DefinitionKey; data: FileLayoutDocument };
 /**
- * An Application Package root, its subpackage paths ('SUB1', 'SUB1:SUB2') and the root's Package Properties when not
- * blank; its classes travel as PeopleCode assets.
+ * An Application Package root, its subpackage paths ('SUB1', 'SUB1:SUB2'), the root's Package Properties when not
+ * blank and the owner ID of each subpackage that has one; its classes travel as PeopleCode assets.
  */
-export interface PackageMigrationData { name: string; packages: string[]; description?: string; comments?: string; ownerId?: string }
+export interface PackageMigrationData { name: string; packages: string[]; description?: string; comments?: string; ownerId?: string; subpackageOwners?: Record<string, string> }
 export interface StudioMigrationPackage {
   format: 'psft-migration/1';
   project: string;
@@ -206,6 +206,10 @@ export function checkedPackageMigration(data: PackageMigrationData): PackageMigr
     if (i && data.packages[i - 1] >= path) throw new Error(data.name + ': subpackage paths must be unique and ordered.');
     if (parts.length === 2 && !data.packages.includes(parts[0])) throw new Error(data.name + ': subpackage ' + path + ' has no parent.');
   }
+  for (const [path, owner] of Object.entries(data.subpackageOwners ?? {})) {
+    if (!data.packages.includes(path)) throw new Error(data.name + ': owner ID for unknown subpackage ' + path + '.');
+    if (!/^[A-Z0-9_]{1,4}$/.test(owner)) throw new Error(data.name + ': invalid owner ID for subpackage ' + path + '.');
+  }
   return data;
 }
 
@@ -304,7 +308,8 @@ const assetSchema = z.discriminatedUnion('kind', [
     description: z.string().max(30), definition: z.string(), ownerId: z.string().max(4) }).strict() }).strict(),
   z.object({ kind: z.literal('ae'), key: keySchema, data: aeSchema }).strict(),
   z.object({ kind: z.literal('package'), key: keySchema, data: z.object({ name, packages: z.array(z.string()).max(1000),
-    description: z.string().min(1).max(30).optional(), comments: z.string().min(1).max(4000).optional(), ownerId: z.string().regex(/^[A-Z0-9_]{1,4}$/).optional() }).strict() }).strict(),
+    description: z.string().min(1).max(30).optional(), comments: z.string().min(1).max(4000).optional(), ownerId: z.string().regex(/^[A-Z0-9_]{1,4}$/).optional(),
+    subpackageOwners: z.record(z.string(), z.string()).optional() }).strict() }).strict(),
   z.object({ kind: z.literal('page'), key: keySchema, data: z.object({ name: z.string(), native: z.custom<PageMigrationData['native']>(v => !!v && typeof v === 'object') }).strict() }).strict(),
   z.object({ kind: z.literal('component'), key: keySchema, data: z.object({ name: z.string(), market: z.string(), tables: z.custom<ComponentMigrationData['tables']>(v => !!v && typeof v === 'object') }).strict() }).strict()
 ]);

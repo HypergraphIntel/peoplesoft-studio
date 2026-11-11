@@ -3,7 +3,7 @@ import type {RuntimeRequest} from '../processRuntime/protocol.js';
 import { readQueryMigration } from './queryWriter.js';
 import { readMenuMigration } from './menuMigration.js';
 import { readContentMigration } from './contentMigration.js';
-import { compileForSave as compileReviewedSource, compileTargetFor as reviewedCompileTarget, prepareSourceForSave as normalizeReviewedSource } from '../peoplecode/writeback/savePlan.js';
+import { checkStoredProgram, compileForSave as compileReviewedSource, compileTargetFor as reviewedCompileTarget, prepareSourceForSave as normalizeReviewedSource } from '../peoplecode/writeback/savePlan.js';
 import { observeManualHistory } from '../changeReview/manualHistory.js';
 import { readTextDefinitionState, writeTextDefinition, type TextDefinitionKind, type TextDefinitionWriteRequest } from './textDefinitionWriter.js';
 import { saveOAuth, type OAuthSaveRequest } from './securityWriter.js';
@@ -912,10 +912,11 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   /**
-   * Package structure for migration: subpackage paths (root excluded) and class paths, both 'A:B' and sorted.
-   * Description, owner, comments and references have no writer yet, so non-blank values refuse.
+   * Package structure for migration: subpackage paths (root excluded) and class paths, both 'A:B' and sorted, the
+   * root's Package Properties and each subpackage's owner ID. Subpackage and class descriptions and comments, and
+   * package references, have no writer yet, so non-blank values refuse.
    */
-  async readPackageForMigration(root: string): Promise<{ data: { name: string; packages: string[]; description?: string; comments?: string; ownerId?: string }; classes: string[]; token: string; version: number } | undefined> {
+  async readPackageForMigration(root: string): Promise<{ data: { name: string; packages: string[]; description?: string; comments?: string; ownerId?: string; subpackageOwners?: Record<string, string> }; classes: string[]; token: string; version: number } | undefined> {
     return this.withConnection(async c => {
       await c.execute('SET TRANSACTION READ ONLY');
       try {
@@ -927,21 +928,25 @@ export class DatabaseProvider implements DefinitionProvider {
         if (!head) return undefined;
         const classes = (await c.execute<{ ID: string; Q: string; D: string; R: string }>(
           `SELECT APPCLASSID AS ID, QUALIFYPATH AS Q, DESCR AS D, APPCLASSREF AS R FROM PSAPPCLASSDEFN WHERE PACKAGEROOT = :r`, { r: root })).rows ?? [];
-        // Package Properties belong to the root (pk01); subpackage/class metadata has no calibrated writer.
-        if (packages.some(p => p !== head && (p.D.trim() || p.O.trim() || Number(p.DL))) || packages.some(p => p.R.trim()) || classes.some(k => k.D.trim() || k.R.trim()))
-          throw new ProviderError(root + ': subpackage or class descriptions, owners, comments and package references are not migrated yet.');
+        // Package Properties belong to the root (pk01). A subpackage's owner travels as App Designer's project copy carries
+        // it (one per package node); its other metadata and class metadata have no calibrated writer.
+        if (packages.some(p => p !== head && (p.D.trim() || Number(p.DL))) || packages.some(p => p.R.trim()) || classes.some(k => k.D.trim() || k.R.trim()))
+          throw new ProviderError(root + ': subpackage or class descriptions, comments and package references are not migrated yet.');
         if (Number(head.DL) > 1) throw new ProviderError(root + ': package comments over 4,000 characters are not migrated yet.');
         if (packages.some(p => Number(p.L) > 2)) throw new ProviderError(root + ': packages deeper than two subpackages are not migrated.');
         const path = (q: string, id: string) => [...q.trim().split(':').filter(s => s && s !== '.'), id].join(':');
         const order = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
         const subs = packages.filter(p => p !== head).map(p => path(p.Q, p.ID.trim())).sort(order);
+        const owned = packages.filter(p => p !== head && p.O.trim()).map(p => [path(p.Q, p.ID.trim()), p.O.trim()] as const).sort((a, b) => order(a[0], b[0]));
+        const subpackageOwners = owned.length ? Object.fromEntries(owned) : undefined;
         // A class's QUALIFYPATH is its full subpackage path (':' at the root).
         const names = classes.map(k => [...k.Q.trim().split(':').filter(Boolean), k.ID.trim()].join(':')).sort(order);
         // Creating a class moves every package row's VERSION (c06), so the token is the structure, not VERSION:
         // a dependent class save must not look like a change to its verified package.
         const meta = { description: head.D.trimEnd(), comments: head.T ?? '', ownerId: head.O.trim() };
         const stated = Object.fromEntries(Object.entries(meta).filter(([, v]) => v));
-        return { data: { name: root, packages: subs, ...stated }, classes: names, token: 'structure:' + reviewHash({ root, subs, ...meta }), version: Number(head.V) };
+        return { data: { name: root, packages: subs, ...stated, ...(subpackageOwners ? { subpackageOwners } : {}) }, classes: names,
+          token: 'structure:' + reviewHash({ root, subs, ...meta, ...(subpackageOwners ? { subpackageOwners } : {}) }), version: Number(head.V) };
       } finally { await c.rollback(); }
     });
   }
@@ -1675,6 +1680,9 @@ export class DatabaseProvider implements DefinitionProvider {
     const ids = stored?.key.objectIds ?? (key.type === DefinitionType.ApplicationClassPeopleCode ? classIds() : PEOPLECODE_OBJECTIDS[key.type]);
     if (!ids) throw new ProviderError('PeopleCode key shape is not calibrated for review.');
     const release = await this.databaseRelease();
+    // The writer refuses to replace a stored program it cannot reproduce (its metadata, or source that does not re-encode
+    // to its PSPCMPROG). Asked here too, so the set is refused at validation instead of stopping half-applied (E37).
+    if (stored && stored.program.length) checkStoredProgram(stored, reviewedCompileTarget(stored.key), release.toolsRelease);
     compileReviewedSource(normalizeReviewedSource(source), reviewedCompileTarget({ objectIds: ids, objectValues: stored?.key.objectValues ?? parts }), release.toolsRelease);
   }
 
@@ -3431,9 +3439,16 @@ export class DatabaseProvider implements DefinitionProvider {
     if (!ids.length) return out;
     await this.withConnection(async (c) => {
       for (const id of new Set(ids.map((i) => i.trim().toUpperCase()))) {
-        const [row] = (await c.execute<{ T: string }>(`SELECT SQLTEXT AS T FROM PSSQLTEXTDEFN WHERE SQLID = :i`, { i: id })).rows ?? [];
-        if (!row?.T) continue;
-        const text = String(row.T);
+        // SQLTEXT is a CLOB: fetched as text, or node-oracledb hands back a LOB
+        // object whose String() is "[object Object]" -- no markers, no columns.
+        // Long text spans several SEQNUM rows; the platform's own text wins.
+        const rows = (await c.execute<{ D: string; T: string }>(
+          `SELECT DBTYPE AS D, SQLTEXT AS T FROM PSSQLTEXTDEFN WHERE SQLID = :i AND SQLTYPE = '0' AND DBTYPE IN (' ', '2') ORDER BY DBTYPE DESC, SEQNUM`,
+          { i: id }, { fetchInfo: { T: { type: this.types.STRING } } })).rows ?? [];
+        const dbtype = rows[0]?.D;
+        if (dbtype === undefined) continue;
+        const text = rows.filter((x) => x.D === dbtype).map((x) => String(x.T ?? '')).join('');
+        if (!text) continue;
         out.set(id, { binds: bindMarkerCount(text), columns: selectList(text.replace(/\/\*[\s\S]*?\*\//g, ' '))?.length ?? 0 });
       }
     });

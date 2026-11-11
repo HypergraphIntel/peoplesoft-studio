@@ -1,0 +1,128 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-462db1bbf4ab79d542127b5c",
+  "fingerprint": "462db1bbf4ab79d542127b5cb18ba8ad5a4648a1f0b9c8b321f861c0f4aa6554",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "customization",
+    "objectType": "Drop Zone configuration"
+  },
+  "assertion": {
+    "kind": "drop-zone-remove",
+    "facts": {
+      "deleted": "PSPTCS_MNULINKS,PSPTCS_MNUFLDRS,PSPTCS_MENU_TBL,PSPTCS_MAPFLDS,PSPTCSSRVCONF",
+      "menuTombstone": "PSPTCSMNUTBLDEL at new RCMTM",
+      "configurationTombstone": "PSPTCSSRVCNFDEL at new SCNFM",
+      "serviceKept": true,
+      "ownerConfig": "PSPTCS_SRVCFG re-saved at new RCSCM"
+    }
+  },
+  "title": "Removing a drop zone's subpage deletes its configuration, map, menu, folder and link, writes PSPTCSMNUTBLDEL and PSPTCSSRVCNFDEL, and keeps the service",
+  "statement": "Clearing a drop zone in Configure Drop Zones deletes its PSPTCS_MNULINKS, PSPTCS_MNUFLDRS, PSPTCS_MENU_TBL, PSPTCS_MAPFLDS and PSPTCSSRVCONF rows, inserts PSPTCSMNUTBLDEL at the new RCMTM and PSPTCSSRVCNFDEL at the new SCNFM, re-saves PSPTCS_SRVCFG (deleted and inserted) at the new RCSCM, and leaves the subpage's PSPTCSSRVDEFN. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T23:57:19.589Z",
+      "method": "save-capture",
+      "experimentId": "dz02-remove",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Capture dz02-remove (8.62.09): the five rows deleted; PSPTCSMNUTBLDEL VERSION 4 = RCMTM after; PSPTCSSRVCNFDEL VERSION 59 = SCNFM after; PSPTCS_SRVCFG VERSION 15 -> 16 = RCSCM after; PSPTCSSRVDEFN untouched.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSADSTRACKING",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 3
+          },
+          {
+            "table": "PSPTCSMNUTBLDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCSSRVCNFDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCSSRVCONF",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_MAPFLDS",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_MENU_TBL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_MNUFLDRS",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_MNULINKS",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_SRVCFG",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RCSCM": 1,
+          "SCNFM": 1,
+          "RCMTM": 1,
+          "SYS": 3
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "dz02-remove"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        }
+      ],
+      "digest": "90561b70c86c7ffa20e4db36920c1b240b4695b88bb5fc1b60b88166641c9d8f"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:35:04.472Z",
+    "updatedAt": "2026-10-26T20:35:04.472Z",
+    "schemaVersion": 1
+  }
+}

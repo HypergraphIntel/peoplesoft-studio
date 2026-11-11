@@ -1,9 +1,11 @@
 # 1.0 support contract and qualification
 
 This contract names the qualified bounded 1.0 core. Product status is
-**CORE_READY**; the qualified core ships in release **0.9.8** and later.
-Release **0.9.9** adds the accepted 1.5 workflows outside this core (see
-[Accepted 1.5 workflows](#accepted-15-workflows-099)).
+**CORE_READY**; the qualified core shipped first in release **0.9.8** and is
+published as version **1.0.0** ([notes](releases/1.0.0.md)). Release **0.9.9**
+added the accepted 1.5 workflows outside this core (see
+[Accepted 1.5 workflows](#accepted-15-workflows-099)); they ship in 1.0.0 with
+the same limits.
 The active evidence tracker is [1.0 progress](releases/1.0/PROGRESS.md).
 The shared product model is `src/model/releaseSupport.ts`, surfaced in Settings,
 tool-pane descriptions, MCP orientation and operation-level capability entries.

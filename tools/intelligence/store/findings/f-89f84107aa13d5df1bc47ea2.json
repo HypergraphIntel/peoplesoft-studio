@@ -1,0 +1,83 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-89f84107aa13d5df1bc47ea2",
+  "fingerprint": "89f84107aa13d5df1bc47ea2eee5ab4bca6513e22acbe71b334f6cc4ee7ef8b9",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "field-move",
+    "facts": {
+      "table": "PSFLDFIELDDEFN",
+      "column": "FLDSEQNO",
+      "swap": true,
+      "starts": "unchanged"
+    }
+  },
+  "title": "Moving a File Layout field one place swaps two FLDSEQNOs and changes no start",
+  "statement": "Moving a file field up or down one place swaps the FLDSEQNO of the two fields; FLDSTART is not recomputed. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:21:23.862Z",
+      "method": "save-capture",
+      "experimentId": "fl11-move-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl11-move-field: COMPANY 9 -> 8 and COVRG_CD 8 -> 9; nothing else changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl11-move-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "eb081bc3888b21ff6120583b48e1fa7ad80fb5d1b65053ac4569b580cfe3532f"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:21:23.869Z",
+    "updatedAt": "2026-10-26T20:21:23.869Z",
+    "schemaVersion": 1
+  }
+}

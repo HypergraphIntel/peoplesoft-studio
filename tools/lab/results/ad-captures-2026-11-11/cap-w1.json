@@ -1,0 +1,109 @@
+{
+ "PSVERSION": [
+  {
+   "OBJECTTYPENAME": "APM",
+   "VERSION": 459
+  },
+  {
+   "OBJECTTYPENAME": "PBM",
+   "VERSION": 68
+  },
+  {
+   "OBJECTTYPENAME": "PCM",
+   "VERSION": 1284
+  },
+  {
+   "OBJECTTYPENAME": "PJM",
+   "VERSION": 560
+  },
+  {
+   "OBJECTTYPENAME": "RDM",
+   "VERSION": 752
+  },
+  {
+   "OBJECTTYPENAME": "SYS",
+   "VERSION": 7183
+  }
+ ],
+ "PSLOCK": [
+  {
+   "OBJECTTYPENAME": "APM",
+   "VERSION": 459
+  },
+  {
+   "OBJECTTYPENAME": "PBM",
+   "VERSION": 68
+  },
+  {
+   "OBJECTTYPENAME": "PCM",
+   "VERSION": 1284
+  },
+  {
+   "OBJECTTYPENAME": "PJM",
+   "VERSION": 560
+  },
+  {
+   "OBJECTTYPENAME": "RDM",
+   "VERSION": 752
+  },
+  {
+   "OBJECTTYPENAME": "SYS",
+   "VERSION": 2
+  }
+ ],
+ "PSPACKAGEDEFN": [
+  {
+   "PACKAGEID": "ZZ_SUBPKG_LAB",
+   "PACKAGEROOT": "ZZ_SUBPKG_LAB",
+   "QUALIFYPATH": ".",
+   "PACKAGELEVEL": 0,
+   "PACKAGEREF": " ",
+   "DESCR": " ",
+   "VERSION": 459,
+   "LASTUPDDTTM": "Wed Nov 11 2026 09:10:51 GMT-0600 (Central Standard Time)",
+   "LASTUPDOPRID": "JARED",
+   "OBJECTOWNERID": " ",
+   "DESCRLONG": null
+  }
+ ],
+ "PSPACKAGEDEL": [],
+ "PSAPPCLASSDEFN": [],
+ "PSRECDEFN": [
+  {
+   "RECNAME": "WEBLIB_ZZ_LIC",
+   "RECTYPE": 2,
+   "VERSION": 752,
+   "FIELDCOUNT": 2,
+   "LASTUPDOPRID": "JARED"
+  }
+ ],
+ "PSPCMPROG": [
+  {
+   "OBJECTVALUE1": "WEBLIB_ZZ_LIC",
+   "OBJECTVALUE2": "ISCRIPT1",
+   "OBJECTVALUE3": "FieldFormula",
+   "PROGSEQ": 0,
+   "VERSION": 1284,
+   "PROGLEN": 136,
+   "PROGRUNLOC": 0,
+   "PROGFLAGS": 0,
+   "LICENSE_CODE": "o8qln7ICBVv0OrM18Xhb7fQ6szXxeFvtL0/vgW1BO/o=",
+   "LASTUPDOPRID": "JARED",
+   "PROGEXTENDS": " ",
+   "PTTOOLSREL": " ",
+   "NAMECOUNT": 1,
+   "PROGTXT": "hex:a0000000003b0000000000000014000000000000000100000000000000010000..(136)"
+  }
+ ],
+ "PSPCMTXT": [
+  {
+   "OBJECTVALUE1": "WEBLIB_ZZ_LIC",
+   "OBJECTVALUE2": "ISCRIPT1",
+   "OBJECTVALUE3": "FieldFormula",
+   "PROGSEQ": 0,
+   "HASH_SIGNATURE": "okSsHI1t+nyhQPs7rccOw1cJaNoA",
+   "PCTEXT": "Function IScript_A()\n   Local string &s = \"a\";\nEnd-Function;\n\n"
+  }
+ ],
+ "PSPCMPROGDEL": []
+}

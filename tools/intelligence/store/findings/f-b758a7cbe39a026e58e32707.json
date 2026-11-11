@@ -1,0 +1,95 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-b758a7cbe39a026e58e32707",
+  "fingerprint": "b758a7cbe39a026e58e32707f6543889b397ca08b59ccf69ee2116e8c2f9546a",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSFLDSEGDEFN",
+      "recordId": "FLDSEGID",
+      "idStart": "FLDSEGIDSTART",
+      "idLength": "FLDSEGIDLENGTH",
+      "idSeqNo": "FLDIDSEQNO",
+      "defaultQualifier": "FLDQUALIFIER",
+      "delimiterType": "FLDDELIMITERTYPE",
+      "delimiterOther": 4,
+      "delimiter": "FLDDELIMITER",
+      "description": "DESCR100"
+    }
+  },
+  "title": "A File Layout segment's record ID, ID start and length, qualifier, delimiter and description are PSFLDSEGDEFN columns; Other delimiter is type 4",
+  "statement": "Segment properties are stored on PSFLDSEGDEFN: File Record ID FLDSEGID, its start FLDSEGIDSTART and length FLDSEGIDLENGTH, ID Seq No FLDIDSEQNO, Default Qualifier FLDQUALIFIER, Field Delimiter FLDDELIMITERTYPE (Other = 4) with the character in FLDDELIMITER, description DESCR100. One capture changed all of them in one save.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:21:19.796Z",
+      "method": "save-capture",
+      "experimentId": "fl04-segment-props",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl04-segment-props: FLDSEGID ' ' -> '1', FLDSEGIDSTART 0 -> 1, FLDSEGIDLENGTH 0 -> 1, FLDIDSEQNO 0 -> 1, FLDQUALIFIER ' ' -> a quote, FLDDELIMITERTYPE 0 -> 4 with FLDDELIMITER ',' -> '|', DESCR100 set.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 12
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl04-segment-props"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "8adc47971313d630c8ea1c9e88fe79f5296578b8a083933701b5ae2e33da7b61"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:21:19.803Z",
+    "updatedAt": "2026-10-26T20:21:19.803Z",
+    "schemaVersion": 1
+  }
+}

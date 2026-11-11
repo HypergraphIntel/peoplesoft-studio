@@ -139,6 +139,14 @@ test('View PeopleCode: the component\'s programs, objects and events as App Desi
   assert.deepEqual(componentPeopleCodeKey('JOB_DATA', 'GBL', {}, 'PostBuild'), { type: 46, parts: ['JOB_DATA', 'GBL', 'PostBuild'] });
 });
 
+test('a keyless Derived/Work record is refused as a search record', async () => {
+  const { searchRecordRefusal } = await import('../model/componentDefinition.js');
+  assert.match(searchRecordRefusal('ZZ_PCODE_LAB_WRK', { type: 2, keys: [] })!, /use INSTALLATION as the search record/);
+  assert.equal(searchRecordRefusal('ZZ_PCODE_LAB_WRK', { type: 2, keys: ['OPRID'] }), undefined);
+  assert.equal(searchRecordRefusal('INSTALLATION', { type: 0, keys: [] }), undefined);
+  assert.equal(searchRecordRefusal('ZZ_PCODE_LAB_WRK', undefined), undefined);
+});
+
 test('a component is not saved without a search record', async () => {
   const { componentSaveRefusal } = await import('../model/componentDefinition.js');
   assert.match(componentSaveRefusal({ name: 'ZZ_PCODE_LAB_CMP', searchRecord: ' ' })!, /no search record\. Add one in Component Properties > Use/);

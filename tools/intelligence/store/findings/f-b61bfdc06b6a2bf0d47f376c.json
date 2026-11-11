@@ -1,0 +1,90 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-b61bfdc06b6a2bf0d47f376c",
+  "fingerprint": "b61bfdc06b6a2bf0d47f376c22c06316917e9d2de940c33de3431e307dd0c111",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "project",
+    "objectType": "Project"
+  },
+  "assertion": {
+    "kind": "delete-tombstone",
+    "facts": {
+      "table": "PSPROJECTDEL",
+      "version": "newPJM",
+      "PJM": 1,
+      "SYS": 1,
+      "rowsDeleted": "PSPROJECTDEFN,PSPROJECTITEM"
+    }
+  },
+  "title": "Deleting a project removes its PSPROJECTDEFN and PSPROJECTITEM rows and writes PSPROJECTDEL at the new PJM",
+  "statement": "App Designer's Delete of a project deletes its PSPROJECTDEFN and every PSPROJECTITEM row (not the definitions it lists), inserts PSPROJECTDEL with VERSION the new PJM, and moves PJM and SYS by one. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-20T21:19:07.923Z",
+      "method": "save-capture",
+      "experimentId": "qp01-native-project-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture qp01-native-project-delete: PSPROJECTDEFN and 2 PSPROJECTITEM rows deleted; PSPROJECTDEL VERSION 191 = PJM after; PJM +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPROJECTDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPROJECTDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPROJECTITEM",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PJM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qp01-native-project-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/QUERY_PROJECT_DELETION.md"
+        }
+      ],
+      "digest": "966aa59a0b2edeb85b38e4ea44dbe4e09311427a77c05d60ecd8007f7637c1e1"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:31:32.368Z",
+    "updatedAt": "2026-10-26T20:31:32.368Z",
+    "schemaVersion": 1
+  }
+}

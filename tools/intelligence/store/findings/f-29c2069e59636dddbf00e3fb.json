@@ -1,0 +1,89 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-29c2069e59636dddbf00e3fb",
+  "fingerprint": "29c2069e59636dddbf00e3fbac313f1c4af50af72e8afb12022f2d2154d8de0b",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "segment-qualifier-propagates",
+    "facts": {
+      "table": "PSFLDFIELDDEFN",
+      "column": "FLDQUALIFIER",
+      "source": "PSFLDSEGDEFN.FLDQUALIFIER",
+      "scope": "everyFieldOfSegment"
+    }
+  },
+  "title": "Setting a File Layout segment's Default Qualifier writes it to every field of the segment",
+  "statement": "When a segment's Default Qualifier is set, App Designer saves the same character into PSFLDFIELDDEFN.FLDQUALIFIER of every field in that segment. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:21:20.080Z",
+      "method": "save-capture",
+      "experimentId": "fl04-segment-props",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl04-segment-props: the segment's FLDQUALIFIER ' ' -> a quote, and all 12 of its PSFLDFIELDDEFN rows' FLDQUALIFIER ' ' -> the same quote.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 12
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl04-segment-props"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "54d3594d1c02d97da77e6e84e69e6c3759b5b79f678210d65a49986588354fc9"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:21:20.087Z",
+    "updatedAt": "2026-10-26T20:21:20.087Z",
+    "schemaVersion": 1
+  }
+}

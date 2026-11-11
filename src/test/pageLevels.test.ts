@@ -43,6 +43,16 @@ test('App Designer\'s save messages for an invalid page (e1, e2, e4, lv17)', () 
   assert.deepEqual(texts([...base.slice(0, 5), bar, ...base.slice(5)]), ['No data for scroll: ZZ_PCODE_LAB_LV.Scroll Bar. (15,19)']);
 });
 
+test('a scroll of only Derived/Work fields has no data (15,19); a Dynamic View or a subpage does', () => {
+  const grid = { fieldType: 19, occursLevel: 1, fieldUse: 0x1000, recName: 'G', fieldName: '', recType: 2, label: 'Rows' };
+  const col = (recType: number) => ({ fieldType: 4, occursLevel: 1, fieldUse: 1, recName: 'G', fieldName: 'F', recType, label: '' });
+  assert.deepEqual(checkPageScrolls('P', [grid, col(2), col(2)]).map((p) => p.text), ['No data for scroll: P.Rows.']);
+  assert.deepEqual(checkPageScrolls('P', [grid, col(5), col(5)]), []);
+  assert.deepEqual(checkPageScrolls('P', [grid, col(2), { ...col(0), recName: 'T' }]), []);
+  assert.deepEqual(checkPageScrolls('P', [grid, col(-1)]), [], 'an unknown record type is not refused');
+  assert.deepEqual(checkPageScrolls('P', [grid, col(2), { fieldType: 11, occursLevel: 1, fieldUse: 0, recName: '', fieldName: '', recType: -1, label: '' }]), []);
+});
+
 test('a related display must follow its control field in the same scroll; ASSOCFIELDNUM 0 is the first control', () => {
   const f = (recName: string, fieldName: string, over: Partial<CheckedControl> = {}): CheckedControl =>
     ({ fieldType: 4, occursLevel: 0, fieldUse: 0, recName, fieldName, label: '', recType: 0, ...over });

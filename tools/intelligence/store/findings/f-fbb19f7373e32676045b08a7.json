@@ -1,0 +1,184 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-fbb19f7373e32676045b08a7",
+  "fingerprint": "fbb19f7373e32676045b08a7ddc6c1b3cdc5b2ff457901d963a3ea22a23ee93c",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "unused-prompt-kept",
+    "facts": {
+      "table": "PSQRYBIND",
+      "USECOUNT": 0,
+      "rowKept": true
+    }
+  },
+  "title": "A query prompt no criterion uses keeps its PSQRYBIND row with USECOUNT 0",
+  "statement": "Removing the last criterion that uses a prompt leaves its PSQRYBIND row, USECOUNT 0, and PSQRYDEFN.BNDCOUNT unchanged; a later prompt takes the next number.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-14T15:10:20.419Z",
+      "method": "save-capture",
+      "experimentId": "qry10-no-criteria",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry10-no-criteria: the prompt's criterion and expression deleted; BIND1 kept with USECOUNT 1 -> 0; BNDCOUNT stays 1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry10-no-criteria"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "7a881d0dd18e7cbeb4ce58241d69d8e6beeaebbdb9deb2a8020047efb878f716"
+    },
+    {
+      "observedAt": "2026-10-14T15:31:20.782Z",
+      "method": "save-capture",
+      "experimentId": "qry13-text-prompt",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry13-text-prompt: a new prompt is BIND2 (':2') while the unused BIND1 stays, USECOUNT 0.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry13-text-prompt"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "312f91de63dbd86dac291afc5f2c6817eb181e06186472c08645025a699d6c49"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:26:21.446Z",
+    "updatedAt": "2026-10-26T20:26:21.740Z",
+    "schemaVersion": 1
+  }
+}

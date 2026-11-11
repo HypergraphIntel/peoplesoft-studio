@@ -2,8 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ADAPTER_TYPES } from '../db/connection.js';
 import { readStructuredSnapshot, type StructuredFamily } from '../providers/structuredSnapshot.js';
-import { recordHeaderRequest, recordStructureRequest, aeHeaderDocument, headerProposal, headerChange, structuredHeaderDiff } from '../changeReview/structuredHeaders.js';
+import { recordHeaderRequest, recordStructureRequest, recordEditFromProposal, aeHeaderDocument, headerProposal, headerChange, structuredHeaderDiff } from '../changeReview/structuredHeaders.js';
 import { saveRecord } from '../providers/recordWriter.js';
+import { applyRecordOperations } from '../model/recordOperations.js';
 import { saveAppEngine, readStoredAppEngine, documentOf, appEngineToken } from '../providers/appEngineWriter.js';
 import { structuredTransaction } from './fixtures/structuredTransaction.js';
 import { hash, type Json } from '../changeReview/model.js';
@@ -132,4 +133,29 @@ test('record field structure: insert/remove/move reproduce exactly; the checkpoi
     // A restored row outside a reviewed save is refused.
     const restore = recordStructureRequest(f.name, start.value, insertAfter, start.version, 'JARED');
     await assert.rejects(saveRecord(f.connection, { ...restore, edit: { ...restore.edit, openedVersion: (await readStructuredSnapshot(f.connection, ADAPTER_TYPES, 'record', f.name)).version } }, ADAPTER_TYPES), /only done by a reviewed/);
+});
+
+test('E22: a second Record edit in one Change Set builds on the staged proposal instead of dropping it', async () => {
+    const f = structuredTransaction('record');
+    const start = await readStructuredSnapshot(f.connection, ADAPTER_TYPES, 'record', f.name);
+    const preview = (edit: Parameters<typeof saveRecord>[1]['edit']) => saveRecord(f.connection, { edit, operatorId: 'JARED',
+        expectedSnapshotToken: start.token, dryRun: true, captureSnapshots: true }, ADAPTER_TYPES);
+    const live = { recname: f.name, recordType: 2 as const, openedVersion: start.version, fields: [{ name: 'DESCR', useEdit: 0, useEdit2: 0, isNew: false }] };
+    // First call: insert NAME. Its native after-image is what the set stages.
+    const first = (await preview(applyRecordOperations(live, 2, [{ op: 'insert_field', field: 'NAME' }]))).snapshots!.after.value as unknown as Json;
+    // The staged proposal, read back as an editor state, reproduces itself exactly.
+    const resumed = recordEditFromProposal(f.name, start.value, first, start.version);
+    assert.equal(resumed.fields.find(x => x.name === 'NAME')?.restore, undefined, 'an inserted field carries settings, not a frozen row');
+    assert.equal((await preview(resumed)).snapshots!.after.hash, hash(first));
+    // Second call: change the header. Built on the proposal, NAME stays; built on the live record (the bug), it is lost.
+    const second = (await preview(applyRecordOperations(resumed, 2, [{ op: 'set_properties', description: 'Second edit' }]))).snapshots!.after.value;
+    assert.deepEqual([...second.tables.PSRECFIELD].sort((a, b) => Number(a.FIELDNUM) - Number(b.FIELDNUM)).map(r => String(r.FIELDNAME).trim()), ['DESCR', 'NAME']);
+    assert.equal(String(second.tables.PSRECDEFN[0].RECDESCR).trim(), 'Second edit');
+    // A later operation can still change a field the earlier call inserted.
+    const third = (await preview(applyRecordOperations(resumed, 2, [{ op: 'move_field', field: 'NAME' }]))).snapshots!.after.value;
+    assert.deepEqual([...third.tables.PSRECFIELD].sort((a, b) => Number(a.FIELDNUM) - Number(b.FIELDNUM)).map(r => String(r.FIELDNAME).trim()), ['NAME', 'DESCR']);
+    // A staged row with a column no editor operation sets cannot be carried forward.
+    const odd = structuredClone(first) as { tables: Record<string, Record<string, Json>[]> };
+    odd.tables.PSRECFIELD.find(r => String(r.FIELDNAME).trim() === 'NAME')!.CURCTLFIELDNAME = 'CTRL';
+    assert.throws(() => recordEditFromProposal(f.name, start.value, odd as unknown as Json, start.version), /CURCTLFIELDNAME/);
 });

@@ -161,3 +161,11 @@ test('a new Scroll Area\'s PSPNLCNTRLDATA and PSPNLBTNDATA rows are App Designer
   assert.deepEqual(rows.buttons.map(asStrings), read('PSPNLBTNDATA'));
   assert.deepEqual(newControlDataRows('P', 4, 'scrollBar'), { buttons: [] });
 });
+
+test('a push button given a label is a Text button; a fresh one stays an Image button', () => {
+  const placed = (lblText: string) => ({ fieldLeft: 10, fieldTop: 10, fieldRight: 150, fieldBottom: 32, fieldSizeType: 3, lblType: 1, lblText, fieldUse: 0, secureInvisible: 0 });
+  const add = { kind: 'pushButton' as const, recName: 'ZZ_PCODE_LAB_T', fieldName: 'ZZ_PCODE_LAB_KEY' };
+  const info = char('ZZ_PCODE_LAB_KEY', 'Key', 10);
+  assert.equal(newControlRows('P', 9, 1, add, placed('Store Credential'), info).field.PBDISPLAYTYPE, 0);
+  assert.equal(newControlRows('P', 9, 1, add, placed(''), info).field.PBDISPLAYTYPE, 2);
+});

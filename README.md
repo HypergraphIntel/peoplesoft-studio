@@ -9,17 +9,19 @@ experimental) or opens an Application Designer project export. Every connection
 is read-only until you make it writable; then definitions are saved natively,
 writing the same rows Application Designer writes.
 
-> **Development status:** a focused 1.0 core is qualified for Oracle /
-> PeopleTools 8.62.09 on Linux and Windows x64. Preview features retain their
-> documented limits; see the [support contract](docs/SUPPORT_MATRIX.md) and
-> [Disclaimer](#disclaimer). This qualified core ships in releases 0.9.8 and later.
+> **Development status:** version 1.0 is the focused core qualified for
+> Oracle / PeopleTools 8.62.09 on Linux and Windows x64. Preview features retain
+> their documented limits; see the [support contract](docs/SUPPORT_MATRIX.md)
+> and [Disclaimer](#disclaimer). 1.0 is not full Application Designer parity.
 
-Current release: **0.9.9 — October 23, 2026** (structural Change Review for
-pages, records, App Engine and Application Packages; promotion between Oracle
-environments; every PS Query family on PeopleTools 8.61.15; Run and Monitor
-native acceptance; Windows AI handoff). See the
-[release notes](docs/releases/0.9.9.md), [changelog](CHANGELOG.md) and
-[download the VSIX](https://github.com/HypergraphIntel/peoplesoft-studio/releases/tag/v0.9.9).
+Current release: **1.0.0 — November 2, 2026**. The qualified core is now
+version 1.0. This release also adds Fluid pages and components through the
+MCP, and eleven new PeopleCode rules that refuse, before the save, programs App
+Designer or PIA would refuse. The 1.5 workflows from 0.9.9 remain, with their
+limits: structural Change Review, promotion between Oracle environments, Query
+on 8.61.15, Run and Monitor and the Windows AI handoff. See the
+[release notes](docs/releases/1.0.0.md), [changelog](CHANGELOG.md) and
+[download the VSIX](https://github.com/HypergraphIntel/peoplesoft-studio/releases/tag/v1.0.0).
 
 Track completion gates in [1.0 readiness](docs/RELEASE_1_0_READINESS.md).
 
@@ -263,7 +265,7 @@ reproducing App Designer's saves; **Read-only** = viewer, from the database;
 
 ## What does **not** work yet
 
-- Migration of the explicitly refused shapes (custom index DDL, translations, subpackage/class metadata, nested or SQL Table subrecords, updates to indexed records), undo of a promotion that creates a process definition, of definition families outside those listed in [Project migration](docs/PROJECT_MIGRATION.md), and between database platforms
+- Migration of the explicitly refused shapes (custom index DDL, translations, subpackage descriptions/comments and class descriptions, nested or SQL Table subrecords, updates to indexed records), undo of a promotion that creates a process definition, of definition families outside those listed in [Project migration](docs/PROJECT_MIGRATION.md), and between database platforms
 - Editing record shapes and settings no App Designer save has been captured for (see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md))
 - Register Menu Item (portal registration) and menu translations
 - Component Interfaces: Test Component Interface, Java / C templates, CI references

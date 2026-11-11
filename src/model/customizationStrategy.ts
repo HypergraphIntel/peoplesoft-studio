@@ -309,6 +309,8 @@ export function knowledgeSubsystem(type: DefinitionType): string | undefined {
     case DefinitionType.ApplicationClassPeopleCode: return 'application-class';
     case DefinitionType.ComponentInterface: return 'component-interface';
     case DefinitionType.MessageChannel: return 'message-channel';
+    case DefinitionType.Query: return 'query';
+    case DefinitionType.FileLayout: case DefinitionType.FileLayoutPeopleCode: return 'file-layout';
     default: return undefined;
   }
 }

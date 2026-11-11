@@ -1,0 +1,129 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-101e47fb845645aa22aa2e72",
+  "fingerprint": "101e47fb845645aa22aa2e72c07c97d0fa3ddc7682886b138d1fdd43f4f7e21c",
+  "type": "roundtrip-comparison",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "unit-replay-passes",
+    "facts": {
+      "test": "src/test/fileLayoutWriter.test.ts",
+      "reference": "App Designer captures (tools/corpus/save-protocol/results)",
+      "allPass": true
+    }
+  },
+  "title": "PeopleSoft Studio's File Layout writer replays App Designer's captured saves: every replay test passes",
+  "statement": "src/test/fileLayoutWriter.test.ts rebuilds App Designer's captured File Layout saves (fl01-fl15, HRDMO, PeopleTools 8.62.09) through Studio's File Layout writer and requires App Designer's rows and counters; every top-level test passed in the recorded run. Evidence about Studio, not PeopleSoft (rule 3); it says nothing about releases not captured.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:35:24.254Z",
+      "method": "unit-replay",
+      "experimentId": "fileLayoutWriter.test",
+      "runId": "2026-10-26",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "tool": "node:test"
+      },
+      "observation": "Run of src/test/fileLayoutWriter.test.ts (node:test, TAP): 16 top-level tests, all passed.",
+      "actual": "16 passed, 0 failed, 0 skipped",
+      "testResults": [
+        {
+          "name": "replays App Designer's fl01-create",
+          "outcome": "pass"
+        },
+        {
+          "name": "replays App Designer's fl02-props-csv",
+          "outcome": "pass"
+        },
+        {
+          "name": "replays App Designer's fl03-csv-options",
+          "outcome": "pass"
+        },
+        {
+          "name": "replays App Designer's fl04-segment-props",
+          "outcome": "pass"
+        },
+        {
+          "name": "replays App Designer's fl05-field-props",
+          "outcome": "pass"
+        },
+        {
+          "name": "replays App Designer's fl06-add-segments",
+          "outcome": "pass"
+        },
+        {
+          "name": "replays App Designer's fl07-create-fixed",
+          "outcome": "pass"
+        },
+        {
+          "name": "replays App Designer's fl08-fixed-length",
+          "outcome": "pass"
+        },
+        {
+          "name": "replays App Designer's fl09-propagate",
+          "outcome": "pass"
+        },
+        {
+          "name": "replays App Designer's fl10-delete-field",
+          "outcome": "pass"
+        },
+        {
+          "name": "replays App Designer's fl11-move-field",
+          "outcome": "pass"
+        },
+        {
+          "name": "replays App Designer's fl15-create-xml",
+          "outcome": "pass"
+        },
+        {
+          "name": "an unchanged document plans nothing",
+          "outcome": "pass"
+        },
+        {
+          "name": "Save As copies every row under the new name [fl12]",
+          "outcome": "pass"
+        },
+        {
+          "name": "Rename and Delete move the counters App Designer moved and leave PSFLDDEL [fl13, fl14]",
+          "outcome": "pass"
+        },
+        {
+          "name": "the model refuses what App Designer refuses",
+          "outcome": "pass"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "repo-path",
+          "ref": "src/test/fileLayoutWriter.test.ts"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "7ff355fe89961557e096894958868e129a8d816d4bbe13c54646e053384e4b25"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:35:24.260Z",
+    "updatedAt": "2026-10-26T20:35:24.260Z",
+    "schemaVersion": 1
+  }
+}

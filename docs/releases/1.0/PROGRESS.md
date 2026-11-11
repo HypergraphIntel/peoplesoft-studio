@@ -2,7 +2,9 @@
 
 Completed October 22, 2026: **V1-1 through V1-5 pass** for the bounded Oracle /
 PeopleTools **8.62.09** core on **Linux x64 and Windows x64**. This qualified
-core ships in [0.9.8](../0.9.8.md); no version 1.0 is published. The
+core ships in [0.9.8](../0.9.8.md). It was published as version
+[1.0.0](../1.0.0.md) on November 2, 2026; the qualification below is the
+October 22 record and was not re-run on the 1.0.0 artifact. The
 [release plan](../../RELEASE_PLAN.md) retains the 1.5/2.0 expansions and the
 explicitly Low-priority scheduler acceptance work.
 

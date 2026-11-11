@@ -1131,3 +1131,24 @@ and PSLOCK `PDM` +1, as App Designer's did:
 
 The writer also refuses an empty New Page, a template that is not a Layout
 Page, and a name already taken.
+
+## A grid filled by PeopleCode
+
+Message 15,19, "No data for scroll", also appears when every field in a scroll
+is on a Derived/Work record: a scroll needs a field of a table or view, or a
+Subpage / Secondary Page. Studio's check reports this as App Designer does. Of
+17,502 scrolls on HCDEV (2026-11-01), one delivered scroll has only Derived/Work
+fields and no subpage. Oracle's PeopleBooks pages read do not state the rule; a
+[third-party write-up](https://www.psoftsearch.com/peoplesoft-grid/) does, and
+the corpus supports it.
+
+For rows worked out by PeopleCode and never stored, make the grid's record a
+Dynamic View and turn on No Auto Select, No Auto Update, No Row Insert and No
+Row Delete (`set_scroll_use workScroll:true`; FIELDUSE 0x3C0). Delivered grids
+on Dynamic Views store these bits together; the bit of each box alone has not
+been captured. A Dynamic View needs SQL that App Designer accepts; with No Auto
+Select it does not fill the grid.
+
+Proven 2026-11-01 on an 8.61 site page: ticking all four boxes in App Designer
+stored grid FIELDUSE 5056 (0x1000 + 0x3C0), App Designer accepted the page, and
+`InsertRow` in component PostBuild filled 1,230 rows with No Row Insert on.

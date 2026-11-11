@@ -1,0 +1,245 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-48530ac29ec83f2095731b62",
+  "fingerprint": "48530ac29ec83f2095731b623dc2787e158b86a963054706eb4d84fa6b83806e",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "expression-renumbering",
+    "facts": {
+      "table": "PSQRYEXPR",
+      "usedKeepOrder": true,
+      "compactedFrom": 1,
+      "newAppended": true
+    }
+  },
+  "title": "Windows Query renumbers a query's expressions on save: those still used keep their order, compacted from 1; new ones are appended",
+  "statement": "On each save PSQRYEXPR is renumbered: expressions no criterion uses any more are dropped, the remaining ones keep their relative order from EXPNUM 1, new ones follow, and every criterion's R1CRTEXPNUM / R2CRTEXPNUM is rewritten to match; PSQRYDEFN.EXPCOUNT is the count.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T23:31:12.370Z",
+      "method": "save-capture",
+      "experimentId": "qcr10-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qcr10-field: criterion 1 no longer uses expression 1; expressions 2 and 3 become 1 and 2, criteria 2 and 3 R1CRTEXPNUM 2 -> 1 and 3 -> 2; EXPCOUNT 3 -> 2.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 2,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qcr10-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "ab8a92660920c33d1b6ba9de3e8bf948d2dba920fa0382c5c066f05e24e9487c"
+    },
+    {
+      "observedAt": "2026-10-21T23:37:03.124Z",
+      "method": "save-capture",
+      "experimentId": "qnm04-number-prompt",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qnm04-number-prompt: criterion 1's constant expression (1) is replaced; the still-used ':1' expression (was 2) becomes 1 and the new ':2' is 2; criterion 1 R1CRTEXPNUM 1 -> 2, criterion 2 2 -> 1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qnm04-number-prompt"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "b3d8d31c8b9e4497de3ce2a7af0ae96f7eaedf390aefc89ecc314d3e00bda985"
+    },
+    {
+      "observedAt": "2026-10-21T23:29:42.090Z",
+      "method": "save-capture",
+      "experimentId": "qcr08-in-list",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qcr08-in-list: the between's second expression (4) is dropped; EXPCOUNT 4 -> 3; the in-list values are one expression, ('A','B').",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 3,
+            "deleted": 4,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qcr08-in-list"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "e64461c4043bc9fe87650f67ad0aaa74dfb215724644dbf53ccdc0f85cc21987"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:26:22.023Z",
+    "updatedAt": "2026-10-26T20:26:22.580Z",
+    "schemaVersion": 1
+  }
+}

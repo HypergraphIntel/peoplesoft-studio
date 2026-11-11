@@ -1,0 +1,112 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-26efd0a2d9aa867496390c82",
+  "fingerprint": "26efd0a2d9aa867496390c82b1a1f002254686b5ff0798acefc5bcc67daa400d",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSQRYDEFN",
+      "description": "DESCR",
+      "queryDefinition": "DESCRLONG"
+    }
+  },
+  "title": "A query's Description and Query Definition are PSQRYDEFN.DESCR and DESCRLONG",
+  "statement": "Query Properties Description is PSQRYDEFN.DESCR and the multi-line Query Definition is PSQRYDEFN.DESCRLONG.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-14T16:02:50.213Z",
+      "method": "save-capture",
+      "experimentId": "qry14-properties-saved",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry14-properties-saved: DESCR blank -> the entered text, DESCRLONG null -> the entered text; nothing else but VERSION and the stamp.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry14-properties-saved"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "ef0bc851c87d58c9475ee7c76c91842e0f91c4e96b1e43973fd520238f66f883"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:25:28.952Z",
+    "updatedAt": "2026-10-26T20:25:28.952Z",
+    "schemaVersion": 1
+  }
+}

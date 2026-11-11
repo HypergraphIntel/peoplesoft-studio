@@ -25,7 +25,7 @@
     ],
     "knownIncompatible": []
   },
-  "localStatus": "observed",
+  "localStatus": "reproduced",
   "observations": [
     {
       "observedAt": "2026-10-21T17:19:20.510Z",
@@ -69,6 +69,48 @@
         }
       ],
       "digest": "b47fa8368b8942e74059ac223b52789a212220c31c3033c27427fb2da19a90d1"
+    },
+    {
+      "observedAt": "2026-10-21T20:41:16.912Z",
+      "method": "save-capture",
+      "experimentId": "ib10-native-rest-empty-service-recreate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Capture ib10-native-rest-empty-service-recreate (a REST service): PSSERVICEDEL (VERSION 63) deleted, PSSERVICE inserted at VERSION 64 = SRVM after.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSSERVICE",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSERVICEDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SRVM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ib10-native-rest-empty-service-recreate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/IB_STRUCTURE.md"
+        }
+      ],
+      "digest": "7aeb43f66afc39fb90577a5251ee5bdd095bb25e58d38d2ea2abf5fe34b24af1"
     }
   ],
   "privacy": {
@@ -78,7 +120,7 @@
   "provenance": {
     "source": "research-harness",
     "createdAt": "2026-10-21T17:26:24.311Z",
-    "updatedAt": "2026-10-21T17:26:24.311Z",
+    "updatedAt": "2026-10-26T20:34:32.982Z",
     "schemaVersion": 1
   }
 }

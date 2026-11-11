@@ -69,6 +69,9 @@ const RELATED_DISPLAY = 0x10;
  * message, then App Designer asks "Invalid page. Do you still want to save the page?" (46,2) -- Yes saves anyway:
  *  - 15,19 No data for scroll: a scroll with no record field (or Subpage / Secondary Page) after it before the next scroll
  *    or Set to Level rule (lv17; every delivered scroll without a field of its own holds a subpage).
+ *    Derived/Work fields do not count: a scroll needs a field of a table or view. Of 17,502 scrolls on HCDEV (2026-11-01)
+ *    one delivered scroll holds only Derived/Work fields and no subpage. A scroll filled by PeopleCode uses a Dynamic View
+ *    with No Auto Select, No Auto Update, No Row Insert and No Row Delete (WORK_SCROLL_USE).
  *  - 15,18 Invalid field level: a scroll more than one level below the running level (e4: a level-3 scroll bar in a
  *    level-1 scroll).
  *  - 15,22 More than one data record in scroll: a field of a second record that is not Derived/Work in one scroll (e1, e2;
@@ -88,7 +91,7 @@ export function checkPageScrolls(pnlName: string, controls: readonly CheckedCont
     let data = false;
     for (let j = i + 1; j < controls.length && !setsLevel(controls[j]); j++) {
       const c = controls[j];
-      if (isField(c) || c.fieldType === SUBPAGE || c.fieldType === SECONDARY_PAGE) { data = true; break; }
+      if ((isField(c) && c.recType !== DERIVED_WORK) || c.fieldType === SUBPAGE || c.fieldType === SECONDARY_PAGE) { data = true; break; }
     }
     if (!data) problems.push({ set: 15, num: 19, text: `No data for scroll: ${scrollName(controls[i])}.`, at: i });
   }

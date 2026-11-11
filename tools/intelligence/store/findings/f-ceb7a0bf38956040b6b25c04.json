@@ -1,0 +1,332 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-ceb7a0bf38956040b6b25c04",
+  "fingerprint": "ceb7a0bf38956040b6b25c047c9e6b3d93096cc1838dbeffdf059bbe27289220",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "prompt",
+    "facts": {
+      "criterionEXPRTYPE": 8,
+      "expressionText": ":n",
+      "bindTable": "PSQRYBIND",
+      "bindName": "BINDn",
+      "countColumn": "PSQRYDEFN.BNDCOUNT",
+      "bindHDGTYPE": 4,
+      "required": "Y"
+    }
+  },
+  "title": "A query prompt is a criterion with EXPRTYPE 8 and expression ':n', and a PSQRYBIND row BINDn counted in PSQRYDEFN.BNDCOUNT",
+  "statement": "Making a criterion a runtime prompt sets EXPRTYPE 8, writes its PSQRYEXPR text as ':n', and adds PSQRYBIND row BINDn (BNDNUM n) for the field with HDGTYPE 4, a HEADING text, QRYREQUIREDPROMPT 'Y', the field's FIELDTYPE and LENGTH, and USECOUNT 1; PSQRYDEFN.BNDCOUNT counts the prompts. Where the HEADING text comes from is not established by the captures.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-14T15:04:42.849Z",
+      "method": "save-capture",
+      "experimentId": "qry08-prompt",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry08-prompt: character field with a prompt table: EXPRTYPE 1 -> 8, expression ':1', BIND1 with EDITTABLE the prompt table and USEEDIT 16384, LENGTH 12; BNDCOUNT 0 -> 1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry08-prompt"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "af7883185dc056fee382f662caa8a0d80570421beaa5bf1d26e4bd9d09e64fae"
+    },
+    {
+      "observedAt": "2026-10-14T15:31:20.782Z",
+      "method": "save-capture",
+      "experimentId": "qry13-text-prompt",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry13-text-prompt: mixed-case character field, no table edit: expression ':2', BIND2 FORMAT 6, LENGTH 30, no EDITTABLE; BNDCOUNT 1 -> 2.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry13-text-prompt"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "a5f12f635fe93141ef174962bc1d1a1624e76132c9b127cf2ba944e1f8f7ef6e"
+    },
+    {
+      "observedAt": "2026-10-21T23:35:40.717Z",
+      "method": "save-capture",
+      "experimentId": "qnm03-date-prompt",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qnm03-date-prompt: date criterion to a prompt: EXPRTYPE 1 -> 8, expression ':1' (its FIELDTYPE 4 -> 0), BIND1 FIELDTYPE 4 LENGTH 10.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qnm03-date-prompt"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "bfd355143fc4037320d6295467c5175a735ec71e73ddae5114c20680cc6b5760"
+    },
+    {
+      "observedAt": "2026-10-21T23:37:03.124Z",
+      "method": "save-capture",
+      "experimentId": "qnm04-number-prompt",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qnm04-number-prompt: number criterion to a new prompt: EXPRTYPE 8, expression ':2', BIND2 FIELDTYPE 2 LENGTH 6; BNDCOUNT 1 -> 2.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 2,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qnm04-number-prompt"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "f71aa37c131759d762ef8f8db66e5c7a0b12e016a7b9f0eedf469b4c64a994a2"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:26:20.288Z",
+    "updatedAt": "2026-10-26T20:26:21.142Z",
+    "schemaVersion": 1
+  }
+}

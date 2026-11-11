@@ -1,0 +1,129 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-4b41d873442da38e83a8fa53",
+  "fingerprint": "4b41d873442da38e83a8fa53ad92eef4a3d0aa1bb4dac2e8f1fdd4347e2a9321",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "customization",
+    "objectType": "Drop Zone configuration"
+  },
+  "assertion": {
+    "kind": "drop-zone-configure",
+    "facts": {
+      "service": "PSPTCSSRVDEFN",
+      "serviceVersion": "newRCSDM",
+      "configuration": "PSPTCSSRVCONF",
+      "configurationType": "P",
+      "configurationVersion": "newSCNFM",
+      "map": "PSPTCS_MAPFLDS PTCS_MENUFIELD PF",
+      "menu": "PSPTCS_MENU_TBL FLDM <page>.<pnlfldid>.",
+      "menuVersion": "newRCMTM",
+      "folder": "PSPTCS_MNUFLDRS",
+      "link": "PSPTCS_MNULINKS",
+      "ownerConfig": "PSPTCS_SRVCFG at new RCSCM"
+    }
+  },
+  "title": "Configuring a drop zone in PIA writes the subpage's service, a type P configuration, a PTCS_MENUFIELD map, a FLDM field menu with Root folder and link, and re-saves PSPTCS_SRVCFG",
+  "statement": "Configure Drop Zones setting a subpage writes PSPTCSSRVDEFN for the subpage when it has no service (VERSION the new RCSDM), PSPTCSSRVCONF of type P on the page (VERSION the new SCNFM), the PTCS_MENUFIELD map (PSPTCS_MAPFLDS, type PF) to the drop zone's field, a field menu PSPTCS_MENU_TBL of type FLDM whose id is <page>.<pnlfldid>. (VERSION the new RCMTM) with its Root folder (PSPTCS_MNUFLDRS) and link (PSPTCS_MNULINKS), and re-saves the owner's PSPTCS_SRVCFG at the new RCSCM. Each row's VERSION is the counter's value after the save, whose steps were RCSDM 4, SCNFM 2, RCMTM 2, RCSCM 1, SYS 6. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-13T23:54:34.899Z",
+      "method": "save-capture",
+      "experimentId": "dz01-configure",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Capture dz01-configure (8.62.09): PSPTCSSRVDEFN VERSION 14 = RCSDM after; PSPTCSSRVCONF type P, URL target RCF, VERSION 58 = SCNFM after; PSPTCS_MAPFLDS PTCS_MENUFIELD type PF; PSPTCS_MENU_TBL FLDM id <page>.26. VERSION 3 = RCMTM after; one Root folder and one link; PSPTCS_SRVCFG inserted at VERSION 15 = RCSCM after.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSADSTRACKING",
+            "inserted": 8,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCSSRVCONF",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCSSRVDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_MAPFLDS",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_MENU_TBL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_MNUFLDRS",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_MNULINKS",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSPTCS_SRVCFG",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "RCSDM": 4,
+          "RCSCM": 1,
+          "SCNFM": 2,
+          "RCMTM": 2,
+          "SYS": 6
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "dz01-configure"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/CUSTOMIZATION.md"
+        }
+      ],
+      "digest": "4b6ba0bfe439425b331127517a12310622bedef567bab54bdae7d590746d7623"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:35:04.194Z",
+    "updatedAt": "2026-10-26T20:35:04.194Z",
+    "schemaVersion": 1
+  }
+}

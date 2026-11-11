@@ -202,6 +202,150 @@
         }
       ],
       "digest": "064d434580a9b9dd5e4e317c508a99810e52f63083c68d8b34bb020c1d8dc90e"
+    },
+    {
+      "observedAt": "2026-10-26T20:33:24.886Z",
+      "method": "save-capture",
+      "experimentId": "ps01-delete-before-related",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ps01-delete-before-related (a control deleted, FIELDCOUNT 89 -> 88): FIELDNUM is a contiguous 1..N after the save; every control after the change moved by one.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 85
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 88
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ps01-delete-before-related"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "a6876cb73f62289af771f777af012365ab88de3da84fc0b521217dae3553fcea"
+    },
+    {
+      "observedAt": "2026-10-26T20:33:25.171Z",
+      "method": "save-capture",
+      "experimentId": "ps02-delete-control-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ps02-delete-control-field (a control deleted, FIELDCOUNT 88 -> 87): FIELDNUM is a contiguous 1..N after the save; every control after the change moved by one.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 78
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ps02-delete-control-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "1dcf2140e0676a83d30032c6ef6c7a998cf1aa9d190274a553d94b1ec2cb765e"
+    },
+    {
+      "observedAt": "2026-10-26T20:33:25.456Z",
+      "method": "save-capture",
+      "experimentId": "ps03-insert-early",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ps03-insert-early (a control inserted at 4, FIELDCOUNT 87 -> 88): FIELDNUM is a contiguous 1..N after the save; every control after the change moved by one.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 84
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ps03-insert-early"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "98bc2f12f10d96d1e0c349f2be39374ddacd2282194046ed9ce7c4f3697bb01d"
     }
   ],
   "privacy": {
@@ -211,7 +355,7 @@
   "provenance": {
     "source": "research-harness",
     "createdAt": "2026-10-13T02:29:54.108Z",
-    "updatedAt": "2026-10-13T02:29:54.678Z",
+    "updatedAt": "2026-10-26T20:33:25.463Z",
     "schemaVersion": 1
   }
 }

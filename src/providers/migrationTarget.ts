@@ -97,6 +97,11 @@ export async function databaseMigrationTarget(provider: DatabaseProvider, operat
         } else if (asset.kind === 'package') {
           const live = await provider.readPackageForMigration(asset.data.name);
           for (const path of live?.data.packages ?? []) if (!asset.data.packages.includes(path)) errors.push(`Target subpackage ${asset.data.name}:${path} is absent from the package; migration never deletes subpackages.`);
+          // A subpackage's owner is written only when migration creates it (as a project copy does); no writer changes one.
+          for (const path of live?.data.packages ?? []) {
+            const want = asset.data.subpackageOwners?.[path] ?? '', have = live?.data.subpackageOwners?.[path] ?? '';
+            if (asset.data.packages.includes(path) && want !== have) errors.push(`Target subpackage ${asset.data.name}:${path} has owner ID '${have}', the package '${want}'; migration does not change an existing subpackage's owner.`);
+          }
         } else if (asset.kind === 'peoplecode') {
           const newClass = token === 'absent' && asset.key.type === DefinitionType.ApplicationClassPeopleCode;
           if (newClass) {
@@ -203,7 +208,8 @@ export async function databaseMigrationTarget(provider: DatabaseProvider, operat
         if ((live?.token ?? 'absent') !== token) throw new Error(root + ': package changed after preview.');
         if (!live) { await provider.createPackage({ name: root, operatorId }); live = await provider.readPackageForMigration(root); }
         for (const path of asset.data.packages) if (!live!.data.packages.includes(path)) {
-          await provider.createSubpackage({ root, path: path.split(':'), openedVersion: live!.version, operatorId });
+          const ownerId = asset.data.subpackageOwners?.[path];
+          await provider.createSubpackage({ root, path: path.split(':'), openedVersion: live!.version, operatorId, ...(ownerId ? { ownerId } : {}) });
           live = await provider.readPackageForMigration(root);
         }
         const { description = '', comments = '', ownerId = '' } = asset.data, now = live!.data;

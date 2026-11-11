@@ -1,0 +1,107 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-e019c03244e26276a1915eea",
+  "fingerprint": "e019c03244e26276a1915eea3c2defa1a1d384979e4860d9eb388557a6aa3f11",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSQRYFIELD",
+      "orderByNumber": "ORDERBYNUM",
+      "descending": "ORDERBYDIR",
+      "descendingValue": "D"
+    }
+  },
+  "title": "A query field's Order By number and Descending are PSQRYFIELD.ORDERBYNUM and ORDERBYDIR 'D'",
+  "statement": "Field Properties Order By stores its number in PSQRYFIELD.ORDERBYNUM and Descending as ORDERBYDIR 'D' (blank otherwise).",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-14T14:47:08.922Z",
+      "method": "save-capture",
+      "experimentId": "qry03-order",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry03-order: ORDERBYNUM 0 -> 1, ORDERBYDIR blank -> 'D'.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry03-order"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "8a15c3189748dd3843c265971e48aac1a03aa2c0e023b52fa523ade67d272b0f"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:25:28.130Z",
+    "updatedAt": "2026-10-26T20:25:28.130Z",
+    "schemaVersion": 1
+  }
+}

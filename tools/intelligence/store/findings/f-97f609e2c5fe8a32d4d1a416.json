@@ -23,7 +23,7 @@
     ],
     "knownIncompatible": []
   },
-  "localStatus": "observed",
+  "localStatus": "reproduced",
   "observations": [
     {
       "observedAt": "2026-10-21T20:50:12.976Z",
@@ -136,6 +136,117 @@
         }
       ],
       "digest": "65a7e330db6195d29822ad5d102cb3bc1a5505ae793b31b65f82da50ac2aafc5"
+    },
+    {
+      "observedAt": "2026-10-21T20:55:13.840Z",
+      "method": "save-capture",
+      "experimentId": "ib15-native-rest-consumer-operation-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Capture ib15-native-rest-consumer-operation-delete (a consumer REST operation, no handler): PSOPERATIONDEL VERSION 78 = OPRM after; PSIBRTNGDEFNDEL VERSION 176 = RTDM after; OPRM +2, OPRVM, RTDM, SRVM +1, SYS +4.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSIBRTNGDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSIBRTNGDEFNDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSIBRTNGSUBDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATION",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATIONDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATIONURI",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRGENRTGPARM",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFNDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFNPARM",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSRTNGDFNPARM",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSSERVICE",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSERVICEOPR",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "OPRM": 2,
+          "OPRVM": 1,
+          "RTDM": 1,
+          "SRVM": 1,
+          "SYS": 4
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ib15-native-rest-consumer-operation-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/IB_STRUCTURE.md"
+        }
+      ],
+      "digest": "765d6aabddd29a7e6dd62fcd95c55deb8772f2ced5ca302fbbc28599d17bc493"
     }
   ],
   "privacy": {
@@ -145,7 +256,7 @@
   "provenance": {
     "source": "research-harness",
     "createdAt": "2026-10-21T22:57:21.244Z",
-    "updatedAt": "2026-10-21T22:57:21.244Z",
+    "updatedAt": "2026-10-26T20:34:33.538Z",
     "schemaVersion": 1
   }
 }

@@ -1,0 +1,89 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-165c870b46d6df3e6cd0ba1d",
+  "fingerprint": "165c870b46d6df3e6cd0ba1dfab41697c105af0b9fd3be57057c7cf7e4e5aae0",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "field-delete",
+    "facts": {
+      "table": "PSFLDFIELDDEFN",
+      "laterSeqNo": "closeUp",
+      "starts": "unchanged",
+      "segmentFieldCount": "decremented"
+    }
+  },
+  "title": "Deleting a File Layout field deletes its row, closes up later FLDSEQNOs and leaves every start unchanged",
+  "statement": "Deleting a file field removes its PSFLDFIELDDEFN row, decrements every later field's FLDSEQNO by one and the segment's FLDFIELDCOUNT by one; no FLDSTART changes, so a FIXED layout keeps the gap. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:21:23.582Z",
+      "method": "save-capture",
+      "experimentId": "fl10-delete-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl10-delete-field: EFF_STATUS (FLDSEQNO 4, start 28) deleted; the seven fields after it FLDSEQNO -1; segment FLDFIELDCOUNT 11 -> 10; no FLDSTART changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 7
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl10-delete-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "6056dcae611be518e9a5d55a8849e3b03c78ab152d4d3a9a19b7b0d07012bb90"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:21:23.589Z",
+    "updatedAt": "2026-10-26T20:21:23.589Z",
+    "schemaVersion": 1
+  }
+}

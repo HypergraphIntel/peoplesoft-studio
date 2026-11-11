@@ -2,18 +2,23 @@ import type { Workspace } from '../workspace.js';
 import { writable, type McpWriteHost } from './writeTools.js';
 import { makeKey, DefinitionType } from '../model/definitions.js';
 import { hash, type Json } from '../changeReview/model.js';
-import { headerProposal, recordStructureRequest, aeHeaderDocument, isHeaderOnlyOperation, isHeaderOnlyRequest, isStageableRecordRequest } from '../changeReview/structuredHeaders.js';
+import { headerProposal, recordStructureRequest, aeHeaderDocument, isHeaderOnlyOperation, isHeaderOnlyRequest, isStageableRecordRequest, recordEditFromProposal } from '../changeReview/structuredHeaders.js';
 import { applyRecordOperations, type RecordOperation } from '../model/recordOperations.js';
 import { applyOperation, type Operation as AeOperation } from '../model/aeOperations.js';
 import { aeDocumentFromSnapshot } from '../changeReview/aeStructure.js';
 import type { StructuredFamily } from '../providers/structuredSnapshot.js';
 import { deepValidate } from './appEngineTools.js';
 
-export async function prepareStructuredHeaderReview(workspace: Workspace, host: McpWriteHost | undefined, family: StructuredFamily, args: Record<string, unknown>) {
+/**
+ * `staged` is this definition's proposal already in the Change Set, if any: a further edit applies on top of it rather than
+ * on the live definition, or staging would replace the earlier proposal and silently drop it (E22).
+ */
+export async function prepareStructuredHeaderReview(workspace: Workspace, host: McpWriteHost | undefined, family: StructuredFamily, args: Record<string, unknown>, staged?: Json) {
     if (!host) throw new Error('Structured review requires an enabled write host.');
     if (args.includeSnapshots) throw new Error('includeSnapshots requires explicit dryRun.');
     const operations = args.operations as Record<string, unknown>[];
-    if (family === 'record' && !isHeaderOnlyRequest('record', operations)) return prepareRecordStructureReview(workspace, host, args);
+    if (family === 'record' && (staged !== undefined || !isHeaderOnlyRequest('record', operations))) return prepareRecordStructureReview(workspace, host, args, staged);
+    if (family === 'ae' && staged !== undefined) throw new Error('This App Engine program is already staged in this Change Set; give all of its operations in one psft_ae_edit call (a second call would replace the first).');
     if (family === 'ae' && !isHeaderOnlyRequest('ae', operations)) return prepareAeStructureReview(workspace, host, args);
     const changes: { description?: string; comments?: string } = {};
     for (const op of operations) {
@@ -48,7 +53,7 @@ export async function prepareStructuredHeaderReview(workspace: Workspace, host: 
  * A Record's field structure: the editor's operations applied as the legacy tool applies them, executed by the shared
  * writer in rollback with full checkpoints. The proposal is that native after-image; validation rebuilds the typed edit.
  */
-async function prepareRecordStructureReview(workspace: Workspace, host: McpWriteHost, args: Record<string, unknown>) {
+async function prepareRecordStructureReview(workspace: Workspace, host: McpWriteHost, args: Record<string, unknown>, staged?: Json) {
     const operations = args.operations as Record<string, unknown>[];
     if (!isStageableRecordRequest(operations)) throw new Error('Record staging supports description/comments and field structure only; other operations are not staged.');
     const name = String(args.record).trim().toUpperCase(), key = makeKey(DefinitionType.Record, name), gate = await writable(workspace, host, String(args.connection), name);
@@ -57,9 +62,10 @@ async function prepareRecordStructureReview(workspace: Workspace, host: McpWrite
     if (!layout) throw new Error(`There is no record named ${name}.`);
     const before = await gate.provider.readStructuredForReview('record', name);
     if (args.expectedVersion !== undefined && args.expectedVersion !== before.version) throw new Error('Stale Record version; read the definition again.');
-    const edit = applyRecordOperations({ recname: layout.name, recordType: layout.recordType, openedVersion: layout.version,
-        fields: layout.fields.map((f) => ({ name: f.name, useEdit: f.useEdit, useEdit2: f.useEdit2 ?? 0, isNew: false, ...(f.isSubrecord ? { isSubrecord: true } : {}) })) },
-        layout.recordType, operations as unknown as RecordOperation[]);
+    const start = staged !== undefined ? recordEditFromProposal(name, before.value, staged, before.version)
+        : { recname: layout.name, recordType: layout.recordType, openedVersion: layout.version,
+            fields: layout.fields.map((f) => ({ name: f.name, useEdit: f.useEdit, useEdit2: f.useEdit2 ?? 0, isNew: false, ...(f.isSubrecord ? { isSubrecord: true } : {}) })) };
+    const edit = applyRecordOperations(start, layout.recordType, operations as unknown as RecordOperation[]);
     const preview = await gate.provider.saveRecord({ edit, operatorId: gate.operatorId, dryRun: true, captureSnapshots: true, expectedSnapshotToken: before.token });
     if (!preview.snapshots || preview.snapshots.before.hash !== before.hash) throw new Error('Native Record preview did not return complete matching snapshots.');
     if (preview.snapshots.after.hash === before.hash) throw new Error('Record proposal has no changes.');

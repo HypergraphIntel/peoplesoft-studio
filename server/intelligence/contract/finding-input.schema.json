@@ -44,6 +44,8 @@
             "portal-registry",
             "security",
             "build",
+            "query",
+            "file-layout",
             "other"
           ]
         },

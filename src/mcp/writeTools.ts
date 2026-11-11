@@ -125,6 +125,8 @@ const pageOperation = z.discriminatedUnion('op', [
   z.object({ op: z.literal('set_label'), id: z.number().int(), text: z.string().optional(), labelType: z.number().int().optional().describe('0 None, 1 Text, 2 RFT Short, 3 RFT Long') }),
   z.object({ op: z.literal('set_use'), id: z.number().int(), displayOnly: z.boolean().optional(), invisible: z.boolean().optional(),
     deferProc: z.boolean().optional().describe('Allow Deferred Processing. false makes the field fire FieldChange when the user leaves it, rather than on the next server trip -- use it on a field whose FieldChange enables or fills others.') }),
+  z.object({ op: z.literal('set_scroll_use'), id: z.number().int(), workScroll: z.boolean() })
+    .describe('A grid or scroll filled by PeopleCode: No Auto Select, No Auto Update, No Row Insert and No Row Delete together. Its record must be a Dynamic View: a scroll of only Derived/Work fields fails No data for scroll (15,19).'),
   z.object({ op: z.literal('delete'), id: z.number().int() }),
   z.object({ op: z.literal('set_binding'), id: z.number().int(), record: z.string().min(1), field: z.string().min(1) })
     .describe('An Edit Box\'s Record Name / Field Name: the field must be on the record; its default label (an RFT label\'s text) and format family come with it, as App Designer rebinds.'),
@@ -391,10 +393,16 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
     return done(gate, key, { created: true, fluid: true, layoutPage: template, version: r.version, controls: r.fieldCount, inserted: r.inserted, updated: r.updated, deleted: r.deleted });
   });
 
+  /* Found on HRDMO 2026-10-27: a versioned record meant to carry EFFDT as a plain date got it as a key, and PIA then
+     treated every row as effective-dated (SelectByKey needed EFFDT; Update/Display refused edits to today's row). */
+  const EFFDT_NOTE = 'insert_field EFFDT makes it a descending key defaulting to %date, as App Designer does; that makes the record effective-dated ' +
+    '(PIA refuses changes to current and history rows outside Correct History, and SelectByKey needs EFFDT). For a plain "effective from" date, ' +
+    'follow it with set_use EFFDT key:false descending:false. ';
   server.registerTool('psft_create_record', {
     title: 'Create a record',
     description: 'Create an SQL Table or Derived/Work record definition using the same field and property operations as psft_edit_record. ' +
       'Insert existing fields with insert_field, then set their keys/edits/defaults/labels and record properties. An AE state record name ends AET. ' +
+      EFFDT_NOTE +
       'This creates metadata only; building a physical SQL table is a separate operation. An SQL Table goes in tablespace (a ' +
       'psft_list_tablespaces name, as App Designer asks on the first save); omitted, the catalog\'s first entry. ' + GATES,
     inputSchema: z.object({connection:z.string().min(1),record:z.string().min(1),recordType:z.enum(['sqlTable','derivedWork']),operations:z.array(recordOperation).min(1),
@@ -421,6 +429,7 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
       'table, translate, yes/no), default, label; set Record Properties or the record type. The rules App Designer ' +
       'keeps (Search Key needs Key, observed type changes only ...) are enforced. Read it with psft_get_definition ' +
       '(type 0) first. dryRun executes/verifies the shared writer and rolls back; returned versions are hypothetical. expectedVersion rejects stale input. ' +
+      EFFDT_NOTE +
       'A record that becomes an SQL Table goes in tablespace (psft_list_tablespaces); omitted, the catalog\'s first entry. ' + GATES,
     inputSchema: z.object({ connection: z.string().min(1), record: z.string().min(1), operations: z.array(recordOperation).min(1), dryRun: z.boolean().optional(), expectedVersion: z.number().int().optional(),
       tablespace: z.string().min(1).max(8).optional().describe('When the record type becomes SQL Table: PSTBLSPCCAT.DDLSPACENAME from psft_list_tablespaces.') }),
@@ -469,7 +478,10 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
     inputSchema: z.object({
       connection: z.string().min(1), name: z.string().min(1),
       type: z.enum(['character', 'longCharacter', 'number', 'signedNumber', 'date', 'time', 'dateTime', 'imageReference']),
-      length: z.number().int(), decimalPositions: z.number().int().default(0),
+      length: z.number().int().describe('PSDBFIELD.LENGTH. For a Number with decimals it counts the decimal point: the column is '+
+        'NUMBER(length - 1, decimals), so 6 with 4 decimals holds 9.9999 (FTE is 8/6, STD_HOURS 7/2); 5/4 would leave no integer digit. '+
+        'A translate field is at most 4 long (translate values are 1 to 4 characters).'),
+      decimalPositions: z.number().int().default(0),
       format:z.enum(['uppercase','mixedCase']).optional().describe('Character format: uppercase (0, default) or mixedCase (6).'),
       longName: z.string().min(1).max(30), shortName: z.string().min(1).max(15)
     }),
@@ -624,11 +636,35 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
   });
 
   server.registerTool('psft_create_package', {
-    title: 'Create an Application Package',
-    description: 'Create an empty Application Package; add classes to it with psft_save_peoplecode (type 58). ' + GATES,
-    inputSchema: z.object({ connection: z.string().min(1), name: z.string().min(1) }),
+    title: 'Create an Application Package or subpackage',
+    description: 'Create an empty Application Package, or a subpackage of an existing one by its path ("ROOT:Sub" or "ROOT:Sub:Sub2", at most two levels, ' +
+      'the parent first); add classes to it with psft_save_peoplecode (type 58). A subpackage is written as App Designer\'s Insert Subpackage then Save does ' +
+      '(c05). With Change Review on Oracle it stages (undo removes it as App Designer\'s Delete does); apply it before staging the classes that go in it. ' + GATES,
+    inputSchema: z.object({ connection: z.string().min(1), name: z.string().min(1).describe('A root package name, or ROOT:Sub[:Sub2] for a subpackage.') }),
     annotations: WRITE
   }, async ({ connection, name }) => {
+    if (name.includes(':')) {
+      // A subpackage (E11, E35, E52, E74): the root's case is the package name's; a subpackage keeps the case it is given, as App Designer does.
+      const [rootName, ...path] = name.split(':').map(p => p.trim());
+      const root = rootName.toUpperCase();
+      if (!root || path.length < 1 || path.length > 2 || path.some(p => !/^[A-Za-z][A-Za-z0-9_]{0,29}$/.test(p)))
+        throw new Error('A subpackage path is ROOT:Sub or ROOT:Sub:Sub2: each subpackage a letter, then letters, digits or _ (at most 30).');
+      const key: DefinitionKey = { type: DefinitionType.ApplicationPackage, parts: [root] };
+      const gate = await writable(workspace, host, connection, root);
+      const doc = await gate.provider.readApplicationPackage(root);
+      if (!doc) throw new Error(`There is no package named ${root}; create it first with psft_create_package ${root}.`);
+      if (doc.version === undefined) throw new Error(`${root} has no version to open; refresh it and try again.`);
+      let node = doc.tree;
+      for (const segment of path.slice(0, -1)) {
+        const child = node.children.find(n => n.kind === 'package' && n.name === segment);
+        if (!child) throw new Error(`${root}:${segment} does not exist; create the parent subpackage first.`);
+        node = child;
+      }
+      if (node.children.some(n => n.name.toUpperCase() === path.at(-1)!.toUpperCase())) throw new Error(`${[root, ...path].join(':')} already exists.`);
+      await approve(host, gate, key, `create subpackage ${[root, ...path].join(':')}`, `A new, empty subpackage ${path.at(-1)} in ${[root, ...path.slice(0, -1)].join(':')}.`);
+      const r = await gate.provider.createSubpackage({ root, path, openedVersion: doc.version, operatorId: gate.operatorId });
+      return done(gate, key, { subpackage: [root, ...path].join(':'), version: r.version });
+    }
     const key: DefinitionKey = { type: DefinitionType.ApplicationPackage, parts: [name.trim().toUpperCase()] };
     const gate = await writable(workspace, host, connection, key.parts[0]);
     await approve(host, gate, key, `create Application Package ${key.parts[0]}`, `A new, empty package ${key.parts[0]}.`);

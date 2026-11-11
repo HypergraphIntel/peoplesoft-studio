@@ -2547,6 +2547,64 @@
         }
       ],
       "digest": "28afb4c624a665c411b43dd157bdc1bad13bf56bb24b785db4d1535d6c4cae33"
+    },
+    {
+      "observedAt": "2026-10-20T22:49:35.133Z",
+      "method": "save-capture",
+      "experimentId": "sb01-native-subrecord-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture sb01-native-subrecord-create: RDM +1 in PSVERSION and PSLOCK, SYS +1; new SubRecord, PSRECDEFN.VERSION 392 = RDM after (record-rows.json).",
+      "delta": {
+        "tables": [],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "sb01-native-subrecord-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "f305018ebedf01a9616f53b24635438fdfbfaf8bad26e4c1cc3c7d68f4922d01"
+    },
+    {
+      "observedAt": "2026-10-20T22:42:21.773Z",
+      "method": "save-capture",
+      "experimentId": "ix01-native-user-index-add",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ix01-native-user-index-add: RDM +1 in PSVERSION and PSLOCK, SYS +1; user index added, PSRECDEFN.VERSION 387 -> 388 = RDM after (record-rows.json).",
+      "delta": {
+        "tables": [],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ix01-native-user-index-add"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/RECORD_SAVE.md"
+        }
+      ],
+      "digest": "b9a3f9f5ac126acd55a11c9ad0914b7087ccfbe45e8df75d74d5147ef3f3d6e8"
     }
   ],
   "privacy": {
@@ -2556,7 +2614,7 @@
   "provenance": {
     "source": "research-harness",
     "createdAt": "2026-10-13T11:11:18.875Z",
-    "updatedAt": "2026-10-13T11:11:34.613Z",
+    "updatedAt": "2026-10-26T20:30:55.029Z",
     "schemaVersion": 1
   }
 }

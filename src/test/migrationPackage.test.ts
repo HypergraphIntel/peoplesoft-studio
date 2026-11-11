@@ -355,6 +355,11 @@ test('Application Package members export one root asset with ordered subpackages
   assert.throws(reparse([{ ...pkg.assets[0], data: { name: 'ZZ_PKG', packages: ['UI:Widgets', 'UI'] } }, ...pkg.assets.slice(1)]), /ordered/);
   assert.throws(reparse([{ ...pkg.assets[0], data: { name: 'ZZ_PKG', packages: ['UI'] } }, ...pkg.assets.slice(1)]), /outside its package asset/);
   assert.throws(reparse([{ ...pkg.assets[0], data: { name: 'ZZ_PKG', packages: ['A', 'A:B', 'A:B:C'] } }]), /invalid subpackage path/);
+  // A subpackage's owner ID travels with the package asset, one per subpackage that has one.
+  const owned = { name: 'ZZ_PKG', packages: ['UI', 'UI:Widgets'], subpackageOwners: { 'UI:Widgets': 'PPT' } };
+  assert.doesNotThrow(reparse([{ ...pkg.assets[0], data: owned }, ...pkg.assets.slice(1)]));
+  assert.throws(reparse([{ ...pkg.assets[0], data: { ...owned, subpackageOwners: { Other: 'PPT' } } }, ...pkg.assets.slice(1)]), /unknown subpackage/);
+  assert.throws(reparse([{ ...pkg.assets[0], data: { ...owned, subpackageOwners: { UI: 'ppt5x' } } }, ...pkg.assets.slice(1)]), /invalid owner ID/);
 });
 
 test('page and component assets carry complete canonical rows, refuse foreign or stamped rows and declare what they name', async () => {

@@ -233,3 +233,14 @@ export function componentSaveRefusal(component: { name: string; searchRecord: st
   }
   return undefined;
 }
+
+/**
+ * A Derived/Work record with no keys has nothing to search on and no row behind
+ * it, so it does not give a component a level 0 row. A component that needs no
+ * search page uses a one-row table instead: INSTALLATION as the search record,
+ * with one INSTALLATION field, invisible, at scroll level 0 of the page.
+ */
+export function searchRecordRefusal(searchRecord: string, info: { type: number; keys: readonly string[] } | undefined): string | undefined {
+  if (!info || info.type !== 2 || info.keys.length) return undefined;
+  return `${searchRecord} is a Derived/Work record with no keys, so it cannot be a search record. For a component with no search page, use INSTALLATION as the search record and put one INSTALLATION field, invisible, at scroll level 0 of the page.`;
+}

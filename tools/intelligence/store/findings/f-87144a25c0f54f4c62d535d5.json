@@ -1,0 +1,156 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-87144a25c0f54f4c62d535d5",
+  "fingerprint": "87144a25c0f54f4c62d535d5d2cbee36ba6dc8e2074de98e9e695937cee2dec6",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page"
+  },
+  "assertion": {
+    "kind": "native-delete",
+    "facts": {
+      "rows": "PSPNLDEFN,PSPNLFIELD,PSPNLFIELDEXT",
+      "PDM": 1,
+      "SYS": 1,
+      "pcmWithPeopleCode": 1
+    }
+  },
+  "title": "File > Delete of a page removes its PSPNLDEFN, PSPNLFIELD and PSPNLFIELDEXT rows and moves PDM and SYS by 1; its Page PeopleCode goes too, PCM +1",
+  "statement": "App Designer's Delete of a page deletes its PSPNLDEFN, PSPNLFIELD and PSPNLFIELDEXT rows and moves PDM (PSVERSION and PSLOCK) and SYS by one; a page with PeopleCode also loses its PSPCMPROG, PSPCMNAME and PSPCMTXT rows and moves PCM by one. A tombstone table (PSPNLDEL) is outside these captures.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T11:45:26.036Z",
+      "method": "save-capture",
+      "experimentId": "dl01-native-page-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture dl01-native-page-delete: a page with an Activate program: 1 PSPNLDEFN, 60 PSPNLFIELD, 1 PSPNLFIELDEXT, the program's PSPCMPROG, PSPCMNAME and PSPCMTXT rows deleted; PDM, PCM and SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPCMNAME",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 60,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PCM": 1,
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "dl01-native-page-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PROJECT_MIGRATION.md"
+        }
+      ],
+      "digest": "52ef8dc51208ff9430475e7142d0b89d45e412b51120bc498c8deb1c7da37d1e"
+    },
+    {
+      "observedAt": "2026-10-21T11:53:29.523Z",
+      "method": "save-capture",
+      "experimentId": "dl06-native-page-without-peoplecode-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture dl06-native-page-without-peoplecode-delete: 1 PSPNLDEFN, 60 PSPNLFIELD, 1 PSPNLFIELDEXT deleted; PDM and SYS +1, PCM unchanged.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 60,
+            "updated": 0
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "dl06-native-page-without-peoplecode-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PROJECT_MIGRATION.md"
+        }
+      ],
+      "digest": "86d0488091116b3c5b64279ed347344736382143b17db5baebeee7efa0ed19e4"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:30:40.248Z",
+    "updatedAt": "2026-10-26T20:30:40.528Z",
+    "schemaVersion": 1
+  }
+}

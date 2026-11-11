@@ -1,0 +1,109 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-a115fc0fe5c39648fedc2e74",
+  "fingerprint": "a115fc0fe5c39648fedc2e747499c9c0a1d8da0a3d8883d45f41f0ef6507d040",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "sql",
+    "objectType": "SQL definition"
+  },
+  "assertion": {
+    "kind": "delete-tombstone",
+    "facts": {
+      "table": "PSSQLDEL",
+      "key": "SQLID,SQLTYPE",
+      "version": "newSRM",
+      "SRM": 1,
+      "SYS": 1,
+      "rowsDeleted": "PSSQLDEFN,PSSQLDESCR,PSSQLTEXTDEFN,PSSQLHASH"
+    }
+  },
+  "title": "Deleting a SQL definition removes its PSSQLDEFN, PSSQLDESCR, PSSQLTEXTDEFN and PSSQLHASH rows and writes PSSQLDEL at the new SRM",
+  "statement": "App Designer's Delete of a SQL definition deletes its PSSQLDEFN, PSSQLDESCR, PSSQLTEXTDEFN and PSSQLHASH rows, inserts PSSQLDEL (SQLID, SQLTYPE) with VERSION the new SRM, and moves SRM and SYS by one. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-20T20:11:38.327Z",
+      "method": "save-capture",
+      "experimentId": "td01-native-sql-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture td01-native-sql-delete: the four rows deleted; PSSQLDEL inserted, SQLTYPE 0, VERSION 219 = SRM after; SRM +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSSERVERSTAT",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSQLDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLDESCR",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLHASH",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSSQLTEXTDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "td01-native-sql-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/TEXT_DELETION.md"
+        }
+      ],
+      "digest": "23e00bc96860bac894d6bbb227e0ddbb6ca2dc186eee3e2628ade7028a1bcd94"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:31:30.663Z",
+    "updatedAt": "2026-10-26T20:31:30.663Z",
+    "schemaVersion": 1
+  }
+}

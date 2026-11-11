@@ -31,7 +31,7 @@ export const FINDING_TYPES = [
 export const SUBSYSTEMS = [
   'page-designer', 'component', 'record', 'field', 'menu', 'app-engine', 'peoplecode', 'application-class',
   'component-interface', 'message-channel', 'integration-broker', 'project', 'sql', 'html', 'style-sheet',
-  'customization', 'event-mapping', 'portal-registry', 'security', 'build', 'other'
+  'customization', 'event-mapping', 'portal-registry', 'security', 'build', 'query', 'file-layout', 'other'
 ] as const;
 
 export const RESEARCH_METHODS = [

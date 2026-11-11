@@ -1,0 +1,196 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-70120915b5706d8e7b4d7ba5",
+  "fingerprint": "70120915b5706d8e7b4d7ba590892e9ef872bf0d85984e20c120249f5bc01097",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "recreate-clears-tombstone",
+    "facts": {
+      "table": "PSQRYDEL",
+      "deleted": true,
+      "newVersion": "newQDM"
+    }
+  },
+  "title": "Saving a new query under a deleted name and owner deletes that PSQRYDEL row",
+  "statement": "Creating a query whose OPRID and QRYNAME have a PSQRYDEL row deletes that row and writes the definition at the new QDM.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-20T21:23:59.596Z",
+      "method": "save-capture",
+      "experimentId": "qp04-native-public-query-recreate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qp04-native-public-query-recreate: the public PSQRYDEL (VERSION 37) deleted; the definition inserted with PSQRYDEFN.VERSION 39 = QDM after.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qp04-native-public-query-recreate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/QUERY_PROJECT_DELETION.md"
+        }
+      ],
+      "digest": "dea3e6fe8af33fc562495e0997e75ecd128906a6ec0e4a5e4569b1728ad3a699"
+    },
+    {
+      "observedAt": "2026-10-20T21:27:16.150Z",
+      "method": "save-capture",
+      "experimentId": "qp06-native-private-query-recreate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qp06-native-private-query-recreate: the private PSQRYDEL (VERSION 40) deleted; PSQRYDEFN.VERSION 41 = QDM after.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qp06-native-private-query-recreate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/QUERY_PROJECT_DELETION.md"
+        }
+      ],
+      "digest": "563642e4db5558ccaed14d24ef3f1e115e71304d03e9f0af50de2c3bb5728ce7"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:31:33.515Z",
+    "updatedAt": "2026-10-26T20:31:33.802Z",
+    "schemaVersion": 1
+  }
+}

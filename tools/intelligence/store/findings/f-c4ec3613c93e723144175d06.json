@@ -1,0 +1,70 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-c4ec3613c93e723144175d06",
+  "fingerprint": "c4ec3613c93e723144175d0616f978c0b8a418fccfd70b70d737bd020f79f3b1",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "record",
+    "objectType": "Record"
+  },
+  "assertion": {
+    "kind": "create-subrecord",
+    "facts": {
+      "RECTYPE": 3,
+      "rows": "PSRECDEFN,PSRECFIELD,PSRECFIELDDB",
+      "indexRows": 0,
+      "tablespaceRows": 0
+    }
+  },
+  "title": "A new SubRecord is a PSRECDEFN row of RECTYPE 3 with PSRECFIELD and PSRECFIELDDB rows, and no index or tablespace rows",
+  "statement": "App Designer saves a new SubRecord like a new Derived/Work record: PSRECDEFN with RECTYPE 3 and VERSION the new RDM, one PSRECFIELD and PSRECFIELDDB row per field, INDEXCOUNT 0, nothing in PSINDEXDEFN, PSKEYDEFN or PSRECTBLSPC. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-20T22:49:35.133Z",
+      "method": "save-capture",
+      "experimentId": "sb01-native-subrecord-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture sb01-native-subrecord-create (record-rows.json): PSRECDEFN RECTYPE 3, FIELDCOUNT 1, INDEXCOUNT 0, VERSION 392 = RDM after; one PSRECFIELD and one PSRECFIELDDB row; no index, key or tablespace rows; RDM +1, SYS +1.",
+      "delta": {
+        "tables": [],
+        "counters": {
+          "RDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "sb01-native-subrecord-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PROJECT_MIGRATION.md"
+        }
+      ],
+      "digest": "28d2031fab141439785615c84697621aa3009f4c9589441743f59837ddd313e3"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:30:55.302Z",
+    "updatedAt": "2026-10-26T20:30:55.302Z",
+    "schemaVersion": 1
+  }
+}

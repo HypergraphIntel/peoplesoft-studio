@@ -145,6 +145,12 @@ export interface PageControl {
 /** FIELDUSE bits, proven against App Designer saves (docs/PAGE_SAVE.md 09-property). */
 export const FIELD_USE_DISPLAY_ONLY = 0x01;
 export const FIELD_USE_INVISIBLE = 0x02;
+/**
+ * A scroll's Use tab: No Auto Select, No Auto Update, No Row Insert and No Row Delete, together as delivered
+ * grids on Dynamic Views store them (FIELDUSE 5056, and the same bits under other flags; 1,123 such grids on HCDEV). The bit of each
+ * box alone has not been captured.
+ */
+export const WORK_SCROLL_USE = 0x3c0;
 
 /** A page's own properties, as App Designer's Page Properties dialog shows them. */
 export interface PageProperties {

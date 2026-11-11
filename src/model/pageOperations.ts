@@ -1,6 +1,7 @@
 import type { PageLayout } from './pageLayout.js';
-import { FIELD_USE_DISPLAY_ONLY, FIELD_USE_INVISIBLE } from './pageLayout.js';
-import { pageUseRefusal } from './pageUse.js';
+import { FIELD_USE_DISPLAY_ONLY, FIELD_USE_INVISIBLE, WORK_SCROLL_USE } from './pageLayout.js';
+import { SCROLL_FIELD_TYPES } from './pageLevels.js';
+import { pageLabelRefusal, pageUseRefusal } from './pageUse.js';
 import { NEW_CONTROL_FIELDTYPE, NEW_CONTROL_FIELDUSE, NEW_CONTROL_SIZE, type NewControlKind } from '../providers/pageControlTemplates.js';
 import { FLUID_USETEMP2, FLUID_USETMP, fluidClassSlots, type EditedControl, type EditedPageProperties } from '../providers/pageWriter.js';
 
@@ -21,6 +22,7 @@ export type PageOperation =
   | { op: 'resize'; id: number; width: number; height: number }
   | { op: 'set_label'; id: number; text?: string; labelType?: number }
   | { op: 'set_use'; id: number; displayOnly?: boolean; invisible?: boolean; deferProc?: boolean }
+  | { op: 'set_scroll_use'; id: number; workScroll: boolean }
   | { op: 'delete'; id: number }
   /** An Edit Box's Record Name / Field Name (eb77-eb82); the field's default label and format family come with it. */
   | { op: 'set_binding'; id: number; record: string; field: string }
@@ -77,6 +79,8 @@ export function applyPageOperations(layout: PageLayout, operations: readonly Pag
     if (!c) throw new PageOperationError(`There is no control with id ${id} on ${layout.name} (psft_get_page_layout lists them).`);
     return c;
   };
+  // A control added earlier in these operations has no stored FIELDTYPE yet; its kind gives it.
+  const typeOf = (c: EditedControl): number => Number(c.add ? NEW_CONTROL_FIELDTYPE[c.add.kind] : c.fieldType);
   const whole = (n: number, what: string) => {
     if (!Number.isFinite(n)) throw new PageOperationError(`${what} must be a number.`);
     return Math.round(n);
@@ -95,9 +99,11 @@ export function applyPageOperations(layout: PageLayout, operations: readonly Pag
           pnlFldId: -(++added), fieldLeft: left, fieldTop: top,
           fieldRight: width ? left + width : 0, fieldBottom: height ? top + height : 0,
           editLblLeft: 0, editLblTop: 0, editLblRight: 0, editLblBottom: 0,
-          // An explicit size on an auto-sized kind is a custom size, as a resize makes it.
-          // A grid column keeps App Designer's size type with its width (gd-column, ag-fresh: 0).
-          fieldSizeType: sized && !z.width && o.intoGrid === undefined ? 2 : z.fieldSizeType, lblType: z.lblType, lblText: o.label ?? '',
+          // An explicit size on an auto-sized kind is a custom size, as a resize makes it -- a grid column too: dropped
+          // unsized it keeps App Designer's 0 (gd-column, ag-fresh), but a width with 0 (Standard) is ignored and PIA
+          // sizes the column to the field's length (a DESCR254 column drew 2,540 pixels wide, HRDMO 2026-10-27);
+          // 40,720 of HRDMO's sized grid Edit Boxes are 2.
+          fieldSizeType: sized && !z.width ? 2 : z.fieldSizeType, lblType: z.lblType, lblText: o.label ?? '',
           // The kind's own use bits, as App Designer drops it: a Static Image display only (in01), a Scroll Bar or Secondary Page
           // invisible (lv03, sp-fresh), a Grid 0x1000 (gd-fresh), an Analytic Grid display only (ag-fresh).
           fieldUse: NEW_CONTROL_FIELDUSE[o.kind] ?? 0, secureInvisible: (NEW_CONTROL_FIELDUSE[o.kind] ?? 0) & 0x2 ? 1 : 0,
@@ -157,6 +163,12 @@ export function applyPageOperations(layout: PageLayout, operations: readonly Pag
         if (refusal) throw new PageOperationError(refusal);
         break;
       }
+      case 'set_scroll_use': {
+        const c = find(o.id);
+        if (!SCROLL_FIELD_TYPES.has((c.add ? NEW_CONTROL_FIELDTYPE[c.add.kind] : c.fieldType) ?? -1)) throw new PageOperationError(`Control ${o.id} is not a scroll or grid.`);
+        c.fieldUse = o.workScroll ? c.fieldUse | WORK_SCROLL_USE : c.fieldUse & ~WORK_SCROLL_USE;
+        break;
+      }
       case 'delete': {
         const c = find(o.id);
         controls.splice(controls.indexOf(c), 1);
@@ -177,14 +189,14 @@ export function applyPageOperations(layout: PageLayout, operations: readonly Pag
       }
       case 'set_occurs_level': {
         const c = find(o.id);
-        if (!SCROLL_TYPES.has(Number(c.fieldType))) throw new PageOperationError(`Control ${o.id} is not a Scroll Bar, Grid or Scroll Area.`);
+        if (!SCROLL_TYPES.has(typeOf(c))) throw new PageOperationError(`Control ${o.id} is not a Scroll Bar, Grid or Scroll Area.`);
         if (!Number.isInteger(o.level) || o.level < 1 || o.level > 3) throw new PageOperationError('Level number must be between 1 and 3.');
         c.occursLevel = o.level;
         break;
       }
       case 'set_level': {
         const c = find(o.id);
-        if (c.fieldType !== 23) throw new PageOperationError(`Control ${o.id} is not a Horizontal Rule.`);
+        if (typeOf(c) !== 23) throw new PageOperationError(`Control ${o.id} is not a Horizontal Rule.`);
         if (o.level === null) { c.fieldUse &= ~0x2; c.secureInvisible = 0; delete c.occursLevel; break; }
         if (!Number.isInteger(o.level) || o.level < 0 || o.level > 2) throw new PageOperationError('A rule sets the level to 0, 1 or 2.');
         // Set to Level: FIELDUSE 0x2 with SECUREINVISIBLE 1, the level as the rule's OCCURSLEVEL and PT_NUMFLD1 (lv06).
@@ -246,6 +258,11 @@ export function applyPageOperations(layout: PageLayout, operations: readonly Pag
         throw new PageOperationError(`Unknown page operation ${JSON.stringify((o as { op?: unknown }).op)}.`);
     }
   }
+  // Every label as it will be saved, before anything reaches the database (E27/E40/E46/E55/E69/E78).
+  for (const c of controls) {
+    const refusal = pageLabelRefusal(c.pnlFldId < 0 ? `Added control ${-c.pnlFldId}` : `Control ${c.pnlFldId}`, c.lblText);
+    if (refusal) throw new PageOperationError(refusal);
+  }
   return { controls, properties, ...(order ? { order } : {}) };
 }
 
@@ -277,7 +294,7 @@ export function pageLayoutForAgent(layout: PageLayout): Record<string, unknown> 
  * (other properties, a Tree's insert, saving an invalid page) is routed to the
  * legacy per-write confirmation rather than refused -- see reviewRouting.
  */
-export const STAGEABLE_PAGE_OPS = ['move', 'resize', 'set_label', 'set_use', 'set_properties', 'add', 'delete', 'set_order', 'set_binding'] as const;
+export const STAGEABLE_PAGE_OPS = ['move', 'resize', 'set_label', 'set_use', 'set_scroll_use', 'set_properties', 'add', 'delete', 'set_order', 'set_binding'] as const;
 
 export function isStageablePageRequest(operations: unknown, saveInvalid: unknown): boolean {
     if (saveInvalid === true || !Array.isArray(operations) || operations.length === 0) return false;

@@ -1,0 +1,89 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-f62a9e4eaa0eb199e0c804c1",
+  "fingerprint": "f62a9e4eaa0eb199e0c804c1a64262367ac3b25639e585e906787e236e9e2d81",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page"
+  },
+  "assertion": {
+    "kind": "related-control-deleted",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "relatedFieldFIELDUSE": "0x10 cleared",
+      "ASSOCFIELDNUM": 0,
+      "otherBitsKept": true
+    }
+  },
+  "title": "Deleting a Related Control Field clears its Related Field's 0x10 use bit and sets its ASSOCFIELDNUM to 0",
+  "statement": "When the control a Related Field names is deleted, App Designer saves the Related Field with FIELDUSE bit 0x10 cleared (other bits kept) and ASSOCFIELDNUM 0. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:33:24.329Z",
+      "method": "save-capture",
+      "experimentId": "ps02-delete-control-field",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ps02-delete-control-field: the Related Control Field (FIELDNUM 10) deleted; its Related Field FIELDUSE 19 -> 3, ASSOCFIELDNUM 9 -> 0.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 78
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ps02-delete-control-field"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "e26df8d0bff15e3b26a4ec8b548ca8dead800b9d2649b4f96f8045276317d3e0"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:33:24.335Z",
+    "updatedAt": "2026-10-26T20:33:24.335Z",
+    "schemaVersion": 1
+  }
+}

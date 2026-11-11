@@ -11,7 +11,7 @@ import type { Json } from '../changeReview/model.js';
 import { jsonResult } from './tools.js';
 import { preparePageReview } from './pageReview.js';
 import type { McpWriteHost } from './writeTools.js';
-import { planHash } from '../changeReview/model.js';
+import { planHash, canonical } from '../changeReview/model.js';
 import { prepareStructuredHeaderReview } from './structuredHeaderReview.js';
 import { isStageableRecordRequest } from '../changeReview/structuredHeaders.js';
 import { isStageablePageRequest } from '../model/pageOperations.js';
@@ -115,8 +115,18 @@ export function routeReviewedMutations(server: {
                 const staged = await service.stage(setId, proposal.adapter, proposal.key, proposal.after, args.dependsOn as string[], undefined, proposal.expectedToken);
                 return jsonResult({ status: 'REVIEW_REQUIRED', changeSetId: staged.id, revision: staged.revision, persisted: false, command: 'psft.changeReview.open' });
             }
-            const preparedPage = name === 'psft_edit_page' ? await preparePageReview(workspace, host?.(), args) : undefined;
             const headerFamily = name === 'psft_edit_record' ? 'record' : name === 'psft_ae_edit' ? 'ae' : undefined;
+            // This definition's proposal already in the set (E22). Operations apply to the live definition, so staging them
+            // would replace that proposal and silently drop the earlier edit: a Record builds on it; a Page refuses.
+            const stagedName = String(args[name === 'psft_edit_page' ? 'page' : name === 'psft_ae_edit' ? 'program' : 'record'] ?? '').trim().toUpperCase();
+            const stagedObject = supplied && (name === 'psft_edit_page' || headerFamily)
+                ? supplied.objects.find(c => c.adapter === (name === 'psft_edit_page' ? 'page' : headerFamily) && canonical(c.key) === canonical(stagedName)) : undefined;
+            const stagedAfter = stagedObject ? await service.store.readBlob(stagedObject.after) as Json : undefined;
+            if (stagedObject && stagedAfter === null)
+                throw new Error(`${stagedName} is staged for deletion in this Change Set; it cannot also be edited there. Nothing was staged.`);
+            if (name === 'psft_edit_page' && stagedObject)
+                throw new Error(`Page ${stagedName} is already staged in this Change Set; give all of its operations in one psft_edit_page call (a second call would replace the first). Nothing was staged.`);
+            const preparedPage = name === 'psft_edit_page' ? await preparePageReview(workspace, host?.(), args) : undefined;
             // A structural Record or App Engine edit has no review adapter, so -- like a
             // new Application Class -- it keeps the legacy
             // per-write confirmation instead of being refused. Refusing it left the edit
@@ -125,7 +135,7 @@ export function routeReviewedMutations(server: {
                 refuseOutsideSet('This Record or App Engine operation is not staged; it saves through the legacy per-write confirmation.');
                 return callback(args, ...rest);
             }
-            const preparedHeader = headerFamily ? await prepareStructuredHeaderReview(workspace, host?.(), headerFamily, args) : undefined;
+            const preparedHeader = headerFamily ? await prepareStructuredHeaderReview(workspace, host?.(), headerFamily, args, stagedAfter ?? undefined) : undefined;
             const ibPreparation = name === 'psft_ib_save' ? await prepareIbHeaderReview(workspace, host?.(), args) : undefined;
             if (name === 'psft_ib_save' && (!ibPreparation || 'outside' in ibPreparation)) {
                 refuseOutsideSet(`This IB edit is outside the bounded service/operation review contract${ibPreparation ? ` (${ibPreparation.outside})` : ''}.`);

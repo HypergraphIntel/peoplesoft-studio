@@ -1,0 +1,140 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-f90f3c9bdb1f54a76a1de551",
+  "fingerprint": "f90f3c9bdb1f54a76a1de55122eec0c3ee8bbc3a26713ccb6de1fb9a0220c988",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "create-defaults",
+    "facts": {
+      "FLDFORMAT": 0,
+      "segmentNameAndTag": "record",
+      "FLDIDSEQNO": 0,
+      "FLDMAXSEGLEN": "lastFieldEnd",
+      "fieldStarts": "consecutiveFrom1",
+      "FLDDATEFMT": "MMDDYYYY",
+      "FLDDATESEPARATOR": "/"
+    }
+  },
+  "title": "A new File Layout with one record inserted is FIXED with one segment named after the record, its fields at consecutive starts from 1",
+  "statement": "File > New, Insert > Record and Save writes PSFLDDEFN with FLDFORMAT 0 (FIXED) and every option 0; one PSFLDSEGDEFN named and tagged as the record, FLDIDSEQNO 0, FLDMAXSEGLEN the last field's end; one PSFLDFIELDDEFN per record field in sequence, each starting where the previous ends (from 1), with FLDDATEFMT MMDDYYYY and FLDDATESEPARATOR '/' on every field, date or not.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:20:34.289Z",
+      "method": "save-capture",
+      "experimentId": "fl01-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl01-create: FLDFORMAT 0, one segment named and tagged as the record, FLDIDSEQNO 0, FLDMAXSEGLEN 120; 12 fields from 1 to 120 at consecutive starts; every field MMDDYYYY with '/'.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 12,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl01-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "5d1ac591122ae8832dd6cfe91f73c5624a13a359c86410c2a83b1e3bf904a18d"
+    },
+    {
+      "observedAt": "2026-10-26T20:20:34.570Z",
+      "method": "save-capture",
+      "experimentId": "fl07-create-fixed",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl07-create-fixed: FLDFORMAT 0, one segment named and tagged as the record, FLDIDSEQNO 0, FLDMAXSEGLEN 77; 11 fields from 1 to 77 at consecutive starts; every field MMDDYYYY with '/'.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 11,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl07-create-fixed"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "2fd0f65b477a6f5b7474631e17924c1a2703444bfdadcac015e325e20061522b"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:20:34.296Z",
+    "updatedAt": "2026-10-26T20:20:34.577Z",
+    "schemaVersion": 1
+  }
+}

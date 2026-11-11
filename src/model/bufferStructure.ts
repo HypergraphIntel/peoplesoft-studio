@@ -222,7 +222,7 @@ PAGES: ONE TAB ORDER, LEVELS FROM IT
 - Typical build: level-0 fields; a Scroll Area or Grid (level 1) with the level-1 record's fields after it; inside it a Scroll Bar / Grid at level 2 and the level-2 record's fields; a Horizontal Rule Set to Level 1 to continue level 1 below the nested scroll; one Set to Level 0 to return to level 0.
 
 APP DESIGNER'S CHECKS ON SAVE (Message Set 15, then "Invalid page. Do you still want to save the page?" 46,2)
-- 15,19 No data for scroll: a scroll needs a record field (or a Subpage / Secondary Page) after it, before the next scroll or Set to Level rule.
+- 15,19 No data for scroll: a scroll needs a field of a table or view (or a Subpage / Secondary Page) after it, before the next scroll or Set to Level rule; Derived/Work fields alone do not count. For a grid filled by PeopleCode, make its record a Dynamic View and set_scroll_use workScroll:true (No Auto Select, No Auto Update, No Row Insert, No Row Delete).
 - 15,22 More than one data record in scroll: a scroll's rowset is one record (its primary: its first record that is not Derived/Work). Fields of another table or view in it must be related displays (FIELDUSE 0x10). Derived/Work fields are allowed. Level 0 may hold several records.
 - 15,18 Invalid field level: a scroll may be at most one level below the running level (no level-3 scroll inside a level-1 scroll).
 - 15,17 Invalid related display: a related display must follow its display control field, in the same scroll.

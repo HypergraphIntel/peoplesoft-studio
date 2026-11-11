@@ -261,10 +261,23 @@ export function referencesToNameRows(references: readonly PeopleCodeReference[])
   });
 }
 
-/** PSPCMPROG.PROGEXTENDS: an Application Class's superclass, as its header names it; blank otherwise. */
+/**
+ * PSPCMPROG.PROGEXTENDS: an Application Class's superclass, or the interface it implements, as its
+ * header names it; blank otherwise. App Designer records `implements` here too: on HRDMO all 45
+ * implementing classes saved by 8.62.09 hold the interface; the 143 of 1,677 that hold blank all
+ * have a blank PTTOOLSREL (saved by an older release).
+ */
 export function progExtendsFor(source: string, target: CompileTarget): string {
   if (!target.applicationClass) return BLANK;
-  return stored(parseApplicationClassSource(source)?.extendsType ?? '');
+  const parsed = parseApplicationClassSource(source);
+  return stored(parsed?.extendsType ?? parsed?.implementsType ?? '');
+}
+
+/** Stored PROGEXTENDS a program may hold: progExtendsFor's value, or blank for an implementing class saved by an older release. */
+function progExtendsAccepted(storedValue: string, source: string, target: CompileTarget): boolean {
+  const value = storedValue.trim();
+  if (value === progExtendsFor(source, target).trim()) return true;
+  return value === '' && target.applicationClass && parseApplicationClassSource(source)?.implementsType !== undefined;
 }
 
 function nameTable(rows: readonly NameRow[]): NameTable {
@@ -373,6 +386,35 @@ export function planProgram(source: string, compiled: Compiled): ProgramPlan {
 /** The columns every observed native save wrote with these values; a stored program with others is refused. */
 export const PROGRAM_DEFAULTS = { progrunloc: 0, progflags: 0, licenseCode: BLANK, pttoolsrel: BLANK } as const;
 
+/**
+ * PSPCMPROG.LICENSE_CODE (E37): App Designer writes a 44-character base64 value (32 bytes) on web library programs only.
+ * HRDMO 8.62.09, 2026-11-11: 164 of 165 WEBLIB_ record programs carry one and no other program does; every program of
+ * one WEBLIB record shares its value (103 of 104 records; WEBLIB_PORTAL's PORTAL_NAV has its own), no value is on two
+ * records, and it is not a plain or site-keyed digest of the key or text. An App Designer save of an existing WEBLIB
+ * program (HCDEV 8.61.15, 2026-10-29, ~100 changed lines) kept it byte for byte, so an update preserves it.
+ *
+ * Captured 2026-11-11 (HRDMO 8.62.09, App Designer, new record WEBLIB_ZZ_LIC): the first program saved on a new WEBLIB
+ * record gets a value; a second program on another field gets the same one; deleting every program and creating one again
+ * gives the same one again; an update keeps it. Across HCDEV 8.61.15 and HRDMO 8.62.09, all 158 WEBLIB programs licensed
+ * on both carry identical values. So the value is a fixed function of the record name. It is not a plain or salted digest
+ * Studio can compute, so a new program copies the value the record's other programs hold (recordLicenseCode), which is
+ * exactly App Designer's; a web library record with no licensed program yet gets blank, which runs (WEBLIB_ZZ_AI).
+ */
+const LICENSE_SHAPE = (v: string) => /^[A-Za-z0-9+/]{43}=$/.test(v) && Buffer.from(v, 'base64').length === 32;
+
+/** The value a new program on a web library record takes: the one its other programs hold, when they agree. */
+export function recordLicenseCode(values: readonly string[]): string | undefined {
+  const distinct = [...new Set(values.map((v) => v.trim()).filter((v) => v !== ''))];
+  return distinct.length === 1 && LICENSE_SHAPE(distinct[0]) ? distinct[0] : undefined;
+}
+
+export function preservedLicenseCode(program: StoredProgram): string | undefined {
+  const value = program.program[0]?.licenseCode ?? BLANK;
+  if (value.trim() === '') return undefined;
+  const isWebLibrary = Number(program.key.objectIds[0]) === RECORD_ID && /^WEBLIB/.test(program.key.objectValues[0]?.trim() ?? '');
+  return isWebLibrary && LICENSE_SHAPE(value.trim()) ? value : undefined;
+}
+
 export function storedText(program: StoredProgram): string {
   return [...program.text].sort((a, b) => a.progseq - b.progseq).map((r) => r.text).join('');
 }
@@ -428,11 +470,12 @@ export function checkStoredProgram(program: StoredProgram, target: CompileTarget
   for (const row of program.program) {
     if (row.version !== first.version || row.namecount !== first.namecount || row.proglen !== first.proglen ||
         row.lastupddttm !== first.lastupddttm || row.lastupdoprid !== first.lastupdoprid) refuse('its PSPCMPROG rows disagree');
+    if (row.licenseCode !== first.licenseCode) refuse('its PSPCMPROG rows disagree');
     if (row.progrunloc !== PROGRAM_DEFAULTS.progrunloc || row.progflags !== PROGRAM_DEFAULTS.progflags ||
-        row.licenseCode !== PROGRAM_DEFAULTS.licenseCode || row.pttoolsrel !== PROGRAM_DEFAULTS.pttoolsrel) {
+        (row.licenseCode !== PROGRAM_DEFAULTS.licenseCode && preservedLicenseCode(program) === undefined) || row.pttoolsrel !== PROGRAM_DEFAULTS.pttoolsrel) {
       refuse('PROGRUNLOC, PROGFLAGS, LICENSE_CODE or PTTOOLSREL holds a value native saves were not observed to write');
     }
-    if (row.progextends.trim() !== progExtendsFor(text, target).trim()) refuse('PROGEXTENDS does not match the class header');
+    if (!progExtendsAccepted(row.progextends, text, target)) refuse('PROGEXTENDS does not match the class header');
   }
   const bytes = storedBytes(program);
   if (first.proglen !== bytes.length) refuse('PROGLEN does not match the program length');
@@ -490,8 +533,13 @@ export function fingerprint(program: StoredProgram | undefined): string {
 /** The rows a save writes, fully determined, for writing and for verifying what was written. */
 export function expectedProgram(
   key: PcmKey, plan: ProgramPlan,
-  stamp: { version: number; lastupddttm: string; operatorId: string }
+  stamp: { version: number; lastupddttm: string; operatorId: string },
+  /** The stored program this save replaces: a web library's LICENSE_CODE is kept, as App Designer keeps it (E37). */
+  replaced?: StoredProgram,
+  /** A new web library program: the record's value (recordLicenseCode). */
+  inheritedLicense?: string
 ): StoredProgram {
+  const licenseCode = (replaced && preservedLicenseCode(replaced)) ?? inheritedLicense ?? PROGRAM_DEFAULTS.licenseCode;
   return {
     key,
     text: plan.textRows.map((text, progseq) => ({ progseq, text, hashSignature: plan.hashSignature })),
@@ -501,6 +549,7 @@ export function expectedProgram(
       namecount: plan.names.length,
       proglen: plan.proglen,
       ...PROGRAM_DEFAULTS,
+      licenseCode,
       progextends: plan.progextends,
       lastupddttm: stamp.lastupddttm,
       lastupdoprid: stamp.operatorId,

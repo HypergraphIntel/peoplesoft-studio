@@ -1,0 +1,105 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-ef354c526d12f3dc5c0f503e",
+  "fingerprint": "ef354c526d12f3dc5c0f503e92c86e4dc60a3f0c316c8a869bd1f509f1442e5b",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "application-class",
+    "objectType": "Application Class"
+  },
+  "assertion": {
+    "kind": "native-delete",
+    "facts": {
+      "rows": "PSAPPCLASSDEFN,classProgram",
+      "APM": 1,
+      "PBM": 1,
+      "PCM": 1,
+      "SYS": 2,
+      "packageRowsRestamped": "newAPM"
+    }
+  },
+  "title": "Deleting a class in the package editor and saving removes its class row and program, restamps the package rows, and moves APM, PBM, PCM by 1 and SYS by 2",
+  "statement": "Deleting a class in App Designer's package editor and saving the package deletes its PSAPPCLASSDEFN row and its PSPCMPROG, PSPCMNAME and PSPCMTXT rows, sets every PSPACKAGEDEFN row of the root to VERSION the new APM, and moves APM, PBM and PCM by one and SYS by two. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T11:57:47.567Z",
+      "method": "save-capture",
+      "experimentId": "dl09-native-class-delete",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture dl09-native-class-delete: the class row and its program's three rows deleted; both PSPACKAGEDEFN rows VERSION 180 -> 182 = APM after; APM, PBM, PCM +1, SYS +2.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSAPPCLASSDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPACKAGEDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          },
+          {
+            "table": "PSPCMNAME",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMPROG",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSPCMTXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "APM": 1,
+          "PBM": 1,
+          "PCM": 1,
+          "SYS": 2
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "dl09-native-class-delete"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PROJECT_MIGRATION.md"
+        }
+      ],
+      "digest": "f7e3345387a4a0b0c81d6e58fb5dea809173d0e6467d14db993c08f13e539a60"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:30:42.852Z",
+    "updatedAt": "2026-10-26T20:30:42.852Z",
+    "schemaVersion": 1
+  }
+}

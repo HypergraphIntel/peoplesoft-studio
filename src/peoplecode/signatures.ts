@@ -17,6 +17,7 @@ export interface BuiltinSignature {
 export const BUILTIN_SIGNATURES: Readonly<Record<string, BuiltinSignature>> = {
   createrecord: { label: 'CreateRecord(Record.RECORD)', parameters: ['Record.RECORD'], doc: 'A standalone Record object for the named record.' },
   getrecord: { label: 'GetRecord(Record.RECORD)', parameters: ['Record.RECORD'], doc: 'The record from the current context (row), optionally a named one.' },
+  setauthenticationresult: { label: 'SetAuthenticationResult(authResult [, userId] [, resultDocument] [, passwordExpired] [, daysLeft])', parameters: ['authResult', 'userId', 'resultDocument', 'passwordExpired', 'daysLeft'], doc: 'Sign On PeopleCode: sets whether the sign-on succeeds and as which user; resultDocument is the web profile\'s result document page text, or the error text on failure.' },
   getfield: { label: 'GetField(Field.FIELD)', parameters: ['Field.FIELD'], doc: 'A field from the current record context.' },
   createsql: { label: 'CreateSQL(sqlText [, bindValues])', parameters: ['sqlText', 'bindValues'], doc: 'An open SQL object; binds may follow the statement.' },
   sqlexec: { label: 'SQLExec(sqlText [, bindValues] [, outputFields])', parameters: ['sqlText', 'bindValues', 'outputFields'], doc: 'Run one SQL statement; first row of output returned by reference.' },

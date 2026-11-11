@@ -30,7 +30,7 @@
     ],
     "knownIncompatible": []
   },
-  "localStatus": "observed",
+  "localStatus": "reproduced",
   "observations": [
     {
       "observedAt": "2026-10-21T17:23:21.708Z",
@@ -125,6 +125,99 @@
         }
       ],
       "digest": "de4b633542b1b5062a763b38640189eeb70780f7839e2ceea42ad4dc181fce63"
+    },
+    {
+      "observedAt": "2026-10-21T17:50:14.057Z",
+      "method": "save-capture",
+      "experimentId": "ib07-native-operation-delete-repeat",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Capture ib07-native-operation-delete-repeat: PSOPERATIONDEL VERSION 41 = OPRM after (42) - 1; PSOPRVERDFNDEL VERSION 34 = OPRVM after; PSOPRHDLRDEL VERSION 18 = OPRHM after; PSSERVICE VERSION 43 -> 44.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSOPERATION",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATIONAC",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATIONDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRHDLR",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRHDLRDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFNDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFNPARM",
+            "inserted": 0,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSSERVICE",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSERVICEOPR",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "OPRHM": 1,
+          "OPRM": 3,
+          "OPRVM": 1,
+          "SRVM": 1,
+          "SYS": 4
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ib07-native-operation-delete-repeat"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/IB_STRUCTURE.md"
+        }
+      ],
+      "digest": "c76354af4591465bbd55ba5d5de4b94fe7bf9141684b59e4ea180916d223373c"
     }
   ],
   "privacy": {
@@ -134,7 +227,7 @@
   "provenance": {
     "source": "research-harness",
     "createdAt": "2026-10-21T17:27:12.351Z",
-    "updatedAt": "2026-10-21T17:27:12.351Z",
+    "updatedAt": "2026-10-26T20:34:33.263Z",
     "schemaVersion": 1
   }
 }

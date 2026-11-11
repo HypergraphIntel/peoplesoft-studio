@@ -39,11 +39,12 @@
   "confidence": "high",
   "compatibility": {
     "observedReleases": [
-      "8.61.15"
+      "8.61.15",
+      "8.62.09"
     ],
     "knownIncompatible": []
   },
-  "localStatus": "observed",
+  "localStatus": "reproduced",
   "observations": [
     {
       "observedAt": "2026-10-18T23:30:00Z",
@@ -67,6 +68,99 @@
         }
       ],
       "digest": "6e2128ee1e3e11e855383812f689ce7e58154511ab2c8113899d223654245b3e"
+    },
+    {
+      "observedAt": "2026-10-21T20:58:11.300Z",
+      "method": "save-capture",
+      "experimentId": "ib16-native-rest-consumer-operation-create",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "PIA"
+      },
+      "observation": "Capture ib16-native-rest-consumer-operation-create (8.62.09): a consumer REST GET operation got a GENERATED Y routing from the default local node to WADL_NODE, CONNGATEWAYID LOCAL, CONNID HTTPTARGET, EFFDT 1900-01-01, named ~GENERATED~ and an 8-digit number, VERSION 177 = RTDM after; PSOPRGENRTGPARM PUBSRVCSYNC names it; RTDM +1 with the operation's counters.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSIBRTNGDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSIBRTNGSUBDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATION",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPERATIONURI",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRGENRTGPARM",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSOPRVERDFNPARM",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSRTNGDFNPARM",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSERVICE",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSSERVICEOPR",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "OPRM": 1,
+          "OPRVM": 1,
+          "RTDM": 1,
+          "SRVM": 1,
+          "SYS": 4
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ib16-native-rest-consumer-operation-create"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/IB_STRUCTURE.md"
+        }
+      ],
+      "digest": "111cc0eca613302a045f677acfe8b00c1671c6ede5395c0bb1b22359fdf63f22"
     }
   ],
   "privacy": {
@@ -76,7 +170,7 @@
   "provenance": {
     "source": "research-harness",
     "createdAt": "2026-10-18T22:59:46.061Z",
-    "updatedAt": "2026-10-18T22:59:46.061Z",
+    "updatedAt": "2026-10-26T20:34:34.093Z",
     "schemaVersion": 1
   }
 }

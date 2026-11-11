@@ -1,0 +1,61 @@
+{
+ "PSVERSION": [
+  {
+   "OBJECTTYPENAME": "APM",
+   "VERSION": 454
+  },
+  {
+   "OBJECTTYPENAME": "PBM",
+   "VERSION": 64
+  },
+  {
+   "OBJECTTYPENAME": "PCM",
+   "VERSION": 1283
+  },
+  {
+   "OBJECTTYPENAME": "PJM",
+   "VERSION": 560
+  },
+  {
+   "OBJECTTYPENAME": "RDM",
+   "VERSION": 751
+  },
+  {
+   "OBJECTTYPENAME": "SYS",
+   "VERSION": 7172
+  }
+ ],
+ "PSLOCK": [
+  {
+   "OBJECTTYPENAME": "APM",
+   "VERSION": 454
+  },
+  {
+   "OBJECTTYPENAME": "PBM",
+   "VERSION": 64
+  },
+  {
+   "OBJECTTYPENAME": "PCM",
+   "VERSION": 1283
+  },
+  {
+   "OBJECTTYPENAME": "PJM",
+   "VERSION": 560
+  },
+  {
+   "OBJECTTYPENAME": "RDM",
+   "VERSION": 751
+  },
+  {
+   "OBJECTTYPENAME": "SYS",
+   "VERSION": 2
+  }
+ ],
+ "PSPACKAGEDEFN": [],
+ "PSPACKAGEDEL": [],
+ "PSAPPCLASSDEFN": [],
+ "PSRECDEFN": [],
+ "PSPCMPROG": [],
+ "PSPCMTXT": [],
+ "PSPCMPROGDEL": []
+}

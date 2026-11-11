@@ -4,6 +4,7 @@ import { DefinitionType, type DefinitionKey } from '../model/definitions.js';
 import { COMPONENT_TYPES, HEADER_ACTIONS_ORDER, SEARCH_PAGE_TYPES } from '../model/componentFlags.js';
 import { defaultItemLabel, NEW_COMPONENT_ACTIONS, type ComponentItemEdit, type ComponentPropertyEdits } from '../providers/componentWriter.js';
 import { applyFluid, storedFluid, storedProperties } from './componentEdits.js';
+import { searchRecordRefusal } from '../model/componentDefinition.js';
 import { DatabaseProvider } from '../providers/database.js';
 import { Workspace } from '../workspace.js';
 import { jsonResult, requireProvider } from './tools.js';
@@ -31,7 +32,7 @@ const actions = z.object({ add: z.boolean(), updateDisplay: z.boolean(), updateD
 const useProperties = {
   description: z.string().max(30).optional(),
   comments: z.string().optional(),
-  searchRecord: z.string().optional().describe('Required on a component (the writer refuses one without it).'),
+  searchRecord: z.string().optional().describe('Required on a component (the writer refuses one without it). For no search page, use INSTALLATION and put one INSTALLATION field, invisible, at scroll level 0 of the page; a Derived/Work record with no keys is refused.'),
   addSearchRecord: z.string().optional().describe('Blank: the search record.'),
   detailPage: z.string().optional(),
   forceSearch: z.boolean().optional(),
@@ -66,9 +67,13 @@ async function checkPages(provider: DatabaseProvider, items: ComponentItemEdit[]
   }
 }
 
-async function checkRecords(provider: DatabaseProvider, p: ComponentPropertyEdits): Promise<void> {
+async function checkRecords(provider: DatabaseProvider, p: ComponentPropertyEdits, stored?: ComponentPropertyEdits): Promise<void> {
   for (const r of [p.searchRecord, p.addSearchRecord].filter(Boolean)) {
     if ((await provider.recordNameStatus(r)) !== 'exists') throw new Error(`There is no record named ${r}.`);
+    // An existing component keeps a search record it already has; only a new choice is refused.
+    if (r === stored?.searchRecord || r === stored?.addSearchRecord) continue;
+    const refusal = searchRecordRefusal(r, (await provider.recordInfo([r])).get(r));
+    if (refusal) throw new Error(refusal);
   }
 }
 
@@ -157,10 +162,11 @@ export function registerComponentTools(server: McpServer, workspace: Workspace, 
     const version = d.properties.general.version;
     if (expectedVersion !== undefined && expectedVersion !== version) throw new Error('The component changed since it was read; read it again before editing.');
     const items = pages ? pages.map(item) : d.items.map((i) => ({ pageName: i.pageName, itemName: i.itemName, itemLabel: i.itemLabel, folderTabLabel: i.folderTabLabel, hidden: i.hidden }));
-    const properties = applyProperties(storedProperties(d), props);
+    const stored = storedProperties(d);
+    const properties = applyProperties(stored, props);
     if (fluid) properties.fluid = applyFluid(storedFluid(d), fluid);
     if (pages) await checkPages(gate.provider, items);
-    await checkRecords(gate.provider, properties);
+    await checkRecords(gate.provider, properties, stored);
     await approve(host, gate, key, `edit component ${name}.${mkt}`, describe(items, properties));
     const r = await gate.provider.saveComponent({ name, market: mkt, openedVersion: version, operatorId: gate.operatorId, items, properties });
     host.saved(gate.provider.id, key);

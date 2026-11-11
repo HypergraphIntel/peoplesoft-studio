@@ -1,0 +1,78 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-5b3e69853afe9d0185d53828",
+  "fingerprint": "5b3e69853afe9d0185d5382811910c68d92cddd6acdfefa30f2446c7108bde78",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "application-class",
+    "objectType": "Application Package"
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSPACKAGEDEFN",
+      "row": "root",
+      "description": "DESCR",
+      "owner": "OBJECTOWNERID",
+      "comments": "DESCRLONG"
+    }
+  },
+  "title": "An application package's Description, Owner ID and Comments are its root PSPACKAGEDEFN row's DESCR, OBJECTOWNERID and DESCRLONG",
+  "statement": "Package Properties are stored on the root's PSPACKAGEDEFN row (QUALIFYPATH '.'): Description DESCR, Owner ID OBJECTOWNERID, Comments DESCRLONG; subpackage rows are not changed apart from VERSION.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-20T22:59:38.493Z",
+      "method": "save-capture",
+      "experimentId": "pk01-native-package-properties",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture pk01-native-package-properties: the root row DESCR blank -> text, OBJECTOWNERID blank -> an owner code, DESCRLONG null -> text; the subpackage row only VERSION.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPACKAGEDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 2
+          }
+        ],
+        "counters": {
+          "APM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "pk01-native-package-properties"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PROJECT_MIGRATION.md"
+        }
+      ],
+      "digest": "e4d252230a88d28651eeff57d17795f9d95a2c1c18a731c026e40bc6bca297b6"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:30:43.989Z",
+    "updatedAt": "2026-10-26T20:30:43.989Z",
+    "schemaVersion": 1
+  }
+}

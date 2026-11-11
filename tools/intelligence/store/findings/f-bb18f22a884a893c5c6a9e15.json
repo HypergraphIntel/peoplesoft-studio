@@ -253,6 +253,54 @@
         }
       ],
       "digest": "2c96e08b1b36f4637ae54d5f05d1ba99351a577a2cf7aaf84d1fca2c46196641"
+    },
+    {
+      "observedAt": "2026-10-26T20:33:25.737Z",
+      "method": "save-capture",
+      "experimentId": "ps03-insert-early",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ps03-insert-early: the new Static Text took PNLFLDID 157; MAXPNLFLDID 156 -> 157 (the deletes in ps01-ps02 had not lowered it).",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 84
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ps03-insert-early"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "b3e44be601204383fd0afe367c156de6072a20335b242a42c93d88883b23dd6c"
     }
   ],
   "privacy": {
@@ -262,7 +310,7 @@
   "provenance": {
     "source": "research-harness",
     "createdAt": "2026-10-13T02:29:26.217Z",
-    "updatedAt": "2026-10-13T02:29:27.053Z",
+    "updatedAt": "2026-10-26T20:33:25.743Z",
     "schemaVersion": 1
   }
 }

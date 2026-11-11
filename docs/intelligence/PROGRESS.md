@@ -1,7 +1,7 @@
 # Progress and handoff
 
 **Read this first when resuming the Discovery & Intelligence Network.**
-Last updated 2026-10-13 (phase 5). The founding directive: `CUSTOMIZATION_INTEL_SERVER.md`
+Last updated 2026-10-26 (findings round: File Layouts, Query, deletions). The founding directive: `CUSTOMIZATION_INTEL_SERVER.md`
 (repository root).
 
 ## Current state
@@ -28,6 +28,18 @@ Last updated 2026-10-13 (phase 5). The founding directive: `CUSTOMIZATION_INTEL_
   folder grants; Message Catalog's PPC step; Application Class signature
   comments. Each is one observation (`pia-capture`, `source-inspection` or
   `corpus-harness`), technical only; none is a Studio round trip.
+- **2026-10-26: findings round.** New subsystems `query` and `file-layout`
+  (schema, contract and Studio Knowledge mapping). The save-capture adapter
+  reads `query-property-capture/1` (tools/lab/query-capture.mts). Recorded:
+  File Layouts (fl01-fl15, nfl01, the writer replay), Windows Query (56
+  native saves: counters, whole-definition rewrite, aggregate / heading /
+  order / criteria / prompt / expression / join / effective-date / select /
+  translate codes, the replay), native deletions and recreations (dl, td, qp:
+  page, component, field, package, class, SQL, HTML, style sheet, project,
+  query), package restamps (pk01-02), SubRecord and user index (sb01, ix01),
+  page structure (ps01-04: Related Field references), drop zones on 8.62
+  (dz01-02) and the IB leftovers (ib07, 09, 10, 15, 16; the generated-routing
+  finding now spans 8.61.15 and 8.62.09).
 - **Nothing leaves by default.** Submissions need four gates (D13) and the
   user's approval of the exact payloads. The server has run only on localhost.
 
@@ -129,7 +141,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 
 ## Recorded findings (tools/intelligence/store)
 
-221 findings, 1008 observations, each checked against its capture rows before recording (2026-10-14; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
+326 findings, 1266 observations, each checked against its capture rows before recording (2026-10-14; 2026-10-26 for File Layouts, Query, native deletions and tombstones, packages, page structure, drop zones; `--expect-counters` refuses a capture whose counter steps differ). Tests re-derive every capture-backed observation and check every counter-step observation against its claim.
 
 | Subsystem | ID | Claim | Status | Obs. |
 |---|---|---|---|---|
@@ -147,7 +159,12 @@ fingerprint; server: see `server/intelligence/README.md`.
 | app-engine | f-d477c0ab70e48a7736224355 | Saving a new App Engine program moves AEM by 1 and stamps PSAEAPPLDEFN.VERSION with it | reproduced | 2 |
 | application-class | f-0955875d330562f340b9c23e | Adding an application class rewrites every PSPACKAGEDEFN row of its root package with VERSION = the new APM | reproduced | 3 |
 | application-class | f-25040e230f523de62ee3f1d6 | Creating an application class in one save moves APM and PCM by 1 and SYS by 1 | reproduced | 2 |
+| application-class | f-5b3e69853afe9d0185d53828 | An application package's Description, Owner ID and Comments are its root PSPACKAGEDEFN row's DESCR, OBJECTOWNERID and DESCRLONG | observed | 1 |
 | application-class | f-6ba6f6aadec5d928c6042e3f | An application class's program is PSPCMPROG 104 (root) / 105 (subpackage) / 107 (class) / 12 OnExecute; a class's QUALIFYPATH is ':' in the root, else its subpackage path | reproduced | 3 |
+| application-class | f-71652153e9d3936a57cb315b | Deleting an application package removes its package and class rows and their programs; APM and SYS +1, PCM +1 plus one per class | reproduced | 3 |
+| application-class | f-968f284e1cc8442541e696d8 | App Designer writes signature comments into each method, get and set body when it saves an Application Class | observed | 1 |
+| application-class | f-ed551ba4e6bd49561a2a079f | Any save of an application package sets every PSPACKAGEDEFN row of its root to VERSION the new APM | reproduced | 3 |
+| application-class | f-ef354c526d12f3dc5c0f503e | Deleting a class in the package editor and saving removes its class row and program, restamps the package rows, and moves APM, PBM, PCM by 1 and SYS by 2 | observed | 1 |
 | application-class | f-f7f2f20852253b5e6cf6ef0f | Creating an application package writes one PSPACKAGEDEFN row (PACKAGEROOT = its name, QUALIFYPATH '.', PACKAGELEVEL 0, VERSION = new APM) and moves APM and SYS by 1 | observed | 1 |
 | component | f-3a9aaf7e052c2268b9bd8a82 | PeopleSoft Studio's component writer replays App Designer's captured saves: every replay test passes | observed | 1 |
 | component | f-3cacac9b191a0225654a8f3d | Saving an existing component moves PGM and MDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSPNLGRPDEFN.VERSION is the new PGM | reproduced | 78 |
@@ -155,6 +172,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | component | f-64ec2d6391192f12f64cad1a | An App Designer component save deletes and re-inserts the component's PSPNLGRPDEFN, PSPNLGROUP, PSPNLGRPDEFNEXT and PSPNLGRPSCRIPTS rows | reproduced | 6 |
 | component | f-6acf5819cedc01ac096ddc83 | A component save that changes Fluid Mode or Small Form Factor also moves PRSM by 1 | reproduced | 4 |
 | component | f-d26798fcd3f9779bfc1d21d6 | Component style sheets and JavaScript objects are numbered SEQNO 0, 10, 20 ... per PTSCRIPTTYPE, PTSCRIPTCATG DEV | reproduced | 4 |
+| component | f-dc539e55bf69f504cadf092b | File > Delete of a component removes its PSPNLGRPDEFN, PSPNLGROUP and PSPNLGRPDEFNEXT rows and moves PGM, MDM and SYS by 1; its PeopleCode goes too, PCM +1 | reproduced | 2 |
 | component-interface | f-05f121f074b6a7576e29a858 | File > Rename of a Component Interface moves BCM, CLM, MPM, PCM, PJM and SYS by 1 each | observed | 1 |
 | component-interface | f-091c7c30fe9b2798263a3b2c | PeopleSoft Studio's Component Interface writer replays App Designer's captured saves: every replay test passes | observed | 1 |
 | component-interface | f-7ad3b8980b1c7ae6b464ca59 | File > Delete of a Component Interface moves BCM, CLM and SYS by 1 (PCM too with PeopleCode) | observed | 1 |
@@ -162,14 +180,21 @@ fingerprint; server: see `server/intelligence/README.md`.
 | component-interface | f-cac4dc5f446f39d9dbbb8026 | Taking a standard method away from a Component Interface also moves CLM | observed | 1 |
 | component-interface | f-e914dad1753456f91f7828a2 | Editing only a Component Interface's methods PeopleCode moves PCM and SYS by 1 | observed | 1 |
 | component-interface | f-fedefefdb30a40a90ea77a36 | Creating a Component Interface or changing its properties, items or synchronization moves BCM and SYS by 1 | reproduced | 22 |
+| customization | f-074cb37ce8ca27994daab20f | Every field row PIA adds or changes carries EOCC_SET_BLANK N | observed | 1 |
+| customization | f-151d935f3af5ed676d30e992 | On 8.61 the configurator's save maps nothing; Apply Configuration maps chosen content references (8.62's save maps them all) | observed | 1 |
+| customization | f-462db1bbf4ab79d542127b5c | Removing a drop zone's subpage deletes its configuration, map, menu, folder and link, writes PSPTCSMNUTBLDEL and PSPTCSSRVCNFDEL, and keeps the service | observed | 1 |
+| customization | f-4b41d873442da38e83a8fa53 | Configuring a drop zone in PIA writes the subpage's service, a type P configuration, a PTCS_MENUFIELD map, a FLDM field menu with Root folder and link, and re-saves PSPTCS_SRVCFG | observed | 1 |
 | customization | f-5186d17ed6aa474e67e6f385 | Saving a Page and Field Configurator configuration maps its EOCC services through Event Mapping on every content reference of the component | observed | 1 |
 | customization | f-529d67a601c1d6e7f6396648 | Every Page and Field Configurator save deletes and re-inserts the type's Event Mapping, adding language rows with a blank language code | observed | 1 |
 | customization | f-56923a130a354c1a0ea1b40b | PeopleSoft Studio's Page and Field Configurator writer replays PIA's captured saves row for row | observed | 1 |
 | customization | f-6815cc74870d2ccb43bb7ca6 | Delivered Page and Field Configurator mappings can predate the configurator's current rules until the configuration is saved again | observed | 1 |
+| customization | f-87804b57f3c7095f20ec9c2b | Configuring a drop zone again deletes its menu's earlier PSPTCSMNUTBLDEL tombstones | observed | 1 |
 | customization | f-91b8d2b52db8f88f2649a9ce | Making a check box required with the Page and Field Configurator shows nothing at run time | observed | 1 |
 | customization | f-a0afa2b23825394bfb858b1f | PeopleSoft Studio's Page and Field Configurator writer saves what EOCC_CONFIGURE saves, and the configurator applies it at run time | observed | 1 |
 | customization | f-c95dfbb3da85a24509c28044 | Which EOCC services a Page and Field Configurator configuration maps follows the configurator's Mapper, and can be derived from its rows | observed | 1 |
 | customization | f-ea75836159b0d4bde60334e0 | The configurator's search and prompt field events use the record's fields with subrecords expanded | observed | 1 |
+| customization | f-ebfe9bccdea88498d357298d | The configurator deletes a content reference's PSPTCSSRVCFGDEL tombstones when it maps it again | reproduced | 2 |
+| customization | f-f328f4605b1bfe847eea7679 | A field from a secondary page stores OCCURSLEVEL = its level + the secondary page's level and SECOCCURSLEVEL = its own level | observed | 1 |
 | event-mapping | f-38ae377ffee33015fc094aa9 | Configuring Event Mapping on a content reference for the first time inserts its PSPTCS_SRVCFG row (menu, component, ExpandFrame N) at RCSCM | reproduced | 2 |
 | event-mapping | f-40dd4fa4217f84f79d5a999b | Mapping a related content service for the first time adds its EV_PARAM parameter row and sets the service's VERSION to the new RCSDM | observed | 1 |
 | event-mapping | f-5731b0851774a312b6aa05af | PTCS_ISCOMPSERVICE level codes: C Component, R Page, P Record, F Record Field (PSXLATITEM's labels mislead) | observed | 1 |
@@ -182,12 +207,53 @@ fingerprint; server: see `server/intelligence/README.md`.
 | field | f-633064c7628c8b8f0fd8dd36 | A new translate value takes SYNCID from PSSYSTEMID.PTNEXTSYSTEMID, advanced by 1; rewritten values keep theirs | reproduced | 3 |
 | field | f-80ff5e4273d52649f898bf83 | Creating a field moves RDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSDBFIELD.VERSION is the new RDM | reproduced | 2 |
 | field | f-9e12dd246b7e7619702dd929 | Saving a field sets VERSION on each record holding it to the field's new RDM, without restamping | observed | 1 |
+| field | f-bb1a5532a3f11100ff635a4e | File > Delete of a field moves RDM and XTM (PSVERSION and PSLOCK) and SYS by 1, translate values or not | reproduced | 2 |
 | field | f-e10dc0f6587024ea43dd7abf | A translate value save moves XTM and PDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSXLATDEFN.VERSION is the new XTM | reproduced | 5 |
 | field | f-e4fc9115d38500fbd986c268 | Saving a changed field moves RDM and PDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSDBFIELD.VERSION is the new RDM | reproduced | 2 |
 | field | f-e7c1a3192f3c6684f68e2935 | Creating a Character field of length 1-4 writes a PSXLATDEFNDEL row at the new XTM and moves XTM and PDM by 1 | reproduced | 2 |
+| file-layout | f-09570c46f5e7a1fa8dd27c12 | OK on a non-date File Layout field's properties clears its date separator | reproduced | 3 |
+| file-layout | f-101e47fb845645aa22aa2e72 | PeopleSoft Studio's File Layout writer replays App Designer's captured saves: every replay test passes | observed | 1 |
+| file-layout | f-128f9c4d411171266fb8a7fb | A File Layout field's length, trim, default, description, upper case, strip characters and pad are PSFLDFIELDDEFN columns | observed | 1 |
+| file-layout | f-165c870b46d6df3e6cd0ba1d | Deleting a File Layout field deletes its row, closes up later FLDSEQNOs and leaves every start unchanged | observed | 1 |
+| file-layout | f-1cca6640232f13c6b38cc722 | Propagate (>>>) n on a FIXED File Layout field adds n to its start and every later field's | observed | 1 |
+| file-layout | f-2085f5e0a2017a5a1692727c | A CSV File Layout's five options are PSFLDDEFN.FLDQUALIFIEROPT, FLDCONVERTTABS, FLDSTRIPSPACE, FLDINTRPBACKSLASH and FLDEMBQUOTEFMT | observed | 1 |
+| file-layout | f-29c2069e59636dddbf00e3fb | Setting a File Layout segment's Default Qualifier writes it to every field of the segment | observed | 1 |
+| file-layout | f-3eb096d0381ad8918f48e650 | Renaming a File Layout moves FLM, PJM and SYS by 1 and records the old name in PSFLDDEL at the new FLM | observed | 1 |
+| file-layout | f-451c062ec49840b62afc52e2 | Giving a FIXED segment a record ID and answering Yes to (118,14) adds the ID length to every field's start, without recomputing Max Rec Length | observed | 1 |
+| file-layout | f-457612e6438905f428139d45 | OK on a File Layout field's properties stores Strip Characters with a '~' terminator; none entered is '~' | reproduced | 3 |
+| file-layout | f-7656c396686af745eda7eed7 | A File Layout's Format FIXED / CSV / XML is PSFLDDEFN.FLDFORMAT 0 / 1 / 2 | reproduced | 3 |
+| file-layout | f-7ceba586bd599bd6c6ce9e19 | File Layout Save As copies every definition, segment and field row under the new name at the new FLM | observed | 1 |
+| file-layout | f-84ffd590822a18b20702596a | A File Layout save moves FLM (PSVERSION and PSLOCK) and SYS by 1; PSFLDDEFN.VERSION is the new FLM | reproduced | 13 |
+| file-layout | f-89f84107aa13d5df1bc47ea2 | Moving a File Layout field one place swaps two FLDSEQNOs and changes no start | observed | 1 |
+| file-layout | f-96e149da29e5bd9fece97f6e | Deleting a File Layout removes its definition, segment and field rows and writes PSFLDDEL at the new FLM | observed | 1 |
+| file-layout | f-a701a5dd9925f890caa0e8db | Changing a FIXED File Layout field's length moves no other field | observed | 1 |
+| file-layout | f-b758a7cbe39a026e58e32707 | A File Layout segment's record ID, ID start and length, qualifier, delimiter and description are PSFLDSEGDEFN columns; Other delimiter is type 4 | observed | 1 |
+| file-layout | f-f90f3c9bdb1f54a76a1de551 | A new File Layout with one record inserted is FIXED with one segment named after the record, its fields at consecutive starts from 1 | reproduced | 2 |
+| file-layout | f-f92dc46786f0fe94e58c1d74 | App Designer opens a File Layout PeopleSoft Studio's writer made and saves an edit of it changing only that edit | observed | 1 |
+| file-layout | f-f9380827686a7830302c547c | Inserting File Layout segments: PSFLDDEFN.FLDSEGCOUNT counts top-level segments, a child names its parent in FLDSEGPARENT | observed | 1 |
+| html | f-2696718c3300bb56b4190641 | Deleting an HTML definition removes its PSCONTDEFN and PSCONTENT rows and writes PSCONTDEL (CONTTYPE 4) at the new CRM | observed | 1 |
+| html | f-958c52b3a214e02bf4226739 | Saving a new HTML definition under a deleted name deletes that name's PSCONTDEL row | observed | 1 |
 | html | f-a8fad28d5da0fd2352df8eb5 | PeopleSoft Studio's HTML definition writer replays App Designer's captured saves: every replay test passes | observed | 1 |
 | html | f-b8776d69c6d610f49325fded | An HTML definition's text is PSCONTENT.CONTDATA in UTF-16LE without BOM, 32,000-byte rows from SEQNUM 0, CRLF, one NUL terminator at the end | reproduced | 2 |
 | html | f-d20e461de84d3a5911bb529d | An HTML definition save stamps PSCONTDEFN.VERSION with CRM, which moves in PSVERSION and PSLOCK with SYS | reproduced | 2 |
+| integration-broker | f-0a71e38b8e830c67293b5076 | Same-name REST operation recreation generates a new routing and keeps the old routing tombstone | observed | 1 |
+| integration-broker | f-18f0fa07c7ebc17af19f30d6 | Creating a REST operation generates its routing (provider: ~~ANY~~ to local; consumer: local to WADL_NODE through HTTPTARGET) | reproduced | 2 |
+| integration-broker | f-1e47351c4fe11ccf3d820f96 | Native request handler deletion writes a handler tombstone | observed | 1 |
+| integration-broker | f-2fbf828febcd2744bb766ef0 | Native empty service deletion writes a service tombstone | reproduced | 2 |
+| integration-broker | f-63da7c2fe5088cb0be36c5bc | Native empty service recreation clears its service tombstone | reproduced | 2 |
+| integration-broker | f-77d495c0e9919d944da1e869 | Document bodies are compressed with reference zlib at level 6 | observed | 1 |
+| integration-broker | f-7ebab0a44a126b0f28b1a4ed | Native complete operation deletion records three tombstone families | reproduced | 2 |
+| integration-broker | f-81208e0af4855695a669a7fe | PIA names a new REST operation after its method and keeps the typed name as its alias | observed | 1 |
+| integration-broker | f-8c5e63719ce94c86599f2785 | Native request handler recreation clears its tombstone | observed | 1 |
+| integration-broker | f-8fe0dc2ed6aabdf87bd95840 | A document's generated JSON schema $id is the REST Target Location followed by /<package>.<document>.<version>.json | observed | 1 |
+| integration-broker | f-97f609e2c5fe8a32d4d1a416 | REST operation deletion without a handler moves SYS by four | reproduced | 2 |
+| integration-broker | f-9ed38b55ab8291bbbdfb457a | Native REST operation deletion removes its generated routing and writes a routing tombstone | reproduced | 2 |
+| integration-broker | f-ae587e0b75e80375611f49ae | A new routing gets its request (and synchronous response) parameters by direction, and one sub-definition for the request | observed | 1 |
+| integration-broker | f-b47631699372535af0cbd1ee | Standard synchronous operation deletion without a handler preserves handler history | observed | 1 |
+| integration-broker | f-dc8796304c788879324cc805 | Native operation recreation clears header and version markers | observed | 1 |
+| integration-broker | f-e84b8948213cd880d6ea046a | An OnRequest handler is stored as REQUESTHDLR, takes the operation's description, and a root-level class is stored with a blank path | observed | 1 |
+| integration-broker | f-eda71232f8474b1064cc35e3 | A new node also gets PSNODEDEFNLANG with a blank LANGUAGE_CD and its description; later saves leave that row alone | observed | 1 |
+| integration-broker | f-f78698e64fa1e8d10b75affa | A REST operation is named <alias>_<METHOD>; a provider operation's base URL is the REST Target Location then /<service alias>/ | observed | 1 |
 | menu | f-17af9b7e2bf6ed8affa19fd4 | A menu's Menu Group separator is PSMENUDEFN.GROUPSEP | observed | 1 |
 | menu | f-2485f61a61fab9e7ed10364d | File > Delete of a menu moves CLM, MDM and SYS by 1 | observed | 1 |
 | menu | f-511aad19c0b23469a567f007 | A menu group's order or separator is saved into every menu of the group, each taking the new MDM as VERSION, none restamped | reproduced | 3 |
@@ -206,12 +272,13 @@ fingerprint; server: see `server/intelligence/README.md`.
 | message-channel | f-63084706f407d6e694a0b917 | Deleting a message channel writes PSCHNLDEL at the new CHDM and removes its partition rows | observed | 1 |
 | message-channel | f-c945e4793142f596bfb4a88f | App Designer opens a message channel PeopleSoft Studio's writer made and saves an edit of it changing only that edit | observed | 1 |
 | message-channel | f-e652e5d38577cf3f511c6456 | Renaming a message channel re-keys its rows in place and moves CHDM, MSDM, PJM and SYS by 1, references or not | reproduced | 2 |
+| other | f-49bb02f2190a482521993909 | Message Catalog saves advance PPC (PSVERSION and PSLOCK) and SYS, storing the new PPC as the set's VERSION | observed | 1 |
 | other | f-76b320392022a312cd7d7562 | PSADSTRACKING.PTKEYHASH is SHA-1 over UTF-16LE '( NAME = value )' text, keys sorted by name, base64 | observed | 1 |
 | page-designer | f-00050251f7aa77dedbda7a85 | An edit box's Size Average / Maximum / Custom is PSPNLFIELD.FIELDSIZETYPE 0 / 1 / 2 | reproduced | 3 |
 | page-designer | f-01842e5f24a54d6dc6b9ddfd | A secondary page's OK & Cancel off, Close Box off and Disable Display in Modal Window are PSPNLDEFN.PNLUSE 0x1, 0x2 and 0x2000 | reproduced | 3 |
 | page-designer | f-01d389c151f95ca8d7e4ef4c | A group box's Fluid Gestures is PSPNLFIELDEXT.FIELDUSETEMP2 0x40 | observed | 1 |
 | page-designer | f-0325b4465014e9c7e16a802d | A page's Popup Menu is PSPNLDEFN.POPUPMENU | observed | 1 |
-| page-designer | f-0a2b843879abf6c142e63b3b | PSPNLFIELD.FIELDNUM stays a contiguous 1..N order: App Designer renumbers existing controls when controls are added or deleted | reproduced | 3 |
+| page-designer | f-0a2b843879abf6c142e63b3b | PSPNLFIELD.FIELDNUM stays a contiguous 1..N order: App Designer renumbers existing controls when controls are added or deleted | reproduced | 6 |
 | page-designer | f-11419628b6ca7ab9de21fe1e | An edit box's Show Label is PSPNLFIELD.FIELDUSE 0x400 | observed | 1 |
 | page-designer | f-117a811a762c6d2723422232 | A range input's Min / Max / Step are PSPNLFIELDEXT.MINNUMBER / MAXNUMBER / STEPNUMBER, as text | reproduced | 2 |
 | page-designer | f-12240bb11be358e2373fefbd | A standard page's Page Size choice is one PSPNLDEFN.PNLUSE bit (0x4 800x600, 0x20 / 0x40 in / without portal, 0x800 / 0x80 1024x768, 0x200 / 0x400 Var, 0x8 Custom) | reproduced | 11 |
@@ -219,15 +286,16 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-13ecc4acae52097e9adba9c2 | A freshly inserted Grid is FIELDUSE 0x1000, DSPLFORMAT 0x20000, label 'Grid' of type None, RECNAME its main record | reproduced | 2 |
 | page-designer | f-13f00023f4a3a533d8e2910b | Hide Border on a frame or group box is PSPNLFIELD.FIELDUSE 0x4000000 | reproduced | 2 |
 | page-designer | f-14e0cdaa292646aba5f54d97 | A group box's Droppable is PSPNLFIELD.FIELDUSETMP 0x1000000 | observed | 1 |
+| page-designer | f-1861fc171548b05ab7d48fa3 | A Related Field names its Related Control Field as that control's FIELDNUM - 1 in ASSOCFIELDNUM, re-derived when tab order changes | reproduced | 3 |
 | page-designer | f-1a28b9a9355c3b91165ec3df | A page's Fluid Page setting is PSPNLDEFN.PNLUSE 0x4000 | reproduced | 3 |
 | page-designer | f-1c0bc5ecb8125781487a8aa2 | PeopleSoft Studio's new-control templates replays App Designer's captured saves: every replay test passes | observed | 1 |
 | page-designer | f-1c4f8c2db2dd8406f9cce1b2 | A page's type is PSPNLDEFN.PNLTYPE: 0 Standard, 1 Subpage, 2 Secondary, 3 Popup, 4 Header, 5 Side Page 1, 6 Footer, 7 Layout, 8 Search, 9 Prompt, 10 Master/Detail Target, 11 Side Page 2 | reproduced | 18 |
 | page-designer | f-1cfacdb76859e25a4b7885f2 | A label's Position is PSPNLFIELD.LABELSIZETYPE: 0 Left, 1 Custom, 2 Top | reproduced | 4 |
 | page-designer | f-1d8a1339e6ad19df29cbe338 | A page control label's Alignment Left / Centered / Right is PSPNLFIELD.DSPLFORMAT 0x80000 / 0x100000 / 0x200000 | reproduced | 7 |
-| page-designer | f-1de8ee3db13ed02a78431b8b | App Designer puts a new page control right after the control before it in reading order, not after the selection or at the end | reproduced | 19 |
+| page-designer | f-1de8ee3db13ed02a78431b8b | App Designer puts a new page control right after the control before it in reading order, not after the selection or at the end | reproduced | 20 |
 | page-designer | f-218f79682c2d01f237e7f3c2 | Fluid Suppress On Form Factor: Large is PSPNLFIELD.FIELDUSETMP 0x20000000 | observed | 1 |
 | page-designer | f-22fdf94fdd2a0fb6d19ef98d | A page's Background is PSPNLDEFN.PNLSTYLE | observed | 1 |
-| page-designer | f-28c115a2a1db1ccac7fcd6fc | The first OK on a page control's Properties dialog writes PSPNLFIELDEXT.FFSTYLELONG ' | | | | ' | reproduced | 7 |
+| page-designer | f-28c115a2a1db1ccac7fcd6fc | The first OK on a page control's Properties dialog writes PSPNLFIELDEXT.FFSTYLELONG ' \| \| \| \| ' | reproduced | 7 |
 | page-designer | f-29741c05ebc7cd61421d4026 | An edit box's Auto Decimal is PSPNLFIELD.DSPLFORMAT 0x400 | reproduced | 2 |
 | page-designer | f-2bdceb29cac6ed0da30bc8bf | An edit box's Show Prompt Button off is PSPNLFIELD.DSPLFORMAT 0x800000 | reproduced | 2 |
 | page-designer | f-2cf26e1cbf388b8318b68f40 | An edit box's Generate As Hyperlink is PSPNLFIELD.FIELDUSETMP 0x80000 | reproduced | 2 |
@@ -271,6 +339,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-811b324d64de4bc71f6af9de | An HTML Area may be bound to a record alone: clearing its Field Name leaves RECNAME | observed | 1 |
 | page-designer | f-816517d0d2510c55b26932ae | A page control's Page Field Name is PSPNLFIELD.PNLFIELDNAME | observed | 1 |
 | page-designer | f-822a0691dc44467e46a5bde4 | A page's Fluid style classes are PSPNLDEFN.FFSTYLEDESKTOP, FFSTYLEPHONE (Small), FFSTYLEMEDIUM, FFSTYLETABLET (Large) and FFSTYLEEXLARGE | reproduced | 5 |
+| page-designer | f-87144a25c0f54f4c62d535d5 | File > Delete of a page removes its PSPNLDEFN, PSPNLFIELD and PSPNLFIELDEXT rows and moves PDM and SYS by 1; its Page PeopleCode goes too, PCM +1 | reproduced | 2 |
 | page-designer | f-89c46286c14ee7f87b30a73b | A long edit box's Display in Modal Window is PSPNLFIELD.FIELDUSETMP 0x100 | observed | 1 |
 | page-designer | f-8eb6c38024387aa0c2a9c163 | An edit box's Alignment Auto / Left / Right is PSPNLFIELD.DSPLFORMAT 0x8 / 0x1 / 0x4 | reproduced | 3 |
 | page-designer | f-938ded8dd042f5e560b3826c | A Secondary Page control is inserted invisible (FIELDUSE 0x2, SECUREINVISIBLE 1), 24 x 22, FIELDSIZETYPE 3, DSPLFORMAT 0x80000, SUBPNLNAME the page | observed | 1 |
@@ -291,13 +360,13 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-b8aa1a5268f2a32aba5d75d0 | A static image's Width / Height are its rectangle's FIELDRIGHT / FIELDBOTTOM | reproduced | 2 |
 | page-designer | f-b948d204e86b0616d9d4a9cf | An edit box's 1000 Separator is PSPNLFIELD.DSPLFORMAT 0x20 | reproduced | 2 |
 | page-designer | f-b9671e6c984cf7b1dfccb69b | Binding an edit box to another field writes the field's default LABEL_ID and FORMATFAMILY | reproduced | 2 |
-| page-designer | f-bb18f22a884a893c5c6a9e15 | A new page control takes PNLFLDID = MAXPNLFLDID + 1; MAXPNLFLDID never goes down, deleted ids are not reused | reproduced | 4 |
+| page-designer | f-bb18f22a884a893c5c6a9e15 | A new page control takes PNLFLDID = MAXPNLFLDID + 1; MAXPNLFLDID never goes down, deleted ids are not reused | reproduced | 5 |
 | page-designer | f-bbad6a074f57a27f3f487f05 | Wrap Long Words is PSPNLFIELD.FIELDUSETMP 0x40 | reproduced | 3 |
 | page-designer | f-bf31ed91a2ed6881bd7b30c6 | Modifiable by JavaScript on an invisible page control is PSPNLFIELD.SECUREINVISIBLE 0 | reproduced | 2 |
 | page-designer | f-c5cd81e8e53ac0d5d23fb332 | A page control's Style is PSPNLFIELD.FIELDSTYLE, the style class name, ' ' for the default | reproduced | 7 |
 | page-designer | f-c6a6a1fd0f428c5bd4faee8a | A page's Style Sheet is PSPNLDEFN.STYLESHEETNAME | observed | 1 |
 | page-designer | f-c8651ec6661cd8d2f00a76ad | Read only control for screen reader is PSPNLFIELDEXT.FIELDUSETEMP2 0x10000 | reproduced | 4 |
-| page-designer | f-c949f4189df653ce6c5c6b4b | A Fluid control's style classes are PSPNLFIELDEXT.FFSTYLELONG: five '|'-separated slots, Default, Small, Medium, Large, Extra Large | reproduced | 5 |
+| page-designer | f-c949f4189df653ce6c5c6b4b | A Fluid control's style classes are PSPNLFIELDEXT.FFSTYLELONG: five '\|'-separated slots, Default, Small, Medium, Large, Extra Large | reproduced | 5 |
 | page-designer | f-ca8e291fb7c618832608484d | Fluid Suppress System-Supplied Style Classes is PSPNLFIELD.FIELDUSETMP 0x400000 | observed | 1 |
 | page-designer | f-cc0a97fca9864643fcb92961 | A page's Adjust Layout for Hidden Fields is PSPNLDEFN.PNLUSE 0x100 | observed | 1 |
 | page-designer | f-cd81a5c55bdbf553224e0f62 | An App Designer page save deletes and re-inserts every row of the page, changed or not | reproduced | 92 |
@@ -317,6 +386,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | page-designer | f-edcbe509a35cb6f7ea8ad26c | Binding a group box to a field makes its label RFT Long with the field's default label | observed | 1 |
 | page-designer | f-f31161a932a8df1c887fc17c | An HTML Area's HTML Tags Only is PSPNLFIELD.FIELDUSETMP 0x100000 | reproduced | 2 |
 | page-designer | f-f5591d5a054aa476ae80a09f | Invisible on a page control is PSPNLFIELD.FIELDUSE 0x2 with SECUREINVISIBLE 1 | reproduced | 4 |
+| page-designer | f-f62a9e4eaa0eb199e0c804c1 | Deleting a Related Control Field clears its Related Field's 0x10 use bit and sets its ASSOCFIELDNUM to 0 | observed | 1 |
 | page-designer | f-f7904ce34399f697bd7fb272 | Fluid Include Labels in Grid Cells is PSPNLFIELDEXT.FIELDUSETEMP2 0x2 | observed | 1 |
 | page-designer | f-fe89a32dd42b46075306c28e | An HTML Area's Constant value is a PSPNLHTMLAREA row; going back to Field deletes it | reproduced | 2 |
 | page-designer | f-feb8dc63228d1cd6d0db7486 | PSPNLFIELD.FIELDTYPE is the page control's kind: 22 codes from 0 Static Text to 32 Analytic Grid, read from App Designer's inserts | reproduced | 21 |
@@ -327,6 +397,7 @@ fingerprint; server: see `server/intelligence/README.md`.
 | peoplecode | f-5841ece4e2d085787c72b537 | Deleting Page PeopleCode writes a PSPCMPROGDEL row at the new PCM | observed | 1 |
 | peoplecode | f-59da48c7debdd679ee3e231e | Deleting a component PeopleCode program writes a PSPCMPROGDEL row at the new PCM | observed | 1 |
 | peoplecode | f-5bf95fb66564b0f38173eb9f | Record Field PeopleCode is keyed PSPCMPROG OBJECTID 1 (record) / 2 (field) / 12 (event) | reproduced | 2 |
+| peoplecode | f-6c32dacb3144990721a95d87 | App Designer's compiler does not check that most definition references exist; only Image.X (and a menu in IsMenuItemAuthorized) warns 2,68 | observed | 1 |
 | peoplecode | f-6f30e5b716884d8f951e7ff5 | A Record PeopleCode save moves PCM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSPCMPROG.VERSION is the new PCM | reproduced | 9 |
 | peoplecode | f-8d33f7504f2953ee814a7fa3 | PeopleSoft Studio's PeopleCode writer (save plan and encoder) replays App Designer's captured saves: every replay test passes | observed | 1 |
 | peoplecode | f-8fcfa52cbc8b14ffc8bc9bb8 | PSPCMPROG.PROGLEN is the program's total bytes and NAMECOUNT the number of its PSPCMNAME rows | reproduced | 4 |
@@ -335,60 +406,93 @@ fingerprint; server: see `server/intelligence/README.md`.
 | peoplecode | f-c25d40474b82a4b3d5f39a89 | Creating, editing or deleting a component PeopleCode program moves PCM and SYS by 1; the component's PGM and MDM do not move | reproduced | 5 |
 | peoplecode | f-f5ee5f5d3c262cf5fcefaf63 | Saving a PeopleCode program empty deletes it and writes PSPCMPROGDEL at the new PCM; saving the key again deletes that marker | reproduced | 2 |
 | peoplecode | f-fb2ffc81365c4d15d0ea8077 | A PeopleCode save deletes and re-inserts every PSPCMTXT, PSPCMPROG and PSPCMNAME row of the program's key, unchanged rows included | reproduced | 7 |
+| portal-registry | f-618f90dcf9872c504f8bba40 | Saving a content reference grants its permission lists to every non-public folder above it, up to the first public one | observed | 1 |
 | portal-registry | f-71f28f6a78ca21df67f40b22 | Registering a content reference moves PRSM and SYS by 1; its PSPRSMDEFN row, and one other registry row, take the new PRSM as VERSION | observed | 1 |
+| portal-registry | f-a250856ce2c8b875b61a7cf3 | PORTAL_ISPUBLIC holds three settings: 0 Public, 1 Author Access, 2 neither | observed | 1 |
+| portal-registry | f-ceb6c26a7a6154e53cffd32d | Content reference URL checksums match a position-weighted character sum | observed | 1 |
 | project | f-1a1df3b9c0cdf0d0553e5ffb | Creating a project writes one PSPROJECTDEFN row (VERSION = new PJM; KEEPTGT 31, COMPARETYPE 1, COMMITLIMIT 50, REPORTFILTER 16232832) and moves PJM and SYS by 1 | observed | 1 |
+| project | f-23e84b7c6ebee5ad9fe3095e | Saving a new project under a deleted name deletes that name's PSPROJECTDEL row | observed | 1 |
 | project | f-26c465f2ded30e5cb29a474d | Saving a project after Insert Into Project adds one PSPROJECTITEM row, rewrites PSPROJECTDEFN at the new PJM and moves PJM and SYS by 1 | observed | 1 |
 | project | f-74c70228d2ea52f7a76b0219 | A message channel in a project is PSPROJECTITEM OBJECTTYPE 36, OBJECTID1 61 (CHNLNAME) | observed | 1 |
 | project | f-b1c3ec7acdb9b451a91a3bea | A field in a project is PSPROJECTITEM OBJECTTYPE 2, OBJECTID1 6 (FIELDNAME) | observed | 1 |
+| project | f-b61bfdc06b6a2bf0d47f376c | Deleting a project removes its PSPROJECTDEFN and PSPROJECTITEM rows and writes PSPROJECTDEL at the new PJM | observed | 1 |
+| query | f-02f773280decf7b28d1df7fe | A query expression column is a PSQRYEXPR with field references as ' :%SELNUM.FLDNUM' and a PSQRYFIELD EXPn_<heading length> pointing to it by FLDEXPNUM | reproduced | 2 |
+| query | f-1ea19633f1ddf2eda71242ee | PeopleSoft Studio's Query model replays Windows Query's captured saves: every replay test passes | observed | 1 |
+| query | f-1ede129094d6f35e2c66a6b7 | A query criterion's condition is PSQRYCRITERIA.CONDTYPE: equal 2, not equal 3, greater 4, in list 8, between 10, exists 12, like 14, is null 16 | reproduced | 8 |
+| query | f-26efd0a2d9aa867496390c82 | A query's Description and Query Definition are PSQRYDEFN.DESCR and DESCRLONG | observed | 1 |
+| query | f-29b09ad694d073411027dab7 | A query record's join is PSQRYRECORD.JOINTYPE: standard 1, related record 3 (JOINRCDNUM, JOINFLDNUM), left outer 5 (JOINRCDNUM) | reproduced | 3 |
+| query | f-3c7681ae69b69f1158a517f2 | A PS Query save moves QDM (PSVERSION and PSLOCK) and SYS by 1; PSQRYDEFN.VERSION is the new QDM | reproduced | 56 |
+| query | f-42fce8de2e3b744089ba38ed | A query criterion's Expression 2 kind is PSQRYCRITERIA.EXPRTYPE: none 0, constant 1, field 2, expression 3, subquery 4, in list 5, current date 6, prompt 8, const-const 9 | reproduced | 9 |
+| query | f-48530ac29ec83f2095731b62 | Windows Query renumbers a query's expressions on save: those still used keep their order, compacted from 1; new ones are appended | reproduced | 3 |
+| query | f-4ac2a296a76eea9d90a3c443 | A related-record join of an effective-dated record adds a hidden EFFDT field with an Eff Date <= Current Date criterion | observed | 1 |
+| query | f-5983f339313905f89bf8f0c1 | Saving a private query As a public one copies its rows with a blank OPRID and new creation stamps, leaving the source | observed | 1 |
+| query | f-5b2383dd70c45f4af6e5a65c | Deleting a query removes all its definition rows and writes PSQRYDEL (OPRID, QRYNAME) at the new QDM | reproduced | 2 |
+| query | f-614c6e11d42216d7b3aca2cf | An exists criterion has no left field; its correlation is a criterion in the subquery naming the outer field | observed | 1 |
+| query | f-660a9446e8d536074b30b0a5 | Grouping query criteria sets LPARENLVL 1 on the first and RPARENLVL 1 on the last criterion of the group | observed | 1 |
+| query | f-6d61d60266f4f095c98efab1 | A query field's Heading Text is PSQRYFIELD.HDGTYPE 2 with the text in HEADING; a new field's HDGTYPE is 3 | observed | 1 |
+| query | f-6dde1f19a3e99fbce5d8788a | Unselecting a query field keeps its PSQRYFIELD row hidden: COLUMNNUM 0, HDGTYPE 1, ORDERBYNUM 0, its ORDERBYDIR kept | observed | 1 |
+| query | f-70120915b5706d8e7b4d7ba5 | Saving a new query under a deleted name and owner deletes that PSQRYDEL row | reproduced | 2 |
+| query | f-73a8f88e4788fc001f29c477 | A query criterion's AND / OR is PSQRYCRITERIA.COMBTYPE: first WHERE 3, AND 1, OR 2; first HAVING 6, HAVING OR 5 | reproduced | 5 |
+| query | f-7803e1d9995af9d4c2b69ab7 | A query field's Translate is PSQRYFIELD.XLATTYPE 1 none / 2 short / 3 long; its effective date XLATEXPRTYPE 2 field (XLATFLDNUM) / 6 current date | reproduced | 2 |
+| query | f-7c7b8985703dc07402df0edf | Windows Query numbers WHERE criteria before HAVING criteria; CRTCOUNT and HAVECRTCOUNT count each | observed | 1 |
+| query | f-9828d9a5ee5ba6a70eb727ef | A query criterion on an expression column names the column's PSQRYFIELD row as its left field | observed | 1 |
+| query | f-9c5c4ace42cc71f3f2ccfa06 | A query constant's PSQRYEXPR.FIELDTYPE is 0 for character, 2 for number, 4 for date (text YYYY-MM-DD); a prompt expression's is 0 | reproduced | 4 |
+| query | f-b5615ff78e04dfd52cced25e | A query's effective-date criterion is CONDTYPE 20-25 (<=, >=, <, >, First, Last); bounded ones take Current Date (EXPRTYPE 6), First and Last none | reproduced | 6 |
+| query | f-b9aeec7e0001b58ab6fddf50 | A newly selected query field: QRYFLDNAME alias.FIELD, next COLUMNNUM, HDGTYPE 3, TTLTYPE 1, XLATTYPE 1, XLATEXPRTYPE 6 | observed | 1 |
+| query | f-bc85426492b4b3ea88b6d04e | A query's selects are PSQRYSELECT SELECTTYPE 1 main, 2 subquery, 3 union, each with PARENTSELNUM; new selects take the next SELNUM and alias | reproduced | 5 |
+| query | f-cb0ac2b9799fc4333614fe0b | Windows Query rewrites every row of a query's definition on each save, unchanged rows included | reproduced | 7 |
+| query | f-ceb7a0bf38956040b6b25c04 | A query prompt is a criterion with EXPRTYPE 8 and expression ':n', and a PSQRYBIND row BINDn counted in PSQRYDEFN.BNDCOUNT | reproduced | 4 |
+| query | f-d089288a54efee56c69cc647 | A new query on an effective-dated record starts with a hidden EFFDT field and an Eff Date <= Current Date criterion | observed | 1 |
+| query | f-dc0dd587d3fb783bc4fec3c6 | Joining a record in Windows Query adds a key criterion (field = field) that counts as no use of either field | reproduced | 2 |
+| query | f-de78f1fc8bf73942fc96ff9c | A query field's Aggregate None / Sum / Count / Min / Max / Average is PSQRYFIELD.TTLTYPE 1 / 2 / 3 / 4 / 5 / 6 | reproduced | 7 |
+| query | f-deadc48dd53c583f509a51a7 | NOT on a query criterion is PSQRYCRITERIA.NEGATION 'N' | observed | 1 |
+| query | f-e019c03244e26276a1915eea | A query field's Order By number and Descending are PSQRYFIELD.ORDERBYNUM and ORDERBYDIR 'D' | observed | 1 |
+| query | f-e86ae7d679b4df6eaea491ac | Query Properties Distinct is PSQRYSELECT.QRYDISTINCT 'Y' | observed | 1 |
+| query | f-f5a752d5869915faebfa400d | Changing a query criterion to is null keeps its old expression and R1CRTEXPNUM | observed | 1 |
+| query | f-fbb19f7373e32676045b08a7 | A query prompt no criterion uses keeps its PSQRYBIND row with USECOUNT 0 | reproduced | 2 |
 | record | f-02b34d989d83e3631d9abc1c | An Analytic Delete reference does not move the referring record when the referenced record is saved | observed | 1 |
 | record | f-13f37132ac91664fbbd38a05 | Removing a field or subrecord from a record moves PGM by 1 as well as RDM | reproduced | 4 |
-| record | f-1ae1a55f3e464f2673977ca6 | An App Designer record save moves RDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSRECDEFN.VERSION is the new RDM | reproduced | 41 |
+| record | f-1ae1a55f3e464f2673977ca6 | An App Designer record save moves RDM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSRECDEFN.VERSION is the new RDM | reproduced | 43 |
 | record | f-641fe0bd360226a91e455c39 | An App Designer record save deletes and re-inserts the PSRECDEFN row and every PSRECFIELD and PSRECFIELDDB row of the record | reproduced | 7 |
 | record | f-6d12bbea7647baca6415b746 | Renaming a record re-keys its rows in place, writes PSRECDEL and PSOBJCHNG, and moves 19 counters by 1 each | observed | 1 |
 | record | f-86187c47dac4e7dab0e7eea9 | PeopleSoft Studio's record writer (save plan) replays App Designer's captured saves: every replay test passes | observed | 1 |
+| record | f-895a62a5bfd10a71c9eed36a | Adding a user index writes PSINDEXDEFN (INDEXTYPE 4) and one PSKEYDEFN per key, and raises PSRECDEFN.INDEXCOUNT at the new RDM | observed | 1 |
 | record | f-a4f8562daa47bf2f893a75a5 | Deleting a record moves RDM and AEM by 1 and SYS by 1, and writes PSRECDEL at the new RDM | observed | 1 |
 | record | f-a8daaa0842dae718027cde3e | Saving a record sets VERSION on each record that names it as Related Language record to the new RDM, without restamping | reproduced | 5 |
+| record | f-c4ec3613c93e723144175d06 | A new SubRecord is a PSRECDEFN row of RECTYPE 3 with PSRECFIELD and PSRECFIELDDB rows, and no index or tablespace rows | observed | 1 |
 | record | f-dcf2998165b40fdf33d49b52 | A record save that writes or removes the record's view SQL moves SRM by 1 as well as RDM | reproduced | 6 |
 | record | f-df985b98ec0473885077bd9b | Saving a new record under a deleted record's name deletes that name's PSRECDEL row | observed | 1 |
+| security | f-aa2df434d5428c85c967700e | Native CUSTOM client-credentials public setting edits leave cache counters unchanged | observed | 1 |
+| sql | f-a115fc0fe5c39648fedc2e74 | Deleting a SQL definition removes its PSSQLDEFN, PSSQLDESCR, PSSQLTEXTDEFN and PSSQLHASH rows and writes PSSQLDEL at the new SRM | observed | 1 |
 | sql | f-c3cf5c2bdb40d259ddf76597 | An App Designer SQL definition save moves SRM by 1 (PSVERSION and PSLOCK) and SYS by 1; PSSQLDEFN.VERSION is the new SRM | reproduced | 2 |
+| sql | f-cb557f7eb00574106677bf41 | Saving a new SQL definition under a deleted name deletes that name's PSSQLDEL row | observed | 1 |
 | style-sheet | f-02444755dab8bc78dfc453d3 | A style sheet save moves SSM by 1 (PSVERSION and PSLOCK) and SYS by 1, not CRM; PSSTYLSHEETDEFN.VERSION is the new SSM | reproduced | 3 |
 | style-sheet | f-309a9baa82e662b5c857f400 | A freeform style sheet is a PSSTYLSHEETDEFN row of STYLESHEETTYPE 2 with its text as a PSCONTDEFN (CONTTYPE 9) / PSCONTENT definition; its description is PSSTYLSHEETDEFN.DESCR | reproduced | 2 |
+| style-sheet | f-d56dae7b02da2aa40d2f4874 | Deleting a freeform style sheet writes PSCONTDEL (CONTTYPE 9) at the new CRM and PSSTYLSHEETDEL at the new SSM | observed | 1 |
 | style-sheet | f-f7f853642639ae468ed18edd | Saving a freeform style sheet writes its PSCONTDEFN.VERSION as the row's previous VERSION + 1, without moving CRM | reproduced | 2 |
+| style-sheet | f-f8e8ca1e67b232e389ea2f41 | Saving a new freeform style sheet under a deleted name deletes its PSCONTDEL and PSSTYLSHEETDEL rows; SSM and SYS move, CRM does not | observed | 1 |
 
 ## Resume: next tasks, in order
 
 1. **Open the Discovery Center in a real VS Code window** (install the
    built VSIX): the view, a panel, the review; with the local server, one
    submission.
-2. **More findings**: menus, Component Interfaces, channel properties and
-   records (r*: not r02, r25, r53, r65, whose windows held two saves; the
-   rd* writer runs; the r0N-type-* page cases), fields (c01, c07, f01-f06;
-   not the x* writer runs) and components (c01-c08b and the numbered
-   i336-s406 series; not h398, a two-save window, or the w0N writer runs)
-   are recorded, and page controls' Properties settings (fr, st, si, gb, hr,
-   cb, cbx, ha, le, eb: 66 mapping findings, each case's change checked bit
-   by bit) with every App Designer page sweep under the page counter-step
-   and physical-rewrite findings; page properties (t*, r0N-type-*, u*,
-   s02-s08, f01-f06, g01, o01), HTML definitions (h01, h04), style sheets
-   (s01-s03; s04's window holds the writer's x10) and component PeopleCode
-   (p01-p05), scroll levels (lv*: every after-image checked against the
-   level rule), Page PeopleCode (q01-q03), projects (c02, p01; not p03, a
-   long mixed window), packages and classes (c03-c06), control FIELDTYPE
-   codes and insert defaults (*-fresh, in01, in03), the property-grid saves
-   (cb-*; Invisible there leaves SECUREINVISIBLE 0) and menu groups
-   (mn06-mn22), Record PeopleCode writeback (02-12b; not 03 or 12, multi-
-   save windows), where an inserted control goes (to-*, every single insert
-   checked against the rule; sp-fresh the one exception), App Designer
-   saving what Studio's writers made (nae01, nce01, nchn01, nme01: the
-   "native" cases are App Designer), and the App Engine leftovers (aa01,
-   ae10, ap19, ap-pc01, the ad01 / ad02 / ae16 tombstones). Left out on
-   purpose: msg02-03 (no record of which tool saved them), multi-save
-   windows (ae11, ae17, ar01, 03, 12, h398, r02, r25, r53, r65, s01, s04,
-   p03, f03, f06's counters), saves that wrote nothing (cb modjs, cbx01,
-   eb06, eb52, msg01, sc-scroll-fields, in02, sec-fresh), and the writer
-   runs (w*, x*, rd*, NN-writer-*, d*, e01, emw*). When adding captures --
-   check each family's
-   format with the adapter, select cases by operation, record with
+2. **More findings** -- recorded: every capture family's main cases. Not yet
+   reviewed one by one: 91 native cases outside any finding, mostly reverts,
+   baselines and leftovers inside recorded families (eb/cb/cbx/le/gb/hr/st
+   reverts, n01-n03 native re-saves, ff01-02, gd-column, sa-insert, sb-delete,
+   sb-subst, tr-nodes, ch-field, im-field, sec-ctl, lv19, mn15, em09, ci25,
+   dl11-dl13 creation counters); list them with the census in this session's
+   notes (capture cases whose ID no observation names). Left out on purpose: msg02-03 (no record
+   of which tool saved them), multi-save windows (ae11, ae17, ar01, 03, 12,
+   h398, r02, r25, r53, r65, s01, s04, p03, f03, f06's counters, qry14-
+   properties without PSVERSION), saves that wrote nothing (cb modjs, cbx01,
+   eb06, eb52, msg01, sc-scroll-fields, in02, sec-fresh), the writer runs
+   (w*, x*, wa*, rd*, NN-writer-*, d*, e01, emw*, dzw*, qry15-studio-save)
+   and the narrow sweeps' missing tables: dl01-dl13's tombstones (PSPNLDEL,
+   PSPNLGRPDEL, PSPACKAGEDEL) and the field rows of dl03 / dl08 are outside
+   those captures, so no finding claims them. New captures: check the
+   family's format with the adapter, select cases by operation, record with
    `--expect-counters` (DISCOVERY_PROTOCOL.md rules 7-9).
 3. ~~Adapters for the controlled compile lab and writer replay tests.~~ Done:
    `adapters/testRun.ts` (`test-run`); 11 writer replay findings recorded

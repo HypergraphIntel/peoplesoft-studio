@@ -306,6 +306,9 @@ export function newControlRows(pnlName: string, pnlFldId: number, fieldNum: numb
     field: {
       PNLNAME: pnlName, PNLFLDID: pnlFldId, FIELDNUM: fieldNum, ...FIELD_COMMON, ...FIELD_BY_KIND[add.kind],
       ...(add.kind === 'htmlArea' && !add.fieldName.trim() ? { DSPLFORMAT: 8193 } : {}),
+      // A fresh button is an Image button (PBDISPLAYTYPE 2) and shows no text; one given a label is the Label tab's Text
+      // (PBDISPLAYTYPE 0), as App Designer saved a lab page's buttons on HRDMO (2026-10-26).
+      ...(button && placed.lblText.trim() ? { PBDISPLAYTYPE: 0 } : {}),
       // A date Edit Box: App Designer ticks Display Century (0x10000) on its own (22-date-editbox).
       ...(add.kind === 'editBox' && field?.fieldType === 4 ? { DSPLFORMAT: (FIELD_BY_KIND.editBox.DSPLFORMAT as number) | 0x10000 } : {}), ...byDialog, ...extra,
       FIELDTYPE: NEW_CONTROL_FIELDTYPE[add.kind], OCCURSLEVEL: Math.max(0, Math.round(placed.occursLevel ?? 0)),

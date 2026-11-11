@@ -1,0 +1,179 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-1861fc171548b05ab7d48fa3",
+  "fingerprint": "1861fc171548b05ab7d48fa3a4e021b7bdf5bd277bb10121ee2f28b1f6587dc6",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "page-designer",
+    "objectType": "Page"
+  },
+  "assertion": {
+    "kind": "related-field-reference",
+    "facts": {
+      "table": "PSPNLFIELD",
+      "column": "ASSOCFIELDNUM",
+      "value": "control FIELDNUM - 1",
+      "rederivedEachSave": true
+    }
+  },
+  "title": "A Related Field names its Related Control Field as that control's FIELDNUM - 1 in ASSOCFIELDNUM, re-derived when tab order changes",
+  "statement": "A Related Field (FIELDUSE 0x10) stores PSPNLFIELD.ASSOCFIELDNUM = its Related Control Field's FIELDNUM - 1. When a delete, insert or Order move shifts the control's FIELDNUM, App Designer saves every reference with it.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:33:23.507Z",
+      "method": "save-capture",
+      "experimentId": "ps01-delete-before-related",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ps01-delete-before-related: a control earlier in tab order deleted; the 13 Related Fields' ASSOCFIELDNUMs dropped with their controls' FIELDNUMs and each still equals its control's FIELDNUM - 1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 85
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 88
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ps01-delete-before-related"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "087eb3b85d28977bc1eae5d6a43577014462827dbb9b5a9a6a4eaeaebffd0345"
+    },
+    {
+      "observedAt": "2026-10-26T20:33:23.788Z",
+      "method": "save-capture",
+      "experimentId": "ps03-insert-early",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ps03-insert-early: a Static Text inserted at FIELDNUM 4; every later Related Field's ASSOCFIELDNUM +1 with its control; all 12 equal their control's FIELDNUM - 1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 84
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ps03-insert-early"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "5780797a3de78c211259d2761362536f13c2073b6cc2a19b2b4679fa7c771d63"
+    },
+    {
+      "observedAt": "2026-10-26T20:33:24.057Z",
+      "method": "save-capture",
+      "experimentId": "ps04-reorder",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ps04-reorder: the Static Text moved from FIELDNUM 4 to 41 on the Order tab; the Related Fields between moved their ASSOCFIELDNUM -1 with their controls; all 12 equal their control's FIELDNUM - 1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 49
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ps04-reorder"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "b32b64dc80bb12370e38c63de5ef58a796007f04d89b24b668450fa84800cbde"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:33:23.514Z",
+    "updatedAt": "2026-10-26T20:33:24.063Z",
+    "schemaVersion": 1
+  }
+}

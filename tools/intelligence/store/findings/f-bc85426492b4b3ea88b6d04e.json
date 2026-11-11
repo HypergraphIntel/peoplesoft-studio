@@ -1,0 +1,338 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-bc85426492b4b3ea88b6d04e",
+  "fingerprint": "bc85426492b4b3ea88b6d04e4e7e3bcce06a75d87ed6ed671cfff79e092b33a4",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "select-structure",
+    "facts": {
+      "table": "PSQRYSELECT",
+      "main": 1,
+      "subquery": 2,
+      "union": 3,
+      "parent": "PARENTSELNUM",
+      "newSelectAppended": true,
+      "aliasesContinue": true
+    }
+  },
+  "title": "A query's selects are PSQRYSELECT SELECTTYPE 1 main, 2 subquery, 3 union, each with PARENTSELNUM; new selects take the next SELNUM and alias",
+  "statement": "Each select is a PSQRYSELECT row: SELECTTYPE 1 the main select, 2 a subquery, 3 a union, PARENTSELNUM the select it belongs to. A new subquery or union takes the next SELNUM after every existing select, and its first record the next alias after every alias in use; PSQRYDEFN.SELCOUNT counts the selects.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "reproduced",
+  "observations": [
+    {
+      "observedAt": "2026-10-22T00:20:53.573Z",
+      "method": "save-capture",
+      "experimentId": "qsq01-in-subquery",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qsq01-in-subquery: select 2 SELECTTYPE 2 PARENTSELNUM 1, record alias B; SELCOUNT 2.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qsq01-in-subquery"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "1e4f87aa98d09cfefba22020738ba156edcf91b7540be21a8eb0d0dcc32d086c"
+    },
+    {
+      "observedAt": "2026-10-22T00:23:25.774Z",
+      "method": "save-capture",
+      "experimentId": "qsq02-exists",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qsq02-exists: a second subquery is select 3, SELECTTYPE 2 PARENTSELNUM 1, alias C; SELCOUNT 2 -> 3.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 3,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qsq02-exists"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "f7434b5e92a784898efa53f3797ab9e3c7045cf0f97df6ec2e975f6a2639a2f8"
+    },
+    {
+      "observedAt": "2026-10-22T22:07:45.129Z",
+      "method": "save-capture",
+      "experimentId": "qsq03-nested-subquery",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qsq03-nested-subquery: a subquery inside select 2 is select 4, PARENTSELNUM 2, alias D; selects 2 and 3 keep their numbers and aliases (select 2 CRTCOUNT 0 -> 1).",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 4,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 4,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 4,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 4,
+            "deleted": 3,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qsq03-nested-subquery"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "ca2a81e34fd271711e0abf6c2ad25b1779c37d668ce1fd44dff59aa95ffd66a1"
+    },
+    {
+      "observedAt": "2026-10-22T22:18:40.535Z",
+      "method": "save-capture",
+      "experimentId": "qsq04-subquery-with-union",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qsq04-subquery-with-union: with union select 2 present, a new subquery of select 1 is select 3, alias C.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 3,
+            "deleted": 2,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qsq04-subquery-with-union"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "cf7caba6f319de7b61ef173827f9831b679828e15c5e4c9805c7e343294f22fd"
+    },
+    {
+      "observedAt": "2026-10-22T00:24:55.919Z",
+      "method": "save-capture",
+      "experimentId": "qun01-union",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qun01-union: select 2 SELECTTYPE 3 PARENTSELNUM 1, alias B; SELCOUNT 2.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 2,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qun01-union"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "1568090c4619cf74529726e982a856623e47ea63b423fe0bffb297764745db98"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:27:38.859Z",
+    "updatedAt": "2026-10-26T20:27:39.974Z",
+    "schemaVersion": 1
+  }
+}

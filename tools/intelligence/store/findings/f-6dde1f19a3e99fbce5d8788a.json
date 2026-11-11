@@ -1,0 +1,104 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-6dde1f19a3e99fbce5d8788a",
+  "fingerprint": "6dde1f19a3e99fbce5d8788abbd6f7ee30eaa22241e4ca94d7741a8a20e0a306",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "unselect-field",
+    "facts": {
+      "table": "PSQRYFIELD",
+      "rowKept": true,
+      "COLUMNNUM": 0,
+      "HDGTYPE": 1,
+      "ORDERBYNUM": 0,
+      "ORDERBYDIR": "kept",
+      "laterColumnsRenumbered": true
+    }
+  },
+  "title": "Unselecting a query field keeps its PSQRYFIELD row hidden: COLUMNNUM 0, HDGTYPE 1, ORDERBYNUM 0, its ORDERBYDIR kept",
+  "statement": "Unselecting a field keeps its PSQRYFIELD row with COLUMNNUM 0, HDGTYPE 1, a blank HEADING and ORDERBYNUM 0, but leaves ORDERBYDIR as it was; later output columns move down. Hidden fields Windows adds itself (join keys, an expression's field) are also HDGTYPE 1, COLUMNNUM 0.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-14T15:22:41.989Z",
+      "method": "save-capture",
+      "experimentId": "qry12-unselect-first",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qry12-unselect-first: field 1 HDGTYPE 2 -> 1, HEADING cleared, COLUMNNUM 1 -> 0, ORDERBYNUM 1 -> 0, ORDERBYDIR stays 'D'; field 2 COLUMNNUM 2 -> 1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYBIND",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qry12-unselect-first"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "61e3f8d731f8a7dcc43748e8eb81c3a7d97f40680cc562bd52a63db7673040ac"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:25:28.394Z",
+    "updatedAt": "2026-10-26T20:25:28.394Z",
+    "schemaVersion": 1
+  }
+}

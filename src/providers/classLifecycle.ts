@@ -2,7 +2,7 @@ import type { DbConnection as Connection, DbTypes } from '../db/connection.js';
 import { canonical, hash, privacy, type Json } from '../changeReview/model.js';
 import { savePeopleCode, readStoredProgram } from './peopleCodeWriter.js';
 import { fingerprint } from '../peoplecode/writeback/savePlan.js';
-import { createPackage, createSubpackage, deleteClass, deletePackage, savePackageProperties } from './packageWriter.js';
+import { createPackage, createSubpackage, createSubpackages, deleteClass, deletePackage, deleteSubpackages, savePackageProperties } from './packageWriter.js';
 
 /*
  * Application Package and class lifecycle under Change Review (V15-1). Two checkpoint scopes:
@@ -118,7 +118,7 @@ export async function writeClassChange(c: Connection, types: DbTypes, parts: Cla
     const levels = await rows(c, types, 'PSPACKAGEDEFN', 'PACKAGEROOT = :r', { r: k.root });
     for (let level = 1; level <= k.path.length; level++) {
       const q = level === 1 ? ':' : k.path.slice(0, level - 1).join(':');
-      if (!levels.some(p => String(p.PACKAGEID).trim() === k.path[level - 1] && String(p.QUALIFYPATH).trim() === q)) throw new Error(`Create subpackage ${[k.root, ...k.path.slice(0, level)].join(':')} first: undoing this class would leave it behind.`);
+      if (!levels.some(p => String(p.PACKAGEID).trim() === k.path[level - 1] && String(p.QUALIFYPATH).trim() === q)) throw new Error(`Create subpackage ${[k.root, ...k.path.slice(0, level)].join(':')} first (psft_create_package with that path), then stage the class: undoing this class would leave the subpackage behind.`);
     }
   }
   const stored = await readStoredProgram(c, types, pk.parts, false);
@@ -127,12 +127,53 @@ export async function writeClassChange(c: Connection, types: DbTypes, parts: Cla
 }
 
 /**
+ * An existing package whose only change is subpackages added, or subpackages removed (not both): the root row, the other
+ * subpackages and the classes are as they were (stamps aside). Added subpackages are App Designer's new rows (PACKAGEREF,
+ * DESCR ' ', no DESCRLONG; an owner ID may be set); a removed parent takes its children with it. Anything else is refused.
+ */
+export function subpackageChange(root: string, live: LifecycleScope, after: LifecycleScope) {
+  if (after.scope !== 'app-package/1' || live.scope !== 'app-package/1') throw new Error('Invalid package checkpoint.');
+  if (canonical(content(live.tables.PSAPPCLASSDEFN) as unknown as Json) !== canonical(content(after.tables.PSAPPCLASSDEFN) as unknown as Json)) {
+    throw new Error('A package change here adds or removes subpackages only; classes are their own reviewed objects.');
+  }
+  const id = (r: Record<string, Json>) => String(r.QUALIFYPATH).trim() + '|' + String(r.PACKAGEID).trim();
+  const before = new Map(content(live.tables.PSPACKAGEDEFN).map(r => [id(r), r])), next = new Map(content(after.tables.PSPACKAGEDEFN).map(r => [id(r), r]));
+  for (const [k, r] of next) if (before.has(k) && canonical(before.get(k)!) !== canonical(r)) throw new Error('Existing package and subpackage properties are not reviewed here.');
+  const pathOf = (r: Record<string, Json>) => Number(r.PACKAGELEVEL) === 1 ? [String(r.PACKAGEID).trim()] : [String(r.QUALIFYPATH).trim(), String(r.PACKAGEID).trim()];
+  const addedRows = [...next].filter(([k]) => !before.has(k)).map(([, r]) => r), removedRows = [...before].filter(([k]) => !next.has(k)).map(([, r]) => r);
+  if (addedRows.length && removedRows.length) throw new Error('Add subpackages and remove others in separate changes.');
+  if (!addedRows.length && !removedRows.length) throw new Error('The proposal has no changes.');
+  for (const r of [...addedRows, ...removedRows]) {
+    if (String(r.PACKAGEROOT).trim() !== root || ![1, 2].includes(Number(r.PACKAGELEVEL))) throw new Error('A subpackage row is outside this package.');
+    const level = Number(r.PACKAGELEVEL), q = String(r.QUALIFYPATH).trim();
+    if (level === 1 ? q !== ':' : !/^[A-Za-z][A-Za-z0-9_]{0,29}$/.test(q)) throw new Error('A subpackage row has an unexpected QUALIFYPATH.');
+  }
+  for (const r of addedRows) {
+    if (String(r.PACKAGEREF ?? ' ').trim() || String(r.DESCR ?? ' ').trim() || r.DESCRLONG !== null) throw new Error('Subpackage descriptions, comments and package references have no calibrated writer.');
+    if (Number(r.PACKAGELEVEL) === 2 && !next.has(':|' + String(r.QUALIFYPATH).trim())) throw new Error('A new level-2 subpackage needs its parent.');
+  }
+  // A removed parent takes its children (App Designer: "Delete Package ... and all its children"), so none may stay.
+  for (const r of removedRows) if (Number(r.PACKAGELEVEL) === 1 && [...next.values()].some(x => Number(x.PACKAGELEVEL) === 2 && String(x.QUALIFYPATH).trim() === String(r.PACKAGEID).trim())) {
+    throw new Error(`Removing ${root}:${String(r.PACKAGEID).trim()} removes its subpackages too.`);
+  }
+  return { added: addedRows.map(r => ({ path: pathOf(r), ownerId: String(r.OBJECTOWNERID ?? ' ').trim() })), removed: removedRows.map(pathOf) };
+}
+
+/**
  * The typed writers for a reviewed package change: create the root (c03), its subpackages (c05) and Package Properties
  * (pk01); or delete an empty package (dl04). Classes are their own reviewed objects: a package with classes is not
  * deleted here, and an existing package is changed only through its classes.
  */
 export async function writePackageChange(c: Connection, types: DbTypes, root: string, live: LifecycleScope | null, after: LifecycleScope | null, operatorId: string): Promise<void> {
-  if (live && after) throw new Error('Existing package properties and subpackages are not reviewed here.');
+  if (live && after) {
+    const change = subpackageChange(root, live, after);
+    const [head] = await rows(c, types, 'PSPACKAGEDEFN', `PACKAGEROOT = :r AND PACKAGEID = :r AND QUALIFYPATH = '.'`, { r: root });
+    const openedVersion = Number(head?.VERSION ?? -1);
+    if (change.added.length) await createSubpackages(c, { root, paths: change.added.map(a => a.path), openedVersion, operatorId,
+      ownerIds: Object.fromEntries(change.added.filter(a => a.ownerId).map(a => [a.path.join(':'), a.ownerId])) });
+    else await deleteSubpackages(c, { root, paths: change.removed, openedVersion, operatorId });
+    return;
+  }
   if (!after) {
     if (live!.tables.PSAPPCLASSDEFN.length) throw new Error(`${root} still has classes: stage their deletion first.`);
     const [head] = await rows(c, types, 'PSPACKAGEDEFN', `PACKAGEROOT = :r AND PACKAGEID = :r AND QUALIFYPATH = '.'`, { r: root });
@@ -141,14 +182,15 @@ export async function writePackageChange(c: Connection, types: DbTypes, root: st
   }
   if (after.scope !== 'app-package/1' || after.tables.PSAPPCLASSDEFN.length) throw new Error('A new package is created without classes; add them as their own reviewed objects.');
   const packages = after.tables.PSPACKAGEDEFN, head = packages.find(p => String(p.PACKAGEID).trim() === root && String(p.QUALIFYPATH).trim() === '.');
-  if (!head || packages.some(p => String(p.PACKAGEREF ?? ' ').trim() || p !== head && (String(p.DESCR ?? ' ').trim() || String(p.OBJECTOWNERID ?? ' ').trim() || p.DESCRLONG !== null))) {
-    throw new Error('Subpackage properties and package references have no calibrated writer; this package is not reviewed.');
+  if (!head || packages.some(p => String(p.PACKAGEREF ?? ' ').trim() || p !== head && (String(p.DESCR ?? ' ').trim() || p.DESCRLONG !== null))) {
+    throw new Error('Subpackage descriptions, comments and package references have no calibrated writer; this package is not reviewed.');
   }
   await createPackage(c, { name: root, operatorId });
   const path = (p: Record<string, Json>) => [...String(p.QUALIFYPATH).trim().split(':').filter(s => s), String(p.PACKAGEID).trim()];
   for (const sub of packages.filter(p => p !== head).sort((a, b) => Number(a.PACKAGELEVEL) - Number(b.PACKAGELEVEL))) {
     const [now] = await rows(c, types, 'PSPACKAGEDEFN', `PACKAGEROOT = :r AND PACKAGEID = :r AND QUALIFYPATH = '.'`, { r: root });
-    await createSubpackage(c, { root, path: path(sub), openedVersion: Number(now.VERSION), operatorId });
+    const ownerId = String(sub.OBJECTOWNERID ?? ' ').trim();
+    await createSubpackage(c, { root, path: path(sub), openedVersion: Number(now.VERSION), operatorId, ...(ownerId ? { ownerId } : {}) });
   }
   if (String(head.DESCR ?? ' ').trim() || String(head.OBJECTOWNERID ?? ' ').trim() || head.DESCRLONG !== null) {
     const [now] = await rows(c, types, 'PSPACKAGEDEFN', `PACKAGEROOT = :r AND PACKAGEID = :r AND QUALIFYPATH = '.'`, { r: root });

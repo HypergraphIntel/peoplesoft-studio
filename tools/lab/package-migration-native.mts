@@ -21,7 +21,7 @@ const config={name:'HRDMO package migration acceptance',platform:'oracle' as con
 const prefix='ZZ_BK'+randomBytes(3).toString('hex').toUpperCase(),root=prefix+'PKG',project=prefix+'P',operatorId=process.env.PSLAB_OPERATOR??'JARED';
 const p=new DatabaseProvider(config),pool=await openDatabase('oracle',config),c=await pool.getConnection(),dir=await mkdtemp(path.join(os.tmpdir(),'psft-package-migration-native-'));let owned=false;
 setWriteNamePrefix(prefix);setWriteGuard(async w=>{assert.ok([root,project].includes(w.key.parts[0])||w.key.parts[1]===root,JSON.stringify(w.key));if(writeOrigin()==='agent')assert.ok(isReviewedWrite(p.id,w.key));});
-const checks:string[]=[],report:Record<string,unknown>={checkedAt:new Date().toISOString(),scope:'Disposable HRDMO Application Package with nested subpackages and classes at root/level-1/level-2: export, vacant-target creation, unchanged repeat, target-only refusal and durable review; same database; trusted service test approval, not installed UI',root,project,checks};
+const checks:string[]=[],report:Record<string,unknown>={checkedAt:new Date().toISOString(),scope:'Disposable HRDMO Application Package with nested subpackages (one with an owner ID) and classes at root/level-1/level-2: export, vacant-target creation, unchanged repeat, target-only refusal and durable review; same database; trusted service test approval, not installed UI',root,project,checks};
 const check=async(n:string,fn:()=>Promise<void>)=>{await fn();checks.push(n);console.log('ok '+checks.length+' - '+n);};
 const classKey=(...parts:string[])=>makeKey(DefinitionType.ApplicationClassPeopleCode,root,...parts,'OnExecute');
 const classes={Root:classKey('Root'),Panel:classKey('UI','Panel'),Button:classKey('UI','Widgets','Button')};
@@ -34,13 +34,15 @@ try{await p.connect();assert.equal(await p.readPackageForMigration(root),undefin
  await p.createPackage({name:root,operatorId});let doc=(await p.readPackageForMigration(root))!;
  await p.createSubpackage({root,path:['UI'],openedVersion:doc.version,operatorId});doc=(await p.readPackageForMigration(root))!;
  await p.createSubpackage({root,path:['UI','Widgets'],openedVersion:doc.version,operatorId});
+ // A subpackage owner, as App Designer's Copy From File writes one (hbshells import, ZZ_PCODE_LAB:BOUNDARY): only a project copy sets it.
+ await c.execute("UPDATE PSPACKAGEDEFN SET OBJECTOWNERID='PPT' WHERE PACKAGEROOT=:r AND PACKAGEID='Widgets'",{r:root});await c.commit();
  for(const [n,k] of Object.entries(classes))await p.savePeopleCode(k,{source:source(n),openedFingerprint:'absent',operatorId,createClass:true});
  const created=await p.createProject({project,operatorId});await p.saveProject({project,operatorId,openedVersion:created.version,add:[makeKey(DefinitionType.ApplicationPackage,root,root,'.')]});
  const expected=await sources();assert.ok(Object.values(expected).every(Boolean));
  const pkg=await exportMigrationPackage(p,project),target=await databaseMigrationTarget(p,operatorId);
  await check('Export carries the package root, both subpackage levels and every class source, though the project lists only the package',async()=>{
   assert.deepEqual(pkg.assets.map(a=>[a.kind,a.key.parts.join(':')]),[['package',root],['peoplecode',root+':Root'],['peoplecode',root+':UI:Panel'],['peoplecode',root+':UI:Widgets:Button']]);
-  assert.deepEqual(pkg.assets[0].data,{name:root,packages:['UI','UI:Widgets']});});
+  assert.deepEqual(pkg.assets[0].data,{name:root,packages:['UI','UI:Widgets'],subpackageOwners:{'UI:Widgets':'PPT'}});});
  await cleanup();owned=true;
  await check('Vacant-target preview then apply creates the package, subpackages and classes with exact stored source',async()=>{const plan=await previewMigrationImport(pkg,target);assert.deepEqual(plan.blockers,[]);assert.deepEqual(plan.changes.map(c=>c.action),['create','create','create','create']);
   const r=await applyMigrationImport(pkg,plan,target);assert.equal(r.error,undefined,r.error);assert.deepEqual((await p.readPackageForMigration(root))!.data,pkg.assets[0].data);assert.deepEqual(await sources(),expected);
@@ -48,6 +50,8 @@ try{await p.connect();assert.equal(await p.readPackageForMigration(root),undefin
  await check('Unchanged repeat import writes nothing and preserves APM/PPC/PJM counters',async()=>{const before=await counters(),plan=await previewMigrationImport(pkg,target);assert.ok(plan.changes.every(c=>c.action==='same'),JSON.stringify(plan.changes.map(c=>c.action)));assert.deepEqual((await applyMigrationImport(pkg,plan,target)).completed,[]);assert.deepEqual(await counters(),before);});
  await check('A target-only subpackage blocks preview; migration never deletes subpackages',async()=>{const live=(await p.readPackageForMigration(root))!;await p.createSubpackage({root,path:['Extra'],openedVersion:live.version,operatorId});
   const plan=await previewMigrationImport(pkg,target);assert.ok(plan.blockers.some(b=>/Extra is absent from the package/.test(b)),JSON.stringify(plan.blockers));});
+ await check('An existing subpackage whose owner differs blocks preview; migration never changes a subpackage owner',async()=>{await c.execute("UPDATE PSPACKAGEDEFN SET OBJECTOWNERID='HHR' WHERE PACKAGEROOT=:r AND PACKAGEID='Widgets'",{r:root});await c.commit();
+  try{const plan=await previewMigrationImport(pkg,target);assert.ok(plan.blockers.some(b=>/UI:Widgets has owner ID 'HHR'/.test(b)),JSON.stringify(plan.blockers));}finally{await c.execute("UPDATE PSPACKAGEDEFN SET OBJECTOWNERID='PPT' WHERE PACKAGEROOT=:r AND PACKAGEID='Widgets'",{r:root});await c.commit();}});
  await check('A subpackage description refuses the migration scope (Package Properties belong to the root)',async()=>{await c.execute("UPDATE PSPACKAGEDEFN SET DESCR='Described' WHERE PACKAGEROOT=:r AND PACKAGEID='UI'",{r:root});await c.commit();
   try{await assert.rejects(p.readPackageForMigration(root),/subpackage or class/);}finally{await c.execute("UPDATE PSPACKAGEDEFN SET DESCR=' ' WHERE PACKAGEROOT=:r AND PACKAGEID='UI'",{r:root});await c.commit();}});
  await cleanup();owned=true;

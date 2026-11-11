@@ -160,6 +160,11 @@ Include in Navigation); **Save**.
 ("Add a search record (Component Properties > Use) before saving") and the
 writer refuses again before anything is written (`componentSaveRefusal`).
 
+**A component with no search page uses INSTALLATION.** Set INSTALLATION as the
+search record and put one INSTALLATION field, invisible, at scroll level 0 of
+the page. A Derived/Work record with no keys has no row behind it, so the MCP
+refuses it as a new search record (`searchRecordRefusal`).
+
 The save (`src/providers/componentWriter.ts`), reproduced from nine
 controlled App Designer saves of `ZZ_PCODE_LAB_CMP` (results/c01-c08b, all
 bracketed afterwards by SCN with `snapshot.ts --as-of scn:NNN`):

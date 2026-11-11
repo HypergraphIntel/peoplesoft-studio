@@ -1,0 +1,88 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-958c52b3a214e02bf4226739",
+  "fingerprint": "958c52b3a214e02bf42267394c1ea7a6a40b7db94adf2b9ca298e89cd78c00fb",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "html",
+    "objectType": "HTML definition"
+  },
+  "assertion": {
+    "kind": "recreate-clears-tombstone",
+    "facts": {
+      "table": "PSCONTDEL",
+      "deleted": true,
+      "newVersion": "newCRM"
+    }
+  },
+  "title": "Saving a new HTML definition under a deleted name deletes that name's PSCONTDEL row",
+  "statement": "Creating an HTML definition whose name has a PSCONTDEL row deletes that row and writes the definition at the new CRM. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-20T20:21:54.970Z",
+      "method": "save-capture",
+      "experimentId": "td05-native-html-recreate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture td05-native-html-recreate: PSCONTDEL (VERSION 66) deleted; PSCONTDEFN (VERSION 68 = CRM after) and PSCONTENT inserted.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCONTDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTENT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "CRM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "td05-native-html-recreate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/TEXT_DELETION.md"
+        }
+      ],
+      "digest": "4ccc6e4362f17d06b76f2222905f01d0966012a4ae0a0089a03681758cd73fb4"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:31:31.512Z",
+    "updatedAt": "2026-10-26T20:31:31.512Z",
+    "schemaVersion": 1
+  }
+}

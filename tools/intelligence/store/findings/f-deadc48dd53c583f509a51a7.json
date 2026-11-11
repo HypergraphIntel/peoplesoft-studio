@@ -1,0 +1,107 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-deadc48dd53c583f509a51a7",
+  "fingerprint": "deadc48dd53c583f509a51a77b144b82ce8242db72d4c0daeec303263050a28a",
+  "type": "metadata-mapping",
+  "subject": {
+    "subsystem": "query",
+    "objectType": "Query"
+  },
+  "assertion": {
+    "kind": "column-mapping",
+    "facts": {
+      "table": "PSQRYCRITERIA",
+      "column": "NEGATION",
+      "not": "N",
+      "otherwise": "blank"
+    }
+  },
+  "title": "NOT on a query criterion is PSQRYCRITERIA.NEGATION 'N'",
+  "statement": "Criteria NOT stores PSQRYCRITERIA.NEGATION 'N'; it is blank otherwise.",
+  "confidence": "high",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-21T23:27:14.436Z",
+      "method": "save-capture",
+      "experimentId": "qcr06-not",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "Windows Query"
+      },
+      "observation": "Capture qcr06-not: criterion 1 NEGATION blank -> 'N'.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSQRYCRITERIA",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYDEFN",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYEXPR",
+            "inserted": 3,
+            "deleted": 3,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYFIELD",
+            "inserted": 2,
+            "deleted": 2,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYRECORD",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSQRYSELECT",
+            "inserted": 1,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "QDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "qcr06-not"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PS_QUERY_WINDOWS.md"
+        }
+      ],
+      "digest": "0ec9c489bb7c96f2f008dc26dc0bd4e4f87bc58dc79ffca651fabacb4cfaa777"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:26:20.005Z",
+    "updatedAt": "2026-10-26T20:26:20.005Z",
+    "schemaVersion": 1
+  }
+}

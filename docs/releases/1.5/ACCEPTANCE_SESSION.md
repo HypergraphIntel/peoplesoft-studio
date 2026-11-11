@@ -131,3 +131,40 @@ HAVING, expressions, subqueries, unions, translates, effective dating), save
 an App Designer version and a Studio version, compare the rows and the SQL,
 and lift the 8.61 gate family by family. HCDEV stays read-only except for
 those `XX_` queries.
+
+## 7. Follow-ups (October 26)
+
+**Package migration with an owned subpackage (developer runs, ~2 min).** The
+native script commits disposable `ZZ_BK…` rows and removes them; the agent
+cannot run HRDMO writes. In a terminal:
+
+```bash
+bash -lic 'cd ~/repos/peoplesoft-studio && npx tsx tools/lab/package-migration-native.mts'
+```
+
+It now also sets an owner ID on one subpackage (as App Designer's Copy From
+File writes one), checks that export carries it, that a vacant target gets it
+back, and that a target subpackage with another owner blocks preview. Paste
+the `ok N - …` lines; the agent records the result JSON.
+
+**Process definition deletion capture (developer + agent).** Needed before a
+promotion that creates a process definition can be undone. PIA has no delete
+for process definitions and no delivered PeopleCode deletes one; the native
+path is App Designer's upgrade copy with the Delete action. Every existing
+`ZZ_` process definition is evidence for earlier runs, so use a new one:
+
+1. **Developer:** in PIA (PeopleTools > Process Scheduler > Processes > Add a
+   New Value) create Application Engine process `ZZ_PD_DEL1`, description
+   `Deletion capture`, one component and one process group (any `ZZ_`
+   ones). Save. Or approve the agent's `psft_process_create` call for it.
+2. **Agent:** `npx tsx tools/corpus/save-protocol/snapshot.ts before --case pd01-native-process-delete --scope all`
+   (read only).
+3. **Agent (VM):** App Designer, new project `ZZ_PD_DEL_PRJ`, insert the
+   process definition, Upgrade tab: set its Action to DELETE, Copy Project to
+   File, then Copy Project from File into HRDMO. (If App Designer will not
+   offer DELETE for a definition present in the database, the developer
+   deletes it through a Copy to HRDEV with Action DELETE and the capture
+   runs against HRDEV instead.)
+4. **Agent:** `… snapshot.ts after --case pd01-native-process-delete --scope all`,
+   then build the deletion writer from the rows and counters, and the
+   promotion inverse.

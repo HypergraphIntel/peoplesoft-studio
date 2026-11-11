@@ -32,6 +32,15 @@ test('page operations: a move shifts a sized control and its stored label, as th
   assert.deepEqual([eb.editLblLeft, eb.editLblTop, eb.editLblRight, eb.editLblBottom], [20, 130, 70, 146]);
 });
 
+test('set_scroll_use turns a grid\'s work-scroll Use boxes on and off, and only a scroll takes it', () => {
+  const layout = page([field({ FIELDNUM: 1, PNLFLDID: 3, FIELDTYPE: 19, FIELDUSE: 0x1000 }), field({ FIELDNUM: 2, PNLFLDID: 5, FIELDTYPE: 4 })]);
+  const on = applyPageOperations(layout, [{ op: 'set_scroll_use', id: 3, workScroll: true }]).controls.find((c) => c.pnlFldId === 3)!;
+  assert.equal(on.fieldUse, 0x1000 | 0x3c0);
+  const off = applyPageOperations(page([field({ FIELDNUM: 1, PNLFLDID: 3, FIELDTYPE: 19, FIELDUSE: 0x13c0 })]), [{ op: 'set_scroll_use', id: 3, workScroll: false }]).controls[0];
+  assert.equal(off.fieldUse, 0x1000);
+  assert.throws(() => applyPageOperations(layout, [{ op: 'set_scroll_use', id: 5, workScroll: true }]), /not a scroll or grid/);
+});
+
 test('page operations: add, resize, label, use, delete and properties make the editor\'s save', () => {
   const layout = page([field({ FIELDNUM: 1, PNLFLDID: 3 }), field({ FIELDNUM: 2, PNLFLDID: 5, LBLTEXT: 'X' })]);
   const { controls, properties } = applyPageOperations(layout, [

@@ -951,6 +951,54 @@
         }
       ],
       "digest": "e04873cfa3a338ba3b29f44f234496c529379bb3dc7951464ffd2dc43ee12837"
+    },
+    {
+      "observedAt": "2026-10-26T20:33:24.610Z",
+      "method": "save-capture",
+      "experimentId": "ps03-insert-early",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture ps03-insert-early: a Static Text dropped at top 64, left 28 took FIELDNUM 4: after the Edit Box at top 48 (left 764, higher so before it) and before the Scroll Area at top 72.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSPNLDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSPNLFIELD",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 84
+          },
+          {
+            "table": "PSPNLFIELDEXT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "PDM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "ps03-insert-early"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/PAGE_SAVE.md"
+        }
+      ],
+      "digest": "0464dba29a191c1939afa408a957f84558a83d87d551155e3f2359601849e90b"
     }
   ],
   "privacy": {
@@ -960,7 +1008,7 @@
   "provenance": {
     "source": "research-harness",
     "createdAt": "2026-10-13T11:50:14.016Z",
-    "updatedAt": "2026-10-13T11:50:20.980Z",
+    "updatedAt": "2026-10-26T20:33:24.617Z",
     "schemaVersion": 1
   }
 }

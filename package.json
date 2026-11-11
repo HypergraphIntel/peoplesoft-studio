@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.9.9",
+  "version": "1.0.1",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -962,16 +962,16 @@
         }
       ],
       "view/item/context": [
-      {
-        "command": "psft.package.insertSubpackage",
-        "when": "(view == psft.projects && viewItem == appPackage.properties) || (view == psft.browser && viewItem =~ /\\bapplicationPackage\\b/)",
-        "group": "2_package@1"
-      },
-      {
-        "command": "psft.package.insertClass",
-        "when": "(view == psft.projects && viewItem == appPackage.properties) || (view == psft.browser && viewItem =~ /\\bapplicationPackage\\b/)",
-        "group": "2_package@2"
-      },
+        {
+          "command": "psft.package.insertSubpackage",
+          "when": "(view == psft.projects && viewItem == appPackage.properties) || (view == psft.browser && viewItem =~ /\\bapplicationPackage\\b/)",
+          "group": "2_package@1"
+        },
+        {
+          "command": "psft.package.insertClass",
+          "when": "(view == psft.projects && viewItem == appPackage.properties) || (view == psft.browser && viewItem =~ /\\bapplicationPackage\\b/)",
+          "group": "2_package@2"
+        },
         {
           "command": "psft.findInProject",
           "when": "view == psft.projects && (viewItem == project || viewItem == project.opened)",

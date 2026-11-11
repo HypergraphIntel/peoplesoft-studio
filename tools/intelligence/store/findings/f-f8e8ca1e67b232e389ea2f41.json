@@ -1,0 +1,101 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-f8e8ca1e67b232e389ea2f41",
+  "fingerprint": "f8e8ca1e67b232e389ea2f41eed33bd2bf258cf47e299668de3ecbb914fe82a9",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "style-sheet",
+    "objectType": "Style sheet"
+  },
+  "assertion": {
+    "kind": "recreate-clears-tombstone",
+    "facts": {
+      "tables": "PSCONTDEL,PSSTYLSHEETDEL",
+      "deleted": true,
+      "SSM": 1,
+      "CRM": 0
+    }
+  },
+  "title": "Saving a new freeform style sheet under a deleted name deletes its PSCONTDEL and PSSTYLSHEETDEL rows; SSM and SYS move, CRM does not",
+  "statement": "Creating a freeform style sheet whose name has tombstones deletes its PSCONTDEL and PSSTYLSHEETDEL rows, writes PSSTYLSHEETDEFN at the new SSM, and moves SSM and SYS by one, not CRM; the new PSCONTDEFN row's VERSION is one above CRM without CRM moving. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-20T20:23:38.979Z",
+      "method": "save-capture",
+      "experimentId": "td06-native-css-recreate",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture td06-native-css-recreate: PSCONTDEL (VERSION 67) and PSSTYLSHEETDEL (VERSION 75) deleted; PSSTYLSHEETDEFN VERSION 76 = SSM after; PSCONTDEFN VERSION 69 while PSVERSION CRM stays 68; SSM +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSCONTDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSCONTENT",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSTYLSHEETDEFN",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSSTYLSHEETDEL",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "SSM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "td06-native-css-recreate"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/change-review/TEXT_DELETION.md"
+        }
+      ],
+      "digest": "a9105bfd15cb8b7b882ca1f3a833605de3159debb1475bdf5b66ef783076f3ad"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:31:32.092Z",
+    "updatedAt": "2026-10-26T20:31:32.092Z",
+    "schemaVersion": 1
+  }
+}

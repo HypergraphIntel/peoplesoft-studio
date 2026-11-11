@@ -1,0 +1,82 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-a701a5dd9925f890caa0e8db",
+  "fingerprint": "a701a5dd9925f890caa0e8dbdee1d80cd820f37d149495b35048051f4db3b138",
+  "type": "behavior",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "fixed-length-no-shift",
+    "facts": {
+      "table": "PSFLDFIELDDEFN",
+      "otherStarts": "unchanged",
+      "overlapsSaved": true
+    }
+  },
+  "title": "Changing a FIXED File Layout field's length moves no other field",
+  "statement": "In a FIXED layout, saving a longer length for one field changes only that field's PSFLDFIELDDEFN row; later fields keep their FLDSTART, so the fields overlap. One capture.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:21:22.735Z",
+      "method": "save-capture",
+      "experimentId": "fl08-fixed-length",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl08-fixed-length: EMPLID (start 1) FLDLENGTH 11 -> 15; PLAN_TYPE still starts at 12 and no other row changed.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 0,
+            "updated": 1
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl08-fixed-length"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        }
+      ],
+      "digest": "97b30be9b7c42827ac9db05261e7c0ad9a64449d0464dc3966881e00fb71dd07"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:21:22.742Z",
+    "updatedAt": "2026-10-26T20:21:22.742Z",
+    "schemaVersion": 1
+  }
+}

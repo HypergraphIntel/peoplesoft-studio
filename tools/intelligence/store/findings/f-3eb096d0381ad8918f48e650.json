@@ -1,0 +1,102 @@
+{
+  "schema": "psft-finding/1",
+  "id": "f-3eb096d0381ad8918f48e650",
+  "fingerprint": "3eb096d0381ad8918f48e650e293960f84330a34a63e6a0370bd42fb7dcf5a1f",
+  "type": "save-protocol",
+  "subject": {
+    "subsystem": "file-layout",
+    "objectType": "File Layout"
+  },
+  "assertion": {
+    "kind": "rename",
+    "facts": {
+      "tombstone": "PSFLDDEL",
+      "tombstoneVersion": "newFLM",
+      "FLM": 1,
+      "PJM": 1,
+      "SYS": 1,
+      "newNameVersion": "newFLM"
+    }
+  },
+  "title": "Renaming a File Layout moves FLM, PJM and SYS by 1 and records the old name in PSFLDDEL at the new FLM",
+  "statement": "App Designer's Rename of a File Layout leaves its rows under the new name only, with PSFLDDEFN.VERSION the new FLM, inserts the old name into PSFLDDEL with VERSION the new FLM, and moves FLM, PJM and SYS by one. Whether rows are re-keyed in place or deleted and re-inserted is not established (the capture compares keyed sets). One rename.",
+  "confidence": "medium",
+  "compatibility": {
+    "observedReleases": [
+      "8.62.09"
+    ],
+    "knownIncompatible": []
+  },
+  "localStatus": "observed",
+  "observations": [
+    {
+      "observedAt": "2026-10-26T20:20:34.009Z",
+      "method": "save-capture",
+      "experimentId": "fl13-rename",
+      "environment": {
+        "peopleToolsRelease": "8.62.09",
+        "platform": "oracle",
+        "tool": "App Designer"
+      },
+      "observation": "Capture fl13-rename (with its new-name half fl13-rename-new, the same window): the old name's PSFLDDEFN, PSFLDSEGDEFN and 10 PSFLDFIELDDEFN rows are gone, the same rows exist under the new name with PSFLDDEFN.VERSION 44, PSFLDDEL holds the old name at VERSION 44; FLM 43 -> 44, PJM +1, SYS +1.",
+      "delta": {
+        "tables": [
+          {
+            "table": "PSFLDDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDDEL",
+            "inserted": 1,
+            "deleted": 0,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDFIELDDEFN",
+            "inserted": 0,
+            "deleted": 10,
+            "updated": 0
+          },
+          {
+            "table": "PSFLDSEGDEFN",
+            "inserted": 0,
+            "deleted": 1,
+            "updated": 0
+          }
+        ],
+        "counters": {
+          "FLM": 1,
+          "PJM": 1,
+          "SYS": 1
+        }
+      },
+      "evidence": [
+        {
+          "kind": "capture-case",
+          "ref": "fl13-rename"
+        },
+        {
+          "kind": "repo-path",
+          "ref": "docs/FILE_LAYOUTS.md"
+        },
+        {
+          "kind": "capture-case",
+          "ref": "fl13-rename-new"
+        }
+      ],
+      "digest": "4b547b628bdfc8e5a86a3c63487a56a2956d7dcbe8968901f2846006f78f024e"
+    }
+  ],
+  "privacy": {
+    "classification": "internal",
+    "approvedForSubmission": false
+  },
+  "provenance": {
+    "source": "research-harness",
+    "createdAt": "2026-10-26T20:20:34.016Z",
+    "updatedAt": "2026-10-26T20:20:34.016Z",
+    "schemaVersion": 1
+  }
+}

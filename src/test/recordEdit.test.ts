@@ -117,6 +117,9 @@ test('edits: move, insert, remove, and the key flags', () => {
   e = setUse(e, 0, { key: true, descending: true });
   assert.equal(e.fields[0].useEdit, 0x800041);
   assert.throws(() => setUse(e, 2, { descending: true }), /only a key can be descending/);
+  // E58: two key kinds in one change are refused, not silently reduced to the last one.
+  assert.throws(() => setUse(e, 2, { key: true, altSearch: true }), /key and altSearch cannot both be set/);
+  assert.throws(() => setUse(e, 2, { key: true, dupOrder: true }), /cannot both be set/);
   e = setUse(e, 0, { key: false });
   assert.equal(e.fields[0].useEdit & UseEdit.DescendingKey, 0, 'removing the key clears Descending');
   e = removeField(e, 2);
@@ -203,6 +206,9 @@ test('the Edits tab, default value, label and page control (r15, r16)', () => {
   assert.deepEqual([e.fields[1].useEdit & UseEdit.YesNoTable, e.fields[1].editTable], [UseEdit.YesNoTable, '']);
   assert.throws(() => setEdits(e, 1, { edit: 'prompt', promptTable: '' }), /not a record name/);
   e = setDefault(e, 0, { constant: 'X' });
+  // E48: DEFFIELDNAME holds 18 characters; a longer constant is refused before Oracle, with the limit.
+  assert.doesNotThrow(() => setDefault(e, 0, { constant: 'X'.repeat(18) }));
+  assert.throws(() => setDefault(e, 0, { constant: 'https://auth.pingone.com' }), /at most 18 characters.*has 24/);
   e = setDefault(e, 1, { record: 'zz_pcode_lab_t', field: 'zz_pcode_lab_key' });
   e = setLabel(e, 0, 'DATE/TIME');
   assert.equal(e.fields[0].useEdit & UseEdit.UseDefaultLabel, 0, 'a label of its own clears Use Default Label');
