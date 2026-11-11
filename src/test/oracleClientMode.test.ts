@@ -44,7 +44,9 @@ test('a Thick start that cannot happen says what to do', () => {
   };
   assert.match(fail('NJS-118'), /already opened an Oracle connection in Thin mode.*Reload the window/);
   assert.match(fail('NJS-090'), /different Instant Client.*Reload the window/);
-  assert.match(fail('DPI-1047'), /no 64-bit Oracle Client libraries were found in \/opt\/ic23.*libaio/);
+  assert.match(fail('DPI-1047'), /no 64-bit Oracle Client libraries were found in \/opt\/ic23/);
+  // The advice follows the platform (startOracleClient uses the host's; CI runs Linux and Windows).
+  assert.match(thickModeFailure(Object.assign(new Error('DPI-1047: x'), { code: 'DPI-1047' }), { mode: 'thick', libDir: '/opt/ic23' }, 'linux'), /found in \/opt\/ic23.*libaio/);
   assert.match(thickModeFailure(Object.assign(new Error('DPI-1047: x'), { code: 'DPI-1047' }), { mode: 'thick' }, 'win32'), /on the system library search path.*Visual Studio redistributable/);
   assert.match(fail('ORA-12345'), /Could not start Oracle Thick mode in \/opt\/ic23/);
   // Linux: libclntsh found in the directory, its own libraries not (Instant Client 23.26 on this host, 2026-11-11).
