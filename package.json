@@ -1432,10 +1432,28 @@
             }
           }
         },
+        "peoplesoft.oracle.clientMode": {
+          "type": "string",
+          "enum": [
+            "thin",
+            "thick"
+          ],
+          "enumDescriptions": [
+            "node-oracledb Thin mode: pure JavaScript, nothing to install.",
+            "node-oracledb Thick mode: Oracle Client libraries (Instant Client), for Native Network Encryption, older password verifiers, databases before 12.1 and other Oracle Net features Thin lacks."
+          ],
+          "default": "thin",
+          "markdownDescription": "How Oracle connections are made. One mode per window: once an Oracle connection has been opened, switching takes a window reload."
+        },
         "peoplesoft.oracle.thickModeLibDir": {
           "type": "string",
           "default": "",
-          "description": "Path to Oracle Instant Client. Leave empty to use node-oracledb Thin mode."
+          "description": "The 64-bit Oracle Instant Client directory for Thick mode. Empty: the system library search path (Linux ldconfig or LD_LIBRARY_PATH, Windows PATH). On Linux the directory must also be on the library search path when VS Code starts (ldconfig, or LD_LIBRARY_PATH). Setting it also selects Thick mode unless the client mode is thin."
+        },
+        "peoplesoft.oracle.configDir": {
+          "type": "string",
+          "default": "",
+          "description": "Oracle Net configuration directory (tnsnames.ora, sqlnet.ora, wallet; TNS_ADMIN) for TNS aliases and, in Thick mode, sqlnet.ora settings such as encryption. Empty: none."
         },
         "peoplesoft.db2.driverPath": {
           "type": "string",

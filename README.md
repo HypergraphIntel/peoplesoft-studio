@@ -14,14 +14,15 @@ writing the same rows Application Designer writes.
 > their documented limits; see the [support contract](docs/SUPPORT_MATRIX.md)
 > and [Disclaimer](#disclaimer). 1.0 is not full Application Designer parity.
 
-Current release: **1.0.0 — November 2, 2026**. The qualified core is now
-version 1.0. This release also adds Fluid pages and components through the
-MCP, and eleven new PeopleCode rules that refuse, before the save, programs App
-Designer or PIA would refuse. The 1.5 workflows from 0.9.9 remain, with their
-limits: structural Change Review, promotion between Oracle environments, Query
-on 8.61.15, Run and Monitor and the Windows AI handoff. See the
-[release notes](docs/releases/1.0.0.md), [changelog](CHANGELOG.md) and
-[download the VSIX](https://github.com/HypergraphIntel/peoplesoft-studio/releases/tag/v1.0.0).
+Current release: **1.0.1 — November 11, 2026**. Reliability fixes for the
+MCP and Change Review: a second edit of a staged record no longer drops the
+first, over-long labels and defaults are refused before Oracle, subpackages can
+be created with a reviewed undo, and web library PeopleCode keeps App
+Designer's license code. Oracle Thick mode is now a setting
+(`peoplesoft.oracle.clientMode`). 1.0 is the qualified core; the 1.5 workflows
+from 0.9.9 remain with their limits. See the
+[release notes](docs/releases/1.0.1.md), [changelog](CHANGELOG.md) and
+[download the VSIX](https://github.com/HypergraphIntel/peoplesoft-studio/releases/tag/v1.0.1).
 
 Track completion gates in [1.0 readiness](docs/RELEASE_1_0_READINESS.md).
 
@@ -366,7 +367,7 @@ SQL documents use language id `psft-sql` (basic highlighting). HTML definitions 
 3. **Add Connection** (Oracle, SQL Server or DB2) or **Open Project Export File**.
 4. Connect, then **Open Definition…** or use the project tree.
 
-Oracle Instant Client is optional (`peoplesoft.oracle.thickModeLibDir`); leave empty for node-oracledb Thin mode.
+Oracle connections use node-oracledb Thin mode by default, with nothing to install. Set `peoplesoft.oracle.clientMode` to `thick` for databases that need Oracle Client libraries, such as Native Network Encryption or older password verifiers. See [Oracle Thick mode](docs/DATABASES.md#oracle-thick-mode).
 
 The PeopleTools tables are read in the connection's **Schema** (Settings →
 the connection → Edit). Left empty, it is the database's owner ID from

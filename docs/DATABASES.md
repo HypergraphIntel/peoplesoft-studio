@@ -11,7 +11,7 @@ reads and writes them all; what differs is in `src/db/`.
 
 | Type | Connect string | Notes |
 |---|---|---|
-| Oracle | `host:1521/SERVICE`, or a TNS alias | node-oracledb Thin mode; Thick with `peoplesoft.oracle.thickModeLibDir` |
+| Oracle | `host:1521/SERVICE`, or a TNS alias | node-oracledb Thin mode; Thick mode with an Oracle Client ([below](#oracle-thick-mode)) |
 | SQL Server | `host[\instance][:port]/database`, e.g. `sqlhost:1433/HCM92` | SQL Server authentication; the driver ships with the extension |
 | DB2 | `host[:port]/database`, e.g. `db2host:50000/HCM92` | z/OS: the database is the location name. Needs the DB2 driver (below) |
 
@@ -23,6 +23,40 @@ default every statement names it (`dbo.PSRECDEFN`).
 
 **Access, Operator ID, writes.** As on Oracle: a connection is Read-only
 until it is set Writable, with a PeopleSoft operator that exists there.
+
+### Oracle Thick mode
+
+Thin mode is pure JavaScript and needs nothing installed. Some databases need
+Thick mode, which loads Oracle Client libraries: Native Network Encryption or
+checksumming required in `sqlnet.ora`, older password verifiers, databases
+before 12.1, and other Oracle Net features Thin lacks.
+
+| Setting | Meaning |
+|---|---|
+| `peoplesoft.oracle.clientMode` | `thin` (default) or `thick` |
+| `peoplesoft.oracle.thickModeLibDir` | The 64-bit Instant Client directory. Empty: the system library search path. Setting it also selects Thick, unless the mode is `thin` |
+| `peoplesoft.oracle.configDir` | Directory with `tnsnames.ora`, `sqlnet.ora` or a wallet (`TNS_ADMIN`). Used in both modes |
+
+- **One mode per window.** node-oracledb runs one mode per process. Once an
+  Oracle connection has been opened, switching from Thin to Thick, or to
+  another directory, takes *Developer: Reload Window*. Studio says so instead
+  of failing with NJS-118 or NJS-090. After Thick has started, a connection
+  asking for Thin is served by Thick.
+- **Linux.** Install the Instant Client Basic or Basic Light zip and `libaio`.
+  Put its directory on the library search path *before VS Code starts*, with
+  `echo /opt/oracle/instantclient_23_26 | sudo tee /etc/ld.so.conf.d/oracle-instantclient.conf && sudo ldconfig`
+  or `LD_LIBRARY_PATH`. The directory setting alone finds `libclntsh` but not
+  its own libraries (`libnnz`): DPI-1047, seen with Instant Client 23.26.
+- **Windows and macOS.** The directory setting is enough. On Windows, use
+  the 64-bit client and the Visual C++ redistributable it lists.
+- **Which mode is in use.** The connection's tooltip and
+  `psft_list_connections` (`driver`) name it, for example
+  `node-oracledb 6.10.0 Thick, Oracle Client 23.26.2.0.0`.
+
+Verified on HRDMO 8.62.09 on 2026-11-11 with Instant Client 23.26 (read-only,
+and writes rolled back). Environment, PeopleCode decode, record, page and
+package reads, and search returned identical results in Thin and Thick mode.
+The subpackage writer's counter changes matched as well.
 
 ### The DB2 driver
 

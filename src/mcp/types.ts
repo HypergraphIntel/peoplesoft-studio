@@ -8,6 +8,8 @@ export interface McpConnectionDescriptor {
   kind: 'oracle' | 'mssql' | 'db2' | 'projectFile';
   connected: boolean;
   selected: boolean;
+  /** The client library a connected connection uses, e.g. "node-oracledb 6.10.0 Thick, Oracle Client 23.6.0.0.0". */
+  driver?: string;
 }
 
 export interface McpDefinitionDescriptor {

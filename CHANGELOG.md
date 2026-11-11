@@ -1,10 +1,40 @@
 # Changelog
 
-## 1.0.1 — unreleased
+## 1.0.1 — November 11, 2026
 
-MCP reliability fixes from the open issue list (E-tasks in
-[PRIORITY_TASKS](docs/PRIORITY_TASKS.md)).
+Reliability fixes for the MCP and Change Review, from the open issue list
+(E-tasks in [PRIORITY_TASKS](docs/PRIORITY_TASKS.md)), and Oracle Thick mode as
+a setting. Subpackages can be created through the MCP with a reviewed undo,
+and web library PeopleCode keeps App Designer's license code. See the
+[release notes](docs/releases/1.0.1.md).
 
+The 1.0.0 published on the Marketplace was built before PC021, the PC004
+extension and the fixes below were final. 1.0.1 is the first Marketplace build
+with everything the 1.0.0 entry lists, and with these:
+
+- **New PeopleCode rule PC022: no method or property named after a keyword.**
+  `method Alias(&rec As string)` or a property named `Error`, `Step` or `Doc`
+  passed Studio's checks, and App Designer refused it (2,42 "expecting
+  Identifier"; `&x.Doc` 2,49 "Dot not followed by Id"). The three keywords
+  delivered classes use as members stay allowed.
+- **HTML and XSLT definitions can be named by name alone (E70).** Every MCP
+  tool now adds the fixed content type (HTML 4, XSLT 6) when a key gives only
+  the name. Before, `psft_get_definition` failed with NJS-105. A read that
+  fails with too few key parts now names the parts its type takes.
+
+- **Oracle Thick mode is a setting (`peoplesoft.oracle.clientMode`).**
+  Thick mode loads Oracle Client libraries, which databases that require
+  Native Network Encryption, older password verifiers or a pre-12.1 release
+  need. Before, Thick mode started only when an Instant Client directory was
+  given; that still works. New: Thick from the system library search path,
+  and `peoplesoft.oracle.configDir` for `tnsnames.ora`, `sqlnet.ora` and
+  wallets in both modes. Starting Thick after a Thin connection, or with a
+  different directory, now says to reload the window instead of failing
+  with NJS-118 or NJS-090. Missing libraries get platform-specific help; on
+  Linux the directory must be on the library path when VS Code starts. The
+  connection tooltip and `psft_list_connections` name the client in use.
+  Verified on HRDMO with Instant Client 23.26: Thin and Thick reads were
+  identical. See [Oracle Thick mode](docs/DATABASES.md#oracle-thick-mode).
 - **A second record edit in one Change Set no longer drops the first (E22).**
   Two `psft_edit_record` calls on the same record in one set (insert a field,
   then another) staged the second against the live record, so the first
@@ -53,7 +83,7 @@ MCP reliability fixes from the open issue list (E-tasks in
   and alternate search key exclude one another, and the request is now
   refused with that explanation.
 - **HTML definitions can be named without their content type in
-  `psft_add_to_project` (E60)**, as in every other MCP tool since the E70 fix.
+  `psft_add_to_project` (E60)**, through the E70 fix above.
 ## 1.0.0 — November 2, 2026
 
 PeopleSoft Studio 1.0. The dependable core qualified on October 22 (gates V1-1

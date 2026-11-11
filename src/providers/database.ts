@@ -20,6 +20,7 @@ import { deleteFileLayout, fileLayoutDocumentOf, fileLayoutToken, readRecordFiel
 import type { FileLayoutDocument, RecordFieldInfo } from '../model/fileLayoutDocument.js';
 import { witnessedCreation, recordCreation, type CreationReceipt, type DefinitionStamp } from './creationProvenance.js';
 import type { DbConnection as Connection, DbPool, DbTypes } from '../db/connection.js';
+import type { OracleClientOptions } from '../db/oracle.js';
 import { openDatabase, type DatabasePlatform } from '../db/open.js';
 import {
   DefinitionProvider, DefinitionSummary, EnvironmentInfo, ProjectSummary, ProviderCapabilities,
@@ -175,8 +176,8 @@ export interface DatabaseConnectionConfig {
   connectString: string;
   user: string;
   password: string;
-  /** Oracle Instant Client directory; absent means node-oracledb Thin mode. */
-  thickModeLibDir?: string;
+  /** Oracle: node-oracledb Thin or Thick mode and their directories; absent means Thin. */
+  oracleClient?: OracleClientOptions;
   /** DB2: a directory with node_modules/ibm_db; absent: resolved normally. */
   db2DriverPath?: string;
   decoderMode?: DecodeOptions['mode'];
@@ -260,6 +261,8 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   get isConnected(): boolean { return this.pool !== undefined; }
+  /** The client library this connection uses (Oracle: Thin, or Thick with its Oracle Client), once connected. */
+  get clientDriver(): string | undefined { return this.pool?.driver; }
 
   /** The schema the session reads and writes the PeopleTools tables in, once connected. */
   get schema(): string | undefined { return this.pool?.schema; }
@@ -310,7 +313,7 @@ export class DatabaseProvider implements DefinitionProvider {
         connectString: this.config.connectString,
         user: this.config.user,
         password: this.config.password,
-        ...(this.config.thickModeLibDir ? { thickModeLibDir: this.config.thickModeLibDir } : {}),
+        ...(this.config.platform === 'oracle' && this.config.oracleClient ? { oracleClient: this.config.oracleClient } : {}),
         ...(this.config.db2DriverPath ? { db2DriverPath: this.config.db2DriverPath } : {}),
         ...(this.config.schema ? { schema: this.config.schema } : {})
       });

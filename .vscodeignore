@@ -71,3 +71,6 @@ CUSTOMIZATION_*.md
 **/*ou_fid*
 **/*[Ff]idelity*
 **/*FIDELITY*
+
+# Local query/run output (may hold site data): never packaged.
+*.out

@@ -21,10 +21,24 @@ export const CONFIGURATION_SECTION = 'peoplesoft';
 
 export type DecoderMode = 'auto' | 'strict' | 'raw';
 
+export type OracleClientMode = 'thin' | 'thick';
+
+/**
+ * The node-oracledb client options the Oracle settings give. Thick when chosen, or when an Instant Client directory is
+ * set (the only switch before 1.0.1, kept so existing setups stay Thick); the configuration directory serves both modes.
+ */
+export function oracleClientOptions(mode: string | undefined, libDir: string | undefined, configDir: string | undefined):
+  { mode: OracleClientMode; libDir?: string; configDir?: string } {
+  const lib = libDir?.trim() || undefined, config = configDir?.trim() || undefined;
+  return { mode: mode === 'thick' || (mode !== 'thin' && lib) ? 'thick' : 'thin', ...(lib ? { libDir: lib } : {}), ...(config ? { configDir: config } : {}) };
+}
+
 /** Every key under `peoplesoft.*` that package.json contributes, with its type. */
 export interface PeopleSoftStudioSettings {
   connections: ConnectionConfig[];
+  'oracle.clientMode': OracleClientMode;
   'oracle.thickModeLibDir': string;
+  'oracle.configDir': string;
   'db2.driverPath': string;
   'peoplecode.decoder': DecoderMode;
   'peoplecode.languageServer.enabled': boolean;
@@ -253,12 +267,35 @@ export const SETTING_DESCRIPTORS: readonly SettingDescriptor[] = [
     defaultValue: true
   },
   {
+    key: 'oracle.clientMode',
+    section: 'advanced',
+    label: 'Oracle client mode',
+    description: 'How Oracle connections are made. Thick mode uses Oracle Client libraries (Instant Client) and is needed for ' +
+      'Native Network Encryption or checksumming, older password verifiers, databases before 12.1 and other Oracle Net features Thin lacks.',
+    appliesWhen: 'One mode per window: after an Oracle connection has been opened, switching takes a window reload.',
+    control: { kind: 'enum', options: [
+      { value: 'thin', label: 'Thin', description: 'Pure JavaScript; nothing to install. Thick is used anyway once the window has started it.' },
+      { value: 'thick', label: 'Thick', description: 'Oracle Client libraries from the directory below, or from the system library search path when it is empty.' }
+    ] },
+    defaultValue: 'thin'
+  },
+  {
     key: 'oracle.thickModeLibDir',
     section: 'advanced',
     label: 'Oracle Instant Client directory',
-    description: 'Path to Oracle Instant Client, for node-oracledb Thick mode. Leave empty to use Thin mode.',
-    appliesWhen: 'Applies to connections opened after the change. Thick mode cannot be switched off without reloading the window.',
-    control: { kind: 'text', placeholder: 'Empty: Thin mode' },
+    description: 'The 64-bit Instant Client directory for Thick mode. Empty: the system library search path (Linux ldconfig or LD_LIBRARY_PATH, Windows PATH). ' +
+      'On Linux the directory must also be on the library search path when VS Code starts (ldconfig, or LD_LIBRARY_PATH). Setting it also selects Thick mode unless the client mode is Thin.',
+    appliesWhen: 'Read when Thick mode starts; a different directory takes a window reload.',
+    control: { kind: 'text', placeholder: 'Empty: system library search path' },
+    defaultValue: ''
+  },
+  {
+    key: 'oracle.configDir',
+    section: 'advanced',
+    label: 'Oracle Net configuration directory',
+    description: 'A directory with tnsnames.ora, sqlnet.ora or a wallet (TNS_ADMIN), for TNS aliases in connect strings and, in Thick mode, sqlnet.ora settings such as encryption. Empty: none.',
+    appliesWhen: 'Thin: connections opened after the change. Thick: read when Thick mode starts; a change takes a window reload.',
+    control: { kind: 'text', placeholder: 'Empty: none' },
     defaultValue: ''
   },
   {
@@ -421,11 +458,13 @@ export function validateSetting(key: EditableSettingKey, value: unknown): Valida
       return error ? { ok: false, error } : { ok: true, value: port as number };
     }
     case 'oracle.thickModeLibDir':
+    case 'oracle.configDir':
     case 'db2.driverPath': {
       if (typeof value !== 'string') return { ok: false, error: 'Directory must be text.' };
       const trimmed = value.trim();
       if (trimmed !== '' && !path.posix.isAbsolute(trimmed) && !path.win32.isAbsolute(trimmed)) {
-        return { ok: false, error: key === 'db2.driverPath' ? 'Directory must be an absolute path, or empty for the installed driver.' : 'Directory must be an absolute path, or empty for Thin mode.' };
+        return { ok: false, error: key === 'db2.driverPath' ? 'Directory must be an absolute path, or empty for the installed driver.'
+          : key === 'oracle.configDir' ? 'Directory must be an absolute path, or empty for none.' : 'Directory must be an absolute path, or empty for the system library search path.' };
       }
       return { ok: true, value: trimmed };
     }

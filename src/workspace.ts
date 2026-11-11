@@ -8,6 +8,7 @@ import { connectionHandle } from './util/handle.js';
 import { DefinitionKey, DefinitionType } from './model/definitions.js';
 import { isWritableName } from './providers/writeScope.js';
 import { DATABASE_PLATFORMS, type DatabasePlatform } from './db/open.js';
+import { oracleClientOptions } from './settings/settingsModel.js';
 
 export interface ConnectionConfig {
   name: string;
@@ -274,7 +275,8 @@ export class Workspace implements vscode.Disposable {
       // connect and is the identity saves are recorded as.
       ...(config.signon === 'twoTier' && config.peoplesoftOperatorId?.trim()
         ? { signonOperator: config.peoplesoftOperatorId.trim() } : {}),
-      thickModeLibDir: settings.get<string>('oracle.thickModeLibDir') || undefined,
+      ...(config.kind === 'oracle' ? { oracleClient: oracleClientOptions(settings.get<string>('oracle.clientMode'),
+        settings.get<string>('oracle.thickModeLibDir'), settings.get<string>('oracle.configDir')) } : {}),
       ...(config.kind === 'db2' ? { db2DriverPath: db2DriverPath(settings.get<string>('db2.driverPath'), this.db2DriverDir) } : {}),
       decoderMode: config.decoder ?? settings.get<'auto' | 'strict' | 'raw'>('peoplecode.decoder', 'auto')
     });

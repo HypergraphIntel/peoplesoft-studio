@@ -436,6 +436,11 @@ export function registerPeopleSoftTools(
                 config.kind,
               connected:
                 connected.has(id),
+              ...(() => {
+                // The client library in use (Oracle Thin, or Thick with its Oracle Client), once connected.
+                const driver = workspace.activeProviders.find(p => p.id === id && p.isConnected) as { clientDriver?: string } | undefined;
+                return driver?.clientDriver ? { driver: driver.clientDriver } : {};
+              })(),
               selected:
                 workspace.selectedConnectionId ===
                 id

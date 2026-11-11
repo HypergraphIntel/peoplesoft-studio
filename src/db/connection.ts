@@ -86,6 +86,8 @@ export interface DbPool {
    * PSDDLDEFPARMS, PSRECDDLPARM): 2 Oracle, 7 SQL Server, 4 DB2 LUW, 1 DB2 z/OS.
    */
   readonly ddlPlatformId: number;
+  /** The client library in use, for connection details (Oracle: node-oracledb Thin or Thick and its Oracle Client). */
+  readonly driver?: string;
   getConnection(): Promise<DbConnection>;
   close(drainSeconds?: number): Promise<void>;
 }

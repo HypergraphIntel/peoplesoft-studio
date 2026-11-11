@@ -9,14 +9,84 @@ import { ColumnInfo, DbBinds, DbCatalog, DbConnection, DbPool, DbResult, DbTypes
 
 export const DEFAULT_SCHEMA = 'SYSADM';
 
+/**
+ * How node-oracledb reaches Oracle. Thin is pure JavaScript. Thick loads Oracle Client libraries (Instant Client), which
+ * some databases require: Native Network Encryption or checksumming (sqlnet.ora), older password verifiers, databases
+ * before 12.1, or Oracle Net features Thin lacks. The mode is per process -- per VS Code window -- and once a connection
+ * has been opened in one mode the other cannot start until the window reloads (node-oracledb NJS-118 / NJS-090).
+ */
+export interface OracleClientOptions {
+  mode: 'thin' | 'thick';
+  /** Thick: the Instant Client directory; absent: the system library search path (Linux ldconfig / LD_LIBRARY_PATH, Windows PATH). */
+  libDir?: string;
+  /** Oracle Net configuration (tnsnames.ora, sqlnet.ora, wallets): Thick's configDir, Thin's per-connection configDir. */
+  configDir?: string;
+}
+
 export interface OracleOpenOptions {
   connectString: string;
   user: string;
   password: string;
-  /** Instant Client directory; absent means node-oracledb Thin mode. */
-  thickModeLibDir?: string;
+  /** Absent: Thin mode, no configuration directory. */
+  oracleClient?: OracleClientOptions;
   /** Configured PeopleTools schema; absent: PS.PSDBOWNER's owner ID for this database, else SYSADM. */
   schema?: string;
+}
+
+type OracleDb = typeof import('oracledb');
+
+/** A message the developer can act on, for a client start that failed. */
+export function thickModeFailure(err: unknown, client: OracleClientOptions, platform: NodeJS.Platform = process.platform): string {
+  const code = String((err as { code?: string })?.code ?? (reason(err).match(/^(NJS|DPI)-\d+/)?.[0] ?? ''));
+  const where = client.libDir ? `in ${client.libDir}` : 'on the system library search path';
+  if (code === 'NJS-118') {
+    return 'Thick mode cannot start: this window already opened an Oracle connection in Thin mode, and node-oracledb cannot switch ' +
+      'a running window. Reload the window (Developer: Reload Window), then connect again.';
+  }
+  if (code === 'NJS-090') {
+    return 'Thick mode already started in this window with a different Instant Client or configuration directory. ' +
+      'Reload the window (Developer: Reload Window) to use the new one.';
+  }
+  if ((code === 'DPI-1047' || code === 'NJS-045') && platform === 'linux' && client.libDir && /cannot open shared object file/.test(reason(err))) {
+    // node-oracledb found libclntsh in the directory, but Linux resolves its own libraries (libnnz ...) only from the
+    // search path the process started with (seen with Instant Client 23.26, 2026-11-11).
+    return `Thick mode cannot start: the Oracle Client in ${client.libDir} needs its directory on the library search path when VS Code starts. ` +
+      `Add it once with \`echo ${client.libDir} | sudo tee /etc/ld.so.conf.d/oracle-instantclient.conf && sudo ldconfig\`, ` +
+      `or start VS Code with LD_LIBRARY_PATH=${client.libDir}; then reload the window. (${reason(err)})`;
+  }
+  if (code === 'DPI-1047' || code === 'NJS-045') {
+    const hint = platform === 'linux'
+      ? ' On Linux, install the 64-bit Instant Client Basic or Basic Light package and libaio (libaio1 / libaio1t64), and give its directory here or add it to ldconfig before VS Code starts.'
+      : platform === 'win32'
+        ? ' On Windows, use the 64-bit Instant Client and the Visual Studio redistributable it names, and give its directory here.'
+        : platform === 'darwin' ? ' On macOS, give the Instant Client directory here.' : '';
+    return `Thick mode cannot start: no 64-bit Oracle Client libraries were found ${where}.${hint} (${reason(err)})`;
+  }
+  return `Could not start Oracle Thick mode ${where}: ${reason(err)}`;
+}
+
+/**
+ * Starts the client mode the options ask for, once per window. Thick calls initOracleClient, which node-oracledb allows
+ * again with the same arguments; Thin needs nothing. When Thin is asked for in a window already in Thick mode, Thick
+ * serves it (Thick reaches every database Thin does). Returns the mode in use.
+ */
+export function startOracleClient(oracledb: Pick<OracleDb, 'initOracleClient' | 'thin'>, client: OracleClientOptions | undefined): 'thin' | 'thick' {
+  if (client?.mode !== 'thick') return oracledb.thin ? 'thin' : 'thick';
+  const args = { ...(client.libDir ? { libDir: client.libDir } : {}), ...(client.configDir ? { configDir: client.configDir } : {}) };
+  try {
+    oracledb.initOracleClient(args);
+  } catch (err) {
+    throw new OpenError(thickModeFailure(err, client), err);
+  }
+  return 'thick';
+}
+
+/** The client in use, for connection details: node-oracledb's version and, in Thick mode, the Oracle Client's. */
+export function describeOracleClient(oracledb: Pick<OracleDb, 'versionString'> & { oracleClientVersionString?: string }, mode: 'thin' | 'thick'): string {
+  if (mode === 'thin') return `node-oracledb ${oracledb.versionString} Thin`;
+  let client = '';
+  try { client = oracledb.oracleClientVersionString ?? ''; } catch { /* not readable before Thick starts */ }
+  return `node-oracledb ${oracledb.versionString} Thick${client ? `, Oracle Client ${client}` : ''}`;
 }
 
 /**
@@ -80,13 +150,9 @@ export async function openOracle(options: OracleOpenOptions): Promise<DbPool> {
   oracledb.outFormat = oracledb.OUT_FORMAT_OBJECT;
   oracledb.fetchAsBuffer = [oracledb.BLOB];
 
-  if (options.thickModeLibDir) {
-    try {
-      oracledb.initOracleClient({ libDir: options.thickModeLibDir });
-    } catch (err) {
-      throw new OpenError(`Could not initialise the Oracle Instant Client at ${options.thickModeLibDir}.`, err);
-    }
-  }
+  const mode = startOracleClient(oracledb, options.oracleClient);
+  // Thin reads tnsnames.ora from a per-connection configDir; Thick took it in initOracleClient.
+  const net = mode === 'thin' && options.oracleClient?.configDir ? { configDir: options.oracleClient.configDir } : {};
 
   const configured = options.schema?.trim().toUpperCase();
   if (configured && !SCHEMA_NAME.test(configured)) throw new OpenError(`${options.schema} is not a valid schema name.`, undefined);
@@ -97,7 +163,7 @@ export async function openOracle(options: OracleOpenOptions): Promise<DbPool> {
   let schema: string;
   try {
     const probe = await oracledb.getConnection({
-      user: options.user, password: options.password, connectString: options.connectString
+      user: options.user, password: options.password, connectString: options.connectString, ...net
     });
     try {
       schema = configured || await detectSchema(probe) || DEFAULT_SCHEMA;
@@ -117,6 +183,7 @@ export async function openOracle(options: OracleOpenOptions): Promise<DbPool> {
       user: options.user,
       password: options.password,
       connectString: options.connectString,
+      ...net,
       poolMin: 0,
       poolMax: 4,
       poolTimeout: 120,
@@ -143,7 +210,7 @@ export async function openOracle(options: OracleOpenOptions): Promise<DbPool> {
       err);
   }
 
-  return new OraclePool(pool, schema, oracledb as unknown as DbTypes);
+  return new OraclePool(pool, schema, oracledb as unknown as DbTypes, describeOracleClient(oracledb, mode));
 }
 
 const ORACLE_CATALOG: DbCatalog = {
@@ -165,7 +232,7 @@ class OraclePool implements DbPool {
   readonly catalog = ORACLE_CATALOG;
   readonly ddlPlatformId = 2;
 
-  constructor(private readonly pool: Pool, readonly schema: string, readonly types: DbTypes) {}
+  constructor(private readonly pool: Pool, readonly schema: string, readonly types: DbTypes, readonly driver: string) {}
 
   async getConnection(): Promise<DbConnection> {
     return new OracleConnection(await this.pool.getConnection());

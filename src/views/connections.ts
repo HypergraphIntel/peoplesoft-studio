@@ -14,7 +14,8 @@ export class ConnectionsView implements vscode.TreeDataProvider<ConnectionConfig
 
   getTreeItem(element: ConnectionConfig): vscode.TreeItem {
     const id = providerId(element);
-    const connected = this.workspace.getProvider(id)?.isConnected ?? false;
+    const provider = this.workspace.getProvider(id), connected = provider?.isConnected ?? false;
+    const driver = connected ? (provider as { clientDriver?: string } | undefined)?.clientDriver : undefined;
     const item = new vscode.TreeItem(element.name, vscode.TreeItemCollapsibleState.None);
     item.description = element.kind === 'projectFile' ? element.path
       : element.signon === 'threeTier' ? `${element.appServerName || element.appServerMachine || 'app server'} · 3 Tier`
@@ -27,7 +28,7 @@ export class ConnectionsView implements vscode.TreeDataProvider<ConnectionConfig
       : element.signon === 'threeTier' ? `${PLATFORM_LABELS[element.kind]} app server, 3-tier sign-on as ${element.peoplesoftOperatorId ?? '?'} (transport pending)`
       : element.signon === 'twoTier' ? `${PLATFORM_LABELS[element.kind]}, 2-tier sign-on as ${element.peoplesoftOperatorId ?? '?'}`
       : PLATFORM_LABELS[element.kind];
-    item.tooltip = `${connected ? `Connected to ${element.name}` : 'Not connected'} (${platform})`;
+    item.tooltip = `${connected ? `Connected to ${element.name}` : 'Not connected'} (${platform})${driver ? `\n${driver}` : ''}`;
     if (!connected) {
       item.command = { command: 'psft.connect', title: 'Connect', arguments: [element] };
     }

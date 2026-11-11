@@ -32,7 +32,9 @@ version 1.0.
 
 Owner goal: resolve every open E-task below (and the US-MCP intake) in one
 cycle, then release 1.0.1 (package version already 1.0.1; CHANGELOG notes are
-written as each fix lands). Order:
+written as each fix lands). **1.0.1 was cut on November 11, 2026** with the
+items marked fixed below ([release notes](releases/1.0.1.md)); the rest carry
+on to the next patch release. Order:
 
 1. **E22** — a second record edit in one set silently dropped the first. *Fixed in source.*
 2. **Length checks before Oracle** — labels over 60 (E27, E40, E46, E55, E69, E78) and record defaults over 18 (E48). *Fixed in source.*

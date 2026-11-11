@@ -16,8 +16,8 @@ export interface OpenOptions {
   connectString: string;
   user: string;
   password: string;
-  /** Oracle only: an Instant Client directory (Thick mode). */
-  thickModeLibDir?: string;
+  /** Oracle only: Thin or Thick mode and their directories (absent: Thin). */
+  oracleClient?: import('./oracle.js').OracleClientOptions;
   /** DB2 only: a directory with node_modules/ibm_db (absent: resolved normally). */
   db2DriverPath?: string;
   schema?: string;

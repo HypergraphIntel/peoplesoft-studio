@@ -37,3 +37,6 @@ dist-test/
 # Lab projects built through the MCP -- local only.
 /docs/ess-*/
 /docs/dlp/
+
+# Local query/run output (may hold site data).
+*.out
