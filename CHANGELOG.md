@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **PeopleTools 8.63 compiler profile (PT863).** On an 8.63 database
+  Settings showed "No compiler profile", and Studio refused to validate,
+  format or save PeopleCode. 8.63 now selects PT863. Before adding it, Studio's
+  encoder was checked against the 963 programs that the lab's 8.63.05
+  upgrade compiled: 927 match byte for byte, with the same PSPCMNAME rows,
+  and none of the 36 misses depends on the release. PT863 models the same
+  behavior as 8.61 and 8.62; see
+  [Compiler profiles](docs/COMPILER_PROFILES.md#pt863-evidence-2026-11-24).
+
 ## 1.0.1 — November 11, 2026
 
 Reliability fixes for the MCP and Change Review, from the open issue list

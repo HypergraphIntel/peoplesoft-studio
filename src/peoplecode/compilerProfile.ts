@@ -18,16 +18,24 @@ import type { ApplicationClassTypeMetadataProvider } from './applicationClassTyp
  *   typed against (HCDEV's, HRDMO's, a test's). Supplied per profile
  *   instance, never global; source-visible declarations still win.
  *
- * PT861 and PT862 currently share the same modeled syntax, byte-layout and
- * reference-allocation behavior. The first-class distinction supplies
+ * PT861, PT862 and PT863 currently share the same modeled syntax, byte-layout
+ * and reference-allocation behavior. The first-class distinction supplies
  * release context (`#If #ToolsRel`) and the correct metadata universe;
  * future controlled evidence may add explicit profile deltas. Every 8.62
  * finding so far was release-neutral: H2 (an end-of-body close bug), 28943
  * (parser), 4601 / 4602 / 18249 / 18256 (release context), 23497
  * (metadata universe).
+ *
+ * PT863 (2026-11-24): the lab's 8.63.05 upgrade recompiled 963 programs;
+ * 927 encode byte- and PSPCMNAME-exact under PT863 with the lab's metadata,
+ * with identical results under PT862, and every header matches. The 36
+ * misses are encoder gaps the 8.61 corpus shares (`%metadata:` imports and
+ * declarations, (create X()).Method(), JsonBuilder / JavaObject /
+ * ProcessRequest parameter types, FIELD / PACKAGE reference rows), not
+ * release deltas (docs/COMPILER_PROFILES.md).
  */
 
-export type CompilerProfileId = 'PT861' | 'PT862';
+export type CompilerProfileId = 'PT861' | 'PT862' | 'PT863';
 
 /*
  * Behavior deltas, by family. Each list holds the evidence-backed ways a
@@ -93,16 +101,23 @@ export function createPt862CompilerProfile(options: CompilerProfileOptions = {})
   return createProfile('PT862', '8.62', options);
 }
 
+/** PeopleTools 8.63 (the home lab after its 2026-11-22 upgrade, 8.63.05). Same modeled behavior as PT862. */
+export function createPt863CompilerProfile(options: CompilerProfileOptions = {}): CompilerProfile {
+  return createProfile('PT863', '8.63', options);
+}
+
 /** The profile factories, by id: the one extension point for a future release. */
 export const COMPILER_PROFILES: Readonly<Record<CompilerProfileId, (options?: CompilerProfileOptions) => CompilerProfile>> = Object.freeze({
   PT861: createPt861CompilerProfile,
-  PT862: createPt862CompilerProfile
+  PT862: createPt862CompilerProfile,
+  PT863: createPt863CompilerProfile
 });
 
 /* Release family (exact PSSTATUS.TOOLSREL) -> profile id. Explicit: an unlisted release has no profile. */
 const PROFILE_BY_TOOLS_RELEASE: Readonly<Record<string, CompilerProfileId>> = Object.freeze({
   '8.61': 'PT861',
-  '8.62': 'PT862'
+  '8.62': 'PT862',
+  '8.63': 'PT863'
 });
 
 export class UnsupportedCompilerProfileError extends Error {}

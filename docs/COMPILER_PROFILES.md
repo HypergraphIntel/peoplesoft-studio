@@ -7,8 +7,8 @@ This was a refactor only. No modeled behavior changed:
 - the HCDEV corpus (PT861) is byte-for-byte unchanged;
 - the 8.62.09 lab comparison (PT862) is byte-for-byte unchanged.
 
-> PT861 and PT862 currently share the same modeled syntax, byte-layout and
-> reference-allocation behavior. The first-class distinction currently
+> PT861, PT862 and PT863 currently share the same modeled syntax, byte-layout
+> and reference-allocation behavior. The first-class distinction currently
 > supplies release context and the correct metadata universe; future
 > controlled evidence may add explicit profile deltas.
 
@@ -26,8 +26,8 @@ This was a refactor only. No modeled behavior changed:
 
 ```ts
 interface CompilerProfile {
-  id: 'PT861' | 'PT862';
-  toolsRelease: string;            // '8.61' | '8.62'
+  id: 'PT861' | 'PT862' | 'PT863';
+  toolsRelease: string;            // '8.61' | '8.62' | '8.63'
   patchLevel?: number;
   applicationClassTypeMetadata?: ApplicationClassTypeMetadataProvider;
   syntax: { deltas: CompilerSyntaxDelta[] };                       // [] today
@@ -38,7 +38,7 @@ interface CompilerProfile {
 
 **Construction.** Profiles are built only through the factories:
 `createPt861CompilerProfile(options)`, `createPt862CompilerProfile(options)`,
-or `COMPILER_PROFILES[id](options)`.
+`createPt863CompilerProfile(options)`, or `COMPILER_PROFILES[id](options)`.
 - `options` carries the patch level and the metadata universe for that
   instance.
 - Profiles are frozen.
@@ -48,7 +48,7 @@ or `COMPILER_PROFILES[id](options)`.
 
 **Selection by release.** `compilerProfileIdForToolsRelease` /
 `compilerProfileForToolsRelease` read an explicit table (`8.61` -> PT861,
-`8.62` -> PT862).
+`8.62` -> PT862, `8.63` -> PT863).
 - Any other value, including a patch-qualified `8.62.09`, throws
   `UnsupportedCompilerProfileError`.
 - There is no string-order guessing and no fallback to PT861.
@@ -94,7 +94,45 @@ profile: PT861 })` are identical.
 | Lab tools (`PSLAB_RELEASE`) | `compilerProfileForLabRelease(releaseProfile(PSLAB_RELEASE))`: `8.61.15` -> PT861, `8.62.09` -> PT862. The configured id must match the config's own TOOLSREL. |
 | `compare-delivered.ts` | `compilerProfileForToolsRelease(lab TOOLSREL, { patchLevel, applicationClassTypeMetadata: <the lab's 12,270 classes> })` |
 
-## Adding a release (e.g. PT863)
+## PT863 evidence (2026-11-24)
+
+The home lab (HRDMO) was upgraded from 8.62.09 to 8.63.05 on 2026-11-22.
+The upgrade recompiled 963 programs; the other ~118,500 still hold the
+8.62.09 bulk compile of 2026-05-08. There is no 8.63 App Designer client
+in the lab, so the evidence is the database's own 8.63 output, compared
+read-only by `tools/corpus/controlled-compile/compare-lab-native.ts`
+(report: `results/8.63.05/native-comparison.json`).
+
+| Population | Profile | Exact (bytes + PSPCMNAME) |
+|---|---|---|
+| 963 programs compiled by 8.63.05 | PT863 | 927 (96.3%) |
+| the same 963 | PT862 | 927 (the same set) |
+| 3,000-program sample of the 8.62.09 compile | PT862 | 2,969 (99.0%) |
+
+- Every exact program's 37-byte header matches; the header differences
+  in the misses are only the length fields of a body that differs.
+- No result depends on the release: PT862 and PT863 give the identical
+  exact set (4 programs use `#ToolsRel`; their verdicts do not change).
+- None of the 36 misses is in the HCDEV snapshot. Their families all
+  occur in the 8.61 corpus and are encoder gaps, not release deltas:
+  - 10 encode errors: `(create X()).Method()`; `ComponentLife
+    %metadata:...` declarations; `JsonBuilder` / `JavaObject` /
+    `ProcessRequest` as Function parameter or return types; and
+    expression parse gaps in Application Class headers and assignments;
+  - missing `PACKAGE.*` rows for `import %metadata:...` (e.g.
+    `%metadata:Webhook:Ptibwebhdrprp` stores `PACKAGE.PTIBWEBHDRPRP`)
+    and missing `FIELD.*` rows;
+  - PSPCMNAME rows in a different order (5);
+  - a comment inside a property type, and a blank line before a Function,
+    dropped;
+  - byte-only differences with identical decoded text (about 8).
+
+So PT863 was added with no deltas. The lab-release table
+(`PEOPLETOOLS_RELEASES`) has no `8.63.05` entry yet: it needs the 8.63
+client's hashes, and the SMOKE / H / G controlled fixtures have not been
+compiled on 8.63.
+
+## Adding a release (e.g. PT864)
 
 1. Run the controlled comparison on that release:
    - the SMOKE / H / G fixtures;

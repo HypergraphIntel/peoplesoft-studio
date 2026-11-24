@@ -157,5 +157,5 @@ test('a capture is compared under its own release profile; unknown or mismatched
   const results = JSON.parse(readFileSync(resolve(__dirname, '../../tools/corpus/controlled-compile/results/8.62.09/SMOKE.json'), 'utf8')) as ControlledCompileResults;
   assert.equal(compareControlledCompile(results, pack, { expectedProfileId: 'PT862' }).definitions.length, results.definitions.length);
   assert.throws(() => compareControlledCompile(results, pack, { expectedProfileId: 'PT861' }), /not PT861/);
-  assert.throws(() => compareControlledCompile({ ...results, lab: { ...results.lab, toolsRelease: '8.63' } }, pack), /No compiler profile for PeopleTools release "8.63"/);
+  assert.throws(() => compareControlledCompile({ ...results, lab: { ...results.lab, toolsRelease: '8.64' } }, pack), /No compiler profile for PeopleTools release "8.64"/);
 });

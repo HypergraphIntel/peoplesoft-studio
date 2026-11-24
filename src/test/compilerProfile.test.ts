@@ -30,13 +30,14 @@ test('PT861 and PT862: release families with no behavior deltas', () => {
     assert.deepEqual([profile.syntax.deltas, profile.byteLayout.deltas, profile.referenceAllocation.deltas], [[], [], []]);
     assert.ok(Object.isFrozen(profile));
   }
-  assert.deepEqual(Object.keys(COMPILER_PROFILES), ['PT861', 'PT862']);
+  assert.deepEqual(Object.keys(COMPILER_PROFILES), ['PT861', 'PT862', 'PT863']);
 });
 
 test('profiles are selected by an explicit release table; anything else fails', () => {
   assert.equal(compilerProfileIdForToolsRelease('8.61'), 'PT861');
   assert.equal(compilerProfileIdForToolsRelease(' 8.62 '), 'PT862');
-  for (const release of ['8.60', '8.63', '8.6', '8.61.15', '8.62.09', '9.0', '']) {
+  assert.equal(compilerProfileIdForToolsRelease('8.63'), 'PT863');
+  for (const release of ['8.60', '8.64', '8.6', '8.61.15', '8.62.09', '8.63.05', '9.0', '']) {
     assert.throws(() => compilerProfileIdForToolsRelease(release), UnsupportedCompilerProfileError, release);
   }
   assert.equal(compilerProfileForToolsRelease('8.62').id, 'PT862');
