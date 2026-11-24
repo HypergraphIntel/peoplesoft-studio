@@ -1,5 +1,44 @@
 # Corpus Calibration Progress
 
+## PT863 lab-native track (2026-11-24) -- COMPLETE, uncommitted
+
+Datasource: HRDMO lab 8.63.05 (NOT the HCDEV snapshot), read-only. The 963
+programs the 8.63.05 upgrade recompiled (2026-11-22): **963 / 963 EXACT**
+(927 at the PT863 profile commit fd4b8c6b). 8.62.09 control sample (3,000
+of the 2026-05-08 compile, PT862): 2,969 -> 2,971, 0 lost. HCDEV: EXACT
+30,134, regressed 0, protected 430/430. tsc clean; npm test 2,328 pass.
+Report: tools/corpus/controlled-compile/results/8.63.05/native-comparison.json.
+Offline replay: `npx tsx tools/corpus/controlled-compile/lab-fixture.ts
+replay --fixture tools/corpus/reports/pt863.fixture.json [--key K]
+[--verbose] [--tokens T]` (fixture gitignored; recapture with `capture`).
+Tests: src/test/encoderPt863.test.ts (12). Docs: COMPILER_PROFILES.md
+"PT863 evidence".
+
+Rules (encoder.ts unless noted; evidence = the lab program named in each
+comment; HCDEV has no instance of any of these variants):
+  1. `Local boolean &x = (...)` + postfix chain is an ordinary expression.
+  2. An operand may open with `/* */` (by placement) or `<* *>` (0x55).
+  3. `<* *>` between an operand and its continuation stays in place.
+  4. Function ids ProcessRequest 0x8000b, JavaObject 0x8001b, JsonBuilder
+     0x80061 (+ decoder 11 / 27 / 97); registry: function-parameter
+     (JavaObject, ProcessRequest), function-returns (JsonBuilder).
+  5. Built-ins PTDirectTransferObject, CQChunkedProcessor, PPMClass.
+  6. Named `%metadata` import does not stand in for the header row.
+  7. `ComponentLife %metadata:...` parses; a built-in ComponentLife
+     allocates its row ('component' context).
+  8. applicationClassProgram.ts: IBConnectorInfo 45, Chart 31, CQRuntime
+     68, JsonParser 102.
+  9. `property|instance array of <Builtin>` registers the array.
+  10. Comments between a property type and name stay in place (0x4E).
+  11. Function-directory scan masks REM comments.
+  12. A REM followed by any declaration keeps the Local run open.
+  13. A same-program Function `Returns <Class>` result is a receiver.
+  14. `(&rs(1)).REC.FIELD` keeps the selector's RECORD expectation.
+  15. App Class Declare Function rows reopen per directive session.
+  16. Per-field level-0 selector RECORD key: ordinary programs only.
+  17. Diagnostics: UnsupportedPeopleCodeError.fragmentSource.
+- Next action: none on this track; commit when the user asks.
+
 ## Cycle 184 (2026-10-06) -- compiler profiles (refactor, no semantic change)
 
 - CompilerProfile (src/peoplecode/compilerProfile.ts): PT861 (8.61),

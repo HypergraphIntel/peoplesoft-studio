@@ -232,6 +232,9 @@
       button(busy ? 'Testing…' : 'Test Connection', () => post({ type: 'testConnection', connectionId: c.id }),
         { disabled: busy, focusKey: `test:${c.id}`, title: 'Connect a temporary session and read PSSTATUS; the live connection is not affected.' }),
       button('Edit', () => toggleEdit(c.id), { secondary: true, focusKey: `edit:${c.id}`, disabled: editing.includes(c.id) }),
+      // A database connection's password lives in VS Code's secret store; this asks for the new one and tests it first.
+      c.kind === 'projectFile' ? null : button('Update Password', () => post({ type: 'updatePassword', connectionId: c.id }),
+        { secondary: true, focusKey: `password:${c.id}`, title: 'Enter the new database password. It is tested before it replaces the stored one.' }),
       button('Remove…', () => post({ type: 'removeConnection', connectionId: c.id }), { secondary: true, focusKey: `remove:${c.id}` })
     ]);
 

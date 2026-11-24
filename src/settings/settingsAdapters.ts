@@ -37,6 +37,7 @@ export function connectionPort(workspace: Workspace): ConnectionPort {
     // The existing commands, so the Connections view and this panel behave alike.
     add: async () => { await vscode.commands.executeCommand('psft.addConnection'); },
     remove: async (config) => { await vscode.commands.executeCommand('psft.removeConnection', config); },
+    updatePassword: async (config) => { await vscode.commands.executeCommand('psft.updatePassword', config); },
     test: (config) => workspace.testConnection(config),
     verifyOperator: (config, operatorId) => workspace.verifyOperator(config, operatorId),
     readEnvironment: (id) => {

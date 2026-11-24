@@ -120,6 +120,8 @@ export function harnessOwner(def: SnapshotDefinition) {
 export interface HarnessEncode {
   artifacts?: ReturnType<typeof encodeProgramArtifacts>;
   error?: string;
+  /** The encoder fragment the error's offset is relative to (diagnostics). */
+  fragmentSource?: string;
   fallback: boolean;
 }
 
@@ -135,7 +137,7 @@ export function encodeAsHarness(ctx: HarnessContext, def: SnapshotDefinition, ex
     } as any);
     return { artifacts, fallback };
   } catch (error: any) {
-    return { error: String(error?.message ?? error), fallback };
+    return { error: String(error?.message ?? error), ...(typeof error?.fragmentSource === 'string' ? { fragmentSource: error.fragmentSource } : {}), fallback };
   }
 }
 

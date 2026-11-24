@@ -909,7 +909,14 @@ const BUILTIN_FUNCTION_TYPE_IDS: ReadonlyMap<string, number> = new Map([
   ['documentkey', 0x80040],
   ['primitive', 0x80041],
   ['compound', 0x80042],
-  ['compositequery', 0x80048]
+  ['compositequery', 0x80048],
+  // PT863 (lab 8.63.05 Function trailers, one program each):
+  // PTARCHIVE_DP.SCHEDULE Step01 `&rqst As ProcessRequest` -> c008000b;
+  // PT_FUNCLIB_SAML.PT_SAMLAUTH `&attrs As JavaObject` -> c008001b;
+  // PTS_INTSRCH_WK.PTS_KEYWORDS four `Returns JsonBuilder` -> 80061.
+  ['processrequest', 0x8000b],
+  ['javaobject', 0x8001b],
+  ['jsonbuilder', 0x80061]
 ]);
 
 /*
@@ -1345,16 +1352,16 @@ const BUILTIN_TYPE_REGISTRY: ReadonlyMap<string, BuiltinTypeSemantics> = new Map
       ['Grid', ['local', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
       ['Message', ['local', 'local-array-element', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
       ['GridColumn', ['local']],
-      ['JavaObject', ['local', 'application-class-parameter', 'function-returns']],
+      ['JavaObject', ['local', 'application-class-parameter', 'function-parameter', 'function-returns']],
       ['TransformData', ['local']],
       ['Chart', ['local', 'global', 'component']],
-      ['ProcessRequest', ['local', 'component', 'application-class-parameter']],
+      ['ProcessRequest', ['local', 'component', 'application-class-parameter', 'function-parameter']],
       // Cycle 103 (see the comment below the table).
       ['Page', ['local']],
       ['Exception', ['local', 'function-parameter']],
       ['JsonObject', ['local', 'application-class-parameter']],
       ['JsonArray', ['local', 'application-class-parameter']],
-      ['JsonBuilder', ['local', 'application-class-parameter']],
+      ['JsonBuilder', ['local', 'application-class-parameter', 'function-returns']],
       ['JsonParser', ['local']],
       ['CubeCollection', ['local', 'global', 'component', 'function-parameter', 'function-returns']],
       ['AnalyticInstance', ['local', 'component']],
@@ -1379,7 +1386,11 @@ const BUILTIN_TYPE_REGISTRY: ReadonlyMap<string, BuiltinTypeSemantics> = new Map
       ['JsonNode', ['local']],
       ['Response', ['local']],
       ['CQRuntime', ['local']],
-      ['Crypt', ['local']]
+      ['Crypt', ['local']],
+      // PT863 (lab 8.63.05, see the comment below the table).
+      ['PTDirectTransferObject', ['local']],
+      ['CQChunkedProcessor', ['local']],
+      ['PPMClass', ['local']]
     ] as const
   ).map(([name, contexts]) => [
     name.toLowerCase(),
@@ -1420,6 +1431,18 @@ const BUILTIN_TYPE_REGISTRY: ReadonlyMap<string, BuiltinTypeSemantics> = new Map
  * a short `Collection` under `import PSXP_XMLGEN:*` (29870) still stores
  * the self-rooted built-in row. Application Class header declarations of
  * these types already allocate through the declaration prepass.
+ *
+ * PT863 (lab 8.63.05): PTDirectTransferObject, CQChunkedProcessor and
+ * PPMClass (PT_SEARCH:SESIMPL:Query `Local PPMClass &PTSFPMU;`) are
+ * built-ins; a `Local` of one stores its self-rooted PACKAGE row
+ * (PTS_INTSRCH_WK.PTS_KEYWORDS, PT_NL_SRCH, PTSF_ES:ESIMPL:IngestService,
+ * PT_CONQRS:CONQRSMGR, PTSF_GENFEED Step04; no lab Application Class has
+ * either name, and HCDEV declares neither).
+ *
+ * PT863 (lab 8.63.05): a Function parameter of JavaObject (PT_FUNCLIB_SAML.
+ * PT_SAMLAUTH, 2/2) or ProcessRequest (PTARCHIVE_DP.SCHEDULE Step01, 1/1)
+ * and a Function `Returns JsonBuilder` (PTS_INTSRCH_WK.PTS_KEYWORDS, 4/4)
+ * store their PACKAGE row at the Function header.
  *
  * Exception as an Application Class METHOD parameter also stores a row
  * (10/10), but it is deliberately not added: the Application Class
@@ -2077,7 +2100,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
       space();
 
-      if (/^boolean$/i.test(type ?? '') && source[pos] === '(') {
+      /*
+       * PT863: a group continued by a postfix chain is an ordinary
+       * expression, not a parenthesized condition (PSPTMFADVCWRK.
+       * PTMFA_RENAME.FieldChange, lab 8.63.05: `Local boolean &bok =
+       * (create PT_SECURITY:MFA:MFA_UTIL()).RenameDevice(...);`).
+       */
+      if (/^boolean$/i.test(type ?? '') && source[pos] === '(' && !groupedExpressionStatementFollows(pos)) {
         parenthesized(booleanExpression, false);
       } else {
         expression();
@@ -2553,8 +2582,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     chunks.push(fixed('ComponentLife'));
 
     space();
+    // PT863: the class path may be rooted at `%metadata`, as a Local's may
+    // (PTPG_NUI_VWR.Activate, lab 8.63.05: `ComponentLife
+    // %metadata:ComponentDefn:ComponentDefn &compdefn;`).
     const appClassType =
-      /^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))
+      /^%?[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))
         ? applicationClassPath()
         : undefined;
     const declaredType =
@@ -2564,6 +2596,14 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     chunks.push(appClassType?.bytes ?? typeName());
     if (/^array$/i.test(declaredType ?? '')) {
       arrayElementTypes();
+    } else if (declaredType !== undefined) {
+      /*
+       * PT863: a built-in ComponentLife allocates its PACKAGE row as a
+       * Component one does (PTS_MNG_WL_WRK.PTS_GROUP_ACTIONS /
+       * PTS_ITEM_ACTIONS, lab 8.63.05: `ComponentLife Rowset &rsGroup;`
+       * stores PACKAGE.ROWSET at the declaration, 2 / 2; HCDEV has none).
+       */
+      allocateBuiltinTypePackageReferenceIfSupported(declaredType, 'component');
     }
     const tracksClass = unitScopedClassRows && appClassType !== undefined;
     if (tracksClass) {
@@ -3025,6 +3065,21 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   // Cycle 109: a fragment of an Application Class program (its program-wide rows, `ApplicationClassProgramRows`).
   const applicationClassBody = context?.applicationClassProgramRows !== undefined;
   const unitScopedClassRows = ordinaryProgram;
+  /*
+   * PT863: this program's own Functions that return an Application Class
+   * (`Function GetUtilsObj() Returns PTS_CFGSRCH_FL:Utilities`), by
+   * lowercased name. A method call on such a call's result is a method on
+   * that class (see the seed in primary()).
+   */
+  const programFunctionReturnClasses = new Map<string, { packagePath: string[]; className: string }>(
+    unitScopedClassRows
+      ? [...maskCommentsAndStringLiteralsForFunctionScan(source).matchAll(/(?:^|\n)[ \t]*Function\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\([^)]*\))?\s*Returns\s+([A-Za-z_][A-Za-z0-9_]*(?:\s*:\s*[A-Za-z_][A-Za-z0-9_]*)+)/gi)]
+          .map(match => {
+            const path = match[2].split(':').map(part => part.trim());
+            return [match[1].toLowerCase(), { packagePath: path.slice(0, -1), className: path.at(-1)! }] as const;
+          })
+      : []
+  );
   /*
    * Cycle 122: an ordinary program's Application Class row is identified by
    * its LEAF class name within an allocation unit -- the same identity the
@@ -5576,7 +5631,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   // corpus; its keyword meaning applies in DLL parameter declarations.
   reservedCallNames.delete('value');
   const fail = (message: string): never => {
-    throw new UnsupportedPeopleCodeError(pos, message);
+    const error = new UnsupportedPeopleCodeError(pos, message);
+    // Diagnostics only: the offset is relative to this fragment's source.
+    Object.defineProperty(error, 'fragmentSource', { value: source, enumerable: false });
+    throw error;
   };
   /*
    * Cycle 115: a conditional-compilation directive region is masked as
@@ -5586,6 +5644,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    */
   const conditionalRegions = context?.conditionalDirectiveRegions;
   const conditionalBase = context?.conditionalDirectiveBase ?? 0;
+  // PT863: the latest row per Declare Function target and where it opened.
+  const declareFunctionSites = new Map<string, { reference: PeopleCodeReference; site: number }>();
   const emittedConditionalRegions = new Set<number>();
   // Cycle 122: set when a directive's records are written; read by the top-level unit logic
   let directiveSinceTopLevelStatement = false;
@@ -6136,6 +6196,27 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   // `cycle154-expression-comment-census.ts`: 0x4E after an operand before
   // `+ < <> = ,` occurs only in programs that did not encode.
   const commentsBeforeContinuation = (continuation: RegExp): void => {
+    /*
+     * PT863: a `<* *>` disabled-code comment between an operand and its
+     * continuation is its 0x55 token in place (PTSF_INSIGHTS:
+     * ConsolidateFilters, lab 8.63.05: `"key:"\n <*Key *>\n , "..."` stores
+     * `16 "key:" 55 <*Key *> 03 ,`).
+     */
+    if (source.startsWith('<*', pos)) {
+      let scan = pos;
+      while (source.startsWith('<*', scan) || source.startsWith('/*', scan)) {
+        const end = source.startsWith('<*', scan) ? disabledCommentEnd(source, scan) : source.indexOf('*/', scan + 2) + 2;
+        if (end < 2) return;
+        scan = end;
+        while (/\s/.test(source[scan] ?? '')) scan++;
+      }
+      if (!continuation.test(source.slice(scan))) return;
+      while (source.startsWith('<*', pos) || source.startsWith('/*', pos)) {
+        chunks.push(source.startsWith('<*', pos) ? disabledCodeComment() : inlineBlockComment());
+        space();
+      }
+      return;
+    }
     if (!source.startsWith('/*', pos)) return;
     const rest = source.slice(pos).replace(/^(?:\/\*[\s\S]*?\*\/\s*)+/, '');
     if (!continuation.test(rest)) return;
@@ -6157,6 +6238,22 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   };
 
   const expression = () => {
+    /*
+     * PT863: a block comment may open an operand, stored in place by its
+     * placement (PTNUI_LAND_WRK.FUNCLIB_01.FieldFormula, lab 8.63.05:
+     * `.Label = /*&label*\/MsgGetText(95, 10247, "Add");` stores
+     * `06 = 4E /*&label*\/ 0A MsgGetText`). Before this, an operand
+     * starting with a comment failed to encode. A `<* *>` disabled-code
+     * comment there is its 0x55 token in place (PTSF_INSIGHTS:
+     * ConsolidateFilters / FilterValues: `CreateArray("...",\n <*Key *>\n
+     * "...", ...)` stores `03 , 55 <*Key *> 16 "..."`, two in a row as two
+     * tokens).
+     */
+    space();
+    while (source.startsWith('/*', pos) || source.startsWith('<*', pos)) {
+      chunks.push(source.startsWith('<*', pos) ? disabledCodeComment() : blockCommentByPlacement());
+      space();
+    }
     castPrimary();
 
     while (true) {
@@ -6894,6 +6991,27 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         same(item.fieldName, fieldName)
     );
 
+    /*
+     * PT863: in an Application Class program a top-level directive ends the
+     * reference session (Cycle 138), Declare Function rows included: a
+     * target declared again after a directive opens a new row.
+     * PTEM_CONFIG:PTSFEnableRTI (lab 8.63.05) declares PTSF_CFGRTI_WK.
+     * PTSF_IMPORT before `#If`, inside it and after `#End-If`, and stores
+     * three rows. HCDEV has no target repeated across a directive.
+     */
+    const declareTargetKey = `${recordName}.${fieldName}`.toLowerCase();
+    if (
+      !ordinaryProgram &&
+      reference !== undefined &&
+      reference !== ownerReference &&
+      conditionalRegionBetween(declareFunctionSites.get(declareTargetKey)?.site ?? pos, pos)
+    ) {
+      reference = undefined;
+    }
+    if (!ordinaryProgram && reference !== undefined && declareFunctionSites.has(declareTargetKey)) {
+      reference = declareFunctionSites.get(declareTargetKey)!.reference;
+    }
+
     if (reference === undefined) {
       reference = nextReference({
         kind: 'declare-function',
@@ -6901,6 +7019,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         fieldName,
         eventName
       });
+      declareFunctionSites.set(declareTargetKey, { reference, site: pos });
     }
 
     chunks.push(referenceOperand(reference));
@@ -11797,6 +11916,40 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       activeApplicationClassReceiver = parenthesizedChainSeed.receiver;
       pendingArrayElement = parenthesizedChainSeed.pendingArrayElement;
       chainSemantics = parenthesizedChainSeed.chainSemantics;
+      /*
+       * PT863: a group ending in a Rowset selector keeps the selector's
+       * RECORD expectation when the next member is a record (`.REC.`), not
+       * a call: PTSF_SCHEDULE.PTSF_SBO_NAME.FieldFormula (lab 8.63.05)
+       * `(&rs(1)).PTSF_SCHED_STAT.RUN_CNTL_ID.Value` stores the RECORD /
+       * FIELD 0x4A rows `&rs(1).PTSF_SCHED_STAT.RUN_CNTL_ID` does. HCDEV
+       * has no such group.
+       */
+      if (
+        parenthesizedChainSeed.chainSemantics.provenance === 'selector' &&
+        /^\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_]/.test(source.slice(pos))
+      ) {
+        expectedReferenceMember = 'record';
+        selectedByDirectRowsetPostfix = true;
+      }
+    }
+    /*
+     * PT863: `GetUtilsObj().GetRecFieldLabelId(...)`, where this program
+     * defines `Function GetUtilsObj() Returns PTS_CFGSRCH_FL:Utilities`, is
+     * a method call on that class: PTS_CSRCH_WRK.PTS_SRCH_BTN.FieldFormula
+     * (lab 8.63.05) stores PACKAGE.UTILITIES for it. HCDEV has no such call.
+     */
+    if (activeApplicationClassReceiver === undefined && baseVariableName === undefined && source[pos] === '.') {
+      // The base is exactly one call `Name(...)` (no postfix step yet).
+      const calledFunction = /^([A-Za-z_][A-Za-z0-9_]*)\s*\([\s\S]*\)\s*$/.exec(source.slice(primaryStart, pos))?.[1];
+      const returned = calledFunction === undefined ? undefined : programFunctionReturnClasses.get(calledFunction.toLowerCase());
+      if (returned !== undefined) {
+        activeApplicationClassReceiver = {
+          packagePath: returned.packagePath,
+          className: returned.className,
+          reuseRuntimeCreateForMethods: false,
+          externalMetadataExempt: true
+        };
+      }
     }
 
     // Calibrated postfix forms may be chained arbitrarily:
@@ -12046,7 +12199,15 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
               ? item.kind === 'field' && same(item.fieldName, member)
               : false
         );
+        /*
+         * PT863: ordinary programs only. In an Application Class method the
+         * selector's RECORD row is one row whatever field follows
+         * (PTNC_UTILITY:ConfigureNC, lab 8.63.05: `&rs1 = GetLevel0()(1)
+         * .GetRowset(Scroll.PTPN_CAT_REG)`, then `&rs1(&curno).PTPN_CAT_REG.
+         * <field>` with seven fields stores one RECORD.PTPN_CAT_REG row).
+         */
         const directLevel0RecordField =
+          ordinaryProgram &&
           expectedReferenceMember === 'record' &&
           selectedByDirectRowsetPostfix &&
           controlDepth === 0 &&
@@ -13831,9 +13992,14 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * Cycle 87 end-of-branch reset is left unchanged.)
        */
       const remEndForRun = source.indexOf(';', pos);
-      const localFollowsRem = /^Local\b/i.test(
-        source.slice(nextSignificantAfterTrivia(remEndForRun < 0 ? source.length : remEndForRun + 1))
-      );
+      /*
+       * PT863: nor when it is another declaration (FUNCLIB_PORTAL.
+       * PT_WSRP_FUNCS, lab 8.63.05: post-Function `Local ...; <blank> REM
+       * WSRPv2Start; Component ...; Component ...; <blank> REM WSRPv2End;
+       * <blank> Function` stores no close at the first REM and one 2D 4F at
+       * the second).
+       */
+      const localFollowsRem = nextRealItemContinuesDeclarationSection(remEndForRun < 0 ? source.length : remEndForRun + 1);
       if (
         leadingLocalRun &&
         sawLeadingLocalDeclaration &&
@@ -15950,8 +16116,16 @@ function encodeApplicationClassProgramV2(
     typeName.replace(/^(?:array\s+of\s+)+/i, '').trim().split(':').at(-1) ?? '';
   const importTargets = [...source.slice(0, parsed.unitStart).matchAll(/\bimport\s+([^;]+);/gi)]
     .map(match => match[1].trim());
+  /*
+   * PT863: a named `%metadata` import allocates no row (Cycle 106), so it
+   * does not stand in for its class's header row: WebHookHdrProp /
+   * WebHookParm / WebHookTrans (lab 8.63.05, `import
+   * %metadata:Webhook:Ptibwebhdrprp;` then `As` / `instance` of it) store
+   * PACKAGE.PTIBWEBHDRPRP in header order.
+   */
   const importedClassLeaves = new Set(
     importTargets
+      .filter(target => !/^%metadata\s*:/i.test(target))
       .map(target => target.split(':').at(-1)?.trim() ?? '')
       .filter(leaf => leaf !== '' && leaf !== '*')
       .map(leaf => leaf.toLowerCase())
@@ -16186,6 +16360,12 @@ function encodeApplicationClassProgramV2(
     const declared = declaredApplicationClass(type);
     // Cycle 120: a built-in object type (`instance Record &m_rcXLATITEM;`)
     if (declared === undefined && isBuiltinObjectTypeName(type.trim())) declaredBuiltinVariables.set(`&${name.replace(/^&/, '').toLowerCase()}`, type.trim());
+    // PT863: an `array of` one too, as a Global's (Cycle 134): PT_CONQRS:
+    // CONQRSMGR (lab 8.63.05) `property array of Record RunControlParArray`
+    // then `&RunControlParArray [1].QRYNAME.Value` stores QRYNAME as 0x4A.
+    else if (declared === undefined && /^(?:array\s+of\s+)+/i.test(type.trim()) && isBuiltinObjectTypeName(type.trim().replace(/^(?:array\s+of\s+)+/i, ''))) {
+      declaredBuiltinVariables.set(`&${name.replace(/^&/, '').toLowerCase()}`, type.trim().replace(/\s+/g, ' '));
+    }
     if (declared === undefined) return;
     applicationClassOwnPropertyTypes.set(name.replace(/^&/, '').toLowerCase(), declared);
     programDeclaredVariables.set(`&${name.replace(/^&/, '').toLowerCase()}`, declared);
@@ -16872,6 +17052,22 @@ function encodeApplicationClassProgramV2(
     if (statement.kind === 'property') {
       statementChunks.push(Buffer.from([0x5e]));
       statementChunks.push(encodeApplicationClassTypeBytes(statement.type));
+      /*
+       * PT863: block comments between the type and the name stay in place
+       * as inline 0x4E comments (PTNUI:Model:Tile, lab 8.63.05: `property
+       * array of array of string /* PTNUI:Dynamic:DynamicContent *\/
+       * ContentArray;` stores `40 string 4E /* ... *\/ 0A ContentArray`).
+       */
+      const declarationText = source.slice(statement.sourceIndex, statement.sourceEnd);
+      const beforeName = new RegExp(`((?:/\\*[\\s\\S]*?\\*/\\s*)+)${statement.name}\\b`).exec(declarationText);
+      if (beforeName !== null) {
+        let offset = statement.sourceIndex + beforeName.index;
+        for (const comment of beforeName[1].match(/\/\*[\s\S]*?\*\//g) ?? []) {
+          const start = source.indexOf(comment, offset);
+          statementChunks.push(applicationClassLayoutCommentOperand({ start, end: start + comment.length, opcode: 0x4e, raw: comment }));
+          offset = start + comment.length;
+        }
+      }
       statementChunks.push(encodeInlineName(statement.name));
       for (const modifier of statement.modifiers) {
         statementChunks.push(Buffer.from([modifier === 'readonly' ? 0x60 : modifier === 'get' ? 0x5f : 0x49]));
@@ -17063,6 +17259,19 @@ function maskCommentsAndStringLiteralsForFunctionScan(
       const end = disabledCommentEnd(source, i);
       const stop = end === -1 ? source.length : end;
       masked += ' '.repeat(stop - i);
+      i = stop;
+    } else if (/^(?:REM|remark)\b/i.test(source.slice(i, i + 7)) && /(?:^|[;\r\n])[ \t]*$/.test(masked.slice(-200))) {
+      /*
+       * PT863: a REM comment (statement start through its first `;`, as
+       * `remComment()` reads it) is not code; a quote in it opens no
+       * string. FUNCLIB_PORTAL.PORTAL_GEN_FUNC (lab 8.63.05) `REM " --
+       * &quot //Quote ;` and WEBLIB_PT_NAV.ISCRIPT1 `REM
+       * "PORTAL_OBJ_NAME$$$...;` hid every later Function from the
+       * directory scan.
+       */
+      const end = source.indexOf(';', i);
+      const stop = end === -1 ? source.length : end + 1;
+      masked += source.slice(i, stop).replace(/[^\r\n]/g, ' ');
       i = stop;
     } else if (source[i] === '"') {
       let j = i + 1;

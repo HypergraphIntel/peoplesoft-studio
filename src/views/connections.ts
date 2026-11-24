@@ -23,7 +23,8 @@ export class ConnectionsView implements vscode.TreeDataProvider<ConnectionConfig
     item.iconPath = new vscode.ThemeIcon(
       element.kind === 'projectFile' ? 'file-zip' : 'database',
       connected ? new vscode.ThemeColor('charts.green') : undefined);
-    item.contextValue = `connection.${connected ? 'connected' : 'disconnected'}`;
+    // connection.<state>[.database]: database connections offer Update Password…; project exports have no password.
+    item.contextValue = `connection.${connected ? 'connected' : 'disconnected'}${element.kind === 'projectFile' ? '' : '.database'}`;
     const platform = element.kind === 'projectFile' ? 'project export'
       : element.signon === 'threeTier' ? `${PLATFORM_LABELS[element.kind]} app server, 3-tier sign-on as ${element.peoplesoftOperatorId ?? '?'} (transport pending)`
       : element.signon === 'twoTier' ? `${PLATFORM_LABELS[element.kind]}, 2-tier sign-on as ${element.peoplesoftOperatorId ?? '?'}`

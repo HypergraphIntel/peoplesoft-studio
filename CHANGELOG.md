@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 1.0.2 — November 24, 2026
+
+PeopleTools 8.63 support for PeopleCode, compiler fixes for newer delivered
+code, and Update Password for connections. See the
+[release notes](docs/releases/1.0.2.md).
 
 - **PeopleTools 8.63 compiler profile (PT863).** On an 8.63 database
   Settings showed "No compiler profile", and Studio refused to validate,
@@ -10,6 +14,25 @@
   and none of the 36 misses depends on the release. PT863 models the same
   behavior as 8.61 and 8.62; see
   [Compiler profiles](docs/COMPILER_PROFILES.md#pt863-evidence-2026-11-24).
+- **PeopleCode compiler: newer PeopleTools code.** Studio now compiles all
+  963 programs of the lab's 8.63.05 upgrade exactly as PeopleTools does
+  (927 before). Programs that failed to compile, or compiled with
+  different bytes or reference rows, now match: comments inside an
+  expression or argument list, `(create X()).Method()` in a `Local`
+  initializer, `ComponentLife` declarations of built-in and `%metadata`
+  types, Function parameters and results of type `JavaObject`,
+  `ProcessRequest` and `JsonBuilder`, the built-in types `IBConnectorInfo`,
+  `Chart`, `CQRuntime`, `JsonParser`, `PTDirectTransferObject`,
+  `CQChunkedProcessor` and `PPMClass`, and a quote inside a `REM` comment.
+  Programs that already compiled exactly are unchanged.
+- **Update Password.** A database connection's password can now be replaced
+  without removing the connection. Use the **Update Password** button in
+  Settings, *Update Password…* on the connection's menu in the Connections
+  view, or the command palette. Studio asks for the new password, tests it
+  with a temporary connection, and stores it only if the database accepts it.
+  A live connection reopens with the new password. If the database can't be
+  reached, you can save it without testing. An expired password (ORA-28001)
+  now counts as a credential failure, so it is no longer reused.
 
 ## 1.0.1 — November 11, 2026
 

@@ -141,6 +141,7 @@ export type SettingsWebviewMessage =
   | { type: 'setConnectionOption'; connectionId: string; option: ConnectionOption; value: string }
   | { type: 'addConnection' }
   | { type: 'removeConnection'; connectionId: string }
+  | { type: 'updatePassword'; connectionId: string }
   | { type: 'openNativeSettings' }
   | { type: 'mcp'; action: McpAction };
 
@@ -166,6 +167,7 @@ export function parseWebviewMessage(raw: unknown): SettingsWebviewMessage | unde
 
     case 'testConnection':
     case 'removeConnection':
+    case 'updatePassword':
       return connectionId ? { type: m.type, connectionId } : undefined;
 
     case 'updateConnection': {

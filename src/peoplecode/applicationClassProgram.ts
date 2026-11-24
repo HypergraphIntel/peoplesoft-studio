@@ -731,6 +731,14 @@ const BUILTIN_TYPE_IDS = new Map<string, number>([
   ['file', 1], ['sql', 2], ['record', 3], ['rowset', 7], ['row', 8], ['field', 9],
   ['processrequest', 11], ['message', 14], ['apiobject', 15], ['grid', 20],
   ['javaobject', 27], ['xmldoc', 29], ['exception', 33], ['xmlnode', 34],
+  // PT863 (lab 8.63.05): `property IBConnectorInfo IBConnector;` stores
+  // 0x8002d and no name-run entry (PTCBAPPLSVCDEFN MessageAPI x2,
+  // ApplicationServiceModel x1, JsonMessageAPI / XmlMessageAPI x2).
+  ['ibconnectorinfo', 45],
+  // PT863 (lab 8.63.05, stored descriptors, no name-run entry): Chart 0x8001f
+  // (PT_GRIDCHART:GridChart), CQRuntime 0x80044 (PTSF_ES:ESIMPL:
+  // IngestService), JsonParser 0x80066 (PT_MCF_MAIL:MCFGetMessages).
+  ['chart', 31], ['cqruntime', 68], ['jsonparser', 102],
   ['document', 63], ['compound', 66], ['collection', 67], ['map', 73],
   ['mapelement', 75], ['jsonbuilder', 97], ['jsonobject', 99], ['jsonarray', 100]
 ]);

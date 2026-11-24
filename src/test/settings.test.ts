@@ -111,6 +111,7 @@ class FakeConnections implements ConnectionPort {
 
   async add() { this.calls.push('add'); }
   async remove(config: ConnectionConfig) { this.calls.push(`remove:${config.name}`); }
+  async updatePassword(config: ConnectionConfig) { this.calls.push(`updatePassword:${config.name}`); }
   test(config: ConnectionConfig) { this.calls.push(`test:${config.name}`); return this.testResult(); }
   async verifyOperator(config: ConnectionConfig, operatorId: string) {
     this.calls.push(`verifyOperator:${config.name}:${operatorId}`);
@@ -451,8 +452,9 @@ test('add and remove delegate to the existing operations', async () => {
   const { service, conns, nativeOpened } = setup();
   await service.handleMessage({ type: 'addConnection' });
   await service.handleMessage({ type: 'removeConnection', connectionId: 'project:/tmp/project.xml' });
+  await service.handleMessage({ type: 'updatePassword', connectionId: 'oracle:HCTST' });
   await service.handleMessage({ type: 'openNativeSettings' });
-  assert.deepEqual(conns.calls, ['add', 'remove:Export']);
+  assert.deepEqual(conns.calls, ['add', 'remove:Export', 'updatePassword:HCTST']);
   assert.equal(nativeOpened.length, 1);
 });
 

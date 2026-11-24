@@ -14,15 +14,13 @@ writing the same rows Application Designer writes.
 > their documented limits; see the [support contract](docs/SUPPORT_MATRIX.md)
 > and [Disclaimer](#disclaimer). 1.0 is not full Application Designer parity.
 
-Current release: **1.0.1 — November 11, 2026**. Reliability fixes for the
-MCP and Change Review: a second edit of a staged record no longer drops the
-first, over-long labels and defaults are refused before Oracle, subpackages can
-be created with a reviewed undo, and web library PeopleCode keeps App
-Designer's license code. Oracle Thick mode is now a setting
-(`peoplesoft.oracle.clientMode`). 1.0 is the qualified core; the 1.5 workflows
-from 0.9.9 remain with their limits. See the
-[release notes](docs/releases/1.0.1.md), [changelog](CHANGELOG.md) and
-[download the VSIX](https://github.com/HypergraphIntel/peoplesoft-studio/releases/tag/v1.0.1).
+Current release: **1.0.2 — November 24, 2026**. PeopleTools 8.63 now has a
+compiler profile, so Studio validates, formats and saves PeopleCode on 8.63
+databases; the compiler reproduces all 963 programs of the lab's 8.63.05
+upgrade byte for byte. Connections gain **Update Password**. 1.0 is the
+qualified core; the 1.5 workflows from 0.9.9 remain with their limits. See the
+[release notes](docs/releases/1.0.2.md), [changelog](CHANGELOG.md) and
+[download the VSIX](https://github.com/HypergraphIntel/peoplesoft-studio/releases/tag/v1.0.2).
 
 Track completion gates in [1.0 readiness](docs/RELEASE_1_0_READINESS.md).
 

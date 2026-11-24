@@ -232,7 +232,40 @@ export class Workspace implements vscode.Disposable {
     }
   }
 
-  private async create(config: ConnectionConfig): Promise<DefinitionProvider> {
+  /**
+   * Replaces a database connection's stored password (Update Password…). A candidate is proven first with a throwaway
+   * connection and stored only when the database accepts it, unless `untested` (the database cannot be reached now).
+   * A live connection is reopened with it. Returns the PeopleTools release when it was tested.
+   */
+  async updatePassword(config: ConnectionConfig, password: string, untested = false): Promise<EnvironmentInfo | undefined> {
+    if (!isDatabase(config)) throw new Error(`"${config.name}" is a project export; it has no database password.`);
+    let environment: EnvironmentInfo | undefined;
+    if (!untested) {
+      const probe = await this.create(config, password);
+      try {
+        await probe.connect();
+        environment = await probe.readEnvironment?.();
+      } finally {
+        await probe.dispose();
+      }
+    }
+    await this.secrets.store(`peoplesoft.password.${config.name}`, password);
+    const id = providerId(config), live = this.providers.get(id);
+    if (live?.isConnected) {
+      // The open pool holds the old password; reopen it so later sessions use the new one.
+      await this.disconnect(id);
+      if (!untested) await this.connect(config);
+    }
+    this._onDidChange.fire();
+    return environment;
+  }
+
+  /** Whether a connection has a stored database password. */
+  async hasPassword(config: ConnectionConfig): Promise<boolean> {
+    return (await this.secrets.get(`peoplesoft.password.${config.name}`)) !== undefined;
+  }
+
+  private async create(config: ConnectionConfig, passwordOverride?: string): Promise<DefinitionProvider> {
     if (config.kind === 'projectFile') {
       if (!config.path) throw new Error(`Connection "${config.name}" has no project file path.`);
       return new ProjectFileProvider(config.path, config.name);
@@ -251,7 +284,7 @@ export class Workspace implements vscode.Disposable {
     }
 
     const secretKey = `peoplesoft.password.${config.name}`;
-    let password = await this.secrets.get(secretKey);
+    let password = passwordOverride ?? await this.secrets.get(secretKey);
     if (password === undefined) {
       const entered = await vscode.window.showInputBox({
         title: `Password for ${config.user}@${config.connectString}`,
@@ -415,7 +448,7 @@ export class Workspace implements vscode.Disposable {
 export function isCredentialFailure(err: unknown): boolean {
   const message = (err as { message?: string })?.message ?? '';
   const cause = ((err as { cause?: { message?: string } })?.cause?.message) ?? '';
-  return /ORA-01017|invalid username\/password|ORA-28000|account is locked|Login failed for user|SQL30082N/i
+  return /ORA-01017|invalid username\/password|ORA-28000|account is locked|ORA-28001|password has expired|Login failed for user|SQL30082N/i
     .test(`${message} ${cause}`);
 }
 

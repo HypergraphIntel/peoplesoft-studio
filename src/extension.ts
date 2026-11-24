@@ -21,7 +21,7 @@ import { openPortalStructure } from './editors/portalPanel.js';
 import * as vscode from 'vscode';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { Workspace, ConnectionConfig, providerId } from './workspace.js';
+import { Workspace, ConnectionConfig, providerId, isCredentialFailure } from './workspace.js';
 import { PeopleSoftFileSystem } from './providers/fileSystem.js';
 import { ConnectionsView } from './views/connections.js';
 import { BrowserView } from './views/browser.js';
@@ -962,6 +962,44 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         await workspace.disconnect(providerId(config));
         refreshAll();
       });
+    }),
+
+    // Update Password…: the database password is kept in SecretStorage, asked for only on the first connect. A new one is
+    // proven with a throwaway connection before it replaces the stored one; a live connection reopens with it.
+    vscode.commands.registerCommand('psft.updatePassword', async (config?: ConnectionConfig) => {
+      if (!config) {
+        const databases = workspace.connections.filter((c) => c.kind !== 'projectFile');
+        config = (await vscode.window.showQuickPick(databases.map((c) => ({ label: c.name, description: `${c.user ?? ''}@${c.connectString ?? ''}`, config: c })),
+          { title: 'Update Password — connection' }))?.config;
+        if (!config) return;
+      }
+      if (config.kind === 'projectFile') { vscode.window.showInformationMessage(`"${config.name}" is a project export; it has no password.`); return; }
+      const target = config;
+      const password = await vscode.window.showInputBox({
+        title: `Update Password — ${target.name}`,
+        prompt: `New database password for ${target.user}@${target.connectString}. It is tested before it replaces the stored one.`,
+        password: true, ignoreFocusOut: true,
+        validateInput: (v) => (v === '' ? 'Enter the new password.' : undefined)
+      });
+      if (password === undefined) return;
+      try {
+        const env = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Testing the new password for ${target.name}…` },
+          () => workspace.updatePassword(target, password));
+        vscode.window.showInformationMessage(`Password updated for ${target.name}${env?.toolsRelease ? ` (PeopleTools ${env.toolsRelease})` : ''}.`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (isCredentialFailure(err)) {
+          vscode.window.showErrorMessage(`The database refused the new password for ${target.name}; the stored password is unchanged. ${message}`);
+        } else {
+          const choice = await vscode.window.showWarningMessage(
+            `Could not test the new password for ${target.name}: ${message}`, 'Save Without Testing');
+          if (choice === 'Save Without Testing') {
+            await workspace.updatePassword(target, password, true);
+            vscode.window.showInformationMessage(`Password updated for ${target.name} (not tested).`);
+          }
+        }
+      }
+      refreshAll();
     }),
 
     vscode.commands.registerCommand('psft.removeConnection', async (config: ConnectionConfig) => {

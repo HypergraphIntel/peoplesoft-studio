@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -439,6 +439,12 @@
         "title": "Add Connection",
         "category": "PeopleSoft",
         "icon": "$(add)"
+      },
+      {
+        "command": "psft.updatePassword",
+        "title": "Update Password…",
+        "category": "PeopleSoft",
+        "icon": "$(key)"
       },
       {
         "command": "psft.removeConnection",
@@ -999,22 +1005,27 @@
         },
         {
           "command": "psft.connect",
-          "when": "view == psft.connections && viewItem == connection.disconnected",
+          "when": "view == psft.connections && viewItem =~ /^connection\\.disconnected/",
           "group": "inline"
         },
         {
           "command": "psft.connect",
-          "when": "view == psft.connections && viewItem == connection.disconnected",
+          "when": "view == psft.connections && viewItem =~ /^connection\\.disconnected/",
           "group": "1_connect"
         },
         {
           "command": "psft.disconnect",
-          "when": "view == psft.connections && viewItem == connection.connected",
+          "when": "view == psft.connections && viewItem =~ /^connection\\.connected/",
           "group": "1_connect"
         },
         {
           "command": "psft.settings.open",
           "when": "view == psft.connections && viewItem =~ /^connection\\./",
+          "group": "2_settings"
+        },
+        {
+          "command": "psft.updatePassword",
+          "when": "view == psft.connections && viewItem =~ /^connection\\..*\\.database$/",
           "group": "2_settings"
         },
         {

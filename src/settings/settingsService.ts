@@ -58,6 +58,8 @@ export interface ConnectionPort {
   selectedId(): string | undefined;
   add(): Promise<void>;
   remove(config: ConnectionConfig): Promise<void>;
+  /** Update Password…: asks for the new database password, tests it and stores it. */
+  updatePassword(config: ConnectionConfig): Promise<void>;
   /** Connects a throwaway provider; resolves to its PSSTATUS where it has one. */
   test(config: ConnectionConfig): Promise<EnvironmentInfo | undefined>;
   /** Whether a PeopleSoft operator exists in the connection's database (PSOPRDEFN), read-only. */
@@ -209,6 +211,9 @@ export class SettingsService implements Disposable {
     switch (message.type) {
       case 'removeConnection':
         await this.connections.remove(entry.config);
+        return undefined;
+      case 'updatePassword':
+        await this.connections.updatePassword(entry.config);
         return undefined;
       case 'testConnection':
         await this.testConnection(entry);

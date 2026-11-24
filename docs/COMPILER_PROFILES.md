@@ -103,31 +103,45 @@ in the lab, so the evidence is the database's own 8.63 output, compared
 read-only by `tools/corpus/controlled-compile/compare-lab-native.ts`
 (report: `results/8.63.05/native-comparison.json`).
 
-| Population | Profile | Exact (bytes + PSPCMNAME) |
-|---|---|---|
-| 963 programs compiled by 8.63.05 | PT863 | 927 (96.3%) |
-| the same 963 | PT862 | 927 (the same set) |
-| 3,000-program sample of the 8.62.09 compile | PT862 | 2,969 (99.0%) |
+| Population | Profile | Exact at fd4b8c6b | Exact after the gap fixes |
+|---|---|---|---|
+| 963 programs compiled by 8.63.05 | PT863 | 927 (96.3%) | **963 (100%)** |
+| the same 963 | PT862 | 927 (the same set) | -- |
+| 3,000-program sample of the 8.62.09 compile | PT862 | 2,969 (99.0%) | 2,971 (0 lost) |
 
 - Every exact program's 37-byte header matches; the header differences
-  in the misses are only the length fields of a body that differs.
-- No result depends on the release: PT862 and PT863 give the identical
+  in the misses were only the length fields of a body that differed.
+- No result depends on the release: PT862 and PT863 gave the identical
   exact set (4 programs use `#ToolsRel`; their verdicts do not change).
-- None of the 36 misses is in the HCDEV snapshot. Their families all
-  occur in the 8.61 corpus and are encoder gaps, not release deltas:
-  - 10 encode errors: `(create X()).Method()`; `ComponentLife
-    %metadata:...` declarations; `JsonBuilder` / `JavaObject` /
-    `ProcessRequest` as Function parameter or return types; and
-    expression parse gaps in Application Class headers and assignments;
-  - missing `PACKAGE.*` rows for `import %metadata:...` (e.g.
-    `%metadata:Webhook:Ptibwebhdrprp` stores `PACKAGE.PTIBWEBHDRPRP`)
-    and missing `FIELD.*` rows;
-  - PSPCMNAME rows in a different order (5);
-  - a comment inside a property type, and a blank line before a Function,
-    dropped;
-  - byte-only differences with identical decoded text (about 8).
+- None of the 36 misses is in the HCDEV snapshot, and none was a release
+  delta. They were encoder gaps in constructs the 8.61 corpus does not
+  exercise (the HCDEV corpus has the base constructs, not these
+  variants), fixed one rule at a time with the HCDEV corpus unchanged
+  (30,134 EXACT, 0 regressed) and pinned by `src/test/encoderPt863.test.ts`:
+  - parsing: `Local boolean &b = (create X()).Method()`; an operand opening
+    with `/* */` or `<* *>`; `<* *>` before an argument's comma;
+    `ComponentLife %metadata:...`;
+  - types: Function `JavaObject` / `ProcessRequest` parameters and
+    `Returns JsonBuilder` (descriptors 0x8001b / 0x8000b / 0x80061, with
+    PACKAGE rows); App Class built-in descriptors `IBConnectorInfo` 45,
+    `Chart` 31, `CQRuntime` 68, `JsonParser` 102; built-ins
+    `PTDirectTransferObject`, `CQChunkedProcessor`, `PPMClass`;
+  - PSPCMNAME rows: a named `%metadata` import does not stand in for its
+    class's header row; a built-in `ComponentLife` allocates its row;
+    a method call on a same-program Function's class result is a method
+    row of that class; `(&rs(1)).REC.FIELD` keeps the selector's RECORD /
+    FIELD rows; an App Class `Declare Function` target repeated across a
+    directive opens a row per session; in an App Class method a Rowset
+    selector's RECORD row is one row whatever field follows;
+    `property array of Record` registers the array;
+  - layout: a comment between a property's type and name stays in place;
+    the Function-directory scan masks REM comments (a quote in a REM hid
+    later Functions); a REM followed by any declaration keeps the Local
+    run open.
 
-So PT863 was added with no deltas. The lab-release table
+So PT863 has no deltas. Offline replay of the 36:
+`tools/corpus/controlled-compile/lab-fixture.ts` (capture once, read-only,
+into the gitignored `tools/corpus/reports/`). The lab-release table
 (`PEOPLETOOLS_RELEASES`) has no `8.63.05` entry yet: it needs the 8.63
 client's hashes, and the SMOKE / H / G controlled fixtures have not been
 compiled on 8.63.

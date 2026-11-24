@@ -639,10 +639,13 @@ const OBJECT_TYPE_CODES = new Map<number, string>([
   [7, 'Rowset'],
   [8, 'Row'],
   [9, 'Field'],
+  [11, 'ProcessRequest'],
   [15, 'ApiObject'],
+  [27, 'JavaObject'],
   [29, 'XmlDoc'],
   [33, 'Exception'],
   [34, 'XmlNode'],
+  [97, 'JsonBuilder'],
   [99, 'JsonObject']
 ]);
 

@@ -27,12 +27,10 @@ import type { ApplicationClassTypeMetadataProvider } from './applicationClassTyp
  * (metadata universe).
  *
  * PT863 (2026-11-24): the lab's 8.63.05 upgrade recompiled 963 programs;
- * 927 encode byte- and PSPCMNAME-exact under PT863 with the lab's metadata,
- * with identical results under PT862, and every header matches. The 36
- * misses are encoder gaps the 8.61 corpus shares (`%metadata:` imports and
- * declarations, (create X()).Method(), JsonBuilder / JavaObject /
- * ProcessRequest parameter types, FIELD / PACKAGE reference rows), not
- * release deltas (docs/COMPILER_PROFILES.md).
+ * all 963 encode byte- and PSPCMNAME-exact under PT863 with the lab's
+ * metadata. The 36 that first missed (927 / 963, identical under PT862)
+ * were encoder gaps in constructs HCDEV does not exercise, not release
+ * deltas (docs/COMPILER_PROFILES.md).
  */
 
 export type CompilerProfileId = 'PT861' | 'PT862' | 'PT863';
